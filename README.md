@@ -7,7 +7,9 @@
 | 문서 | 내용 |
 |---|---|
 | [docs/00-project-charter.md](docs/00-project-charter.md) | 프로젝트 개요, 확정 사항, 미결정 사항 |
-| [docs/01-game-design.md](docs/01-game-design.md) | 게임 기획서 (GDD) |
+| [docs/01-game-design.md](docs/01-game-design.md) | 게임 기획서: 공통 확정 사항과 기획안 비교 |
+| [docs/concepts/A-toemacheong.md](docs/concepts/A-toemacheong.md) | 기획안 A: 퇴마청 (보류) |
+| [docs/concepts/B-jumak.md](docs/concepts/B-jumak.md) | 기획안 B: 주막 경영 (검토 중) |
 | [docs/02-technical-plan.md](docs/02-technical-plan.md) | 기술 계획: 엔진, 플랫폼, 빌드, 협업 규칙 |
 | [docs/03-steam-release.md](docs/03-steam-release.md) | Steam 출시 계획과 체크리스트 |
 | [docs/04-roadmap.md](docs/04-roadmap.md) | 마일스톤과 일정 |
