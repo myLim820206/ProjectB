@@ -1,0 +1,12 @@
+{
+  "name": "projectb-hd2d-preview",
+  "private": true,
+  "description": "HD-2D 미리보기 렌더러. 픽셀 아트 에셋을 3D 장면에 배치해 언리얼 적용 전 분위기를 확인한다.",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  }
+}

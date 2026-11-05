@@ -1,0 +1,5 @@
+# 도구 생성물
+tools/pixelart/out/
+tools/preview/node_modules/
+__pycache__/
+*.pyc
