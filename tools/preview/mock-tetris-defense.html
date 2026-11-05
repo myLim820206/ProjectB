@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tetris Defense Mockup</title>
+<style>
+  html,body{margin:0;width:1280px;height:720px;background:#06060b;overflow:hidden;font-family:"DejaVu Sans Mono","Noto Sans KR",monospace;color:#cfd8e6}
+  canvas{position:absolute;inset:0}
+  .hud{position:absolute;font-size:13px}
+  .box{border:1px solid rgba(127,214,255,.35);padding:12px 14px}
+  .h{color:#7fd6ff;letter-spacing:2px;font-size:12px;margin-bottom:8px}
+  #left{top:150px;left:40px;width:200px;line-height:1.9}
+  #left .w{font-size:22px;color:#e8f0ff}
+  .bar{height:6px;border:1px solid rgba(127,214,255,.5);margin:4px 0 10px}
+  .bar i{display:block;height:100%;background:#7fd6ff;box-shadow:0 0 8px #7fd6ff}
+  #right{top:150px;right:40px;width:200px}
+  #hint{bottom:30px;left:50%;transform:translateX(-50%);color:#6a7486;font-size:12px;letter-spacing:1px}
+  #title{top:40px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:4px;color:#5a6476}
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div id="title" class="hud">— TETRIS DEFENSE —</div>
+<div id="left" class="hud box">
+  <div class="w">WAVE 12</div>
+  <div style="color:#8a94a6">다음 웨이브 08초</div>
+  CORE 14 / 20<div class="bar"><i style="width:70%"></i></div>
+  <span style="color:#9cffb0">$ 340</span><br>
+  <span style="color:#8a94a6">경로 길이</span> 43칸<br>
+  <span style="color:#8a94a6">처치</span> 286
+</div>
+<div id="right" class="hud box"><div class="h">NEXT</div><div style="height:250px"></div><div class="h">HOLD</div><div style="height:70px"></div></div>
+<div id="hint" class="hud">[Q / E] 회전 · [클릭] 놓기 · [Space] 보관</div>
+<script>
+const c = document.getElementById('c'), g = c.getContext('2d');
+const COLS = 16, ROWS = 11, CELL = 40, OX = 320, OY = 150;
+const COL = { I: '#7fd6ff', O: '#ffd96a', T: '#c890ff', S: '#9cffb0', Z: '#ff8a7a', L: '#ffb36a', J: '#6a9cff' };
+const pieces = [
+  ['I', [[3,0],[3,1],[3,2],[3,3]]], ['J', [[3,4],[3,5],[3,6],[4,6]]],
+  ['L', [[6,1],[6,2],[6,3],[7,3]]], ['T', [[6,4],[6,5],[6,6],[7,5]]], ['I', [[6,7],[6,8],[6,9],[6,10]]],
+  ['I', [[9,0],[9,1],[9,2],[9,3]]], ['S', [[9,4],[9,5],[10,5],[10,6]]], ['O', [[10,7],[11,7],[10,8],[11,8]]],
+  ['I', [[13,7],[13,8],[13,9],[13,10]]], ['T', [[13,4],[13,5],[13,6],[12,5]]], ['Z', [[1,9],[2,9],[2,10],[3,10]]],
+];
+const turrets = [[3,2],[6,8],[9,1],[10,8],[13,9],[12,5],[7,5]];
+const ghost = ['T', [[12,1],[12,2],[12,3],[11,2]]];
+const START = [0,5], CORE = [15,5];
+const blocked = (extra = []) => { const b = new Set(); pieces.forEach(([, cs]) => cs.forEach(([x,y]) => b.add(x+','+y))); extra.forEach(([x,y]) => b.add(x+','+y)); return b; };
+function bfs(b) {
+  const prev = {}, q = [START], seen = new Set([START+'']);
+  while (q.length) { const [x,y] = q.shift(); if (x === CORE[0] && y === CORE[1]) break;
+    for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const nx = x+dx, ny = y+dy, k = nx+','+ny;
+      if (nx<0||ny<0||nx>=COLS||ny>=ROWS||b.has(k)||seen.has(k)) continue; seen.add(k); prev[k] = [x,y]; q.push([nx,ny]); } }
+  const path = []; let cur = CORE; while (cur) { path.unshift(cur); cur = prev[cur+'']; } return path;
+}
+const P = (x, y) => [OX + x*CELL + CELL/2, OY + y*CELL + CELL/2];
+const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = b; };
+
+// 격자
+g.lineWidth = 1; g.strokeStyle = 'rgba(120,140,180,.10)'; g.shadowBlur = 0;
+for (let x = 0; x <= COLS; x++) { g.beginPath(); g.moveTo(OX + x*CELL, OY); g.lineTo(OX + x*CELL, OY + ROWS*CELL); g.stroke(); }
+for (let y = 0; y <= ROWS; y++) { g.beginPath(); g.moveTo(OX, OY + y*CELL); g.lineTo(OX + COLS*CELL, OY + y*CELL); g.stroke(); }
+glow('rgba(127,214,255,.5)', 6); g.strokeRect(OX, OY, COLS*CELL, ROWS*CELL);
+
+// 경로: 현재 (점선) + 놓으면 바뀌는 경로 (희미한 점선)
+const path = bfs(blocked()), path2 = bfs(blocked(ghost[1]));
+function drawPath(p, col, dash, w) { g.setLineDash(dash); g.lineWidth = w; glow(col, 6); g.beginPath(); p.forEach(([x,y], i) => { const [px,py] = P(x,y); i ? g.lineTo(px,py) : g.moveTo(px,py); }); g.stroke(); g.setLineDash([]); }
+drawPath(path2, 'rgba(255,217,106,.35)', [2,8], 1.5);
+drawPath(path, 'rgba(255,138,122,.55)', [4,6], 1.6);
+
+// 블록: 칸마다 외곽선, 조각 단위로 같은 색
+function cell(x, y, col, alpha = 1, dashed = false) {
+  g.globalAlpha = alpha; g.lineWidth = 1.6; glow(col, 10); if (dashed) g.setLineDash([4,4]);
+  g.strokeRect(OX + x*CELL + 4, OY + y*CELL + 4, CELL - 8, CELL - 8); g.setLineDash([]);
+  g.lineWidth = 1; g.shadowBlur = 0; g.globalAlpha = alpha * .25; g.strokeRect(OX + x*CELL + 10, OY + y*CELL + 10, CELL - 20, CELL - 20); g.globalAlpha = 1;
+}
+pieces.forEach(([t, cs]) => cs.forEach(([x,y]) => cell(x, y, COL[t])));
+// 같은 색 연결 강화 표시 (I 조각들 사이)
+// 포탑 칸
+turrets.forEach(([x,y]) => { const [px,py] = P(x,y); glow('#e8f8ff', 12); g.lineWidth = 1.6; g.beginPath(); g.arc(px, py, 7, 0, 6.28); g.stroke(); g.beginPath(); g.arc(px, py, 2, 0, 6.28); g.fill(); });
+// 선택한 포탑 사거리
+{ const [px,py] = P(6,8); g.setLineDash([3,6]); glow('rgba(127,214,255,.5)', 4); g.lineWidth = 1; g.beginPath(); g.arc(px, py, CELL*2.6, 0, 6.28); g.stroke(); g.setLineDash([]); }
+
+// 배치 중인 블록 (반투명 점선)
+ghost[1].forEach(([x,y]) => cell(x, y, COL.T, .55, true));
+{ const [px,py] = P(12,0); g.shadowBlur = 0; g.fillStyle = '#ffd96a'; g.font = 'bold 13px monospace'; g.fillText(`+${path2.length - path.length}칸 경로 연장`, px - 150, py + 6); }
+
+// 입구와 핵
+{ const [sx,sy] = P(...START); g.lineWidth = 1.6; glow('#ff8a7a', 12); g.beginPath(); g.moveTo(sx-26, sy-16); g.lineTo(sx-14, sy); g.lineTo(sx-26, sy+16); g.stroke(); }
+{ const [cx,cy] = P(...CORE); g.lineWidth = 2; glow('#7fd6ff', 18); g.beginPath(); for (let i = 0; i <= 6; i++) { const a = Math.PI/6 + i/6*6.283; g.lineTo(cx + Math.cos(a)*16, cy + Math.sin(a)*16); } g.stroke();
+  g.lineWidth = 1; g.beginPath(); for (let i = 0; i <= 6; i++) { const a = Math.PI/6 + i/6*6.283; g.lineTo(cx + Math.cos(a)*8, cy + Math.sin(a)*8); } g.stroke(); }
+
+// 적: 경로 위
+const along = (k, off = 0) => { const i = Math.floor(k), f = k - i, a = P(...path[Math.min(i, path.length-1)]), b = P(...path[Math.min(i+1, path.length-1)]); return [a[0] + (b[0]-a[0])*f, a[1] + (b[1]-a[1])*f + off]; };
+const foes = [[0.6,'sq'],[2.3,'sq'],[5.2,'tri'],[9.5,'sq'],[13.4,'dia'],[17.6,'sq'],[20.2,'tri'],[24.7,'sq'],[28.4,'sq'],[33.8,'dia'],[38.2,'tri']];
+function sq(x, y, r) { g.strokeRect(x - r, y - r, r*2, r*2); }
+function tri(x, y, r) { g.beginPath(); g.moveTo(x + r, y); g.lineTo(x - r*.7, y - r*.8); g.lineTo(x - r*.7, y + r*.8); g.closePath(); g.stroke(); }
+function dia(x, y, r) { g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.closePath(); g.stroke(); }
+foes.forEach(([k, t]) => { const [x,y] = along(k); g.lineWidth = 1.6;
+  if (t === 'sq') { glow('#ff8a7a', 8); sq(x, y, 5); } if (t === 'tri') { glow('#ffd96a', 8); tri(x, y, 7); } if (t === 'dia') { glow('#ff6ad5', 10); dia(x, y, 9); dia(x, y, 4); } });
+
+// 포탑 사격: 가까운 적에게 빛줄기
+function shot(tx, ty, k) { const [ax,ay] = P(tx,ty), [bx,by] = along(k); const mx = ax + (bx-ax)*.55, my = ay + (by-ay)*.55, ex = ax + (bx-ax)*.85, ey = ay + (by-ay)*.85;
+  const gr = g.createLinearGradient(mx,my,ex,ey); gr.addColorStop(0,'rgba(191,240,255,0)'); gr.addColorStop(1,'#bff0ff'); g.strokeStyle = gr; g.shadowColor = '#7fd6ff'; g.shadowBlur = 10; g.lineWidth = 2; g.beginPath(); g.moveTo(mx,my); g.lineTo(ex,ey); g.stroke(); }
+let HITK = 13.4;
+turrets.forEach(([tx,ty]) => { const [ax,ay] = P(tx,ty); let best = null, bd = 1e9;
+  foes.forEach(([k]) => { const [x,y] = along(k); const d = Math.hypot(x-ax, y-ay); if (d < bd) { bd = d; best = k; } });
+  if (bd < CELL*2.6) shot(tx, ty, best); });
+// 피격 파편과 숫자
+{ const [x,y] = along(HITK); glow('#ff6ad5', 8); let s = 3; const r = () => (s = (s*9301+49297)%233280)/233280; for (let i = 0; i < 12; i++) { const a = r()*6.28, d = 6 + r()*16; g.fillRect(x + Math.cos(a)*d, y + Math.sin(a)*d, 2, 2); }
+  g.shadowBlur = 0; g.fillStyle = '#ffe9b0'; g.font = 'bold 12px monospace'; g.fillText('64', x + 10, y - 12); }
+
+// 같은 색 연결 보너스 라벨 (세로 I 조각 둘이 같은 색)
+{ const [ax,ay] = P(3,1), [bx,by] = P(6,8); g.shadowBlur = 0; g.fillStyle = '#7fd6ff'; g.font = '12px monospace'; }
+{ const [x,y] = P(13,10); g.shadowBlur = 0; g.fillStyle = 'rgba(127,214,255,.9)'; g.font = '12px monospace'; g.fillText('같은 색 연결: I 조각 x2 · 포탑 +20%', x - 210, y + 36); }
+
+// 오른쪽 패널: NEXT, HOLD 미니 조각
+function mini(t, cells, x0, y0, s = 16) { cells.forEach(([x,y]) => { g.lineWidth = 1.4; glow(COL[t], 8); g.strokeRect(x0 + x*s + 2, y0 + y*s + 2, s - 4, s - 4); }); }
+mini('S', [[1,0],[2,0],[0,1],[1,1]], 1090, 200);
+mini('I', [[0,0],[1,0],[2,0],[3,0]], 1082, 270);
+mini('L', [[0,0],[0,1],[0,2],[1,2]], 1100, 320);
+mini('O', [[0,0],[1,0],[0,1],[1,1]], 1100, 444);
+window.__done = true;
+</script>
+</body>
+</html>
