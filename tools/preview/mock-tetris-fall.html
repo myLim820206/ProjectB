@@ -31,7 +31,7 @@
 <div id="legend" class="hud box">
   <div class="h">HOW</div>
   ▼ 블록으로 적을 깔아뭉갠다<br>
-  ═ 줄을 지우면 충격파<br>
+  ═ 줄을 지우면 포탑 생성, 강화<br>
   ◎ 포탑 칸이 근처 적을 쏜다<br>
   ▢ 구멍은 적이 내려가는 길
 </div>
@@ -75,13 +75,13 @@ for (const [r, row] of Object.entries(stack)) [...row].forEach((ch, x) => {
   if (y === CLEAR) cell(x, y, '#ffffff', { blur: 22, alpha: .95 }); else cell(x, y, COL[t]);
   if (ch !== t && y !== CLEAR) turretCells.push([x, y]);
 });
-// 지워지는 줄의 빛 띠와 충격파
+// 지워지는 줄의 빛 띠
 { const y = CYc(CLEAR); const gr = g.createLinearGradient(OX - 60, 0, X(COLS) + 60, 0);
   gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
   g.shadowBlur = 0; g.fillStyle = gr; g.fillRect(OX - 60, Y(CLEAR) - 6, COLS * CELL + 120, CELL + 12);
-  g.lineWidth = 1; glow('rgba(255,255,255,.5)', 10); g.strokeRect(OX - 4, Y(CLEAR) - 34, COLS * CELL + 8, CELL + 68);
-  g.shadowBlur = 0; g.fillStyle = '#ffffff'; g.font = 'bold 15px monospace'; g.fillText('LINE!', X(COLS) + 14, y - 4);
-  g.fillStyle = '#ffd96a'; g.font = '12px monospace'; g.fillText('충격파 적 2 처치', X(COLS) + 14, y + 14); }
+    g.shadowBlur = 0; g.fillStyle = '#ffffff'; g.font = 'bold 15px monospace'; g.fillText('LINE!', X(COLS) + 14, y - 4);
+  g.fillStyle = '#ffd96a'; g.font = '12px monospace'; g.fillText('포탑 게이지 2 / 3', X(COLS) + 14, y + 14);
+  g.fillStyle = '#8a94a6'; g.fillText('줄 안 포탑 → 다음 조각으로', X(COLS) + 14, y + 32); }
 // 포탑 표시
 turretCells.forEach(([x, y]) => { glow('#e8f8ff', 12); g.lineWidth = 1.5; g.beginPath(); g.arc(CXc(x), CYc(y), 5.5, 0, 6.28); g.stroke(); g.beginPath(); g.arc(CXc(x), CYc(y), 1.6, 0, 6.28); g.fill(); });
 
@@ -92,9 +92,6 @@ function dia(x, y, r) { g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g
 const foes = [[1, 12, 'sq'], [8, 11, 'tri'], [3, 14, 'sq'], [5, 13, 'dia'], [6, 14, 'sq'], [2, 19, 'sq'], [2, 1, 'tri'], [7, 2, 'sq'], [0, 16, 'sq']];
 foes.forEach(([x, y, t]) => { g.lineWidth = 1.6; const px = CXc(x), py = CYc(y) + 3;
   if (t === 'sq') { glow('#ff8a7a', 8); sq(px, py, 6); } if (t === 'tri') { glow('#ffd96a', 8); tri(px, py, 7); } if (t === 'dia') { glow('#ff6ad5', 10); dia(px, py, 9); dia(px, py, 4); } });
-// 충격파에 맞아 사라지는 적 파편 (17행 구멍, 19행 부근)
-let s = 5; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
-[[4, 17], [7, 16]].forEach(([x, y]) => { glow('#ff8a7a', 8); for (let i = 0; i < 12; i++) { const a = rnd() * 6.28, d = 4 + rnd() * 14; g.fillRect(CXc(x) + Math.cos(a) * d, CYc(y) + Math.sin(a) * d, 2, 2); } });
 // 바닥 가까이 내려간 적: 위험 표시
 { const px = CXc(2), py = CYc(19); g.lineWidth = 1.2; glow('rgba(255,90,90,.8)', 12); g.beginPath(); g.arc(px, py + 3, 13, 0, 6.28); g.stroke();
   g.shadowBlur = 0; g.fillStyle = '#ff6a6a'; g.font = 'bold 12px monospace'; g.fillText('!', px - 3, py - 14); }
