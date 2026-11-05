@@ -20,6 +20,7 @@
 
 | 경로 | 내용 |
 |---|---|
+| `prototype/tetris-defense/` | 테트리스 디펜스 웹 프로토타입 (브라우저에서 index.html 열기) |
 | `tools/pixelart/` | 픽셀 아트 생성 스크립트 (Python, Pillow) |
 | `tools/preview/` | 3D 미리보기 렌더러 (three.js, 헤드리스 Chromium) |
 | `archive/dalbit-jumak/tools/balance/` | 달빛주막 경제 밸런스 시뮬레이터 |
