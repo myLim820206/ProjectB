@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Waterways Mockup</title>
+<style>
+  html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#f3ebda;font-family:"Noto Serif KR","Nanum Myeongjo",serif;color:#3a312b}
+  svg{position:absolute;inset:0}
+  .hud{position:absolute;pointer-events:none}
+  #season{top:26px;left:34px}
+  #season .big{font-size:34px;font-weight:700;letter-spacing:2px}
+  #season .small{font-size:14px;color:#6a5d52;margin-top:2px}
+  #stats{top:30px;right:36px;text-align:right;font-size:15px;line-height:1.9;color:#4a3f37}
+  #stats b{font-size:22px;color:#2f2924}
+  #tools{bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:26px;align-items:flex-end}
+  .tool{text-align:center;font-size:13px;color:#4a3f37}
+  .tool .n{font-size:12px;color:#8a7a6a}
+  .tool.sel .ring{box-shadow:0 0 0 3px rgba(70,120,160,.55)}
+  .ring{width:58px;height:58px;border-radius:50%;margin:0 auto 6px;background:rgba(250,246,236,.7);border:1.6px solid rgba(58,49,43,.7);display:flex;align-items:center;justify-content:center}
+  #hint{top:640px;left:50%}
+</style>
+</head>
+<body>
+<svg width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <!-- 종이 결 -->
+    <filter id="paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="3" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.40  0 0 0 0 0.33  0 0 0 0.10 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+      <feBlend in2="SourceGraphic" mode="multiply"/>
+    </filter>
+    <!-- 수채 번짐: 윤곽 흔들림 + 농도 얼룩 -->
+    <filter id="wash" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="16" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="11" result="blot"/>
+      <feColorMatrix in="blot" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.25" result="mask"/>
+      <feComposite in="d" in2="mask" operator="in" result="m"/>
+      <feGaussianBlur in="m" stdDeviation="0.6"/>
+    </filter>
+    <!-- 물길: 약한 흔들림 -->
+    <filter id="river" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="5" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- 먹선 흔들림 -->
+    <filter id="ink" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="1" seed="2" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <radialGradient id="mtn" cx="50%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#7f8ea0" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#a9b6c2" stop-opacity=".15"/>
+    </radialGradient>
+    <radialGradient id="thirst" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#e0805a" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#e0805a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 종이 -->
+  <rect width="1280" height="720" fill="#f3ebda" filter="url(#paper)"/>
+
+  <!-- 산 (먹 번짐) -->
+  <g filter="url(#wash)" opacity=".9">
+    <path d="M60,230 L190,70 L300,190 L380,110 L520,240 Z" fill="url(#mtn)"/>
+    <path d="M430,210 L560,60 L690,200 Z" fill="#8d9aaa" opacity=".45"/>
+    <path d="M900,190 L1010,80 L1110,170 L1180,120 L1260,210 Z" fill="url(#mtn)" opacity=".8"/>
+  </g>
+  <!-- 들판과 숲 색면 -->
+  <g filter="url(#wash)">
+    <ellipse cx="300" cy="470" rx="230" ry="120" fill="#a9c98a" opacity=".38"/>
+    <ellipse cx="820" cy="430" rx="260" ry="140" fill="#b7d196" opacity=".34"/>
+    <ellipse cx="1080" cy="560" rx="170" ry="110" fill="#9fc28a" opacity=".32"/>
+    <ellipse cx="560" cy="610" rx="200" ry="80" fill="#e2cf98" opacity=".35"/>
+    <ellipse cx="170" cy="300" rx="120" ry="60" fill="#8fb48a" opacity=".3"/>
+    <ellipse cx="1150" cy="300" rx="110" ry="70" fill="#8fb48a" opacity=".3"/>
+  </g>
+  <!-- 샘 (저수지) -->
+  <g filter="url(#wash)">
+    <ellipse cx="560" cy="205" rx="64" ry="38" fill="#6fa6c8" opacity=".75"/>
+    <ellipse cx="560" cy="205" rx="40" ry="22" fill="#5a92ba" opacity=".55"/>
+  </g>
+
+  <!-- 물길: 테두리(물감 고임) + 안쪽 + 흐름 -->
+  <g filter="url(#river)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 물길 1: 샘 → 원 마을 → 사각 논 → 원 마을 -->
+    <path id="r1" d="M540,236 C500,300 420,330 360,380 S260,470 250,520" stroke="#3f7fae" stroke-width="17" opacity=".35"/>
+    <path d="M540,236 C500,300 420,330 360,380 S260,470 250,520" stroke="#6aa8d0" stroke-width="12" opacity=".75"/>
+    <path d="M540,236 C500,300 420,330 360,380 S260,470 250,520" stroke="#f7fbff" stroke-width="2.2" stroke-dasharray="6 22" opacity=".85"/>
+    <!-- 물길 2: 샘 → 삼각 방앗간 → 원 마을 -->
+    <path d="M592,232 C660,290 720,300 790,350 S900,430 980,460" stroke="#2f7f86" stroke-width="17" opacity=".35"/>
+    <path d="M592,232 C660,290 720,300 790,350 S900,430 980,460" stroke="#5fb3b0" stroke-width="12" opacity=".75"/>
+    <path d="M592,232 C660,290 720,300 790,350 S900,430 980,460" stroke="#f7fbff" stroke-width="2.2" stroke-dasharray="6 22" stroke-dashoffset="9" opacity=".85"/>
+    <!-- 물길 3: 지류 → 사각 논 -->
+    <path d="M790,350 C770,430 690,500 620,560" stroke="#3f5f9e" stroke-width="15" opacity=".3"/>
+    <path d="M790,350 C770,430 690,500 620,560" stroke="#7d9ad0" stroke-width="10" opacity=".72"/>
+    <path d="M790,350 C770,430 690,500 620,560" stroke="#f7fbff" stroke-width="2" stroke-dasharray="6 22" opacity=".85"/>
+  </g>
+  <!-- 그리고 있는 물길 (점선 미리보기) -->
+  <path d="M980,460 C1030,500 1070,520 1100,560" fill="none" stroke="#5fb3b0" stroke-width="10" stroke-dasharray="2 14" stroke-linecap="round" opacity=".8" filter="url(#ink)"/>
+
+  <!-- 목마른 마을의 경고 번짐 -->
+  <circle cx="1100" cy="560" r="70" fill="url(#thirst)" filter="url(#wash)"/>
+
+  <!-- 마을 노드 (먹선 도형) -->
+  <g filter="url(#ink)" stroke="#3a312b" stroke-width="3.2" fill="#f8f2e4">
+    <circle cx="360" cy="380" r="17"/>
+    <rect x="236" y="506" width="30" height="30"/>
+    <path d="M790,330 L812,368 L768,368 Z"/>
+    <circle cx="980" cy="460" r="17"/>
+    <rect x="606" y="546" width="30" height="30"/>
+    <circle cx="1100" cy="560" r="17"/>
+    <path d="M190,620 L212,658 L168,658 Z" stroke-dasharray="5 5" opacity=".55"/>
+    <rect x="1150" y="380" width="28" height="28" opacity=".9"/>
+  </g>
+  <!-- 샘 표시 -->
+  <g filter="url(#ink)" fill="none" stroke="#2f5f86" stroke-width="2">
+    <circle cx="560" cy="205" r="10"/><circle cx="560" cy="205" r="4" fill="#2f5f86"/>
+  </g>
+
+  <!-- 물방울 수요 표시: 채워짐 = 공급 중 -->
+  <g id="drops"></g>
+
+  <!-- 목마름 타이머 -->
+  <path d="M1100,532 A28,28 0 1 1 1072,560" fill="none" stroke="#c45a3a" stroke-width="3.5" stroke-linecap="round" opacity=".85" filter="url(#ink)"/>
+
+  <!-- 이름 -->
+  <g font-size="14" fill="#5a4d44" font-family="Noto Serif KR, serif">
+    <text x="384" y="374">솔골</text>
+    <text x="276" y="526">윗논</text>
+    <text x="822" y="356">물레방앗간</text>
+    <text x="1004" y="456">버들마을</text>
+    <text x="646" y="566">아랫논</text>
+    <text x="1126" y="602" fill="#b0503a">달내 · 목마름</text>
+    <text x="226" y="648" fill="#8a7a6a">새 마을</text>
+    <text x="1186" y="400">텃밭</text>
+    <text x="520" y="160" fill="#2f5f86">맑은샘</text>
+  </g>
+</svg>
+
+<div id="season" class="hud"><div class="big">여름 · 셋째 날</div><div class="small">장마가 다가온다. 샘물이 불어난다</div></div>
+<div id="stats" class="hud">물 댄 마을 <b>5</b> / 7<br>흘려보낸 물 <b>1,284</b> 동이<br>남은 물길 <b>2</b></div>
+<div id="tools" class="hud">
+  <div class="tool sel"><div class="ring"><svg width="34" height="34" style="position:static"><path d="M5,28 C12,10 22,26 29,6" stroke="#3f7fae" stroke-width="4" fill="none" stroke-linecap="round"/></svg></div>물길<div class="n">× 2</div></div>
+  <div class="tool"><div class="ring"><svg width="34" height="34" style="position:static"><rect x="6" y="14" width="22" height="8" fill="#8a6a4a"/><path d="M4,26 Q17,18 30,26" stroke="#6aa8d0" stroke-width="3" fill="none"/></svg></div>보<div class="n">× 1</div></div>
+  <div class="tool"><div class="ring"><svg width="34" height="34" style="position:static"><rect x="9" y="6" width="4" height="22" fill="#5a4d44"/><rect x="21" y="6" width="4" height="22" fill="#5a4d44"/><rect x="11" y="13" width="12" height="8" fill="#6aa8d0"/></svg></div>수문<div class="n">× 1</div></div>
+  <div class="tool"><div class="ring"><svg width="34" height="34" style="position:static"><path d="M4,24 Q17,8 30,24" stroke="#8a6a4a" stroke-width="4" fill="none"/><path d="M4,28 L30,28" stroke="#6aa8d0" stroke-width="3"/></svg></div>다리<div class="n">× 0</div></div>
+</div>
+
+<script>
+  // 물방울 수요: [x, y, 필요, 채움]
+  const nodes = [[360,380,3,3],[251,521,3,2],[790,355,2,2],[980,460,3,3],[621,561,2,1],[1100,560,3,0],[1164,394,1,0]];
+  const g = document.getElementById('drops');
+  const drop = (x, y, full, warn) => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', `M${x},${y-6} C${x+4},${y-1} ${x+4},${y+4} ${x},${y+4} C${x-4},${y+4} ${x-4},${y-1} ${x},${y-6} Z`);
+    p.setAttribute('fill', full ? '#4f8fbf' : 'none');
+    p.setAttribute('stroke', warn ? '#c45a3a' : '#4f8fbf');
+    p.setAttribute('stroke-width', '1.4');
+    g.appendChild(p);
+  };
+  nodes.forEach(([x, y, need, have]) => {
+    for (let i = 0; i < need; i++) drop(x - (need - 1) * 6 + i * 12, y - 30, i < have, have === 0);
+  });
+  window.__done = true;
+</script>
+</body>
+</html>
