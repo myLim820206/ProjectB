@@ -70,8 +70,9 @@ Steam 출시 기준으로 키보드/마우스와 게임패드 모두 지원을 �
 
 ## 7. 아트 방향
 
-- 스타일: HD-2D (픽셀 스프라이트, 3D 공간, 실시간 조명, 피사계 심도, 블룸)
-- 참고: Octopath Traveler, Triangle Strategy, Sea of Stars의 조명 연출
+- 스타일: 한국형 HD-2D (픽셀 스프라이트, 3D 공간, 실시간 조명, 피사계 심도, 블룸)
+- 테마: 한국 전통 건축, 의복, 설화 소재. 상세 소재 목록은 [07 아트 파이프라인 1.1](07-art-pipeline.md)
+- 기법 참고: Octopath Traveler, Triangle Strategy, Sea of Stars의 조명 연출
 - 제작 방식: Claude가 코드로 생성. 상세는 [07 아트 파이프라인](07-art-pipeline.md)
 
 ## 8. 사운드와 음악
