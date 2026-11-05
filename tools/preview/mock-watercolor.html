@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Watercolor Mockup</title>
+<style>
+  html,body{margin:0;background:#f5eedd;overflow:hidden;font-family:"Noto Serif KR","Nanum Myeongjo","Noto Sans KR",serif}
+  canvas{display:block}
+  #ui{position:absolute;inset:0;pointer-events:none;color:#3a2a1e}
+  .panel{background:rgba(250,245,232,.78);border:1.5px solid rgba(70,55,45,.55);border-radius:3px 9px 4px 10px;box-shadow:none}
+  #score{position:absolute;top:18px;left:50%;transform:translateX(-50%);padding:10px 26px;text-align:center}
+  #score .big{font-size:30px;font-weight:800;letter-spacing:1px}
+  #score .bar{width:260px;height:10px;background:#e2d3b8;border-radius:5px;margin-top:6px;overflow:hidden}
+  #score .bar i{display:block;height:100%;width:78%;background:linear-gradient(90deg,rgba(200,85,61,.75),rgba(240,168,60,.75))}
+  #score .sub{font-size:13px;margin-top:4px;color:#6a5040}
+  #cards{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:12px}
+  .card{width:96px;padding:8px 6px 10px;text-align:center;font-size:14px;font-weight:700}
+  .card.sel{outline:3px solid rgba(220,140,60,.7);transform:translateY(-10px)}
+  .card .n{font-size:12px;font-weight:600;color:#7a5a44}
+  .card svg{display:block;margin:2px auto 4px}
+  #rules{position:absolute;top:18px;left:18px;padding:10px 14px;font-size:13px;line-height:1.7;width:250px}
+  #rules b{font-size:14px}
+  .pop{position:absolute;transform:translate(-50%,-50%);font-weight:900;text-shadow:0 2px 0 #fff,0 0 6px #fff}
+  .pop.good{color:#2f8a3a;font-size:20px}.pop.bad{color:#c03a2e;font-size:18px}
+  .pop.main{color:#fff;font-size:30px;text-shadow:none;background:rgba(80,140,90,.85);border-radius:40% 55% 45% 60%;padding:2px 16px}
+  #turn{position:absolute;top:18px;right:18px;padding:10px 14px;font-size:13px;line-height:1.7}
+</style>
+<script type="importmap">
+{ "imports": { "three": "./node_modules/three/build/three.module.js", "three/addons/": "./node_modules/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="ui">
+  <div id="score" class="panel"><div class="big">128 / 160</div><div class="bar"><i></i></div><div class="sub">목표 점수에 닿으면 새 건물 묶음</div></div>
+  <div id="rules" class="panel"><b>점수 규칙</b><br>기와집: 산을 등지고 물을 보면 +4 (배산임수)<br>기와집: 장독대 옆 +2<br>집끼리 이웃 +1<br>정자: 물가 +3<br>대장간 옆 집 −2</div>
+  <div id="turn" class="panel"><b>1년차 · 봄</b><br>남은 건물 7</div>
+  <div id="cards">
+    <div class="card panel sel"><svg width="56" height="44"><polygon points="6,22 28,6 50,22" fill="#34405e"/><rect x="12" y="22" width="32" height="18" fill="#efe2c4" stroke="#7a5a44"/></svg>기와집<div class="n">× 1</div></div>
+    <div class="card panel"><svg width="56" height="44"><ellipse cx="28" cy="20" rx="22" ry="12" fill="#d8b46a"/><rect x="12" y="22" width="32" height="18" fill="#efe2c4" stroke="#7a5a44"/></svg>초가집<div class="n">× 3</div></div>
+    <div class="card panel"><svg width="56" height="44"><ellipse cx="28" cy="30" rx="16" ry="7" fill="#8a8a9a"/><ellipse cx="28" cy="27" rx="16" ry="7" fill="#b8b8c4"/><ellipse cx="28" cy="27" rx="9" ry="4" fill="#3a6ea5"/></svg>우물<div class="n">× 1</div></div>
+    <div class="card panel"><svg width="56" height="44"><polygon points="4,18 28,4 52,18" fill="#7a3a2e"/><rect x="12" y="18" width="3" height="22" fill="#a0643e"/><rect x="41" y="18" width="3" height="22" fill="#a0643e"/></svg>정자<div class="n">× 1</div></div>
+    <div class="card panel"><svg width="56" height="44"><circle cx="20" cy="30" r="9" fill="#6e3e30"/><circle cx="36" cy="32" r="7" fill="#844a34"/><circle cx="28" cy="22" r="6" fill="#6e3e30"/></svg>장독대<div class="n">× 1</div></div>
+  </div>
+</div>
+<script type="module" src="./mock-watercolor.js"></script>
+</body>
+</html>
