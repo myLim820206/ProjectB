@@ -13,5 +13,7 @@
 | facilities.csv | 시설과 단계 | docs/design/06-progression-economy.md |
 | reputation.csv | 평판 단계 | docs/design/06-progression-economy.md |
 | debt.csv | 빚 상환 일정 | docs/design/06-progression-economy.md |
+| titles.csv | 칭호 | docs/design/08-onboarding-endings.md |
+| story_beats.csv | 시나리오 장면 트리거 | docs/design/09-scenario.md |
 
 화폐 단위: 푼. 100푼 = 10전 = 1냥. 시설 비용만 냥 단위로 적습니다.

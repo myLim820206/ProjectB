@@ -13,7 +13,8 @@
 | [05-night.md](05-night.md) | 밤 주막과 요괴 손님 |
 | [06-progression-economy.md](06-progression-economy.md) | 자원, 빚, 평판, 시설, 경제 밸런스 |
 | [07-ui.md](07-ui.md) | 화면 흐름, HUD, 입력, 접근성 |
-| [08-onboarding-endings.md](08-onboarding-endings.md) | 튜토리얼, 엔딩, 지역 시나리오 |
+| [08-onboarding-endings.md](08-onboarding-endings.md) | 튜토리얼, 결말, 칭호, 지역 시나리오 |
+| [09-scenario.md](09-scenario.md) | 시나리오: 인물, 이야기 구조, 장면 목록 |
 
 ## 표기 규칙
 

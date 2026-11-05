@@ -9,6 +9,7 @@
 | [docs/00-project-charter.md](docs/00-project-charter.md) | 프로젝트 개요, 확정 사항, 미결정 사항 |
 | [docs/01-game-design.md](docs/01-game-design.md) | 게임 기획서: 주막 경영 (개요) |
 | [docs/design/](docs/design/README.md) | 상세 기획 명세 (시스템별 규칙과 수식) |
+| [docs/scenario/](docs/scenario/README.md) | 시나리오 대본 (샘플) |
 | [data/](data/README.md) | 기획 데이터 CSV (언리얼 DataTable 형식) |
 | [docs/02-technical-plan.md](docs/02-technical-plan.md) | 기술 계획: 엔진, 플랫폼, 빌드, 협업 규칙 |
 | [docs/03-steam-release.md](docs/03-steam-release.md) | Steam 출시 계획과 체크리스트 |

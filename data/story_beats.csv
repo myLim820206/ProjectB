@@ -1,0 +1,30 @@
+Name,Act,Format,Trigger,Requires,Notes
+P-01,0,scroll,new_game,,서장
+1-01,1,dialogue,day_settlement:1,P-01,
+1-02,1,dialogue,day:3,1-01,김 서방 첫 방문
+D-1,1,dialogue,installment:1,,상환 성공/부족 변형
+J-1,1,diary,rep_stage:2,,
+1-03,1,dialogue,after:J-1,J-1,
+D-2,1,dialogue,installment:2,D-1,
+J-2,1,diary,jang_aged_first|kitchen:2,J-1,
+N-00,2,scroll,night_unlock,,메밀묵 해금
+2-01,2,dialogue,night_day:3,N-00,
+2-02,2,dialogue,market_day_after:2-01,2-01,그날 손님 +20%
+J-3,2,diary,yokai_affinity_any:30,N-00,
+D-3,2,dialogue,installment:3,D-2,
+W-01,2,scroll,festival:dongji:1,N-00,팥죽 레시피 해금
+D-4,2,dialogue,installment:4,D-3,
+3-00,3,dialogue,day:41,,
+3-01,3,dialogue,night_after:3-00,3-00,7일간 요괴 장난 +10%p
+J-4,3,diary,after:3-00,J-3,
+D-5,3,dialogue,installment:5,D-4,
+3-02,3,dialogue,regular_done:suspicious_guest|yokai_affinity:gumiho:60,3-00,
+J-5,3,diary,after:D-5,J-4,
+3-03,3,scroll,rep_stage:4&special_guest:satto,D-5,지지 단골 수에 따라 변형
+D-6,3,dialogue,installment:6,D-5,
+4-00,4,dialogue,day:61,3-03,
+J-6,4,diary,after:4-00,J-5,
+D-7,4,dialogue,installment:7,D-6,
+4-01,4,dialogue,after:D-7,D-7,
+J-7,4,diary,yokai_affinity_any:100|after:4-01,J-6,
+E-01,5,scroll,debt_cleared,4-01,결말. J-8 포함. 칭호 판정

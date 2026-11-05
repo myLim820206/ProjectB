@@ -3,6 +3,7 @@
 data/*.csv 를 읽어 본편 80일을 하루 단위로 돌린다. 플레이어 숙련도별로
 빚 상환, 평판 단계 도달일, 밤 영업 해금일을 확인한다.
 영업 1회를 손님 단위로 시뮬하지 않고, 하루 단위 기대값 모델로 근사한다.
+빚을 다 갚는 날이 결말이다. 80일 이후 밀린 빚은 10일마다 상환하며 최대 160일까지 돌린다.
 
 사용법: python3 tools/balance/sim.py [--seeds 200] [--verbose 보통]
 """
@@ -122,7 +123,10 @@ def run(model, skill, seed, verbose=False):
             s += 6 if owned["marubang"] == 1 else 10
         return s
 
-    for day in range(1, 81):
+    end_day = None
+    for day in range(1, 161):
+        if day > 80 and carry > 0.01 and day % 10 == 0:
+            due[day] = 0.0
         season = (day - 1) // 10 % 4
         dis = (day - 1) % 10 + 1
         st = stage()
@@ -226,12 +230,19 @@ def run(model, skill, seed, verbose=False):
             if buy("ilkkunbang_3", "ilkkunbang", 3, 90, 4): continue
             break
 
+        if debt_left <= 0.01 and end_day is None:
+            end_day = day  # 빚 완납 = 결말
+        if end_day:
+            if verbose and dis == 10:
+                log.append((day, money / 100, max(0, debt_left) / 100, stage(), int(rep), pyeongsang, staff,
+                            round(arrivals, 1), round(served, 1), missed))
+            break
         if verbose and dis == 10:
             log.append((day, money / 100, debt_left / 100, stage(), int(rep), pyeongsang, staff,
                         round(arrivals, 1), round(served, 1), missed))
 
     return dict(stage_day=stage_day, night_day=night_day, missed=missed, debt_left=debt_left / 100,
-                money=money / 100, log=log, final_stage=stage())
+                money=money / 100, log=log, final_stage=stage(), end_day=end_day or 999)
 
 
 def main():
@@ -241,20 +252,20 @@ def main():
     a = ap.parse_args()
     m = Model()
 
-    print("| 숙련도 | 2단계 | 3단계(밤 해금) | 4단계 | 5단계 도달률 | 5단계 | 상환 실패 평균 | 전액 상환률 | 남은 빚 중앙값(냥) | 종료 시 엽전(냥) |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
+    print("| 숙련도 | 2단계 | 3단계(밤 해금) | 4단계 | 결말일 중앙값 | 결말일 90% | 80일 결말률 | 결말 시 5단계 | 상환 실패 평균 |")
+    print("|---|---|---|---|---|---|---|---|---|")
     for sk in SKILL:
         rs = [run(m, sk, s) for s in range(a.seeds)]
 
         def med(k):
             v = [r["stage_day"].get(k) for r in rs if r["stage_day"].get(k)]
             return f"{int(statistics.median(v))}일" if v else "-"
-        reach5 = sum(1 for r in rs if 5 in r["stage_day"]) / len(rs)
-        paid = sum(1 for r in rs if r["debt_left"] <= 0.01) / len(rs)
-        print(f"| {sk} | {med(2)} | {med(3)} | {med(4)} | {reach5:.0%} | {med(5)} | "
-              f"{statistics.mean(r['missed'] for r in rs):.2f}회 | {paid:.0%} | "
-              f"{statistics.median(max(0, r['debt_left']) for r in rs):.0f} | "
-              f"{statistics.median(r['money'] for r in rs):.0f} |")
+        ends = sorted(r["end_day"] for r in rs)
+        on_time = sum(1 for e in ends if e <= 80) / len(rs)
+        st5 = sum(1 for r in rs if r["final_stage"] >= 5) / len(rs)
+        p90 = ends[int(len(ends) * 0.9) - 1]
+        print(f"| {sk} | {med(2)} | {med(3)} | {med(4)} | {int(statistics.median(ends))}일 | {p90}일 | "
+              f"{on_time:.0%} | {st5:.0%} | {statistics.mean(r['missed'] for r in rs):.2f}회 |")
 
     if a.verbose:
         r = run(m, a.verbose, 1, verbose=True)

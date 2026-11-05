@@ -1,0 +1,14 @@
+Name,Type,DisplayName,Condition,Priority,Text
+paldo_jeil,main,팔도 제일 주막,rep_stage>=5,1,팔도 어느 길손에게 물어도 이 주막 이름이 나온다.
+ireumnan,main,이름난 주막,rep_stage>=4,2,고을 밖에서도 일부러 찾아오는 주막.
+goeul,main,고을의 주막,rep_stage>=3,3,고을 사람이라면 누구나 아는 주막.
+dongne,main,정다운 동네 주막,default,4,크지 않아도 늘 따뜻한 국이 있는 주막.
+yokai_friend,sub,요괴들의 벗,yokai_affinity_max>=100,,달 뜨는 밤이면 문 앞에 발자국이 끊이지 않는다.
+moon_host,sub,달빛 아래 주인장,yokai_affinity_sum>=300,,사람도 요괴도 이 집에서는 같은 손님이다.
+regulars,sub,단골 부자,regular_stories_done>=8,,이름을 불러 주는 손님이 많은 주막.
+no_miss,sub,빚 한 푼 안 밀린 주인,missed_installments==0,,황 객주가 장부에 동그라미를 쳤다.
+jang_master,sub,장맛의 달인,jang2_dishes>=300,,이 집 된장 냄새에 길손 발길이 멈춘다.
+sul_master,sub,술도가 명인,quality5_drinks>=300,,한 사발이면 시름이 풀린다는 술.
+gaekju,sub,길손의 쉼터,gaekbang_level>=3,,먼 길 가는 이들이 하룻밤 묵어 가는 곳.
+slow_host,sub,느긋한 주인장,relaxed_mode_ending,,서두르지 않아도 국은 끓는다.
+long_road,sub,천천히 걸어온 길,ending_day>=100,,늦었어도 끝까지 문을 닫지 않았다.
