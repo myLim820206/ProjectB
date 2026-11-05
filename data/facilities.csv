@@ -1,0 +1,40 @@
+Name,DisplayName,Level,CostNyang,ReqStage,Effect
+kitchen_1,부엌,1,0,1,station_slots=3
+kitchen_2,부엌,2,20,2,station_slots=5
+kitchen_3,부엌,3,60,3,station_slots=7
+madang_1,마당,1,0,1,pyeongsang_max=3
+madang_2,마당,2,40,2,pyeongsang_max=5
+madang_3,마당,3,100,3,pyeongsang_max=8
+pyeongsang,평상(1개),1,8,1,seats=4
+toetmaru,툇마루,1,15,1,seats=2;rain_ok=1
+marubang_1,마루방,1,40,2,seats=6;rain_ok=1;yangban_ok=1
+marubang_2,마루방,2,80,4,seats=10;rain_ok=1;yangban_ok=1
+gaekbang_1,객방,1,50,3,rooms=2;lodging_fun=30
+gaekbang_2,객방,2,100,4,rooms=4;lodging_fun=30
+gaekbang_3,객방,3,180,5,rooms=6;lodging_fun=40
+magugan_1,마구간,1,30,2,bobusang_mult=1.3
+magugan_2,마구간,2,70,4,bobusang_mult=1.6;big_orders=1
+jangdokdae_1,장독대,1,10,1,jang_jars=2
+jangdokdae_2,장독대,2,30,2,jang_jars=4
+jangdokdae_3,장독대,3,70,3,jang_jars=6
+sulgwang_1,술광,1,0,1,sul_jars=2
+sulgwang_2,술광,2,25,2,sul_jars=4
+sulgwang_3,술광,3,60,3,sul_jars=6
+garden_1,텃밭,1,20,1,veg_selfsupply=0.3
+garden_2,텃밭,2,50,3,veg_selfsupply=0.6
+ilkkunbang_0,일꾼방(없음),0,0,2,staff_max=1
+ilkkunbang_1,일꾼방,1,15,2,staff_max=3
+ilkkunbang_2,일꾼방,2,45,3,staff_max=5
+ilkkunbang_3,일꾼방,3,90,4,staff_max=7
+judeung_1,주등과 간판,1,0,1,arrival_bonus=0;night_lit_seats=4
+judeung_2,주등과 간판,2,15,1,arrival_bonus=0.1;night_lit_seats=8
+judeung_3,주등과 간판,3,45,3,arrival_bonus=0.2;night_lit_seats=99
+geumjul_1,금줄,1,10,3,prank_reduce=0.3
+geumjul_2,성황당,2,50,4,prank_reduce=0.6
+st_gamasot,가마솥(추가),1,15,1,station=gamasot;batch=15
+st_gamasot_big,큰 가마솥,2,35,2,station=gamasot;batch=30
+st_beoncheol,번철(추가),1,12,1,station=beoncheol;parallel=1
+st_beoncheol_wide,넓은 번철,2,30,2,station=beoncheol;parallel=2
+st_doma,도마(추가),1,8,1,station=doma
+st_hwaro,화로,1,30,3,station=hwaro
+st_siru,시루,1,20,2,station=siru;batch=20

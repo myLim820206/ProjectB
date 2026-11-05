@@ -1,0 +1,9 @@
+Name,DisplayName,BudgetFun,PatienceSec,PartyMin,PartyMax,LikedCategories,Taboo,DrinkChance,Hours,MinRepStage,Rumor,NeedsMarubang,SpawnWeight,Modifiers
+bobusang,보부상,25,35,1,2,국밥;술,,0.6,all,1,3,0,30,magugan:+0.3
+nongbu,농부,15,60,1,3,술;전,,0.8,lunch;evening,1,1,0,30,market_day:x2
+seonbi,선비,30,80,1,2,술;전;안주,,0.7,afternoon,1,2,0,15,exam_season:x3
+pojol,포졸,20,40,1,3,국밥,,0.3,lunch,1,1,0,15,
+nageune,나그네,25,60,1,1,국밥;술,,0.5,evening,1,2,0,10,gaekbang:lodging
+yangban,양반,80,50,1,2,구이;안주;술,,0.9,afternoon;evening,3,4,1,6,
+seunim,스님,12,90,1,2,안주;떡;음료,meat;alcohol,0,morning,1,1,0,6,
+ai_simbureum,아이 심부름,10,25,1,1,국밥,alcohol,0,morning;lunch,1,0,0,8,takeout_only

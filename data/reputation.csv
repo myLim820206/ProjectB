@@ -1,0 +1,6 @@
+Name,Stage,DisplayName,Threshold,ArrivalMult,Unlocks
+rep1,1,무명 주막,0,1.0,start
+rep2,2,동네 주막,150,1.35,staff;marubang;recipes_rep2;siru;madang2
+rep3,3,고을 주막,700,1.75,night;hwaro;gaekbang;recipes_rep3;geumjul
+rep4,4,이름난 주막,2000,2.2,special_guests_plus;big_orders;recipes_rep4
+rep5,5,팔도 제일 주막,5000,2.6,ending_best

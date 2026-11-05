@@ -1,0 +1,7 @@
+Name,DisplayName,PatienceSec,Liked,Gift,GiftChance,CoinFun,PrankChance,Season,MinRepStage,Movement
+dokkaebi,도깨비,45,memilmuk;makgeolli,dokkaebi_bangmangi,0.5,20,0.35,all,3,walk
+gumiho,구미호,60,sanjeok;yakju,yeou_guseul,0.3,30,0.25,all,4,walk
+mulgwisin,물귀신,50,jangguk_bap;haejangguk,jeojeun_yeopjeon,0.6,10,0.2,summer;winter,3,float
+cheonyeogwisin,처녀귀신,70,hwajeon;yakgwa,yet_norigae,0.4,0,0.3,all,3,float
+dalgyalgwisin,달걀귀신,55,gyeranjjim,dalgyal_buj,0.5,5,0.2,all,3,float
+dokkaebibul,도깨비불,30,makgeolli,bul_ssi,0.7,0,0.4,autumn,3,float

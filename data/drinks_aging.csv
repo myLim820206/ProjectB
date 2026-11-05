@@ -1,0 +1,5 @@
+Name,MinDays,PeakDays,SpoilDays,BatchSize
+makgeolli,2,4,8,30
+dongdongju,3,6,12,30
+yakju,7,14,30,20
+soju,10,20,0,20
