@@ -2,6 +2,10 @@
 
 브라우저에서 `index.html`을 열면 바로 플레이할 수 있다. 외부 라이브러리 없음.
 
+온라인 플레이: https://claude.ai/artifact/6hCTn3v8ZHNnvQKbCUy8eP (비공개. 공유 메뉴에서 공유해야 다른 사람이 열 수 있음)
+
+터치 화면에서는 아래쪽에 조작 버튼이 나타난다.
+
 ![플레이 화면](../../docs/images/prototype-tetris-defense.png)
 
 ## 조작

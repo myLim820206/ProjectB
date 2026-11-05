@@ -7,12 +7,25 @@
 <style>
   :root { --bg:#06060b; --fg:#cfd8e6; }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden}
-  body{display:flex;align-items:center;justify-content:center}
-  canvas{display:block;max-width:100vw;max-height:100vh;image-rendering:auto}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  canvas{display:block;width:100%;max-width:1000px;max-height:calc(100% - 80px);object-fit:contain;touch-action:none}
+  #touch{display:none;gap:8px;flex-wrap:wrap;justify-content:center}
+  #touch button{font:600 18px/1 "DejaVu Sans Mono",monospace;color:#cfd8e6;background:transparent;border:1px solid rgba(127,214,255,.45);border-radius:6px;min-width:52px;height:48px;touch-action:manipulation}
+  #touch button:active{background:rgba(127,214,255,.15)}
+  #touch button:focus-visible{outline:2px solid #7fd6ff}
+  @media (pointer: coarse){ #touch{display:flex} }
 </style>
 </head>
 <body>
 <canvas id="c" width="1000" height="700"></canvas>
+<div id="touch" aria-label="터치 조작">
+  <button id="tLeft" data-a="left" aria-label="왼쪽">◀</button>
+  <button id="tRight" data-a="right" aria-label="오른쪽">▶</button>
+  <button id="tRot" data-a="rot" aria-label="회전">⟳</button>
+  <button id="tDown" data-a="down" aria-label="빠르게">▼</button>
+  <button id="tDrop" data-a="drop" aria-label="떨어뜨리기">⤓</button>
+  <button id="tHold" data-a="hold" aria-label="보관">H</button>
+</div>
 <script>
 'use strict';
 // =====================================================================
@@ -427,8 +440,8 @@ function draw() {
   if (!S.started || S.over || S.paused) {
     g.fillStyle = 'rgba(6,6,11,.82)'; g.fillRect(0, 0, W, H);
     if (!S.started) { text('TETRIS DEFENSE', W / 2, 250, '#7fd6ff', 34, 'center'); text('하늘에서 떨어지는 적을 블록으로 깔아뭉개고, 줄을 지워 포탑을 세워 바닥의 핵을 지켜라', W / 2, 300, '#cfd8e6', 14, 'center');
-      text('구멍은 적이 내려가는 길이다', W / 2, 326, '#8a94a6', 13, 'center'); text('Enter 키로 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
-    else if (S.over) { text('GAME OVER', W / 2, 270, '#ff6a6a', 34, 'center'); text(S.overWhy, W / 2, 308, '#cfd8e6', 14, 'center'); text(`WAVE ${S.wave} · SCORE ${S.score.toLocaleString()} · 처치 ${S.kills} · LINES ${S.lines}`, W / 2, 340, '#8a94a6', 14, 'center'); text('R 키로 다시 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
+      text('구멍은 적이 내려가는 길이다', W / 2, 326, '#8a94a6', 13, 'center'); text('Enter 키 또는 화면을 눌러 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
+    else if (S.over) { text('GAME OVER', W / 2, 270, '#ff6a6a', 34, 'center'); text(S.overWhy, W / 2, 308, '#cfd8e6', 14, 'center'); text(`WAVE ${S.wave} · SCORE ${S.score.toLocaleString()} · 처치 ${S.kills} · LINES ${S.lines}`, W / 2, 340, '#8a94a6', 14, 'center'); text('R 키 또는 화면을 눌러 다시 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
     else text('PAUSED', W / 2, 330, '#7fd6ff', 30, 'center');
   }
 }
@@ -450,6 +463,12 @@ addEventListener('keydown', e => {
   if (e.key === 'c' || e.key === 'C' || e.key === 'Shift') holdPiece();
 });
 addEventListener('keyup', e => { keys[e.key] = false; });
+// 터치 조작: 화면 탭으로 시작/재시작, 버튼으로 조작
+cv.addEventListener('pointerdown', () => { if (!S.started) S.started = true; else if (S.over) newGame(); });
+document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => {
+  ev.preventDefault(); if (!S.started) { S.started = true; return; } if (S.over) { newGame(); return; } if (S.paused) return;
+  ({ left: () => move(-1), right: () => move(1), rot: () => rotate(1), down: softDrop, drop: hardDrop, hold: holdPiece })[b.dataset.a]();
+}));
 newGame(); S.started = false;
 window.__td = () => S;
 // 자동 시험용 진입점
