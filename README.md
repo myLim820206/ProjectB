@@ -12,6 +12,7 @@
 | [docs/03-steam-release.md](docs/03-steam-release.md) | Steam 출시 계획과 체크리스트 |
 | [docs/04-roadmap.md](docs/04-roadmap.md) | 마일스톤과 일정 |
 | [docs/05-decision-log.md](docs/05-decision-log.md) | 의사결정 기록 |
+| [docs/06-concept-candidates.md](docs/06-concept-candidates.md) | 콘셉트 후보 비교와 추천 |
 
 ## 상태
 
