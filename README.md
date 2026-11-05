@@ -1,6 +1,6 @@
-# ProjectB
+# ProjectB: 달빛주막 (가제)
 
-언리얼 엔진 기반 PC 게임 프로젝트입니다. Windows와 macOS를 지원하며 Steam으로 출시합니다.
+조선 길목의 주막을 키우는 한국형 HD-2D 경영 시뮬레이션입니다. 언리얼 엔진 기반 PC 게임 프로젝트입니다. Windows와 macOS를 지원하며 Steam으로 출시합니다.
 
 ## 문서
 
