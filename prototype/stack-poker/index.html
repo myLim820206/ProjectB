@@ -233,8 +233,8 @@ function draw() {
     S.sel.forEach((c, k) => card(FX + k * 96, by, 90, 32, c, { sel: true }));
     for (let k = S.sel.length; k < 5; k++) { g.setLineDash([4, 4]); g.lineWidth = 1; glow('rgba(127,214,255,.3)', 0); rr(FX + k * 96 + 3, by + 3, 84, 26, 6); g.stroke(); g.setLineDash([]); }
     const tx = FX + 5 * 96 + 8;
-    if (h) { const cm = handComboMult(h); text(`${h.name}  ${h.chips}×${h.mult}`, tx, by + 14, '#ffd96a', 13, 'left', 'bold'); text(`= ${Math.round(h.score * cm).toLocaleString()}${cm > 1 ? ` (콤보 ×${cm})` : ''}`, tx, by + 32, '#ffffff', 12); }
-    else text(S.sel.length ? (S.sel.length < 2 ? '2장 이상 고르기' : '족보 아님') : '카드를 클릭해 고르기', tx, by + 22, S.sel.length >= 2 ? '#ff6a6a' : '#5f6878', 12);
+    if (h) { const cm = handComboMult(h); text(`${h.name}  ${h.chips}×${h.mult}`, tx, by + 14, '#ffd96a', 13, 'left', 'bold'); text(`= ${Math.round(h.score * cm).toLocaleString()}${cm > 1 ? ` (콤보 ×${cm})` : ''}  X`, tx, by + 32, '#ffffff', 12); }
+    else text(S.sel.length ? (S.sel.length < 2 ? '2장 이상 고르기' : '족보 아님') : 'Z 또는 클릭으로 고르기', tx, by + 22, S.sel.length >= 2 ? '#ff6a6a' : '#5f6878', 12);
   }
   // 연출
   S.fx.forEach(f => { const a = Math.min(1, f.t / .45), x = f.x + (f.kind === 'explode' ? (f.c.y % 2 ? 1 : -1) * (1 - a) * 40 : 0), y = f.y - (f.kind === 'drop' ? -(1 - a) * 30 : (1 - a) * 12);
@@ -262,13 +262,13 @@ function draw() {
   panel(RX, 64, 260, 160); text('마지막 족보', RX + 18, 90, '#7fd6ff', 12);
   if (S.last) { text(S.last.name, RX + 18, 120, '#ffd96a', 16, 'left', 'bold'); text(`${S.last.chips} × ${S.last.mult}${S.last.cm > 1 ? ` × 콤보 ${S.last.cm}` : ''}`, RX + 18, 144, '#8a94a6', 12); text(`+${S.last.score.toLocaleString()}`, RX + 18, 176, '#ffffff', 20, 'left', 'bold'); }
   panel(RX, 240, 260, 426); text('규칙', RX + 18, 266, '#7fd6ff', 12);
-  ['위에서 카드가 계속 밀고 내려온다', '방향키+Space 또는 클릭으로 고른다', '여러 줄에서 섞어 골라도 된다', '고른 카드가 족보면 Enter로 내기', '터진 자리는 아래 카드가 위로 붙는다', `${COMBO_WINDOW}초 안에 또 내면 콤보 배수`, `경고선에 닿으면 줄 폭발, 시간 -${EXPLODE_COST}초`, `막히면 1~2장 버리기 (D), 시간 -${DISCARD_COST}초`, '조커 = 아무 숫자·무늬', '폭탄 게이지가 차면 B'].forEach((l, i) => text(l, RX + 18, 294 + i * 26, '#8a94a6', 11));
-  text('방향키 커서   Space 고르기   Enter 내기   Esc 취소   D 버리기   B 폭탄   P 일시정지   M 소리   (마우스: 클릭 고르기, 오른쪽 클릭 내기)', W / 2, H - 12, '#5f6878', 11, 'center');
+  ['위에서 카드가 계속 밀고 내려온다', '방향키로 커서, Z로 고르기 (클릭도 됨)', '여러 줄에서 섞어 골라도 된다', '고른 카드가 족보면 X로 내서 점수', '터진 자리는 아래 카드가 위로 붙는다', `${COMBO_WINDOW}초 안에 또 내면 콤보 배수`, `경고선에 닿으면 줄 폭발, 시간 -${EXPLODE_COST}초`, `막히면 1~2장 버리기 (D), 시간 -${DISCARD_COST}초`, '조커 = 아무 숫자·무늬', '폭탄 게이지가 차면 B'].forEach((l, i) => text(l, RX + 18, 294 + i * 26, '#8a94a6', 11));
+  text('방향키 커서   Z 고르기   X 족보 내기   Esc 취소   D 버리기   B 폭탄   P 일시정지   M 소리   (마우스: 클릭 고르기, 오른쪽 클릭 내기)', W / 2, H - 12, '#5f6878', 11, 'center');
 
   g.setTransform(1, 0, 0, 1, 0, 0);
   const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
   if (S.paused && play) { g.fillStyle = 'rgba(6,6,11,.8)'; g.fillRect(0, 0, W, H); text('PAUSED', W / 2, 340, '#7fd6ff', 30, 'center'); }
-  if (S.phase === 'title') overlay('STACK POKER', '#7fd6ff', ['카드 4줄이 위에서 계속 밀고 내려온다', '내려오는 카드를 클릭해 골라 포커 족보를 만들어 터뜨린다 (어느 줄이든 섞어서)', `경고선에 닿으면 줄이 폭발하고 시간이 깎인다. ${TIME_LIMIT}초 동안 최대 점수!`], 'Enter 키 또는 화면을 눌러 시작');
+  if (S.phase === 'title') overlay('STACK POKER', '#7fd6ff', ['카드 4줄이 위에서 계속 밀고 내려온다', '방향키로 커서를 옮겨 Z로 카드를 고르고, 포커 족보가 되면 X로 내서 터뜨린다 (클릭도 됨)', `경고선에 닿으면 줄이 폭발하고 시간이 깎인다. ${TIME_LIMIT}초 동안 최대 점수!`], 'Enter 키 또는 화면을 눌러 시작');
   else if (S.phase === 'end') overlay('TIME UP', '#9cffb0', [`점수 ${S.score.toLocaleString()}${S.newBest ? '   최고 기록!' : `   (최고 ${S.best.toLocaleString()})`}`, `낸 족보 ${S.hands} · 최대 콤보 ${S.maxCombo} · 줄 폭발 ${S.explodes} · 버리기 ${S.discards}`], 'Enter 키 또는 화면을 눌러 다시');
 }
 
@@ -297,7 +297,8 @@ function act(a) {
 addEventListener('keydown', e => {
   if ([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
   if (e.repeat && !e.key.startsWith('Arrow')) return;
-  const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', ' ': 'toggle', z: 'toggle', Z: 'toggle', Enter: 'start', x: 'play', X: 'play', Escape: 'clear', d: 'discard', D: 'discard', b: 'bomb', B: 'bomb', p: 'pause', P: 'pause', m: 'mute', M: 'mute', '1': 'c0', '2': 'c1', '3': 'c2', '4': 'c3' };
+  const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', z: 'toggle', Z: 'toggle', x: 'play', X: 'play', ' ': 'toggle', Enter: 'start', // Z 고르기, X 내기 (Space·Enter는 보조)
+    Escape: 'clear', d: 'discard', D: 'discard', b: 'bomb', B: 'bomb', p: 'pause', P: 'pause', m: 'mute', M: 'mute', '1': 'c0', '2': 'c1', '3': 'c2', '4': 'c3' };
   if (map[e.key]) act(map[e.key]);
 });
 function toCanvas(ev) { const r = cv.getBoundingClientRect(), s = Math.min(r.width / W, r.height / H); return [(ev.clientX - r.left - (r.width - W * s) / 2) / s, (ev.clientY - r.top - (r.height - H * s) / 2) / s]; }
