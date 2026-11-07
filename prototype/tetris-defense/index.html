@@ -29,16 +29,16 @@
 <script>
 'use strict';
 // =====================================================================
-// 테트리스 디펜스 v2: 화면 분리
+// 테트리스 디펜스 v3: 무너진 줄이 전장의 벽이 된다
 // 왼쪽 우물은 순수 테트리스. 모든 블록에 모양별 포탑 칸이 하나 있다.
-// 줄을 지우면 그 줄의 포탑이 터져 나와 오른쪽 전장에 배치된다.
-// 같은 줄에서 함께 터진 포탑은 같은 종류끼리 합체, 정해진 조합은 합성.
-// 적은 전장 위쪽 입구에서 나와 길을 따라 아래 핵으로 가고, 닿으면 핵 체력이 깎인다.
+// 줄을 지우면 그 줄의 블록이 포탑째로 오른쪽 전장의 같은 자리에 생겨 벽이 된다.
+// 같은 줄에서 함께 지워진 포탑은 같은 종류끼리 합체, 정해진 조합은 합성.
+// 적은 위에서 내려와 블록을 피해 핵(바닥)으로 가는 길을 찾고, 길이 없으면 블록과 포탑을 부순다.
 // =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1280, H = 700;
 const COLS = 10, ROWS = 20, CELL = 30, OX = 290, OY = 50;           // 테트리스 우물
-const FCOLS = 9, FROWS = 20, FX = 640, FY = 50;                       // 디펜스 전장
+const FCOLS = 10, FROWS = 20, FX = 625, FY = 50;                      // 디펜스 전장 (우물과 같은 크기)
 const COLOR = { I:'#7fd6ff', O:'#ffd96a', T:'#c890ff', S:'#9cffb0', Z:'#ff8a7a', L:'#ffb36a', J:'#6a9cff',
   V:'#d8f4ff', R:'#fff0a0', P:'#c4ff6a', A:'#ff9a50' };
 const KIND_NAME = { I:'빙결', O:'번개', T:'관통', S:'독', Z:'화염', L:'폭발', J:'저격', V:'증기', R:'레일건', P:'역병', A:'포격' };
@@ -57,34 +57,36 @@ for (const t in BASE) {
 }
 const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[0,1]];
 
-// ---------------------------------------------------------------- 전장: 길
-// 위쪽 입구에서 구불구불 내려와 아래 핵으로 가는 길
-const WAYPOINTS = [[1,-1],[1,3],[7,3],[7,8],[1,8],[1,13],[7,13],[7,17],[4,17],[4,20]];
-const PATH = []; // 길이 지나는 칸
-for (let i = 0; i < WAYPOINTS.length - 1; i++) {
-  const [x1, y1] = WAYPOINTS[i], [x2, y2] = WAYPOINTS[i + 1];
-  const sx = Math.sign(x2 - x1), sy = Math.sign(y2 - y1); let x = x1, y = y1;
-  while (x !== x2 || y !== y2) { if (y >= 0 && y < FROWS) PATH.push([x, y]); x += sx; y += sy; }
+// ---------------------------------------------------------------- 전장: 블록 체력과 길찾기
+const blockHp = t => t ? 70 + 30 * t.lvl : 60;   // 포탑 달린 블록이 더 단단하다
+// 길찾기 지도 두 장 (8방향 이동)
+//  FREE: 빈칸만 지나서 바닥(핵)까지 가는 거리. 막혀 있으면 무한대
+//  COST: 블록을 부수고 지나가는 비용까지 넣은 거리. 길이 없을 때 뚫기 쉬운 쪽으로 가는 데 쓴다
+let FREE = null, COST = null;
+const DIR8 = [[0,1],[1,0],[-1,0],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+function dijkstra(cellCost) {
+  const INF = 1e9, d = Array.from({ length: FROWS }, () => Array(FCOLS).fill(INF)), open = [];
+  for (let x = 0; x < FCOLS; x++) { const c = cellCost(x, FROWS - 1); if (c < INF) { d[FROWS - 1][x] = c; open.push([c, x, FROWS - 1]); } }
+  while (open.length) {
+    let bi = 0; for (let i = 1; i < open.length; i++) if (open[i][0] < open[bi][0]) bi = i;
+    const [dd, x, y] = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+    if (dd > d[y][x]) continue;
+    for (const [dx, dy] of DIR8) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= FCOLS || ny >= FROWS) continue;
+      const c = cellCost(nx, ny); if (c >= INF) continue; const nd = dd + c * (dx && dy ? 1.41 : 1); if (nd < d[ny][nx]) { d[ny][nx] = nd; open.push([nd, nx, ny]); } }
+  }
+  return d;
 }
-const onPath = new Set(PATH.map(([x, y]) => x + ',' + y));
-const SEG = []; let PATH_LEN = 0;
-for (let i = 0; i < WAYPOINTS.length - 1; i++) { const [a, b] = [WAYPOINTS[i], WAYPOINTS[i + 1]]; const len = Math.hypot(b[0] - a[0], b[1] - a[1]); SEG.push({ a, b, len, start: PATH_LEN }); PATH_LEN += len; }
-function pathPos(d) {
-  for (const s of SEG) if (d <= s.start + s.len) { const k = (d - s.start) / s.len; return [s.a[0] + (s.b[0] - s.a[0]) * k + .5, s.a[1] + (s.b[1] - s.a[1]) * k + .5]; }
-  const last = WAYPOINTS[WAYPOINTS.length - 1]; return [last[0] + .5, last[1] + .5];
+function computeFlow() {
+  FREE = dijkstra((x, y) => S.field[y][x] ? 1e9 : 1);
+  COST = dijkstra((x, y) => { const c = S.field[y][x]; return c ? 1 + c.hp / 12 : 1; });
 }
-// 길 옆 칸일수록 먼저 쓰도록 길까지의 거리
-function distToPath(x, y) { let m = 99; for (const [px, py] of PATH) m = Math.min(m, Math.abs(px - x) + Math.abs(py - y)); return m; }
-// 포탑 자리는 길 바로 옆 칸(상하좌우)만. -1은 놓을 수 없는 칸
-const SLOT_D = []; for (let y = 0; y < FROWS; y++) { SLOT_D.push([]); for (let x = 0; x < FCOLS; x++) SLOT_D[y].push(onPath.has(x + ',' + y) || distToPath(x, y) > 1 ? -1 : distToPath(x, y)); }
-
 const ENEMY = {
-  grunt:   { name:'일반',   hp:40,  spd:2.16, col:'#ff8a7a', core:1 },
-  runner:  { name:'질주',   hp:22,  spd:4.14, col:'#ffd96a', core:1 },
-  tank:    { name:'방패',   hp:120, spd:1.35, col:'#e8f0ff', core:2, armor:.5 },
-  breaker: { name:'파괴자', hp:60,  spd:1.8, col:'#ff6ad5', core:1, atk:16 },
-  healer:  { name:'치유사', hp:50,  spd:1.8, col:'#9cffb0', core:1, heal:8 },
-  boss:    { name:'보스',   hp:900, spd:0.99, col:'#ff4fa8', core:5, armor:.3, atk:40, big:true },
+  grunt:   { name:'일반',   hp:40,  spd:2.16, col:'#ff8a7a', core:1, atk:10 },
+  runner:  { name:'질주',   hp:22,  spd:4.14, col:'#ffd96a', core:1, atk:6 },
+  tank:    { name:'방패',   hp:120, spd:1.35, col:'#e8f0ff', core:2, armor:.5, atk:14 },
+  breaker: { name:'파괴자', hp:60,  spd:1.8, col:'#ff6ad5', core:1, atk:34 },
+  healer:  { name:'치유사', hp:50,  spd:1.8, col:'#9cffb0', core:1, heal:8, atk:6 },
+  boss:    { name:'보스',   hp:900, spd:0.99, col:'#ff4fa8', core:5, armor:.3, big:true, atk:60 },
 };
 const UNLOCK = [['grunt',1],['runner',2],['tank',3],['breaker',4],['healer',6]];
 const TURRET = {
@@ -103,7 +105,7 @@ function newGame() {
     field: Array.from({ length: FROWS }, () => Array(FCOLS).fill(null)),
     bag: [], next: [], hold: null, canHold: true, piece: null,
     dropT: 0, lockT: 0, lockMoves: 0, lastRotate: false,
-    enemies: [], fx: [], texts: [], beams: [], flyers: [],
+    enemies: [], fx: [], texts: [], beams: [], flyers: [], flowDirty: true,
     wave: 1, toSpawn: 0, spawnT: 0, breakT: 4, waveActive: false,
     core: 20, score: 0, lines: 0, kills: 0, combo: -1, merges: 0, fusions: 0,
     over: false, paused: false, started: S ? true : false, time: 0,
@@ -164,72 +166,82 @@ function lock() {
   spawnPiece();
 }
 function clearRows(rows, tspin) {
-  const n = rows.length, found = [];
-  rows.forEach(y => S.board[y].forEach((c, x) => { if (c.turret) found.push({ ...c.turret, x, y }); }));
+  const n = rows.length;
+  const lines = rows.map(y => ({ y, cells: S.board[y].map(c => ({ c: c.c, turret: c.turret ? { ...c.turret } : null })) }));
   for (const y of rows.slice().sort((a, b) => a - b)) { S.board.splice(y, 1); S.board.unshift(Array(COLS).fill(null)); S.fx.push({ kind: 'line', y, t: .35 }); }
   S.lines += n; S.combo++;
   S.score += [0, 100, 300, 500, 800][n] * S.wave + Math.max(0, S.combo) * 50;
   popText(['', 'LINE', 'DOUBLE', 'TRIPLE', 'TETRIS'][n] + (S.combo > 0 ? `  COMBO x${S.combo}` : ''), 4.5, rows[0], '#ffffff', 'well');
-  if (!found.length) return;
-  // 같은 줄에서 함께 터진 포탑: 같은 종류 합체 → 합성 규칙 → 나머지는 그대로
-  const bonus = n - 1, results = [], msgs = [];
-  const byKind = {}; found.forEach(t => (byKind[t.kind] ||= []).push(t));
+  // 같은 줄(들)에서 함께 지워진 포탑: 같은 종류 합체 → 합성 규칙 → 나머지는 그대로
+  const found = []; lines.forEach(L => L.cells.forEach((c, x) => { if (c.turret) found.push({ t: c.turret, cell: c, x, y: L.y }); }));
+  const bonus = n - 1, msgs = [];
+  const byKind = {}; found.forEach(f => (byKind[f.t.kind] ||= []).push(f));
   let rest = [];
   for (const k in byKind) {
     const grp = byKind[k];
-    if (grp.length >= 2) { const lvl = Math.min(9, grp.reduce((a, t) => a + t.lvl, 0) + bonus); results.push({ kind: k, lvl, x: grp[0].x, y: grp[0].y }); S.merges++; msgs.push(`${KIND_NAME[k]} 합체 Lv${lvl}`); }
+    if (grp.length >= 2) { const lvl = Math.min(9, grp.reduce((a, f) => a + f.t.lvl, 0) + bonus); grp.forEach(f => f.cell.turret = null); grp[0].cell.turret = { kind: k, lvl }; S.merges++; msgs.push(`${KIND_NAME[k]} 합체 Lv${lvl}`); }
     else rest.push(grp[0]);
   }
   for (const [a, b, out] of RECIPES) {
-    const ta = rest.find(t => t.kind === a), tb = rest.find(t => t.kind === b);
-    if (ta && tb) { const lvl = Math.min(9, ta.lvl + tb.lvl + bonus); results.push({ kind: out, lvl, x: ta.x, y: ta.y }); rest = rest.filter(t => t !== ta && t !== tb); S.fusions++; msgs.push(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[out]} Lv${lvl}`); }
+    const fa = rest.find(f => f.t.kind === a), fb = rest.find(f => f.t.kind === b);
+    if (fa && fb) { const lvl = Math.min(9, fa.t.lvl + fb.t.lvl + bonus); fa.cell.turret = { kind: out, lvl }; fb.cell.turret = null; rest = rest.filter(f => f !== fa && f !== fb); S.fusions++; msgs.push(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[out]} Lv${lvl}`); }
   }
-  rest.forEach(t => results.push({ kind: t.kind, lvl: t.lvl, x: t.x, y: t.y }));
-  if (tspin) results.forEach(r => { if (r.kind === 'T') { r.lvl = Math.min(9, r.lvl + 2); msgs.push(`T스핀 관통 Lv${r.lvl}`); } });
-  results.forEach(sendToField);
+  if (tspin) found.forEach(f => { if (f.cell.turret && f.cell.turret.kind === 'T') { f.cell.turret.lvl = Math.min(9, f.cell.turret.lvl + 2); msgs.push(`T스핀 관통 Lv${f.cell.turret.lvl}`); } });
+  // 전장의 같은 자리에 벽으로 세운다. 이미 블록이 있으면 같은 세로줄의 바로 위 빈칸
+  lines.forEach(L => L.cells.forEach((c, x) => placeWall(c, x, L.y)));
+  S.flowDirty = true;
   if (msgs.length) popText(msgs.join(' · '), 4.5, rows[0] - 1.2, '#ffd96a', 'well');
 }
-// 터진 포탑을 전장에 배치: 지운 줄 높이에 가까운 빈 자리, 같으면 길에 가까운 자리.
-// 빈 자리가 없으면 같은 종류 중 가장 약한 포탑을 강화, 그것도 없으면 가장 약한 포탑과 교체.
-function sendToField(r) {
-  let best = null;
-  for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) {
-    if (SLOT_D[y][x] < 0 || S.field[y][x]) continue;
-    const score = Math.abs(y - r.y) * 2 + SLOT_D[y][x] * 3 + Math.random() * .1;
-    if (!best || score < best.score) best = { x, y, score };
-  }
-  const make = () => ({ kind: r.kind, lvl: r.lvl, cd: .6, hp: turretHp(r.lvl), maxhp: turretHp(r.lvl) });
-  let tx, ty;
-  if (best) { tx = best.x; ty = best.y; S.field[ty][tx] = make(); }
-  else {
-    let weak = null; forTurrets((t, x, y) => { if (t.kind === r.kind && (!weak || t.lvl < weak.t.lvl)) weak = { t, x, y }; });
-    if (weak) { weak.t.lvl = Math.min(9, weak.t.lvl + 1); weak.t.maxhp = weak.t.hp = turretHp(weak.t.lvl); tx = weak.x; ty = weak.y; } // 자리가 없으면 같은 종류 가장 약한 포탑 +1레벨
-    else { forTurrets((t, x, y) => { if (!weak || t.lvl < weak.t.lvl) weak = { t, x, y }; }); if (!weak || weak.t.lvl > r.lvl) return; S.field[weak.y][weak.x] = make(); tx = weak.x; ty = weak.y; }
-  }
-  // 우물의 칸에서 전장 자리로 날아가는 연출
-  S.flyers.push({ kind: r.kind, x1: OX + r.x * CELL + CELL / 2, y1: OY + r.y * CELL + CELL / 2, x2: FX + tx * CELL + CELL / 2, y2: FY + ty * CELL + CELL / 2, t: 0 });
+function placeWall(c, x, y) {
+  let ty = y; while (ty >= 0 && S.field[ty][x]) ty--;
+  if (ty < 0) return; // 세로줄이 꽉 차면 버린다
+  const t = c.turret ? { kind: c.turret.kind, lvl: c.turret.lvl, cd: .6 } : null;
+  S.field[ty][x] = { c: c.c, turret: t, hp: blockHp(t), maxhp: blockHp(t) };
+  S.flyers.push({ c: c.c, turret: t, x1: OX + x * CELL + CELL / 2, y1: OY + y * CELL + CELL / 2, x2: FX + x * CELL + CELL / 2, y2: FY + ty * CELL + CELL / 2, t: 0 });
 }
-function forTurrets(fn) { for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) { const t = S.field[y][x]; if (t) fn(t, x, y); } }
+function forTurrets(fn) { for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) { const c = S.field[y][x]; if (c && c.turret) fn(c.turret, x, y, c); } }
 
 // ---------------------------------------------------------------- 적
 // 적 체력: 기본의 2배에서 시작해 웨이브마다 45%씩 증가
-function spawnEnemy(type) { const d = ENEMY[type], k = 2 * (1 + (S.wave - 1) * .45); S.enemies.push({ type, d: 0, hp: d.hp * k, maxhp: d.hp * k, slow: 0, poison: 0, atkT: 0 }); }
-function epos(e) { return pathPos(e.d); }
+function spawnEnemy(type) {
+  const d = ENEMY[type], k = 2 * (1 + (S.wave - 1) * .45);
+  const x = Math.random() * FCOLS | 0;
+  S.enemies.push({ type, gx: x, gy: -1, px: x, py: -2, prog: 1, dur: .3, hp: d.hp * k, maxhp: d.hp * k, slow: 0, poison: 0 });
+}
+function epos(e) { const k = e.prog; return [e.px + (e.gx - e.px) * k + .5, e.py + (e.gy - e.py) * k + .5]; }
 function stepEnemies(dt) {
+  if (S.flowDirty || !FREE) { computeFlow(); S.flowDirty = false; }
   for (const e of S.enemies) {
     const d = ENEMY[e.type];
     if (e.slow > 0) e.slow -= dt;
     if (e.poison > 0) { e.poison -= dt; damage(e, 6 * dt); }
     if (d.heal) { e.healT = (e.healT || 0) - dt; if (e.healT <= 0) { e.healT = 1; S.enemies.forEach(o => { if (o !== e && !o.dead && Math.hypot(...sub(epos(o), epos(e))) < 1.6) o.hp = Math.min(o.maxhp, o.hp + d.heal); }); S.fx.push({ kind: 'ring', x: epos(e)[0], y: epos(e)[1], t: .3, col: d.col, field: true }); } }
-    // 길가 포탑 공격 (파괴자, 보스)
     e.attacking = null;
-    if (d.atk) {
-      const [ex, ey] = epos(e); let tgt = null;
-      forTurrets((t, x, y) => { if (!tgt && Math.hypot(x + .5 - ex, y + .5 - ey) < (d.big ? 1.8 : 1.3)) tgt = { t, x, y }; });
-      if (tgt) { tgt.t.hp -= d.atk * dt; e.attacking = [tgt.x, tgt.y]; if (tgt.t.hp <= 0) { S.field[tgt.y][tgt.x] = null; S.fx.push({ kind: 'burst', x: tgt.x + .5, y: tgt.y + .5, t: .5, col: '#ff6a6a', field: true }); popText('포탑 파괴', tgt.x, tgt.y, '#ff6a6a', 'field'); } continue; }
+    if (e.prog < 1) { e.prog = Math.min(1, e.prog + dt * (e.slow > 0 ? .5 : 1) / e.dur); continue; }
+    e.px = e.gx; e.py = e.gy;
+    // 바닥 줄에서 아래로 나가면 핵 피해
+    if (e.gy === FROWS - 1) { e.dead = true; S.core -= d.core; S.fx.push({ kind: 'core', t: .4 }); popText(`핵 -${d.core}`, e.gx, FROWS - 1, '#ff6a6a', 'field'); if (S.core <= 0) gameOver('핵이 무너졌다'); continue; }
+    const inField = (x, y) => x >= 0 && y >= 0 && x < FCOLS && y < FROWS;
+    const nbrs = DIR8.map(([dx, dy]) => [e.gx + dx, e.gy + dy, dx && dy]).filter(([x, y]) => inField(x, y));
+    // 1) 빈칸만으로 갈 수 있는 길이 있으면 그 길로
+    let step = null, bestF = e.gy >= 0 ? FREE[e.gy][e.gx] : Infinity;
+    if (e.gy < 0) { if (!S.field[0][e.gx] && FREE[0][e.gx] < 1e9) step = [e.gx, 0, false]; }
+    else for (const [x, y, diag] of nbrs) if (!S.field[y][x] && FREE[y][x] < bestF - 1e-6) { bestF = FREE[y][x]; step = [x, y, diag]; }
+    if (!step) {
+      // 2) 길이 없으면 주변 8칸 중 가장 빨리 부술 수 있는(체력이 가장 낮은) 블록·포탑을 공격
+      const around = e.gy < 0 ? [[e.gx - 1, 0], [e.gx, 0], [e.gx + 1, 0]].filter(([x, y]) => inField(x, y)) : nbrs;
+      let tgt = null; for (const [x, y] of around) { const c = S.field[y][x]; if (c && (!tgt || c.hp < tgt.c.hp)) tgt = { c, x, y }; }
+      if (tgt) {
+        tgt.c.hp -= d.atk * dt; e.attacking = [tgt.x, tgt.y];
+        if (tgt.c.hp <= 0) { S.field[tgt.y][tgt.x] = null; S.flowDirty = true; S.fx.push({ kind: 'burst', x: tgt.x + .5, y: tgt.y + .5, t: .5, col: tgt.c.turret ? '#ff6a6a' : COLOR[tgt.c.c], field: true }); if (tgt.c.turret) popText('포탑 파괴', tgt.x, tgt.y, '#ff6a6a', 'field'); }
+        continue;
+      }
+      // 3) 주변에 블록도 없으면 뚫기 쉬운 쪽으로 이동
+      let bestC = e.gy >= 0 ? COST[e.gy][e.gx] : Infinity;
+      for (const [x, y, diag] of nbrs) if (!S.field[y][x] && COST[y][x] < bestC - 1e-6) { bestC = COST[y][x]; step = [x, y, diag]; }
+      if (!step) continue;
     }
-    e.d += d.spd * (e.slow > 0 ? .5 : 1) * dt;
-    if (e.d >= PATH_LEN) { e.dead = true; S.core -= d.core; S.fx.push({ kind: 'core', t: .4 }); popText(`핵 -${d.core}`, 4, FROWS - 1, '#ff6a6a', 'field'); if (S.core <= 0) gameOver('핵이 무너졌다'); }
+    e.gx = step[0]; e.gy = step[1]; e.prog = 0; e.dur = (step[2] ? 1.41 : 1) / d.spd;
   }
 }
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
@@ -240,13 +252,13 @@ function updateTurrets(dt) {
   const rate = 1 + Math.max(0, Math.min(S.combo, 10)) * .08;
   forTurrets((t, x, y) => {
     const T = TURRET[t.kind], lvl = t.lvl, k = t.kind;
-    const range = (T.range + .3 * (lvl - 1)) * .75, dmg = T.dmg * .5 * (1 + .4 * (lvl - 1)); // 포탑이 계속 쌓이므로 공격력 절반, 사거리 3/4, 레벨당 +40%
+    const range = T.range + .3 * (lvl - 1), dmg = T.dmg * .6 * (1 + .4 * (lvl - 1));
     t.cd -= dt * rate; if (t.cd > 0) return;
     const cx = x + .5, cy = y + .5;
     const inR = S.enemies.filter(e => !e.dead && dist(e, cx, cy) <= range); if (!inR.length) return;
     t.cd = T.cd;
     const far = k === 'J' || k === 'A';
-    const tgt = inR.sort((a, b) => far ? b.d - a.d : b.d - a.d)[0]; // 핵에 가장 가까운 적 우선
+    const tgt = inR.sort((a, b) => far ? dist(b, cx, cy) - dist(a, cx, cy) : epos(b)[1] - epos(a)[1])[0]; // 저격·포격은 먼 적, 나머지는 핵에 가까운 적
     const [ex, ey] = epos(tgt);
     S.beams.push({ x1: cx, y1: cy, x2: ex, y2: ey, t: .09, col: COLOR[k] });
     hit(tgt, dmg, k);
@@ -290,7 +302,7 @@ function update(dt) {
   stepEnemies(dt); updateTurrets(dt);
   S.enemies = S.enemies.filter(e => !e.dead);
   updateWaves(dt);
-  S.flyers.forEach(f => f.t += dt * 2.2); S.flyers = S.flyers.filter(f => f.t < 1);
+  S.flyers.forEach(f => f.t += dt * 3); S.flyers = S.flyers.filter(f => f.t < 1);
   [S.fx, S.texts, S.beams].forEach(a => a.forEach(o => o.t -= dt));
   S.fx = S.fx.filter(o => o.t > 0); S.texts = S.texts.filter(o => o.t > 0); S.beams = S.beams.filter(o => o.t > 0);
 }
@@ -366,19 +378,18 @@ function draw() {
   // ── 전장
   g.lineWidth = 1.5; glow(coreHit ? 'rgba(255,106,106,.7)' : 'rgba(127,214,255,.5)', 8); g.strokeRect(FX, FY, FCOLS * CELL, FROWS * CELL);
   text('DEFENSE', FX + FCOLS * CELL / 2, FY - 14, '#5f6878', 11, 'center');
-  g.shadowBlur = 0; g.fillStyle = 'rgba(160,180,220,.18)';
-  for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) if (SLOT_D[y][x] >= 0 && !S.field[y][x]) g.fillRect(FXp(x) + CELL / 2 - 1, FYp(y) + CELL / 2 - 1, 2, 2);
-  // 길
-  g.lineWidth = CELL - 8; g.strokeStyle = 'rgba(255,138,122,.06)'; g.lineCap = 'round'; g.lineJoin = 'round';
-  g.beginPath(); WAYPOINTS.forEach(([x, y], i) => { const px = FXp(x) + CELL / 2, py = FYp(Math.max(-.4, Math.min(FROWS - .6, y))) + CELL / 2; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke();
-  g.lineWidth = 1; g.setLineDash([4, 6]); glow('rgba(255,138,122,.35)', 4); g.stroke(); g.setLineDash([]); g.lineCap = 'butt';
-  // 입구와 핵
-  glow('#ff8a7a', 10); g.lineWidth = 1.5; { const px = FXp(1) + CELL / 2; g.beginPath(); g.moveTo(px - 9, FY - 4); g.lineTo(px, FY + 6); g.lineTo(px + 9, FY - 4); g.stroke(); }
-  { const cx = FXp(4) + CELL / 2, cy = FYp(FROWS) + 16; glow(coreHit ? '#ff6a6a' : '#7fd6ff', 16); g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 6; i++) { const a = Math.PI / 6 + i / 6 * 6.283; g.lineTo(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12); } g.stroke(); text(`CORE ${Math.max(0, S.core)}`, cx + 20, cy + 4, coreHit ? '#ff6a6a' : '#7fd6ff', 11); }
-  // 포탑
-  forTurrets((t, x, y) => { block(FXp(x), FYp(y), COLOR[t.kind], { alpha: .55 }); turretGlyph(t, FXp(x) + CELL / 2, FYp(y) + CELL / 2);
-    g.shadowBlur = 0; if (t.lvl > 1) text(t.lvl, FXp(x) + CELL - 10, FYp(y) + 11, '#ffd96a', 10);
-    if (t.hp < t.maxhp) { g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(FXp(x) + 4, FYp(y) + CELL - 5, CELL - 8, 2); g.fillStyle = '#ff6a6a'; g.fillRect(FXp(x) + 4, FYp(y) + CELL - 5, (CELL - 8) * Math.max(0, t.hp / t.maxhp), 2); } });
+  g.strokeStyle = 'rgba(120,140,180,.07)'; g.lineWidth = 1;
+  for (let x = 1; x < FCOLS; x++) { g.beginPath(); g.moveTo(FXp(x), FY); g.lineTo(FXp(x), FYp(FROWS)); g.stroke(); }
+  for (let y = 1; y < FROWS; y++) { g.beginPath(); g.moveTo(FX, FYp(y)); g.lineTo(FXp(FCOLS), FYp(y)); g.stroke(); }
+  // 입구 (위쪽 전체)와 핵 (바닥 전체)
+  glow('rgba(255,138,122,.5)', 8); g.lineWidth = 1; g.setLineDash([3, 5]); g.beginPath(); g.moveTo(FX, FY - 4); g.lineTo(FXp(FCOLS), FY - 4); g.stroke(); g.setLineDash([]);
+  glow(coreHit ? '#ff6a6a' : '#7fd6ff', 16); g.lineWidth = 2.5; g.beginPath(); g.moveTo(FX - 6, FYp(FROWS) + 6); g.lineTo(FXp(FCOLS) + 6, FYp(FROWS) + 6); g.stroke();
+  text(`CORE ${Math.max(0, S.core)}`, FX + FCOLS * CELL / 2, FYp(FROWS) + 24, coreHit ? '#ff6a6a' : '#7fd6ff', 11, 'center');
+  // 벽 블록과 포탑
+  for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) { const c = S.field[y][x]; if (!c) continue;
+    block(FXp(x), FYp(y), COLOR[c.c], { alpha: c.turret ? 1 : .75 });
+    if (c.turret) { turretGlyph(c.turret, FXp(x) + CELL / 2, FYp(y) + CELL / 2); g.shadowBlur = 0; if (c.turret.lvl > 1) text(c.turret.lvl, FXp(x) + CELL - 10, FYp(y) + 11, '#ffd96a', 10); }
+    if (c.hp < c.maxhp) { g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(FXp(x) + 4, FYp(y) + CELL - 5, CELL - 8, 2); g.fillStyle = '#ff6a6a'; g.fillRect(FXp(x) + 4, FYp(y) + CELL - 5, (CELL - 8) * Math.max(0, c.hp / c.maxhp), 2); } }
   // 적과 공격선
   S.enemies.forEach(e => { if (e.attacking) { const [ex, ey] = epos(e); g.lineWidth = 1; glow('rgba(255,106,106,.7)', 6); g.setLineDash([2, 3]); g.beginPath(); g.moveTo(FX + ex * CELL, FY + ey * CELL); g.lineTo(FXp(e.attacking[0]) + CELL / 2, FYp(e.attacking[1]) + CELL / 2); g.stroke(); g.setLineDash([]); } });
   S.enemies.forEach(drawEnemy);
@@ -389,8 +400,9 @@ function draw() {
     if (f.kind === 'burst') { glow(f.col, 8); const n = f.big ? 22 : 10; for (let i = 0; i < n; i++) { const a = i / n * 6.28 + f.x, r = (0.5 - Math.min(f.t, .5)) * (f.big ? 90 : 50) + 4; g.globalAlpha = Math.min(1, f.t * 2); g.fillRect(FX + f.x * CELL + Math.cos(a) * r, FY + f.y * CELL + Math.sin(a) * r, 2.2, 2.2); } g.globalAlpha = 1; }
   });
   // 터진 포탑이 우물에서 전장으로 날아가는 연출
-  S.flyers.forEach(f => { const k = f.t * f.t * (3 - 2 * f.t), x = f.x1 + (f.x2 - f.x1) * k, y = f.y1 + (f.y2 - f.y1) * k - Math.sin(Math.PI * f.t) * 60;
-    g.globalAlpha = .35; glow(COLOR[f.kind], 6); g.lineWidth = 1; g.beginPath(); g.moveTo(f.x1, f.y1); g.quadraticCurveTo((f.x1 + f.x2) / 2, Math.min(f.y1, f.y2) - 60, x, y); g.stroke(); g.globalAlpha = 1; turretGlyph({ kind: f.kind, lvl: 1 }, x, y); });
+  // 무너진 블록이 우물에서 전장의 같은 자리로 미끄러져 가는 연출
+  S.flyers.forEach(f => { const k = f.t * f.t * (3 - 2 * f.t), x = f.x1 + (f.x2 - f.x1) * k, y = f.y1 + (f.y2 - f.y1) * k;
+    g.globalAlpha = 1 - f.t * .6; block(x - CELL / 2, y - CELL / 2, COLOR[f.c], { blur: 12 }); if (f.turret) turretGlyph(f.turret, x, y); g.globalAlpha = 1; });
   S.texts.forEach(t => { const bx = t.area === 'field' ? FX : OX, by = t.area === 'field' ? FY : OY; g.globalAlpha = Math.min(1, t.t * 2); text(t.s, bx + t.x * CELL, by + t.y * CELL - (1.2 - t.t) * 30, t.col, 13, 'center'); g.globalAlpha = 1; });
   // ── 왼쪽 패널
   panel(20, 50, 250, 250);
@@ -401,7 +413,7 @@ function draw() {
   let tc = 0; forTurrets(() => tc++); text(`포탑 ${tc}개 · 합체 ${S.merges} · 합성 ${S.fusions}`, 36, 244, '#7fd6ff', 12);
   text(S.combo > 0 ? `COMBO x${S.combo}  공속 +${Math.min(S.combo, 10) * 8}%` : '', 36, 268, '#ffd96a', 12);
   panel(20, 320, 250, 330); text('규칙', 36, 346, '#7fd6ff', 12);
-  ['블록마다 모양별 포탑 칸 1개', '줄을 지우면 그 줄의 포탑이', '  터져서 전장에 배치된다', '  (길 바로 옆, 같은 높이 근처)', '같은 줄의 같은 종류 2개 이상: 합체', '정해진 조합: 새 포탑으로 합성', '여러 줄 동시: 레벨 +(줄 수 - 1)', 'T스핀 + 줄: 관통 포탑 +2', '자리가 차면 같은 종류 +1레벨', '파괴자와 보스는 포탑을 부순다', '적이 핵에 닿으면 체력 감소', '콤보 동안 포탑 공격 속도 증가']
+  ['블록마다 모양별 포탑 칸 1개', '줄을 지우면 그 줄의 블록이', '  전장의 같은 자리에 벽으로 생긴다', '  (자리가 차 있으면 바로 위 빈칸)', '같은 줄의 같은 종류 2개 이상: 합체', '정해진 조합: 새 포탑으로 합성', '여러 줄 동시: 레벨 +(줄 수 - 1)', 'T스핀 + 줄: 관통 포탑 +2', '적은 블록을 피해 바닥(핵)으로 간다', '길이 없으면 주변 8칸 중', '  가장 빨리 부술 수 있는 것부터 부순다', '포탑 달린 블록이 더 단단하다', '콤보 동안 포탑 공격 속도 증가']
     .forEach((s, i) => text(s, 36, 370 + i * 21, '#8a94a6', 11));
   // ── 오른쪽 패널
   const RX = 940;
@@ -416,8 +428,8 @@ function draw() {
   // ── 오버레이
   if (!S.started || S.over || S.paused) {
     g.fillStyle = 'rgba(6,6,11,.84)'; g.fillRect(0, 0, W, H);
-    if (!S.started) { text('TETRIS DEFENSE', W / 2, 250, '#7fd6ff', 34, 'center'); text('왼쪽에서 줄을 지우면 블록 속 포탑이 터져 나와 오른쪽 전장에 배치된다', W / 2, 300, '#cfd8e6', 14, 'center');
-      text('적이 길을 따라 핵에 닿기 전에 막아라', W / 2, 326, '#8a94a6', 13, 'center'); text('Enter 키 또는 화면을 눌러 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
+    if (!S.started) { text('TETRIS DEFENSE', W / 2, 250, '#7fd6ff', 34, 'center'); text('왼쪽에서 줄을 지우면 그 줄이 오른쪽 전장의 같은 자리에 벽으로 생긴다', W / 2, 300, '#cfd8e6', 14, 'center');
+      text('적은 벽을 피해 바닥의 핵으로 가고, 길이 없으면 벽과 포탑을 부순다', W / 2, 326, '#8a94a6', 13, 'center'); text('Enter 키 또는 화면을 눌러 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
     else if (S.over) { text('GAME OVER', W / 2, 270, '#ff6a6a', 34, 'center'); text(S.overWhy, W / 2, 308, '#cfd8e6', 14, 'center'); text(`WAVE ${S.wave} · SCORE ${S.score.toLocaleString()} · 처치 ${S.kills} · LINES ${S.lines}`, W / 2, 340, '#8a94a6', 14, 'center'); text('R 키 또는 화면을 눌러 다시 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
     else text('PAUSED', W / 2, 330, '#7fd6ff', 30, 'center');
   }
@@ -452,7 +464,7 @@ document.querySelectorAll('#touch button').forEach(b => b.addEventListener('poin
 newGame(); S.started = false;
 window.__td = () => S;
 // 자동 시험용 진입점
-window.__api = { update, draw, move, rotate, hardDrop, collide, cellsOf, SHAPES, COLS, ROWS, newGame, spawnEnemy, sendToField, SLOT_D };
+window.__api = { update, draw, move, rotate, hardDrop, collide, cellsOf, SHAPES, COLS, ROWS, newGame, spawnEnemy, placeWall };
 requestAnimationFrame(frame);
 </script>
 </body>

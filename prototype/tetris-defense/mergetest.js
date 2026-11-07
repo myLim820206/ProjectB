@@ -1,34 +1,50 @@
 // 실행: node prototype/tetris-defense/mergetest.js "$(pwd)/prototype/tetris-defense/index.html"
-// v2 규칙 검증: 줄을 지우면 그 줄의 포탑이 전장에 배치된다
-//  1) 같은 종류 2개 → 합체해 전장에 1개 (레벨 합산)
-//  2) 빙결 + 화염 → 증기로 합성
-//  3) 규칙 없는 빙결 + 번개 → 둘 다 전장에
-//  4) 전장이 꽉 차면 같은 종류 중 가장 약한 포탑을 강화
+// v3 규칙 검증
+//  wall: 줄을 지우면 전장의 같은 자리에 벽, 포탑도 같은 칸
+//  stack: 같은 자리에 또 생기면 같은 세로줄 바로 위 빈칸에 쌓임
+//  merge / fusion: 같은 줄의 같은 종류 합체, 빙결+화염 → 증기
+//  gap: 벽에 틈이 있으면 부수지 않고 틈으로 지나감
+//  weakest: 막혔을 때 주변 8칸 중 체력이 가장 낮은 블록부터 부숨
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage();
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.goto('file://' + process.argv[2]);
   const out = await p.evaluate(() => {
-    const A = window.__api;
-    function run(turrets, prefill) {
-      A.newGame(); const s = window.__td(); s.started = true;
-      if (prefill) prefill(s);
+    const A = window.__api, S = () => window.__td();
+    function clearOne(turrets) {
+      const s = S();
       for (let x = 0; x < 8; x++) s.board[19][x] = { c: 'J', turret: null };
       turrets.forEach(([x, kind, lvl]) => s.board[19][x].turret = { kind, lvl });
-      s.board[18][8] = { c: 'S', turret: null }; s.board[18][9] = { c: 'S', turret: null };
-      s.piece = { t: 'O', turrets: [], r: 0, x: 7, y: 0 }; // 8, 9열의 17, 18행... O는 18행 위에 얹힘
-      s.board[18][8] = null; s.board[18][9] = null;      // O가 18, 19행의 8, 9열을 채워 19행만 지움
-      A.hardDrop(); A.draw();
-      const f = []; window.__td().field.forEach((row, y) => row.forEach((t, x) => { if (t && !(t.kind === 'S' && t.lvl === 1)) f.push(`${t.kind}${t.lvl}`); }));
-      return { lines: window.__td().lines, field: f.sort() };
+      s.piece = { t: 'O', turrets: [], r: 0, x: 7, y: 0 }; // 8, 9열의 18, 19행을 채워 19행만 지움
+      A.hardDrop();
     }
-    return {
-      same: run([[1, 'I', 1], [5, 'I', 2]]),
-      fusion: run([[2, 'I', 1], [6, 'Z', 1]]),
-      noRule: run([[2, 'I', 1], [6, 'O', 1]]),
-      fullField: run([[3, 'L', 2]], s => { let first = true; for (let y = 0; y < 20; y++) for (let x = 0; x < 9; x++) if (A.SLOT_D[y][x] >= 0) { s.field[y][x] = { kind: first ? 'L' : 'S', lvl: 1, cd: 1, hp: 65, maxhp: 65 }; first = false; } }),
-    };
+    const fieldRow = y => S().field[y].map(c => c ? (c.turret ? c.turret.kind + c.turret.lvl : '#') : '.').join('');
+    const res = {};
+    A.newGame(); S().started = true; S().breakT = 999;
+    clearOne([[1, 'I', 1], [5, 'I', 2], [7, 'Z', 1]]);
+    res.wall = { row19: fieldRow(19) };
+    clearOne([[2, 'L', 1], [6, 'S', 1]]);
+    res.stack = { row18: fieldRow(18), row19: fieldRow(19) };
+    A.newGame(); S().started = true; S().breakT = 999;
+    clearOne([[2, 'I', 1], [6, 'Z', 1]]);
+    res.fusion = { row19: fieldRow(19) };
+    // gap: 10행에 9칸 벽, 9열만 비움. 적은 부수지 않고 돌아가야 한다
+    A.newGame(); let s = S(); s.started = true; s.breakT = 999;
+    for (let x = 0; x < 9; x++) s.field[10][x] = { c: 'T', turret: null, hp: 60, maxhp: 60 };
+    A.spawnEnemy('grunt'); s.enemies[0].gx = 0; s.enemies[0].gy = 5; s.enemies[0].px = 0; s.enemies[0].py = 5; s.flowDirty = true;
+    for (let i = 0; i < 60 * 15 && s.enemies.length; i++) { A.update(1 / 60); s.piece.y = 0; }
+    res.gap = { wallIntact: S().field[10].slice(0, 9).every(c => c && c.hp === 60), coreAfter: S().core };
+    // weakest: 10행 꽉 찬 벽. 적 바로 아래 세 칸의 체력 80, 25, 90 → 체력 25 칸부터 부숴야 한다
+    A.newGame(); s = S(); s.started = true; s.breakT = 999;
+    for (let x = 0; x < 10; x++) s.field[10][x] = { c: 'T', turret: null, hp: 200, maxhp: 200 };
+    s.field[10][3].hp = 80; s.field[10][4].hp = 90; s.field[10][5].hp = 25;
+    A.spawnEnemy('grunt'); const e = s.enemies[0]; e.gx = 4; e.gy = 9; e.px = 4; e.py = 9; s.flowDirty = true;
+    let firstBroken = null;
+    for (let i = 0; i < 60 * 30 && !firstBroken; i++) { A.update(1 / 60); s.piece.y = 0; for (let x = 0; x < 10; x++) if (!S().field[10][x]) { firstBroken = x; break; } }
+    res.weakest = { firstBroken, expected: 5 };
+    A.draw();
+    return res;
   });
   console.log(JSON.stringify(out, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();
 })();
