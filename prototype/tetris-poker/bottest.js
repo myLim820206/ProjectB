@@ -1,5 +1,5 @@
 // 실행: node prototype/tetris-poker/bottest.js "$(pwd)/prototype/tetris-poker/index.html" [판 수]
-// 봇이 모든 자리(회전 × 열)를 따져 "예상 점수 + 쌓인 모양"이 가장 좋은 곳에 놓으며 라운드를 진행한다.
+// 봇이 모든 자리(회전 × 열)를 따져 "예상 점수(연쇄 포함) + 쌓인 모양"이 가장 좋은 곳에 놓으며 라운드를 진행한다.
 // 몇 라운드까지 가는지, 라운드별 점수와 목표를 기록해 밸런스를 본다.
 const { chromium } = require('playwright');
 (async () => {
@@ -18,7 +18,8 @@ const { chromium } = require('playwright');
       let guard = 0;
       while (guard++ < 5000) {
         const s = S();
-        if (s.phase === 'clear') { rounds.push({ r: s.round + 1, score: s.score, target: A.ROUNDS[s.round].target, left: s.piecesLeft }); A.nextRound(); continue; }
+        if (s.phase === 'chain') { A.chainStep(); continue; }
+        if (s.phase === 'clear') { rounds.push({ r: s.round + 1, score: s.score, target: A.ROUNDS[s.round].target, left: s.piecesLeft, bursts: s.bursts, maxChain: s.maxChain }); A.nextRound(); continue; }
         if (s.phase === 'over' || s.phase === 'win') break;
         const pc = s.piece; let best = null;
         const noRot = A.ROUNDS[s.round].boss === 'noRotate';
@@ -27,9 +28,7 @@ const { chromium } = require('playwright');
           const save = { x: pc.x, r: pc.r }; pc.x = x; pc.r = r;
           const pv = A.preview(); const y = pv.y;
           const bd = s.board.map(row => row.slice()); A.cellsOf(pc, x, y, r).forEach(([cx, cy]) => bd[cy][cx] = 1);
-          const remaining = bd.filter(row => !row.every(c => c));
-          while (remaining.length < A.ROWS) remaining.unshift(Array(A.COLS).fill(null));
-          const sc = (pv.total || 0) * 0.08 + shape(remaining);
+          const sc = (pv.total || 0) * 0.05 + shape(pv.board || bd);
           pc.x = save.x; pc.r = save.r;
           if (!best || sc > best.sc) best = { x, r, sc };
         }
@@ -37,13 +36,15 @@ const { chromium } = require('playwright');
         pc.x = best.x; pc.r = best.r; A.drop(); if (guard % 25 === 0) A.draw();
       }
       const s = S();
-      results.push({ reached: s.phase === 'win' ? 9 : s.round + 1, phase: s.phase, why: s.overWhy || '', rounds, lastScore: s.score, best: s.best && s.best.name });
+      results.push({ reached: s.phase === 'win' ? 9 : s.round + 1, phase: s.phase, why: s.overWhy || '', rounds, lastScore: s.score, best: s.best && `${s.best.total}점 ${s.best.chain}연쇄`, lastBursts: s.bursts, lastMaxChain: s.maxChain });
     }
     const hist = {}; results.forEach(r => hist[r.reached] = (hist[r.reached] || 0) + 1);
     const perRound = {}; results.forEach(r => r.rounds.forEach(x => (perRound[x.r] ||= []).push(x.score)));
     const avg = Object.fromEntries(Object.entries(perRound).map(([k, v]) => [k, Math.round(v.reduce((a, b) => a + b, 0) / v.length)]));
     const fails = {}; results.filter(r => r.phase === 'over').forEach(r => { const k = r.why.slice(0, 12); fails[k] = (fails[k] || 0) + 1; });
-    return { reachedHistogram: hist, avgClearScoreByRound: avg, failReasons: fails, sampleBest: results.slice(0, 5).map(r => r.best) };
+    const burstsPerRound = Math.round(results.flatMap(r => r.rounds.map(x => x.bursts)).reduce((a, b) => a + b, 0) / Math.max(1, results.flatMap(r => r.rounds).length) * 10) / 10;
+    const maxChainSeen = Math.max(0, ...results.map(r => Math.max(r.lastMaxChain || 0, ...r.rounds.map(x => x.maxChain))));
+    return { reachedHistogram: hist, avgClearScoreByRound: avg, failReasons: fails, burstsPerClearedRound: burstsPerRound, maxChainSeen, sampleBest: results.slice(0, 5).map(r => r.best) };
   }, runs);
   console.log(JSON.stringify(out, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();
 })();
