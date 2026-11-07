@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   await p.goto('file://' + process.argv[2]); if (process.argv[3]==='all') await p.evaluate(()=>window.__spawnAll=true);
   const res = await p.evaluate(async () => {
     const A = window.__api; const S = () => window.__td();
-    A.newGame(); S().started = true; if (window.__spawnAll) { ["shield","spider","ghost","boss","bomb","digger","chute","grunt"].forEach((t,i)=>A.spawnEnemy(t, i)); }
+    A.newGame(); S().started = true; if (window.__spawnAll) { ["boss","tank","breaker","healer","runner","grunt"].forEach(t=>A.spawnEnemy(t)); }
     const log = []; let t = 0, nextMove = 0, crushes = 0, maxWave = 1, turretsMax = 0, enemiesSeen = new Set();
     function evalBoard(board) { let holes = 0, agg = 0, bump = 0, hs = []; for (let x = 0; x < A.COLS; x++) { let h = 0, seen = false; for (let y = 0; y < A.ROWS; y++) { if (board[y][x]) { if (!seen) { h = A.ROWS - y; seen = true; } } else if (seen) holes++; } hs.push(h); agg += h; } for (let x = 1; x < A.COLS; x++) bump += Math.abs(hs[x] - hs[x - 1]); let lines = board.filter(r => r.every(c => c)).length; return -0.51 * agg + 0.76 * lines - 0.36 * holes - 0.18 * bump; }
     function bestPlacement() {
@@ -32,8 +32,8 @@ const { chromium } = require('playwright');
       A.update(dt);
       if (i % 6 === 0) A.draw(); // 그리기 오류도 잡도록 화면도 그린다
       const s = S(); maxWave = Math.max(maxWave, s.wave); s.enemies.forEach(e => enemiesSeen.add(e.type));
-      let tc = 0; s.board.forEach(r => r.forEach(c => { if (c && c.turret) tc++; })); turretsMax = Math.max(turretsMax, tc);
-      if (i % (60 * 30) === 0) log.push({ sec: Math.round(t), wave: s.wave, core: s.core, lines: s.lines, kills: s.kills, enemies: s.enemies.length, turrets: tc, merges: s.merges, fusions: s.fusions, crushes: s.crushes });
+      let tc = 0; s.field.forEach(r => r.forEach(c => { if (c) tc++; })); turretsMax = Math.max(turretsMax, tc);
+      if (i % (60 * 30) === 0) log.push({ sec: Math.round(t), wave: s.wave, core: s.core, lines: s.lines, kills: s.kills, enemies: s.enemies.length, turrets: tc, merges: s.merges, fusions: s.fusions });
       if (s.over) { log.push({ over: s.overWhy, sec: Math.round(t), wave: s.wave }); break; }
     }
     const s = S();

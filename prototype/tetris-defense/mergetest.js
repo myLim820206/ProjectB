@@ -1,9 +1,9 @@
 // 실행: node prototype/tetris-defense/mergetest.js "$(pwd)/prototype/tetris-defense/index.html"
-// 줄 지우기 포탑 규칙 검증
-//  1) 같은 종류 2개 → 합체해 바로 다음 블록에 실림 (레벨 합산)
-//  2) I + Z → 증기(V)로 합성해 다음 블록에 실림
-//  3) 규칙 없는 I + O → 둘 다 다음 블록들에 실림
-//  4) 지운 줄 밖의 포탑은 판에 그대로 남음
+// v2 규칙 검증: 줄을 지우면 그 줄의 포탑이 전장에 배치된다
+//  1) 같은 종류 2개 → 합체해 전장에 1개 (레벨 합산)
+//  2) 빙결 + 화염 → 증기로 합성
+//  3) 규칙 없는 빙결 + 번개 → 둘 다 전장에
+//  4) 전장이 꽉 차면 같은 종류 중 가장 약한 포탑을 강화
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage();
@@ -11,24 +11,23 @@ const { chromium } = require('playwright');
   await p.goto('file://' + process.argv[2]);
   const out = await p.evaluate(() => {
     const A = window.__api;
-    const T = (kind, lvl = 1) => ({ kind, lvl, cd: 1, hp: 65, maxhp: 65 });
-    function run(setup) {
+    function run(turrets, prefill) {
       A.newGame(); const s = window.__td(); s.started = true;
-      for (let x = 0; x < 8; x++) s.board[19][x] = { c: 'J', iron: false, turret: null };
-      for (let x = 0; x < 10; x++) s.board[18][x] = x < 8 ? { c: 'S', iron: false, turret: null } : null; // 지운 줄 위 블록 (8, 9열은 비움)
-      setup(s);
-      s.piece = { t: 'O', c: 'O', turrets: [], iron: false, r: 0, x: 7, y: 0 }; // 8, 9열의 18, 19행을 채움 → 19행 지움
+      if (prefill) prefill(s);
+      for (let x = 0; x < 8; x++) s.board[19][x] = { c: 'J', turret: null };
+      turrets.forEach(([x, kind, lvl]) => s.board[19][x].turret = { kind, lvl });
+      s.board[18][8] = { c: 'S', turret: null }; s.board[18][9] = { c: 'S', turret: null };
+      s.piece = { t: 'O', turrets: [], r: 0, x: 7, y: 0 }; // 8, 9열의 17, 18행... O는 18행 위에 얹힘
+      s.board[18][8] = null; s.board[18][9] = null;      // O가 18, 19행의 8, 9열을 채워 19행만 지움
       A.hardDrop(); A.draw();
-      const st = window.__td(), list = [];
-      st.board.forEach((row, y) => row.forEach((c, x) => { if (c && c.turret) list.push(`${c.turret.kind}${c.turret.lvl}@${x},${y}`); }));
-      const carried = [st.piece, ...st.next].map((q, i) => (i === 0 ? '현재:' : `다음${i}:`) + q.turrets.filter(t => t.carried).map(t => t.kind + t.lvl).join(','));
-      return { lines: st.lines, boardTurrets: list.sort(), carried };
+      const f = []; window.__td().field.forEach((row, y) => row.forEach((t, x) => { if (t && !(t.kind === 'S' && t.lvl === 1)) f.push(`${t.kind}${t.lvl}`); }));
+      return { lines: window.__td().lines, field: f.sort() };
     }
     return {
-      same: run(s => { s.board[19][1].turret = T('I'); s.board[19][5].turret = T('I', 2); }),
-      fusion: run(s => { s.board[19][2].turret = T('I'); s.board[19][6].turret = T('Z'); }),
-      noRule: run(s => { s.board[19][2].turret = T('I'); s.board[19][6].turret = T('O'); }),
-      keepOthers: run(s => { s.board[18][3] = null; s.board[19][3].turret = T('L'); s.board[18][5].turret = T('S', 2); }),
+      same: run([[1, 'I', 1], [5, 'I', 2]]),
+      fusion: run([[2, 'I', 1], [6, 'Z', 1]]),
+      noRule: run([[2, 'I', 1], [6, 'O', 1]]),
+      fullField: run([[3, 'L', 2]], s => { let first = true; for (let y = 0; y < 20; y++) for (let x = 0; x < 9; x++) if (A.SLOT_D[y][x] >= 0) { s.field[y][x] = { kind: first ? 'L' : 'S', lvl: 1, cd: 1, hp: 65, maxhp: 65 }; first = false; } }),
     };
   });
   console.log(JSON.stringify(out, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();

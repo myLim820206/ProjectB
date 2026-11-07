@@ -8,7 +8,7 @@
   :root { --bg:#06060b; --fg:#cfd8e6; }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden}
   body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-  canvas{display:block;width:100%;max-width:1000px;max-height:calc(100% - 80px);object-fit:contain;touch-action:none}
+  canvas{display:block;width:100%;max-width:1280px;max-height:calc(100% - 80px);object-fit:contain;touch-action:none}
   #touch{display:none;gap:8px;flex-wrap:wrap;justify-content:center}
   #touch button{font:600 18px/1 "DejaVu Sans Mono",monospace;color:#cfd8e6;background:transparent;border:1px solid rgba(127,214,255,.45);border-radius:6px;min-width:52px;height:48px;touch-action:manipulation}
   #touch button:active{background:rgba(127,214,255,.15)}
@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-<canvas id="c" width="1000" height="700"></canvas>
+<canvas id="c" width="1280" height="700"></canvas>
 <div id="touch" aria-label="터치 조작">
   <button id="tLeft" data-a="left" aria-label="왼쪽">◀</button>
   <button id="tRight" data-a="right" aria-label="오른쪽">▶</button>
@@ -29,59 +29,84 @@
 <script>
 'use strict';
 // =====================================================================
-// 테트리스 디펜스 웹 프로토타입
-// 블록은 위에서 떨어지고, 적은 하늘에서 떨어져 블록 위를 걷고 구멍으로
-// 바닥(핵)까지 파고든다. 처치 수단은 깔아뭉개기와 포탑. 포탑은 테트리스
-// 행동(여러 줄 지우기, T 스핀, 콤보, 판 비우기)으로 생성하고 강화한다.
+// 테트리스 디펜스 v2: 화면 분리
+// 왼쪽 우물은 순수 테트리스. 모든 블록에 모양별 포탑 칸이 하나 있다.
+// 줄을 지우면 그 줄의 포탑이 터져 나와 오른쪽 전장에 배치된다.
+// 같은 줄에서 함께 터진 포탑은 같은 종류끼리 합체, 정해진 조합은 합성.
+// 적은 전장 위쪽 입구에서 나와 길을 따라 아래 핵으로 가고, 닿으면 핵 체력이 깎인다.
 // =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
-const W = 1000, H = 700;
-const COLS = 10, ROWS = 20, CELL = 30, OX = 350, OY = 50;
-const COLOR = { I:'#7fd6ff', O:'#ffd96a', T:'#c890ff', S:'#9cffb0', Z:'#ff8a7a', L:'#ffb36a', J:'#6a9cff', X:'#9aa0b0',
-  V:'#d8f4ff', R:'#fff0a0', P:'#c4ff6a', A:'#ff9a50' }; // V~A: 합성 포탑
-const ATTR_NAME = { I:'빙결', O:'번개', T:'관통', S:'독', Z:'화염', L:'폭발', J:'저격' };
-const ATTR_DESC = { I:'느리게', O:'연쇄 2', T:'꿰뚫기', S:'지속 피해', Z:'작은 범위', L:'큰 범위', J:'먼 적 한 발' };
-const HYBRID_NAME = { V:'증기', R:'레일건', P:'역병', A:'포격' };
-const HYBRID_DESC = { V:'범위 + 감속', R:'일직선 전부', P:'범위 + 독', A:'먼 적 큰 범위' };
-const KIND_NAME = { ...ATTR_NAME, ...HYBRID_NAME };
-// 합성 규칙: 같은 줄에서 함께 지워지면 새 포탑이 된다
+const W = 1280, H = 700;
+const COLS = 10, ROWS = 20, CELL = 30, OX = 290, OY = 50;           // 테트리스 우물
+const FCOLS = 9, FROWS = 20, FX = 640, FY = 50;                       // 디펜스 전장
+const COLOR = { I:'#7fd6ff', O:'#ffd96a', T:'#c890ff', S:'#9cffb0', Z:'#ff8a7a', L:'#ffb36a', J:'#6a9cff',
+  V:'#d8f4ff', R:'#fff0a0', P:'#c4ff6a', A:'#ff9a50' };
+const KIND_NAME = { I:'빙결', O:'번개', T:'관통', S:'독', Z:'화염', L:'폭발', J:'저격', V:'증기', R:'레일건', P:'역병', A:'포격' };
+const KIND_DESC = { I:'느리게', O:'연쇄 2', T:'꿰뚫기', S:'지속 피해', Z:'작은 범위', L:'큰 범위', J:'먼 적 한 발', V:'범위 + 감속', R:'일직선 전부', P:'범위 + 독', A:'먼 적 큰 범위' };
 const RECIPES = [['I', 'Z', 'V'], ['O', 'T', 'R'], ['S', 'L', 'P'], ['J', 'L', 'A']];
 const BASE = {
   I:[[0,1],[1,1],[2,1],[3,1]], O:[[1,0],[2,0],[1,1],[2,1]], T:[[1,0],[0,1],[1,1],[2,1]],
   S:[[1,0],[2,0],[0,1],[1,1]], Z:[[0,0],[1,0],[1,1],[2,1]], L:[[2,0],[0,1],[1,1],[2,1]], J:[[0,0],[0,1],[1,1],[2,1]],
 };
-// 회전 상태는 좌표를 돌려서 만든다. 칸 순서가 유지되어 포탑 칸 번호가 회전해도 같다.
+// 회전 상태는 좌표를 돌려서 만든다. 칸 순서가 유지되어 포탑 칸이 블록과 함께 돈다.
+// O는 칸 배치가 같지만 칸 순서를 시계 방향으로 돌려 포탑 칸이 옮겨 가게 한다.
 const SHAPES = {};
 for (const t in BASE) {
   const n = t === 'I' ? 4 : 3; let cur = BASE[t]; SHAPES[t] = [cur];
-  // O는 칸 배치는 같지만 칸 순서를 시계 방향으로 돌려서, 회전하면 포탑 칸이 옮겨 가게 한다
   for (let r = 1; r < 4; r++) { cur = t === 'O' ? cur.map(([x, y]) => [2 - y, x - 1]) : cur.map(([x, y]) => [n - 1 - y, x]); SHAPES[t].push(cur); }
 }
 const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[0,1]];
 
+// ---------------------------------------------------------------- 전장: 길
+// 위쪽 입구에서 구불구불 내려와 아래 핵으로 가는 길
+const WAYPOINTS = [[1,-1],[1,3],[7,3],[7,8],[1,8],[1,13],[7,13],[7,17],[4,17],[4,20]];
+const PATH = []; // 길이 지나는 칸
+for (let i = 0; i < WAYPOINTS.length - 1; i++) {
+  const [x1, y1] = WAYPOINTS[i], [x2, y2] = WAYPOINTS[i + 1];
+  const sx = Math.sign(x2 - x1), sy = Math.sign(y2 - y1); let x = x1, y = y1;
+  while (x !== x2 || y !== y2) { if (y >= 0 && y < FROWS) PATH.push([x, y]); x += sx; y += sy; }
+}
+const onPath = new Set(PATH.map(([x, y]) => x + ',' + y));
+const SEG = []; let PATH_LEN = 0;
+for (let i = 0; i < WAYPOINTS.length - 1; i++) { const [a, b] = [WAYPOINTS[i], WAYPOINTS[i + 1]]; const len = Math.hypot(b[0] - a[0], b[1] - a[1]); SEG.push({ a, b, len, start: PATH_LEN }); PATH_LEN += len; }
+function pathPos(d) {
+  for (const s of SEG) if (d <= s.start + s.len) { const k = (d - s.start) / s.len; return [s.a[0] + (s.b[0] - s.a[0]) * k + .5, s.a[1] + (s.b[1] - s.a[1]) * k + .5]; }
+  const last = WAYPOINTS[WAYPOINTS.length - 1]; return [last[0] + .5, last[1] + .5];
+}
+// 길 옆 칸일수록 먼저 쓰도록 길까지의 거리
+function distToPath(x, y) { let m = 99; for (const [px, py] of PATH) m = Math.min(m, Math.abs(px - x) + Math.abs(py - y)); return m; }
+// 포탑 자리는 길 바로 옆 칸(상하좌우)만. -1은 놓을 수 없는 칸
+const SLOT_D = []; for (let y = 0; y < FROWS; y++) { SLOT_D.push([]); for (let x = 0; x < FCOLS; x++) SLOT_D[y].push(onPath.has(x + ',' + y) || distToPath(x, y) > 1 ? -1 : distToPath(x, y)); }
+
 const ENEMY = {
-  grunt:  { name:'낙하병', hp:30,  fall:.09, walk:.40, col:'#ff8a7a', solid:false, crush:true,  core:1, atk:8 },
-  chute:  { name:'낙하산', hp:20,  fall:.45, walk:.40, col:'#ffd96a', solid:false, crush:true,  core:1, atk:6 },
-  bomb:   { name:'폭탄',   hp:25,  fall:.09, walk:.50, col:'#ffb36a', solid:false, crush:true,  core:1, atk:0 },
-  digger: { name:'굴착',   hp:40,  fall:.09, walk:.50, col:'#ff6ad5', solid:false, crush:true,  core:1, atk:14 },
-  ghost:  { name:'유령',   hp:25,  fall:1.4, walk:9,   col:'#b8c4ff', solid:false, crush:false, core:1, atk:0 },
-  shield: { name:'방패병', hp:90,  fall:.09, walk:.55, col:'#e8f0ff', solid:true,  crush:false, core:2, atk:12 },
-  spider: { name:'거미',   hp:25,  fall:.09, walk:.30, col:'#9cffb0', solid:false, crush:true,  core:1, atk:6 },
-  boss:   { name:'보스',   hp:340, fall:.12, walk:.80, col:'#ff4fa8', solid:true,  crush:false, core:5, atk:35, size:2 },
+  grunt:   { name:'일반',   hp:40,  spd:2.16, col:'#ff8a7a', core:1 },
+  runner:  { name:'질주',   hp:22,  spd:4.14, col:'#ffd96a', core:1 },
+  tank:    { name:'방패',   hp:120, spd:1.35, col:'#e8f0ff', core:2, armor:.5 },
+  breaker: { name:'파괴자', hp:60,  spd:1.8, col:'#ff6ad5', core:1, atk:16 },
+  healer:  { name:'치유사', hp:50,  spd:1.8, col:'#9cffb0', core:1, heal:8 },
+  boss:    { name:'보스',   hp:900, spd:0.99, col:'#ff4fa8', core:5, armor:.3, atk:40, big:true },
 };
-const UNLOCK = [['grunt',1],['chute',2],['bomb',3],['digger',4],['spider',5],['shield',6],['ghost',7]];
+const UNLOCK = [['grunt',1],['runner',2],['tank',3],['breaker',4],['healer',6]];
+const TURRET = {
+  I: { dmg: 6,  cd: .5,  range: 2.6 }, O: { dmg: 8,  cd: .7, range: 2.6 }, T: { dmg: 10, cd: .7, range: 3.0 },
+  S: { dmg: 4,  cd: .6,  range: 2.6 }, Z: { dmg: 8,  cd: .7, range: 2.2 }, L: { dmg: 12, cd: 1.1, range: 2.6 },
+  J: { dmg: 22, cd: 1.4, range: 5.0 },
+  V: { dmg: 9,  cd: .8,  range: 2.6 }, R: { dmg: 30, cd: 1.5, range: 6.0 }, P: { dmg: 12, cd: 1.0, range: 2.8 }, A: { dmg: 28, cd: 1.8, range: 5.5 },
+};
+const turretHp = l => 40 + 25 * l;
 
 // ---------------------------------------------------------------- 상태
 let S;
 function newGame() {
   S = {
     board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
+    field: Array.from({ length: FROWS }, () => Array(FCOLS).fill(null)),
     bag: [], next: [], hold: null, canHold: true, piece: null,
-    dropT: 0, lockT: 0, lockMoves: 0, lastRotate: false, webT: 0,
-    enemies: [], warnings: [], fx: [], texts: [], beams: [],
-    wave: 1, toSpawn: 0, spawnT: 0, breakT: 3, waveActive: false,
-    core: 20, score: 0, lines: 0, kills: 0, combo: -1, gauge: 0, crushes: 0, ironNext: false,
-    merges: 0, fusions: 0, carry: [], over: false, paused: false, started: S ? true : false, time: 0, bossAlive: false,
+    dropT: 0, lockT: 0, lockMoves: 0, lastRotate: false,
+    enemies: [], fx: [], texts: [], beams: [], flyers: [],
+    wave: 1, toSpawn: 0, spawnT: 0, breakT: 4, waveActive: false,
+    core: 20, score: 0, lines: 0, kills: 0, combo: -1, merges: 0, fusions: 0,
+    over: false, paused: false, started: S ? true : false, time: 0,
   };
   for (let i = 0; i < 3; i++) S.next.push(makePiece());
   spawnPiece();
@@ -90,60 +115,28 @@ function fromBag() {
   if (!S.bag.length) { S.bag = Object.keys(BASE); for (let i = S.bag.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.bag[i], S.bag[j]] = [S.bag[j], S.bag[i]]; } }
   return S.bag.pop();
 }
-function makePiece() {
-  const t = fromBag();
-  return { t, c: t, turrets: [{ kind: t, lvl: 1, idx: Math.random() * 4 | 0 }], iron: false };
-}
-const turretHp = l => 40 + 25 * l;
-// 줄 지우기로 넘어온 포탑을 다음 블록부터 차례로 빈 칸에 싣는다 (블록당 최대 4칸)
-function attachCarry() {
-  for (const q of S.next) {
-    if (!S.carry.length) return;
-    if (q.iron) continue;
-    const free = [0, 1, 2, 3].filter(i => !q.turrets.some(t => t.idx === i)).sort(() => Math.random() - .5);
-    while (free.length && S.carry.length) { const t = S.carry.shift(); q.turrets.push({ kind: t.kind, lvl: t.lvl, idx: free.shift(), carried: true }); }
-  }
-}
+function makePiece() { const t = fromBag(); return { t, turrets: [{ kind: t, lvl: 1, idx: Math.random() * 4 | 0 }] }; }
 function spawnPiece() {
   const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece());
-  if (S.ironNext) { p.iron = true; S.carry.unshift(...p.turrets.filter(t => t.carried)); p.turrets = []; S.ironNext = false; }
-  attachCarry();
-
   S.piece = { ...p, r: 0, x: 3, y: p.t === 'I' ? -1 : 0 };
   S.lockT = 0; S.lockMoves = 0; S.lastRotate = false; S.dropT = 0;
   if (cellsOf(S.piece).some(([x, y]) => y >= 0 && S.board[y][x])) gameOver('블록이 천장에 닿았다');
 }
 const cellsOf = (p, x = p.x, y = p.y, r = p.r) => SHAPES[p.t][r].map(([dx, dy]) => [x + dx, y + dy]);
-
-// 적이 차지한 칸 (이동 중이면 출발 칸과 도착 칸 모두)
-function enemyCells(e) {
-  const sz = ENEMY[e.type].size || 1, out = [];
-  for (const [bx, by] of [[e.gx, e.gy], [e.px, e.py]]) for (let i = 0; i < sz; i++) for (let j = 0; j < sz; j++) out.push([bx + i, by + j]);
-  return out;
-}
-// 단단한 적은 착지한 뒤에만 블록을 막는다 (떨어지는 중에 생성 위치를 막아 억울하게 지는 일 방지)
-function solidEnemyAt(x, y) { return S.enemies.some(e => ENEMY[e.type].solid && e.landed && !e.dead && enemyCells(e).some(([a, b]) => a === x && b === y)); }
-function collide(p, x, y, r) {
-  return cellsOf(p, x, y, r).some(([cx, cy]) => cx < 0 || cx >= COLS || cy >= ROWS || (cy >= 0 && S.board[cy][cx]) || solidEnemyAt(cx, cy));
-}
+const collide = (p, x, y, r) => cellsOf(p, x, y, r).some(([cx, cy]) => cx < 0 || cx >= COLS || cy >= ROWS || (cy >= 0 && S.board[cy][cx]));
 
 // ---------------------------------------------------------------- 조작
-function move(dx) {
-  const p = S.piece; if (!p || S.webT > 0 && dx) return false;
-  if (!collide(p, p.x + dx, p.y, p.r)) { p.x += dx; S.lastRotate = false; touchLock(); return true; }
-  return false;
-}
+function move(dx) { const p = S.piece; if (p && !collide(p, p.x + dx, p.y, p.r)) { p.x += dx; S.lastRotate = false; touchLock(); return true; } return false; }
 function rotate(dir) {
-  const p = S.piece; if (!p) return;
-  const nr = (p.r + dir + 4) % 4;
+  const p = S.piece; if (!p) return; const nr = (p.r + dir + 4) % 4;
   for (const [kx, ky] of KICKS) if (!collide(p, p.x + kx, p.y + ky, nr)) { p.x += kx; p.y += ky; p.r = nr; S.lastRotate = true; touchLock(); return; }
 }
 function touchLock() { if (onGround() && S.lockMoves < 15) { S.lockT = 0; S.lockMoves++; } }
 const onGround = () => collide(S.piece, S.piece.x, S.piece.y + 1, S.piece.r);
 function softDrop() { const p = S.piece; if (!collide(p, p.x, p.y + 1, p.r)) { p.y++; S.score += 1; S.lastRotate = false; S.dropT = 0; } }
-function hardDrop() { const p = S.piece; let n = 0; while (!collide(p, p.x, p.y + 1, p.r)) { p.y++; n++; } if (n) S.lastRotate = false; S.score += n * 2; crushCheck(); lock(); }
+function hardDrop() { const p = S.piece; let n = 0; while (!collide(p, p.x, p.y + 1, p.r)) { p.y++; n++; } if (n) S.lastRotate = false; S.score += n * 2; lock(); }
 function holdPiece() {
-  if (!S.canHold) return; const cur = { t: S.piece.t, c: S.piece.c, turrets: S.piece.turrets, iron: S.piece.iron };
+  if (!S.canHold) return; const cur = { t: S.piece.t, turrets: S.piece.turrets };
   if (S.hold) { const h = S.hold; S.hold = cur; S.piece = { ...h, r: 0, x: 3, y: h.t === 'I' ? -1 : 0 }; S.lockT = 0; S.lockMoves = 0; }
   else { S.hold = cur; spawnPiece(); }
   S.canHold = false;
@@ -152,9 +145,6 @@ function holdPiece() {
 // ---------------------------------------------------------------- 고정과 줄 지우기
 function lock() {
   const p = S.piece, cells = cellsOf(p);
-  // 보스 위에 얹히면 큰 피해
-  const below = cells.map(([x, y]) => [x, y + 1]);
-  S.enemies.filter(e => e.type === 'boss').forEach(e => { if (below.some(([x, y]) => enemyCells(e).some(([a, b]) => a === x && b === y)) && !e.hitBy?.has(p)) { (e.hitBy ||= new Set()).add(p); damage(e, 120, 'crush'); popText('CRUSH -120', e.gx + 1, e.gy, '#ffd96a'); } });
   let tspin = false;
   if (p.t === 'T' && S.lastRotate) {
     const cx = p.x + 1, cy = p.y + 1; let n = 0;
@@ -165,355 +155,269 @@ function lock() {
   cells.forEach(([x, y], i) => {
     if (y < 0) { above = true; return; }
     const tu = p.turrets.find(q => q.idx === i);
-    S.board[y][x] = { c: p.iron ? 'X' : (p.c || p.t), iron: p.iron, turret: tu ? { kind: tu.kind, lvl: tu.lvl, cd: .5, hp: turretHp(tu.lvl), maxhp: turretHp(tu.lvl) } : null };
+    S.board[y][x] = { c: p.t, turret: tu ? { kind: tu.kind, lvl: tu.lvl } : null };
   });
   S.canHold = true;
   if (above) { gameOver('블록이 천장을 넘었다'); return; }
   const full = []; for (let y = 0; y < ROWS; y++) if (S.board[y].every(c => c)) full.push(y);
-  if (full.length) clearRows(full, tspin);
-  else { S.combo = -1; if (tspin) popText('T-SPIN', p.x + 1, p.y, COLOR.T); }
+  if (full.length) clearRows(full, tspin); else { S.combo = -1; if (tspin) popText('T-SPIN', p.x + 1, p.y, COLOR.T, 'well'); }
   spawnPiece();
 }
 function clearRows(rows, tspin) {
   const n = rows.length, found = [];
-  rows.forEach(y => S.board[y].forEach((c, x) => { if (c.turret) found.push({ ...c.turret, x }); }));
-  for (const y of rows.slice().sort((a, b) => a - b)) {
-    S.board.splice(y, 1); S.board.unshift(Array(COLS).fill(null));
-    S.enemies.forEach(e => { if (ENEMY[e.type].solid || e.type === 'ghost') { if (e.gy === y) e.dead = true; } if (e.gy < y) { e.gy++; e.py++; } });
-    S.fx.push({ kind: 'line', y, t: .35 });
-  }
-  S.enemies = S.enemies.filter(e => !e.dead || (kill(e, 'line'), false));
+  rows.forEach(y => S.board[y].forEach((c, x) => { if (c.turret) found.push({ ...c.turret, x, y }); }));
+  for (const y of rows.slice().sort((a, b) => a - b)) { S.board.splice(y, 1); S.board.unshift(Array(COLS).fill(null)); S.fx.push({ kind: 'line', y, t: .35 }); }
   S.lines += n; S.combo++;
   S.score += [0, 100, 300, 500, 800][n] * S.wave + Math.max(0, S.combo) * 50;
-  const midY = rows[0];
-  popText(['', 'LINE', 'DOUBLE', 'TRIPLE', 'TETRIS'][n] + (S.combo > 0 ? `  COMBO x${S.combo}` : ''), 4.5, midY, '#ffffff');
+  popText(['', 'LINE', 'DOUBLE', 'TRIPLE', 'TETRIS'][n] + (S.combo > 0 ? `  COMBO x${S.combo}` : ''), 4.5, rows[0], '#ffffff', 'well');
   if (!found.length) return;
+  // 같은 줄에서 함께 터진 포탑: 같은 종류 합체 → 합성 규칙 → 나머지는 그대로
   const bonus = n - 1, results = [], msgs = [];
-  // 1) 같은 종류끼리 합체: 레벨 합산 + 여러 줄 보너스
-  const byKind = {};
-  found.forEach(t => (byKind[t.kind] ||= []).push(t));
-  let pool = [];
+  const byKind = {}; found.forEach(t => (byKind[t.kind] ||= []).push(t));
+  let rest = [];
   for (const k in byKind) {
-    const g2 = byKind[k];
-    if (g2.length >= 2) { const lvl = Math.min(9, g2.reduce((a, t) => a + t.lvl, 0) + bonus); results.push({ kind: k, lvl, x: g2[0].x }); S.merges++; msgs.push(`${KIND_NAME[k]} 합체 Lv${lvl}`); }
-    else pool.push(g2[0]);
+    const grp = byKind[k];
+    if (grp.length >= 2) { const lvl = Math.min(9, grp.reduce((a, t) => a + t.lvl, 0) + bonus); results.push({ kind: k, lvl, x: grp[0].x, y: grp[0].y }); S.merges++; msgs.push(`${KIND_NAME[k]} 합체 Lv${lvl}`); }
+    else rest.push(grp[0]);
   }
-  // 2) 다른 종류 합성 규칙
   for (const [a, b, out] of RECIPES) {
-    const ta = pool.find(t => t.kind === a), tb = pool.find(t => t.kind === b);
-    if (ta && tb) { const lvl = Math.min(9, ta.lvl + tb.lvl + bonus); results.push({ kind: out, lvl, x: ta.x }); pool = pool.filter(t => t !== ta && t !== tb); S.fusions++; msgs.push(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[out]} Lv${lvl}`); }
+    const ta = rest.find(t => t.kind === a), tb = rest.find(t => t.kind === b);
+    if (ta && tb) { const lvl = Math.min(9, ta.lvl + tb.lvl + bonus); results.push({ kind: out, lvl, x: ta.x, y: ta.y }); rest = rest.filter(t => t !== ta && t !== tb); S.fusions++; msgs.push(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[out]} Lv${lvl}`); }
   }
-  // 3) 규칙이 없는 포탑은 그대로 다음 블록들에 실린다
-  pool.forEach(t => results.push({ kind: t.kind, lvl: t.lvl, x: t.x, hp: t.hp }));
+  rest.forEach(t => results.push({ kind: t.kind, lvl: t.lvl, x: t.x, y: t.y }));
   if (tspin) results.forEach(r => { if (r.kind === 'T') { r.lvl = Math.min(9, r.lvl + 2); msgs.push(`T스핀 관통 Lv${r.lvl}`); } });
-  // 합체·합성 결과가 앞(다음 블록), 규칙 없는 포탑은 그 뒤 블록들에 실린다
-  S.carry = results.map(r => ({ kind: r.kind, lvl: r.lvl })).concat(S.carry);
-  attachCarry();
-  if (S.carry.length) msgs.push(`대기 포탑 ${S.carry.length}`);
-  if (msgs.length) { popText(msgs.join(' · '), 4.5, midY - 1.2, '#ffd96a'); S.fx.push({ kind: 'ring', x: 4.5, y: midY + .5, t: .5, col: '#ffd96a', big: true }); }
+  results.forEach(sendToField);
+  if (msgs.length) popText(msgs.join(' · '), 4.5, rows[0] - 1.2, '#ffd96a', 'well');
 }
-function forTurrets(fn) { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (c && c.turret) fn(c, x, y); } }
-function recomputeGroups() {
-  const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-    const c = S.board[y][x]; if (!c || seen[y][x]) continue;
-    const grp = [], st = [[x, y]]; seen[y][x] = true;
-    while (st.length) { const [a, b] = st.pop(); grp.push([a, b]);
-      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const nx = a + dx, ny = b + dy; if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || seen[ny][nx]) continue; const n2 = S.board[ny][nx]; if (n2 && n2.c === c.c && !c.iron) { seen[ny][nx] = true; st.push([nx, ny]); } } }
-    const attr = grp.length >= 6 && !c.iron ? c.c : null;
-    grp.forEach(([a, b]) => S.board[b][a].attr = attr);
+// 터진 포탑을 전장에 배치: 지운 줄 높이에 가까운 빈 자리, 같으면 길에 가까운 자리.
+// 빈 자리가 없으면 같은 종류 중 가장 약한 포탑을 강화, 그것도 없으면 가장 약한 포탑과 교체.
+function sendToField(r) {
+  let best = null;
+  for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) {
+    if (SLOT_D[y][x] < 0 || S.field[y][x]) continue;
+    const score = Math.abs(y - r.y) * 2 + SLOT_D[y][x] * 3 + Math.random() * .1;
+    if (!best || score < best.score) best = { x, y, score };
   }
+  const make = () => ({ kind: r.kind, lvl: r.lvl, cd: .6, hp: turretHp(r.lvl), maxhp: turretHp(r.lvl) });
+  let tx, ty;
+  if (best) { tx = best.x; ty = best.y; S.field[ty][tx] = make(); }
+  else {
+    let weak = null; forTurrets((t, x, y) => { if (t.kind === r.kind && (!weak || t.lvl < weak.t.lvl)) weak = { t, x, y }; });
+    if (weak) { weak.t.lvl = Math.min(9, weak.t.lvl + 1); weak.t.maxhp = weak.t.hp = turretHp(weak.t.lvl); tx = weak.x; ty = weak.y; } // 자리가 없으면 같은 종류 가장 약한 포탑 +1레벨
+    else { forTurrets((t, x, y) => { if (!weak || t.lvl < weak.t.lvl) weak = { t, x, y }; }); if (!weak || weak.t.lvl > r.lvl) return; S.field[weak.y][weak.x] = make(); tx = weak.x; ty = weak.y; }
+  }
+  // 우물의 칸에서 전장 자리로 날아가는 연출
+  S.flyers.push({ kind: r.kind, x1: OX + r.x * CELL + CELL / 2, y1: OY + r.y * CELL + CELL / 2, x2: FX + tx * CELL + CELL / 2, y2: FY + ty * CELL + CELL / 2, t: 0 });
 }
-function removeBlock(x, y) {
-  const c = S.board[y]?.[x]; if (!c || c.iron) return false;
-  if (c.turret) popText('포탑 파괴', x, y, '#ff6a6a');
-  S.board[y][x] = null; S.fx.push({ kind: 'burst', x: x + .5, y: y + .5, t: .4, col: COLOR[c.c] }); return true;
-}
+function forTurrets(fn) { for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) { const t = S.field[y][x]; if (t) fn(t, x, y); } }
 
 // ---------------------------------------------------------------- 적
-function spawnEnemy(type, x) {
-  const d = ENEMY[type];
-  S.enemies.push({ type, gx: x, gy: -1, px: x, py: -2, prog: 1, hp: d.hp * (1 + (S.wave - 1) * .08), maxhp: d.hp * (1 + (S.wave - 1) * .08), dir: Math.random() < .5 ? -1 : 1, stuck: 0, slow: 0, poison: 0, landed: false, fuse: 0, webCd: 0 });
-  if (type === 'boss') S.bossAlive = true;
-}
-const blockedForEnemy = (e, x, y) => {
-  const sz = ENEMY[e.type].size || 1;
-  for (let i = 0; i < sz; i++) for (let j = 0; j < sz; j++) { const cx = x + i, cy = y + j; if (cx < 0 || cx >= COLS || cy >= ROWS) return true; if (cy >= 0 && S.board[cy][cx]) return true;
-    if (ENEMY[e.type].solid && S.piece && cellsOf(S.piece).some(([a, b]) => a === cx && b === cy)) return true; }
-  return false;
-};
-function stepEnemy(e, dt) {
-  const d = ENEMY[e.type];
-  if (e.slow > 0) e.slow -= dt;
-  if (e.poison > 0) { e.poison -= dt; damage(e, 6 * dt, 'poison'); }
-  e.webCd -= dt;
-  const spd = e.slow > 0 ? .5 : 1;
-  if (e.prog < 1) { e.prog = Math.min(1, e.prog + dt * spd / e.dur); return; }
-  e.px = e.gx; e.py = e.gy;
-  const sz = d.size || 1;
-  // 바닥 도달: 핵 피해
-  if (e.gy + sz - 1 >= ROWS - 1) { S.core -= d.core; S.fx.push({ kind: 'core', t: .4 }); popText(`핵 -${d.core}`, e.gx, ROWS - 1, '#ff6a6a'); e.dead = true; e.escaped = true; if (S.core <= 0) gameOver('핵이 무너졌다'); return; }
-  if (e.type === 'ghost') { e.gy++; e.prog = 0; e.dur = d.fall; return; }
-  if (!blockedForEnemy(e, e.gx, e.gy + 1)) { e.gy++; e.prog = 0; e.dur = e.landed ? .09 : d.fall; e.stuck = 0; return; }
-  if (!e.landed) { e.landed = true; if (e.type === 'bomb') e.fuse = 1.0; }
-  if (e.type === 'bomb' && e.fuse > 0) { e.fuse -= dt; if (e.fuse <= 0) explode(e); return; }
-  // 옆이나 아래에 포탑이 붙어 있으면 멈춰 서서 공격
-  if (d.atk > 0) {
-    const adj = [];
-    for (let i = 0; i < sz; i++) adj.push([e.gx + i, e.gy + sz]);
-    for (let j = 0; j < sz; j++) adj.push([e.gx - 1, e.gy + j], [e.gx + sz, e.gy + j]);
-    for (const [ax, ay] of adj) { const c = S.board[ay]?.[ax]; if (c && c.turret) {
-      c.turret.hp -= d.atk * dt * (e.slow > 0 ? .5 : 1); e.attacking = [ax, ay];
-      if (c.turret.hp <= 0) { c.turret = null; S.fx.push({ kind: 'burst', x: ax + .5, y: ay + .5, t: .5, col: '#ff6a6a' }); popText('포탑 파괴', ax, ay, '#ff6a6a'); e.attacking = null; }
-      return; } }
+// 적 체력: 기본의 2배에서 시작해 웨이브마다 45%씩 증가
+function spawnEnemy(type) { const d = ENEMY[type], k = 2 * (1 + (S.wave - 1) * .45); S.enemies.push({ type, d: 0, hp: d.hp * k, maxhp: d.hp * k, slow: 0, poison: 0, atkT: 0 }); }
+function epos(e) { return pathPos(e.d); }
+function stepEnemies(dt) {
+  for (const e of S.enemies) {
+    const d = ENEMY[e.type];
+    if (e.slow > 0) e.slow -= dt;
+    if (e.poison > 0) { e.poison -= dt; damage(e, 6 * dt); }
+    if (d.heal) { e.healT = (e.healT || 0) - dt; if (e.healT <= 0) { e.healT = 1; S.enemies.forEach(o => { if (o !== e && !o.dead && Math.hypot(...sub(epos(o), epos(e))) < 1.6) o.hp = Math.min(o.maxhp, o.hp + d.heal); }); S.fx.push({ kind: 'ring', x: epos(e)[0], y: epos(e)[1], t: .3, col: d.col, field: true }); } }
+    // 길가 포탑 공격 (파괴자, 보스)
     e.attacking = null;
+    if (d.atk) {
+      const [ex, ey] = epos(e); let tgt = null;
+      forTurrets((t, x, y) => { if (!tgt && Math.hypot(x + .5 - ex, y + .5 - ey) < (d.big ? 1.8 : 1.3)) tgt = { t, x, y }; });
+      if (tgt) { tgt.t.hp -= d.atk * dt; e.attacking = [tgt.x, tgt.y]; if (tgt.t.hp <= 0) { S.field[tgt.y][tgt.x] = null; S.fx.push({ kind: 'burst', x: tgt.x + .5, y: tgt.y + .5, t: .5, col: '#ff6a6a', field: true }); popText('포탑 파괴', tgt.x, tgt.y, '#ff6a6a', 'field'); } continue; }
+    }
+    e.d += d.spd * (e.slow > 0 ? .5 : 1) * dt;
+    if (e.d >= PATH_LEN) { e.dead = true; S.core -= d.core; S.fx.push({ kind: 'core', t: .4 }); popText(`핵 -${d.core}`, 4, FROWS - 1, '#ff6a6a', 'field'); if (S.core <= 0) gameOver('핵이 무너졌다'); }
   }
-  e.stuck += dt;
-  const chewAt = e.type === 'digger' ? 1.1 : 5;
-  if (e.stuck >= chewAt && e.gy + sz < ROWS) { for (let i = 0; i < sz; i++) removeBlock(e.gx + i, e.gy + sz); recomputeGroups(); e.stuck = 0; return; }
-  // 걷기: 같은 줄에서 가장 가까운 내려갈 수 있는 칸 쪽으로
-  let best = null;
-  for (let k = 1; k < COLS; k++) for (const s of [e.dir, -e.dir]) { const x = e.gx + s * k; if (x < 0 || x + sz > COLS) continue;
-    let ok = true; for (let t = 1; t <= k; t++) if (blockedForEnemy(e, e.gx + s * t, e.gy)) { ok = false; break; }
-    if (ok && !blockedForEnemy(e, x, e.gy + 1)) { best = s; break; } if (best) break; }
-  const dir = best || e.dir;
-  if (!blockedForEnemy(e, e.gx + dir, e.gy)) { e.dir = dir; e.gx += dir; e.prog = 0; e.dur = d.walk; }
-  else { e.dir = -dir; e.prog = 0; e.dur = .15; }
 }
-function explode(e) {
-  for (const [dx, dy] of [[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1]]) removeBlock(e.gx + dx, e.gy + dy);
-  recomputeGroups(); S.fx.push({ kind: 'ring', x: e.gx + .5, y: e.gy + .5, t: .5, col: '#ffb36a', big: true }); e.dead = true;
-}
-function damage(e, amt, src) { if (e.dead) return; e.hp -= amt; if (e.hp <= 0) kill(e, src); }
-function kill(e, src) {
-  if (e.deadDone) return; e.dead = true; e.deadDone = true; S.kills++; S.score += src === 'crush' ? 30 : 15;
-  const sz = ENEMY[e.type].size || 1;
-  S.fx.push({ kind: 'burst', x: e.gx + sz / 2, y: e.gy + sz / 2, t: .5, col: ENEMY[e.type].col, big: sz > 1 });
-  if (src === 'crush') { S.crushes++; popText('CRUSH', e.gx, e.gy, '#ffd96a'); if (S.crushes >= 5) { S.crushes = 0; S.ironNext = true; popText('다음 조각: 무쇠', 4.5, 2, '#9aa0b0'); } }
-  if (e.type === 'boss') S.bossAlive = false;
-}
-function crushCheck() {
-  const p = S.piece; if (!p) return; const cells = cellsOf(p);
-  S.enemies.forEach(e => {
-    if (e.dead) return; const d = ENEMY[e.type]; const ec = [[e.gx, e.gy]];
-    const hit = cells.some(([x, y]) => ec.some(([a, b]) => a === x && b === y));
-    const touch = cells.some(([x, y]) => Math.abs(x - e.gx) + Math.abs(y - e.gy) === 1);
-    if (hit && d.crush) kill(e, 'crush');
-    if (e.type === 'spider' && (hit || touch) && e.webCd <= 0) { S.webT = 1; e.webCd = 4; popText('거미줄!', e.gx, e.gy, '#9cffb0'); }
-  });
-}
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+function damage(e, amt) { if (e.dead) return; e.hp -= amt * (1 - (ENEMY[e.type].armor || 0)); if (e.hp <= 0) { e.dead = true; S.kills++; S.score += e.type === 'boss' ? 500 : 15; const [x, y] = epos(e); S.fx.push({ kind: 'burst', x, y, t: .5, col: ENEMY[e.type].col, big: ENEMY[e.type].big, field: true }); } }
 
 // ---------------------------------------------------------------- 포탑
-const TURRET = {
-  I: { dmg: 6,  cd: .5,  range: 3.2 }, O: { dmg: 8,  cd: .7, range: 3.2 }, T: { dmg: 10, cd: .7, range: 3.6 },
-  S: { dmg: 4,  cd: .6,  range: 3.2 }, Z: { dmg: 8,  cd: .7, range: 2.8 }, L: { dmg: 12, cd: 1.1, range: 3.2 },
-  J: { dmg: 22, cd: 1.4, range: 6.0 },
-  V: { dmg: 9, cd: .8, range: 3.2 }, R: { dmg: 30, cd: 1.5, range: 7.0 }, P: { dmg: 12, cd: 1.0, range: 3.4 }, A: { dmg: 28, cd: 1.8, range: 6.5 },
-};
-const isTrap = (x, y) => y > 0 && !S.board[y - 1][x] && (x === 0 || S.board[y - 1][x - 1]) && (x === COLS - 1 || S.board[y - 1][x + 1]);
 function updateTurrets(dt) {
   const rate = 1 + Math.max(0, Math.min(S.combo, 10)) * .08;
-  forTurrets((c, x, y) => {
-    const T = TURRET[c.turret.kind] || TURRET.T, lvl = c.turret.lvl; const attr = c.turret.kind;
-    let range = T.range + .3 * (lvl - 1), dmg = T.dmg * (1 + .6 * (lvl - 1)), cd = T.cd;
-    c.turret.cd -= dt * rate; if (c.turret.cd > 0) return;
+  forTurrets((t, x, y) => {
+    const T = TURRET[t.kind], lvl = t.lvl, k = t.kind;
+    const range = (T.range + .3 * (lvl - 1)) * .75, dmg = T.dmg * .5 * (1 + .4 * (lvl - 1)); // 포탑이 계속 쌓이므로 공격력 절반, 사거리 3/4, 레벨당 +40%
+    t.cd -= dt * rate; if (t.cd > 0) return;
     const cx = x + .5, cy = y + .5;
-    if (isTrap(x, y)) { // 구멍 함정: 같은 세로줄 위 3칸 안의 적에게 3배 피해
-      const tg = S.enemies.find(e => !e.dead && e.gx === x && e.gy >= y - 3 && e.gy <= y - 1);
-      if (!tg) return; c.turret.cd = .35; const [ex, ey] = epos(tg);
-      S.beams.push({ x1: cx, y1: cy - .3, x2: ex, y2: ey, t: .09, col: '#ffd96a' }); hitEnemy(tg, dmg * 3, attr); return; }
-    const inR = S.enemies.filter(e => !e.dead && e.gy >= 0 && dist(e, cx, cy) <= range);
-    if (!inR.length) return;
-    c.turret.cd = cd;
-    const far = attr === 'J' || attr === 'A';
-    const tgt = far ? inR.sort((a, b) => dist(b, cx, cy) - dist(a, cx, cy))[0] : inR.sort((a, b) => dist(a, cx, cy) - dist(b, cx, cy))[0];
+    const inR = S.enemies.filter(e => !e.dead && dist(e, cx, cy) <= range); if (!inR.length) return;
+    t.cd = T.cd;
+    const far = k === 'J' || k === 'A';
+    const tgt = inR.sort((a, b) => far ? b.d - a.d : b.d - a.d)[0]; // 핵에 가장 가까운 적 우선
     const [ex, ey] = epos(tgt);
-    S.beams.push({ x1: cx, y1: cy, x2: ex, y2: ey, t: .09, col: COLOR[attr] || '#bff0ff' });
-    hitEnemy(tgt, dmg, attr);
-    if (attr === 'T') S.enemies.filter(e => e !== tgt && !e.dead && segDist(e, cx, cy, ex, ey) < .5).forEach(e => hitEnemy(e, dmg * .7, null));
-    if (attr === 'R') { const L = Math.hypot(ex - cx, ey - cy) || 1, fx = cx + (ex - cx) / L * range, fy = cy + (ey - cy) / L * range;
-      S.beams.push({ x1: cx, y1: cy, x2: fx, y2: fy, t: .12, col: COLOR.R }); S.enemies.filter(e => e !== tgt && !e.dead && segDist(e, cx, cy, fx, fy) < .55).forEach(e => hitEnemy(e, dmg, 'R')); }
-    const SPLASH = { V: 1.4, P: 1.6, A: 1.8 };
-    if (SPLASH[attr]) { S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < SPLASH[attr]).forEach(e => hitEnemy(e, dmg * (attr === 'A' ? .6 : .45), attr)); S.fx.push({ kind: 'ring', x: ex, y: ey, t: .3, col: COLOR[attr] }); }
-    if (attr === 'O') S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < 2.2).slice(0, 2).forEach(e => { const [a, b] = epos(e); S.beams.push({ x1: ex, y1: ey, x2: a, y2: b, t: .09, col: COLOR.O }); hitEnemy(e, dmg * .5, null); });
-    if (attr === 'Z' || attr === 'L') S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < (attr === 'L' ? 1.6 : 1.1)).forEach(e => hitEnemy(e, dmg * .45, null));
-    if (attr === 'Z' || attr === 'L') S.fx.push({ kind: 'ring', x: ex, y: ey, t: .25, col: COLOR[attr] });
+    S.beams.push({ x1: cx, y1: cy, x2: ex, y2: ey, t: .09, col: COLOR[k] });
+    hit(tgt, dmg, k);
+    if (k === 'T') S.enemies.filter(e => e !== tgt && !e.dead && segDist(e, cx, cy, ex, ey) < .5).forEach(e => hit(e, dmg * .7, null));
+    if (k === 'R') { const L = Math.hypot(ex - cx, ey - cy) || 1, fx = cx + (ex - cx) / L * range, fy = cy + (ey - cy) / L * range;
+      S.beams.push({ x1: cx, y1: cy, x2: fx, y2: fy, t: .12, col: COLOR.R }); S.enemies.filter(e => e !== tgt && !e.dead && segDist(e, cx, cy, fx, fy) < .55).forEach(e => hit(e, dmg, null)); }
+    if (k === 'O') S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < 2).slice(0, 2).forEach(e => { const [a, b] = epos(e); S.beams.push({ x1: ex, y1: ey, x2: a, y2: b, t: .09, col: COLOR.O }); hit(e, dmg * .5, null); });
+    const SPLASH = { Z: [1.1, .45], L: [1.6, .45], V: [1.4, .45], P: [1.6, .45], A: [1.8, .6] };
+    if (SPLASH[k]) { const [r, m] = SPLASH[k]; S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < r).forEach(e => hit(e, dmg * m, k)); S.fx.push({ kind: 'ring', x: ex, y: ey, t: .25, col: COLOR[k], field: true }); }
   });
 }
-function hitEnemy(e, dmg, attr) { if (attr === 'I' || attr === 'V') e.slow = 1.5; if (attr === 'S' || attr === 'P') e.poison = 3; damage(e, dmg, 'turret'); }
-function epos(e) { const sz = ENEMY[e.type].size || 1, k = e.prog ?? 1; return [e.px + (e.gx - e.px) * k + sz / 2, e.py + (e.gy - e.py) * k + sz / 2]; }
+function hit(e, dmg, k) { if (k === 'I' || k === 'V') e.slow = 1.5; if (k === 'S' || k === 'P') e.poison = 3; damage(e, dmg); }
 function dist(e, x, y) { const [a, b] = epos(e); return Math.hypot(a - x, b - y); }
 function segDist(e, x1, y1, x2, y2) { const [px, py] = epos(e); const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1; let t = ((px - x1) * dx + (py - y1) * dy) / L; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - x1 - t * dx, py - y1 - t * dy); }
 
 // ---------------------------------------------------------------- 웨이브
 function updateWaves(dt) {
-  if (!S.waveActive) { S.breakT -= dt; if (S.breakT <= 0) { S.waveActive = true; S.toSpawn = 10 + S.wave * 5; S.spawnT = 1; if (S.wave % 5 === 0) S.warnings.push({ type: 'boss', x: 1 + Math.random() * 7 | 0, t: 2.0 }); popText(`WAVE ${S.wave}`, 4.5, 6, '#7fd6ff'); } return; }
+  if (!S.waveActive) { S.breakT -= dt; if (S.breakT <= 0) { S.waveActive = true; S.toSpawn = 20 + S.wave * 8; S.spawnT = .5; if (S.wave % 5 === 0) spawnEnemy('boss'); popText(`WAVE ${S.wave}`, 4, 2, '#7fd6ff', 'field'); } return; }
   S.spawnT -= dt;
   if (S.toSpawn > 0 && S.spawnT <= 0) {
-    S.spawnT = Math.max(.35, 1.6 - S.wave * .1); S.toSpawn--;
+    S.spawnT = Math.max(.25, 1.0 - S.wave * .06); S.toSpawn--;
     const pool = UNLOCK.filter(([, w]) => S.wave >= w).map(([t]) => t);
-    let type = pool[Math.random() * pool.length | 0];
-    if ((type === 'shield' || type === 'spider') && S.enemies.filter(e => e.type === 'shield' || e.type === 'spider').length + S.warnings.filter(w => w.type === 'shield' || w.type === 'spider').length >= 2) type = 'grunt';
-    S.warnings.push({ type, x: Math.random() * COLS | 0, t: 1.3 });
-    if (S.wave >= 3 && S.toSpawn > 0 && Math.random() < .4) { S.toSpawn--; S.warnings.push({ type: 'grunt', x: Math.random() * COLS | 0, t: 1.5 }); }
+    spawnEnemy(pool[Math.random() * pool.length | 0]);
   }
-  if (S.toSpawn <= 0 && !S.enemies.length && !S.warnings.length) { S.waveActive = false; S.wave++; S.breakT = 6; S.score += 200 * S.wave; }
+  if (S.toSpawn <= 0 && !S.enemies.length) { S.waveActive = false; S.wave++; S.breakT = 6; S.score += 200 * S.wave; }
 }
 
 // ---------------------------------------------------------------- 연출
-function popText(s, x, y, col) { S.texts.push({ s, x: x + .5, y: y + .5, t: 1.1, col }); }
+function popText(s, x, y, col, area) { S.texts.push({ s, x: x + .5, y: y + .5, t: 1.2, col, area }); }
 
 // ---------------------------------------------------------------- 메인 루프
-const keys = {}; const rep = {};
-const gravity = () => Math.max(.1, .8 - (S.wave - 1) * .05);
+const keys = {}, rep = {};
+const gravity = () => Math.max(.12, .8 - (S.wave - 1) * .05);
 function update(dt) {
   S.time += dt;
   for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) if (keys[k]) { rep[k] = (rep[k] ?? 0) - dt; if (rep[k] <= 0) { rep[k] = k === 'ArrowDown' ? .04 : .05; if (k === 'ArrowDown') softDrop(); else move(k === 'ArrowLeft' ? -1 : 1); } }
-  if (S.webT > 0) S.webT -= dt;
-  // 낙하
   S.dropT += dt;
   if (S.dropT >= gravity()) { S.dropT = 0; if (!onGround()) { S.piece.y++; S.lastRotate = false; } }
-  crushCheck();
   if (onGround()) { S.lockT += dt; if (S.lockT >= .5) lock(); } else S.lockT = 0;
   if (S.over) return;
-  // 경고 → 적 생성
-  S.warnings.forEach(w => { w.t -= dt; if (w.t <= 0) spawnEnemy(w.type, Math.min(w.x, COLS - (ENEMY[w.type].size || 1))); });
-  S.warnings = S.warnings.filter(w => w.t > 0);
-  S.enemies.forEach(e => stepEnemy(e, dt));
-  updateTurrets(dt);
+  stepEnemies(dt); updateTurrets(dt);
   S.enemies = S.enemies.filter(e => !e.dead);
   updateWaves(dt);
+  S.flyers.forEach(f => f.t += dt * 2.2); S.flyers = S.flyers.filter(f => f.t < 1);
   [S.fx, S.texts, S.beams].forEach(a => a.forEach(o => o.t -= dt));
   S.fx = S.fx.filter(o => o.t > 0); S.texts = S.texts.filter(o => o.t > 0); S.beams = S.beams.filter(o => o.t > 0);
 }
 function gameOver(why) { if (S.over) return; S.over = true; S.overWhy = why; }
 
 // ---------------------------------------------------------------- 그리기
-const X = x => OX + x * CELL, Y = y => OY + y * CELL;
+const X = x => OX + x * CELL, Y = y => OY + y * CELL, FXp = x => FX + x * CELL, FYp = y => FY + y * CELL;
 const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = b; };
-function block(x, y, col, o = {}) {
-  if (y < 0) return; g.globalAlpha = o.alpha ?? 1; g.lineWidth = 1.5; glow(col, o.blur ?? 8);
-  if (o.dash) g.setLineDash([3, 4]); g.strokeRect(X(x) + 3, Y(y) + 3, CELL - 6, CELL - 6); g.setLineDash([]);
-  g.shadowBlur = 0; g.globalAlpha = (o.alpha ?? 1) * (o.attr ? .55 : .22); g.strokeRect(X(x) + 8, Y(y) + 8, CELL - 16, CELL - 16);
-  if (o.iron) { g.globalAlpha = .5; g.beginPath(); g.moveTo(X(x) + 6, Y(y) + 6); g.lineTo(X(x) + CELL - 6, Y(y) + CELL - 6); g.moveTo(X(x) + CELL - 6, Y(y) + 6); g.lineTo(X(x) + 6, Y(y) + CELL - 6); g.stroke(); }
-  g.globalAlpha = 1;
+function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
+function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
+function block(px, py, col, o = {}) {
+  g.globalAlpha = o.alpha ?? 1; g.lineWidth = 1.5; glow(col, o.blur ?? 8); if (o.dash) g.setLineDash([3, 4]);
+  g.strokeRect(px + 3, py + 3, CELL - 6, CELL - 6); g.setLineDash([]); g.shadowBlur = 0; g.globalAlpha = (o.alpha ?? 1) * .22; g.strokeRect(px + 8, py + 8, CELL - 16, CELL - 16); g.globalAlpha = 1;
 }
 function glyph(kind, cx, cy, r) {
   g.beginPath();
   switch (kind) {
-    case 'I': for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); g.lineTo(cx - Math.cos(a) * r, cy - Math.sin(a) * r); } break; // 눈송이
-    case 'O': g.moveTo(cx + 2, cy - r); g.lineTo(cx - 3, cy + 1); g.lineTo(cx + 3, cy - 1); g.lineTo(cx - 2, cy + r); break; // 번개
-    case 'T': g.moveTo(cx - r, cy); g.lineTo(cx + r, cy); g.moveTo(cx + r - 4, cy - 4); g.lineTo(cx + r, cy); g.lineTo(cx + r - 4, cy + 4); break; // 화살
-    case 'S': g.arc(cx - 3, cy + 2, 2.2, 0, 6.3); g.moveTo(cx + 5.2, cy - 2); g.arc(cx + 3, cy - 2, 2.2, 0, 6.3); g.moveTo(cx + 2, cy + 5); g.arc(cx, cy + 5, 1.6, 0, 6.3); break; // 독 방울
-    case 'Z': g.moveTo(cx, cy - r); g.quadraticCurveTo(cx + r, cy, cx, cy + r); g.quadraticCurveTo(cx - r, cy, cx, cy - r); break; // 불꽃
-    case 'L': for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .45 : r; g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } g.closePath(); break; // 폭발
-    case 'J': g.arc(cx, cy, r * .7, 0, 6.3); g.moveTo(cx - r, cy); g.lineTo(cx + r, cy); g.moveTo(cx, cy - r); g.lineTo(cx, cy + r); break; // 조준경
-    case 'V': for (const dy of [-3, 1, 5]) { g.moveTo(cx - r, cy + dy); g.quadraticCurveTo(cx - r / 2, cy + dy - 3, cx, cy + dy); g.quadraticCurveTo(cx + r / 2, cy + dy + 3, cx + r, cy + dy); } break; // 증기
-    case 'R': g.moveTo(cx - r, cy - 2); g.lineTo(cx + r, cy - 2); g.moveTo(cx - r, cy + 2); g.lineTo(cx + r, cy + 2); g.moveTo(cx + r - 3, cy - 5); g.lineTo(cx + r + 1, cy); g.lineTo(cx + r - 3, cy + 5); break; // 레일건
-    case 'P': g.arc(cx, cy, r * .55, 0, 6.3); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.moveTo(cx + Math.cos(a) * r * .75, cy + Math.sin(a) * r * .75); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1.2, 0, 6.3); } break; // 역병
-    case 'A': g.arc(cx, cy, r * .5, 0, 6.3); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.moveTo(cx + Math.cos(a) * r * .6, cy + Math.sin(a) * r * .6); g.lineTo(cx + Math.cos(a) * r * 1.1, cy + Math.sin(a) * r * 1.1); } break; // 포격
+    case 'I': for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); g.lineTo(cx - Math.cos(a) * r, cy - Math.sin(a) * r); } break;
+    case 'O': g.moveTo(cx + 2, cy - r); g.lineTo(cx - 3, cy + 1); g.lineTo(cx + 3, cy - 1); g.lineTo(cx - 2, cy + r); break;
+    case 'T': g.moveTo(cx - r, cy); g.lineTo(cx + r, cy); g.moveTo(cx + r - 4, cy - 4); g.lineTo(cx + r, cy); g.lineTo(cx + r - 4, cy + 4); break;
+    case 'S': g.arc(cx - 3, cy + 2, 2.2, 0, 6.3); g.moveTo(cx + 5.2, cy - 2); g.arc(cx + 3, cy - 2, 2.2, 0, 6.3); g.moveTo(cx + 2, cy + 5); g.arc(cx, cy + 5, 1.6, 0, 6.3); break;
+    case 'Z': g.moveTo(cx, cy - r); g.quadraticCurveTo(cx + r, cy, cx, cy + r); g.quadraticCurveTo(cx - r, cy, cx, cy - r); break;
+    case 'L': for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .45 : r; g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } g.closePath(); break;
+    case 'J': g.arc(cx, cy, r * .7, 0, 6.3); g.moveTo(cx - r, cy); g.lineTo(cx + r, cy); g.moveTo(cx, cy - r); g.lineTo(cx, cy + r); break;
+    case 'V': for (const dy of [-3, 1, 5]) { g.moveTo(cx - r, cy + dy); g.quadraticCurveTo(cx - r / 2, cy + dy - 3, cx, cy + dy); g.quadraticCurveTo(cx + r / 2, cy + dy + 3, cx + r, cy + dy); } break;
+    case 'R': g.moveTo(cx - r, cy - 2); g.lineTo(cx + r, cy - 2); g.moveTo(cx - r, cy + 2); g.lineTo(cx + r, cy + 2); g.moveTo(cx + r - 3, cy - 5); g.lineTo(cx + r + 1, cy); g.lineTo(cx + r - 3, cy + 5); break;
+    case 'P': g.arc(cx, cy, r * .55, 0, 6.3); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.moveTo(cx + Math.cos(a) * r * .75 + 1.2, cy + Math.sin(a) * r * .75); g.arc(cx + Math.cos(a) * r * .75, cy + Math.sin(a) * r * .75, 1.2, 0, 6.3); } break;
+    case 'A': g.arc(cx, cy, r * .5, 0, 6.3); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.moveTo(cx + Math.cos(a) * r * .6, cy + Math.sin(a) * r * .6); g.lineTo(cx + Math.cos(a) * r * 1.1, cy + Math.sin(a) * r * 1.1); } break;
     default: g.arc(cx, cy, r, 0, 6.3);
   }
   g.stroke();
 }
-function turretMark(x, y, t, alpha = 1, onBoard = false) {
-  if (y < 0) return; const cx = X(x) + CELL / 2, cy = Y(y) + CELL / 2;
-  const trap = onBoard && isTrap(x, y);
-  g.globalAlpha = alpha; const col = trap ? '#ffffff' : COLOR[t.kind] || '#e8f8ff'; glow(col, 12); g.lineWidth = 1.5;
-  const r = 5 + Math.min(t.lvl, 9) * .35;
-  glyph(t.kind, cx, cy, r);
-  g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r + 3, 0, 6.3); g.stroke();
-  if (t.lvl >= 5) { g.beginPath(); g.arc(cx, cy, r + 6, 0, 6.3); g.stroke(); }
-  if (trap) { g.shadowBlur = 0; g.fillStyle = '#ffffff'; g.font = '9px monospace'; g.fillText('함정', X(x) + 2, Y(y) - 2); }
-  g.shadowBlur = 0; if (t.lvl > 1) { g.fillStyle = '#ffd96a'; g.font = 'bold 10px monospace'; g.fillText(t.lvl, X(x) + CELL - 11, Y(y) + 11); }
-  if (onBoard && t.hp < t.maxhp) { g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(X(x) + 4, Y(y) + CELL - 5, CELL - 8, 2); g.fillStyle = '#ff6a6a'; g.fillRect(X(x) + 4, Y(y) + CELL - 5, (CELL - 8) * Math.max(0, t.hp / t.maxhp), 2); }
+function turretGlyph(t, cx, cy, small = false, alpha = 1) {
+  g.globalAlpha = alpha; glow(COLOR[t.kind], 12); g.lineWidth = small ? 1.2 : 1.5;
+  const r = small ? 3.5 : 5 + Math.min(t.lvl, 9) * .35; glyph(t.kind, cx, cy, r);
+  if (!small) { g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r + 3, 0, 6.3); g.stroke(); if (t.lvl >= 5) { g.beginPath(); g.arc(cx, cy, r + 6, 0, 6.3); g.stroke(); } }
   g.globalAlpha = 1;
 }
 function drawEnemy(e) {
-  const d = ENEMY[e.type], sz = d.size || 1, [ex, ey] = epos(e);
-  const px = OX + ex * CELL, py = OY + ey * CELL; if (ey < -.5) return;
+  const d = ENEMY[e.type], [ex, ey] = epos(e), px = FX + ex * CELL, py = FY + ey * CELL; if (ey < 0) return;
   g.lineWidth = 1.6; glow(e.slow > 0 ? '#7fd6ff' : d.col, 9);
-  const r = 7;
   switch (e.type) {
     case 'grunt': g.strokeRect(px - 6, py - 6, 12, 12); break;
-    case 'chute': g.beginPath(); g.moveTo(px, py + 7); g.lineTo(px - 7, py - 5); g.lineTo(px + 7, py - 5); g.closePath(); g.stroke(); if (!e.landed) { g.beginPath(); g.arc(px, py - 9, 9, Math.PI, 0); g.stroke(); } break;
-    case 'bomb': g.beginPath(); g.arc(px, py, 7, 0, 6.3); g.stroke(); if (e.fuse > 0 && (S.time * 10 | 0) % 2) { g.fillStyle = '#ffb36a'; g.beginPath(); g.arc(px, py, 3, 0, 6.3); g.fill(); } break;
-    case 'digger': g.beginPath(); g.moveTo(px, py - 8); g.lineTo(px + 8, py); g.lineTo(px, py + 8); g.lineTo(px - 8, py); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(px, py + 3); g.lineTo(px, py + 11); g.stroke(); break;
-    case 'ghost': g.setLineDash([3, 3]); g.beginPath(); g.arc(px, py - 1, 7, Math.PI, 0); g.lineTo(px + 7, py + 7); g.lineTo(px - 7, py + 7); g.closePath(); g.stroke(); g.setLineDash([]); break;
-    case 'shield': g.strokeRect(px - 8, py - 8, 16, 16); g.strokeRect(px - 4, py - 4, 8, 8); break;
-    case 'spider': g.beginPath(); g.arc(px, py, 5, 0, 6.3); g.stroke(); for (const s of [-1, 1]) for (const k of [-4, 0, 4]) { g.beginPath(); g.moveTo(px + s * 5, py + k * .5); g.lineTo(px + s * 10, py + k - 3); g.stroke(); } break;
-    case 'boss': g.lineWidth = 2; g.strokeRect(px - 26, py - 26, 52, 52); g.lineWidth = 1.2; g.strokeRect(px - 16, py - 16, 32, 32); break;
+    case 'runner': g.beginPath(); g.moveTo(px, py + 7); g.lineTo(px - 6, py - 5); g.lineTo(px + 6, py - 5); g.closePath(); g.stroke(); break;
+    case 'tank': g.strokeRect(px - 8, py - 8, 16, 16); g.strokeRect(px - 4, py - 4, 8, 8); break;
+    case 'breaker': g.beginPath(); g.moveTo(px, py - 8); g.lineTo(px + 8, py); g.lineTo(px, py + 8); g.lineTo(px - 8, py); g.closePath(); g.stroke(); break;
+    case 'healer': g.beginPath(); g.arc(px, py, 7, 0, 6.3); g.moveTo(px - 4, py); g.lineTo(px + 4, py); g.moveTo(px, py - 4); g.lineTo(px, py + 4); g.stroke(); break;
+    case 'boss': g.lineWidth = 2; g.strokeRect(px - 16, py - 16, 32, 32); g.lineWidth = 1.2; g.strokeRect(px - 9, py - 9, 18, 18); break;
   }
-  if (e.hp < e.maxhp) { g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.15)'; const w = 16 * sz; g.fillRect(px - w / 2, py - 13 * sz, w, 2); g.fillStyle = d.col; g.fillRect(px - w / 2, py - 13 * sz, w * Math.max(0, e.hp / e.maxhp), 2); }
+  if (e.poison > 0) { g.shadowBlur = 0; g.fillStyle = COLOR.S; g.fillRect(px + 7, py - 9, 3, 3); }
+  if (e.hp < e.maxhp) { g.shadowBlur = 0; const w = d.big ? 32 : 16; g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(px - w / 2, py - (d.big ? 22 : 12), w, 2); g.fillStyle = d.col; g.fillRect(px - w / 2, py - (d.big ? 22 : 12), w * Math.max(0, e.hp / e.maxhp), 2); }
 }
 function drawMini(p, x0, y0, s = 15) {
-  if (!p) return; SHAPES[p.t][0].forEach(([x, y], i) => { const col = p.iron ? COLOR.X : COLOR[p.c || p.t]; g.lineWidth = 1.3; glow(col, 7); g.strokeRect(x0 + x * s + 2, y0 + y * s + 2, s - 4, s - 4);
-    const tq = p.turrets.find(q => q.idx === i); if (tq) { g.lineWidth = 1.2; glow(COLOR[tq.kind] || col, 7); glyph(tq.kind, x0 + x * s + s / 2, y0 + y * s + s / 2, 3.5); if (tq.lvl > 1) text(tq.lvl, x0 + x * s + s - 3, y0 + y * s + 4, '#ffd96a', 9); } });
+  if (!p) return; SHAPES[p.t][0].forEach(([x, y], i) => { const col = COLOR[p.t]; g.lineWidth = 1.3; glow(col, 7); g.strokeRect(x0 + x * s + 2, y0 + y * s + 2, s - 4, s - 4);
+    const tq = p.turrets.find(q => q.idx === i); if (tq) turretGlyph(tq, x0 + x * s + s / 2, y0 + y * s + s / 2, true); });
 }
-function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
-function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
 function draw() {
   g.setTransform(1, 0, 0, 1, 0, 0); g.shadowBlur = 0; g.fillStyle = '#06060b'; g.fillRect(0, 0, W, H);
-  const shake = S.fx.some(f => f.kind === 'core') ? (Math.random() - .5) * 6 : 0; g.translate(shake, 0);
-  // 우물
+  const coreHit = S.fx.some(f => f.kind === 'core');
+  // ── 우물
   g.strokeStyle = 'rgba(120,140,180,.07)'; g.lineWidth = 1;
   for (let x = 1; x < COLS; x++) { g.beginPath(); g.moveTo(X(x), OY); g.lineTo(X(x), Y(ROWS)); g.stroke(); }
   for (let y = 1; y < ROWS; y++) { g.beginPath(); g.moveTo(OX, Y(y)); g.lineTo(X(COLS), Y(y)); g.stroke(); }
-  g.lineWidth = 1.5; glow('rgba(127,214,255,.5)', 8); g.beginPath(); g.moveTo(OX, OY); g.lineTo(OX, Y(ROWS)); g.moveTo(X(COLS), OY); g.lineTo(X(COLS), Y(ROWS)); g.stroke();
-  // 핵
-  const coreCol = S.fx.some(f => f.kind === 'core') ? '#ff6a6a' : '#7fd6ff';
-  g.lineWidth = 2; glow(coreCol, 16); g.beginPath(); g.moveTo(OX - 8, Y(ROWS) + 6); g.lineTo(X(COLS) + 8, Y(ROWS) + 6); g.stroke();
-  // 경고
-  S.warnings.forEach(w => { const sz = ENEMY[w.type].size || 1; const a = (S.time * 6 | 0) % 2 ? .9 : .35; g.globalAlpha = a; glow(ENEMY[w.type].col, 10); g.lineWidth = 1.5;
-    const cx = X(w.x) + sz * CELL / 2; g.beginPath(); g.moveTo(cx - 8 * sz, OY + 4); g.lineTo(cx, OY + 12 + 4 * sz); g.lineTo(cx + 8 * sz, OY + 4); g.stroke(); g.globalAlpha = 1;
-    if (w.type === 'shield' || w.type === 'spider' || w.type === 'boss') text(ENEMY[w.type].name, cx, OY - 6, ENEMY[w.type].col, 11, 'center'); });
-  // 블록
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (!c) continue; block(x, y, COLOR[c.c], { iron: c.iron }); if (c.turret) turretMark(x, y, c.turret, 1, true); }
-  // 착지 그림자와 현재 조각
+  g.lineWidth = 1.5; glow('rgba(127,214,255,.5)', 8); g.strokeRect(OX, OY, COLS * CELL, ROWS * CELL);
+  text('TETRIS', OX + COLS * CELL / 2, OY - 14, '#5f6878', 11, 'center');
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (!c) continue; block(X(x), Y(y), COLOR[c.c]); if (c.turret) turretGlyph(c.turret, X(x) + CELL / 2, Y(y) + CELL / 2, false, .9); }
   if (S.piece && !S.over) {
     const p = S.piece; let gy = p.y; while (!collide(p, p.x, gy + 1, p.r)) gy++;
-    const col = p.iron ? COLOR.X : COLOR[p.c || p.t];
-    cellsOf(p, p.x, gy).forEach(([x, y]) => block(x, y, col, { alpha: .4, dash: true }));
-    cellsOf(p).forEach(([x, y], i) => { block(x, y, S.webT > 0 ? '#ffffff' : col, { blur: 14, iron: p.iron }); const tu = p.turrets.find(q => q.idx === i); if (tu) turretMark(x, y, tu); });
-    if (S.webT > 0) { const [x, y] = cellsOf(p)[1]; text('거미줄', X(x) + 15, Y(y) - 8, '#9cffb0', 11, 'center'); }
+    cellsOf(p, p.x, gy).forEach(([x, y]) => { if (y >= 0) block(X(x), Y(y), COLOR[p.t], { alpha: .4, dash: true }); });
+    cellsOf(p).forEach(([x, y], i) => { if (y < 0) return; block(X(x), Y(y), COLOR[p.t], { blur: 14 }); const tu = p.turrets.find(q => q.idx === i); if (tu) turretGlyph(tu, X(x) + CELL / 2, Y(y) + CELL / 2); });
   }
-  // 적, 탄환, 효과
-  S.enemies.forEach(e => { if (e.attacking) { const [ex, ey] = epos(e); g.lineWidth = 1; glow('rgba(255,106,106,.7)', 6); g.setLineDash([2, 3]); g.beginPath(); g.moveTo(OX + ex * CELL, OY + ey * CELL); g.lineTo(X(e.attacking[0]) + CELL / 2, Y(e.attacking[1]) + CELL / 2); g.stroke(); g.setLineDash([]); } });
+  S.fx.forEach(f => { if (f.kind === 'line') { g.shadowBlur = 0; g.fillStyle = `rgba(255,255,255,${f.t * 1.6})`; g.fillRect(OX, Y(f.y), COLS * CELL, CELL); } });
+  // ── 전장
+  g.lineWidth = 1.5; glow(coreHit ? 'rgba(255,106,106,.7)' : 'rgba(127,214,255,.5)', 8); g.strokeRect(FX, FY, FCOLS * CELL, FROWS * CELL);
+  text('DEFENSE', FX + FCOLS * CELL / 2, FY - 14, '#5f6878', 11, 'center');
+  g.shadowBlur = 0; g.fillStyle = 'rgba(160,180,220,.18)';
+  for (let y = 0; y < FROWS; y++) for (let x = 0; x < FCOLS; x++) if (SLOT_D[y][x] >= 0 && !S.field[y][x]) g.fillRect(FXp(x) + CELL / 2 - 1, FYp(y) + CELL / 2 - 1, 2, 2);
+  // 길
+  g.lineWidth = CELL - 8; g.strokeStyle = 'rgba(255,138,122,.06)'; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); WAYPOINTS.forEach(([x, y], i) => { const px = FXp(x) + CELL / 2, py = FYp(Math.max(-.4, Math.min(FROWS - .6, y))) + CELL / 2; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke();
+  g.lineWidth = 1; g.setLineDash([4, 6]); glow('rgba(255,138,122,.35)', 4); g.stroke(); g.setLineDash([]); g.lineCap = 'butt';
+  // 입구와 핵
+  glow('#ff8a7a', 10); g.lineWidth = 1.5; { const px = FXp(1) + CELL / 2; g.beginPath(); g.moveTo(px - 9, FY - 4); g.lineTo(px, FY + 6); g.lineTo(px + 9, FY - 4); g.stroke(); }
+  { const cx = FXp(4) + CELL / 2, cy = FYp(FROWS) + 16; glow(coreHit ? '#ff6a6a' : '#7fd6ff', 16); g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 6; i++) { const a = Math.PI / 6 + i / 6 * 6.283; g.lineTo(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12); } g.stroke(); text(`CORE ${Math.max(0, S.core)}`, cx + 20, cy + 4, coreHit ? '#ff6a6a' : '#7fd6ff', 11); }
+  // 포탑
+  forTurrets((t, x, y) => { block(FXp(x), FYp(y), COLOR[t.kind], { alpha: .55 }); turretGlyph(t, FXp(x) + CELL / 2, FYp(y) + CELL / 2);
+    g.shadowBlur = 0; if (t.lvl > 1) text(t.lvl, FXp(x) + CELL - 10, FYp(y) + 11, '#ffd96a', 10);
+    if (t.hp < t.maxhp) { g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(FXp(x) + 4, FYp(y) + CELL - 5, CELL - 8, 2); g.fillStyle = '#ff6a6a'; g.fillRect(FXp(x) + 4, FYp(y) + CELL - 5, (CELL - 8) * Math.max(0, t.hp / t.maxhp), 2); } });
+  // 적과 공격선
+  S.enemies.forEach(e => { if (e.attacking) { const [ex, ey] = epos(e); g.lineWidth = 1; glow('rgba(255,106,106,.7)', 6); g.setLineDash([2, 3]); g.beginPath(); g.moveTo(FX + ex * CELL, FY + ey * CELL); g.lineTo(FXp(e.attacking[0]) + CELL / 2, FYp(e.attacking[1]) + CELL / 2); g.stroke(); g.setLineDash([]); } });
   S.enemies.forEach(drawEnemy);
-  S.beams.forEach(b => { g.lineWidth = 2; glow(b.col, 10); g.globalAlpha = Math.min(1, b.t * 14); g.beginPath(); g.moveTo(OX + b.x1 * CELL, OY + b.y1 * CELL); g.lineTo(OX + b.x2 * CELL, OY + b.y2 * CELL); g.stroke(); g.globalAlpha = 1; });
+  S.beams.forEach(b => { g.lineWidth = 2; glow(b.col, 10); g.globalAlpha = Math.min(1, b.t * 14); g.beginPath(); g.moveTo(FX + b.x1 * CELL, FY + b.y1 * CELL); g.lineTo(FX + b.x2 * CELL, FY + b.y2 * CELL); g.stroke(); g.globalAlpha = 1; });
   S.fx.forEach(f => {
-    if (f.kind === 'line') { g.shadowBlur = 0; g.fillStyle = `rgba(255,255,255,${f.t * 1.6})`; g.fillRect(OX, Y(f.y), COLS * CELL, CELL); }
-    if (f.kind === 'ring') { g.globalAlpha = f.t * 2; g.lineWidth = 1.5; glow(f.col, 10); g.beginPath(); g.arc(OX + f.x * CELL, OY + f.y * CELL, Math.max(1, (1 - Math.min(f.t, .5) * 2) * (f.big ? 60 : 30) + 6), 0, 6.3); g.stroke(); g.globalAlpha = 1; }
-    if (f.kind === 'burst') { glow(f.col, 8); const n = f.big ? 22 : 10; for (let i = 0; i < n; i++) { const a = i / n * 6.28 + f.x, r = (0.5 - f.t) * (f.big ? 90 : 50) + 4; g.globalAlpha = f.t * 2; g.fillRect(OX + f.x * CELL + Math.cos(a) * r, OY + f.y * CELL + Math.sin(a) * r, 2.2, 2.2); } g.globalAlpha = 1; }
+    if (!f.field) return;
+    if (f.kind === 'ring') { g.globalAlpha = Math.min(1, f.t * 3); g.lineWidth = 1.5; glow(f.col, 10); g.beginPath(); g.arc(FX + f.x * CELL, FY + f.y * CELL, Math.max(1, (1 - Math.min(f.t, .3) / .3) * 26 + 4), 0, 6.3); g.stroke(); g.globalAlpha = 1; }
+    if (f.kind === 'burst') { glow(f.col, 8); const n = f.big ? 22 : 10; for (let i = 0; i < n; i++) { const a = i / n * 6.28 + f.x, r = (0.5 - Math.min(f.t, .5)) * (f.big ? 90 : 50) + 4; g.globalAlpha = Math.min(1, f.t * 2); g.fillRect(FX + f.x * CELL + Math.cos(a) * r, FY + f.y * CELL + Math.sin(a) * r, 2.2, 2.2); } g.globalAlpha = 1; }
   });
-  S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, OX + t.x * CELL, OY + t.y * CELL - (1.1 - t.t) * 30, t.col, 13, 'center'); g.globalAlpha = 1; });
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  // 왼쪽 패널
-  panel(40, 50, 260, 250);
-  text(`WAVE ${String(S.wave).padStart(2, '0')}`, 58, 85, '#e8f0ff', 22);
-  text(S.waveActive ? `남은 적 ${S.toSpawn + S.enemies.length}` : `다음 웨이브 ${Math.max(0, S.breakT).toFixed(1)}초`, 58, 108, '#8a94a6', 12);
-  text(`CORE ${Math.max(0, S.core)} / 20`, 58, 136); g.strokeStyle = 'rgba(127,214,255,.5)'; g.strokeRect(58, 144, 224, 6); glow('#7fd6ff', 8); g.fillRect(58, 144, 224 * Math.max(0, S.core) / 20, 6);
-  text(`SCORE  ${S.score.toLocaleString()}`, 58, 176); text(`LINES  ${S.lines}`, 58, 198); text(`처치   ${S.kills}`, 58, 220);
-  text(`합체 ${S.merges}회 · 합성 ${S.fusions}회 · 대기 ${S.carry.length}`, 58, 246, '#7fd6ff', 12); text(`깔아뭉개기 ${S.crushes} / 5`, 58, 266, '#ffd96a', 12);
-  text(S.combo > 0 ? `COMBO x${S.combo}  공속 +${Math.min(S.combo, 10) * 8}%` : '', 58, 286, '#ffd96a', 12);
-  panel(40, 320, 260, 330);
-  text('강화 조건', 58, 346, '#7fd6ff', 12);
-  ['모든 블록에 모양별 포탑 칸 1개', '포탑은 항상 사거리 안의 적을 쏜다', '줄을 지우면 그 줄의 포탑은', '  다음 블록들의 빈 칸에 실린다', '같은 종류 2개 이상: 합체, 레벨 합산', '정해진 조합: 새 포탑으로 합성', '합체·합성 결과는 바로 다음 블록에', '여러 줄 동시: 합체·합성 레벨 +(줄-1)', 'T스핀+줄: 지운 줄의 T 포탑 +2', '1칸 구멍 바닥 포탑 = 함정 (3배)']
-    .forEach((s, i) => text(s, 58, 372 + i * 21, '#8a94a6', 11));
-  // 오른쪽 패널
-  panel(700, 50, 260, 200); text('NEXT', 718, 74, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, 740 + i * 72, 100));
-  text('HOLD', 718, 186, '#7fd6ff', 12); drawMini(S.hold, 770, 192);
-  panel(700, 265, 260, 385); text('포탑 종류', 718, 290, '#7fd6ff', 12);
-  Object.entries(ATTR_NAME).forEach(([k, v], i) => { const yy = 312 + i * 21; glow(COLOR[k], 8); g.lineWidth = 1.3; glyph(k, 724, yy - 4, 5); text(`${k} ${v}`, 738, yy, COLOR[k], 11); text(ATTR_DESC[k], 806, yy, '#8a94a6', 11); });
-  text('합성 규칙 (같은 줄에서 함께 지우기)', 718, 474, '#7fd6ff', 12);
-  RECIPES.forEach(([a, b, o], i) => { const yy = 496 + i * 34; glow(COLOR[o], 8); g.lineWidth = 1.3; glyph(o, 724, yy - 4, 5); text(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[o]}`, 738, yy, COLOR[o], 11); text(HYBRID_DESC[o], 738, yy + 15, '#8a94a6', 11); });
-  text('같은 종류 2개 이상: 합체 (레벨 합산)', 718, 634, '#8a94a6', 11);
-  text('← → 이동  ↑/X 회전  Z 역회전  ↓ 빠르게  Space 떨어뜨리기  C 보관  P 일시정지', W / 2, H - 16, '#5f6878', 11, 'center');
-  // 오버레이
+  // 터진 포탑이 우물에서 전장으로 날아가는 연출
+  S.flyers.forEach(f => { const k = f.t * f.t * (3 - 2 * f.t), x = f.x1 + (f.x2 - f.x1) * k, y = f.y1 + (f.y2 - f.y1) * k - Math.sin(Math.PI * f.t) * 60;
+    g.globalAlpha = .35; glow(COLOR[f.kind], 6); g.lineWidth = 1; g.beginPath(); g.moveTo(f.x1, f.y1); g.quadraticCurveTo((f.x1 + f.x2) / 2, Math.min(f.y1, f.y2) - 60, x, y); g.stroke(); g.globalAlpha = 1; turretGlyph({ kind: f.kind, lvl: 1 }, x, y); });
+  S.texts.forEach(t => { const bx = t.area === 'field' ? FX : OX, by = t.area === 'field' ? FY : OY; g.globalAlpha = Math.min(1, t.t * 2); text(t.s, bx + t.x * CELL, by + t.y * CELL - (1.2 - t.t) * 30, t.col, 13, 'center'); g.globalAlpha = 1; });
+  // ── 왼쪽 패널
+  panel(20, 50, 250, 250);
+  text(`WAVE ${String(S.wave).padStart(2, '0')}`, 36, 84, '#e8f0ff', 22);
+  text(S.waveActive ? `남은 적 ${S.toSpawn + S.enemies.length}` : `다음 웨이브 ${Math.max(0, S.breakT).toFixed(1)}초`, 36, 106, '#8a94a6', 12);
+  text(`CORE ${Math.max(0, S.core)} / 20`, 36, 134); g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(36, 142, 218, 6); glow('#7fd6ff', 8); g.fillRect(36, 142, 218 * Math.max(0, S.core) / 20, 6);
+  text(`SCORE  ${S.score.toLocaleString()}`, 36, 174); text(`LINES  ${S.lines}`, 36, 196); text(`처치   ${S.kills}`, 36, 218);
+  let tc = 0; forTurrets(() => tc++); text(`포탑 ${tc}개 · 합체 ${S.merges} · 합성 ${S.fusions}`, 36, 244, '#7fd6ff', 12);
+  text(S.combo > 0 ? `COMBO x${S.combo}  공속 +${Math.min(S.combo, 10) * 8}%` : '', 36, 268, '#ffd96a', 12);
+  panel(20, 320, 250, 330); text('규칙', 36, 346, '#7fd6ff', 12);
+  ['블록마다 모양별 포탑 칸 1개', '줄을 지우면 그 줄의 포탑이', '  터져서 전장에 배치된다', '  (길 바로 옆, 같은 높이 근처)', '같은 줄의 같은 종류 2개 이상: 합체', '정해진 조합: 새 포탑으로 합성', '여러 줄 동시: 레벨 +(줄 수 - 1)', 'T스핀 + 줄: 관통 포탑 +2', '자리가 차면 같은 종류 +1레벨', '파괴자와 보스는 포탑을 부순다', '적이 핵에 닿으면 체력 감소', '콤보 동안 포탑 공격 속도 증가']
+    .forEach((s, i) => text(s, 36, 370 + i * 21, '#8a94a6', 11));
+  // ── 오른쪽 패널
+  const RX = 940;
+  panel(RX, 50, 320, 150); text('NEXT', RX + 16, 74, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, RX + 24 + i * 76, 100));
+  text('HOLD', RX + 16, 168, '#7fd6ff', 12); drawMini(S.hold, RX + 80, 156);
+  panel(RX, 215, 320, 435); text('포탑 종류', RX + 16, 240, '#7fd6ff', 12);
+  'IOTSZLJ'.split('').forEach((k, i) => { const yy = 264 + i * 22; glow(COLOR[k], 8); g.lineWidth = 1.3; glyph(k, RX + 22, yy - 4, 5); text(`${k} ${KIND_NAME[k]}`, RX + 38, yy, COLOR[k], 11); text(KIND_DESC[k], RX + 110, yy, '#8a94a6', 11); });
+  text('합성 (같은 줄에서 함께 지우기)', RX + 16, 434, '#7fd6ff', 12);
+  RECIPES.forEach(([a, b, o], i) => { const yy = 458 + i * 36; glow(COLOR[o], 8); g.lineWidth = 1.3; glyph(o, RX + 22, yy - 4, 5); text(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[o]}`, RX + 38, yy, COLOR[o], 11); text(KIND_DESC[o], RX + 38, yy + 15, '#8a94a6', 11); });
+  text('적: □일반 △질주 ▣방패 ◇파괴자 ⊕치유사', RX + 16, 630, '#8a94a6', 11);
+  text('← → 이동  ↑/X 회전  Z 역회전  ↓ 빠르게  Space 떨어뜨리기  C 보관  P 일시정지', W / 2, H - 14, '#5f6878', 11, 'center');
+  // ── 오버레이
   if (!S.started || S.over || S.paused) {
-    g.fillStyle = 'rgba(6,6,11,.82)'; g.fillRect(0, 0, W, H);
-    if (!S.started) { text('TETRIS DEFENSE', W / 2, 250, '#7fd6ff', 34, 'center'); text('하늘에서 떨어지는 적을 블록으로 깔아뭉개고, 줄을 지워 포탑을 세워 바닥의 핵을 지켜라', W / 2, 300, '#cfd8e6', 14, 'center');
-      text('구멍은 적이 내려가는 길이다', W / 2, 326, '#8a94a6', 13, 'center'); text('Enter 키 또는 화면을 눌러 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
+    g.fillStyle = 'rgba(6,6,11,.84)'; g.fillRect(0, 0, W, H);
+    if (!S.started) { text('TETRIS DEFENSE', W / 2, 250, '#7fd6ff', 34, 'center'); text('왼쪽에서 줄을 지우면 블록 속 포탑이 터져 나와 오른쪽 전장에 배치된다', W / 2, 300, '#cfd8e6', 14, 'center');
+      text('적이 길을 따라 핵에 닿기 전에 막아라', W / 2, 326, '#8a94a6', 13, 'center'); text('Enter 키 또는 화면을 눌러 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
     else if (S.over) { text('GAME OVER', W / 2, 270, '#ff6a6a', 34, 'center'); text(S.overWhy, W / 2, 308, '#cfd8e6', 14, 'center'); text(`WAVE ${S.wave} · SCORE ${S.score.toLocaleString()} · 처치 ${S.kills} · LINES ${S.lines}`, W / 2, 340, '#8a94a6', 14, 'center'); text('R 키 또는 화면을 눌러 다시 시작', W / 2, 400, '#ffd96a', 18, 'center'); }
     else text('PAUSED', W / 2, 330, '#7fd6ff', 30, 'center');
   }
@@ -521,8 +425,7 @@ function draw() {
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  // 한 프레임에서 오류가 나도 게임 루프는 계속 돈다 (오류는 콘솔에 남김)
-  try { if (S.started && !S.over && !S.paused) update(dt); draw(); } catch (err) { console.error(err); }
+  try { if (S.started && !S.over && !S.paused) update(dt); draw(); } catch (err) { console.error(err); } // 한 프레임 오류로 루프가 멈추지 않게
   requestAnimationFrame(frame);
 }
 addEventListener('keydown', e => {
@@ -541,7 +444,6 @@ addEventListener('keydown', e => {
   if (e.key === 'c' || e.key === 'C' || e.key === 'Shift') holdPiece();
 });
 addEventListener('keyup', e => { keys[e.key] = false; });
-// 터치 조작: 화면 탭으로 시작/재시작, 버튼으로 조작
 cv.addEventListener('pointerdown', () => { if (!S.started) S.started = true; else if (S.over) newGame(); });
 document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => {
   ev.preventDefault(); if (!S.started) { S.started = true; return; } if (S.over) { newGame(); return; } if (S.paused) return;
@@ -550,7 +452,7 @@ document.querySelectorAll('#touch button').forEach(b => b.addEventListener('poin
 newGame(); S.started = false;
 window.__td = () => S;
 // 자동 시험용 진입점
-window.__api = { update, draw, move, rotate, hardDrop, collide, cellsOf, SHAPES, COLS, ROWS, newGame, spawnEnemy };
+window.__api = { update, draw, move, rotate, hardDrop, collide, cellsOf, SHAPES, COLS, ROWS, newGame, spawnEnemy, sendToField, SLOT_D };
 requestAnimationFrame(frame);
 </script>
 </body>
