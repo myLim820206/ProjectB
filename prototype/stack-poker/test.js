@@ -26,16 +26,23 @@ const { chromium } = require('playwright');
     t('조커 + 페어 = 트리플', [c(4), J, c(4, '♥')], 'triple');
     t('A는 1 (6 7 A 2 아님)', [c(6), c(7, '♥'), c(1, '♦'), c(2, '♣')], 'none');
     // 고르기: 고른 카드 내면 사라지고 아래 카드가 위로 붙음
-    A.newGame(); const s = S(); s.phase = 'play';
+    A.newGame(); const s = S(); s.phase = 'play'; s.pushT = 1e9;
     s.cols = [[c(1), c(2), c(6, '♥'), c(3), c(4)], [c(6, '♦'), c(5)], [c(6, '♣')], []];
     A.toggle(s.cols[0][0]); const picked = s.sel.length === 1; A.toggle(s.cols[0][0]); const topBlocked = picked && s.sel.length === 0; // 위쪽 카드도 고를 수 있고, 다시 누르면 빠짐
     A.toggle(s.cols[0][2]); A.toggle(s.cols[1][0]); A.toggle(s.cols[2][0]); A.playHand();
     const playOk = topBlocked && s.hands === 1 && s.cols[0].length === 4 && s.cols[0][2].r === 3 && s.score === (20 + 18) * 2 && s.combo === 1;
     A.update(1); A.toggle(s.cols[0][3]); const t0 = s.time; A.discard(); const discardOk = s.cols[0].length === 3 && s.time <= t0 - 3 && s.combo === 0;
+    // 키보드: 커서 이동과 Space 고르기, Enter 내기
+    A.newGame(); const sk = S(); sk.phase = 'play'; sk.pushT = 1e9; sk.cols = [[c(1), c(3)], [c(3, '♥'), c(6)], [c(2), c(3, '♦')], [c(7)]];
+    A.act('down'); A.act('toggle');            // 0번 줄 맨 아래 3♠
+    A.act('right'); A.act('up'); A.act('toggle'); // 1번 줄 아래에서 두 번째 3♥
+    A.act('right'); A.act('down'); A.act('toggle'); // 2번 줄 맨 아래 3♦
+    const selBefore = sk.sel.map(x => x.r + x.s).join(); A.act('start');
+    const keyOk = selBefore === '3♠,3♥,3♦' && sk.hands === 1 && sk.cols[1].length === 1;
     // 원 페어: 콤보 시간은 이어주고 단계는 안 올림
-    A.newGame(); const s3 = S(); s3.phase = 'play'; s3.cols = [[c(2), c(2, '♥'), c(2, '♦'), c(5), c(5, '♥')], [], [], []];
+    A.newGame(); const s3 = S(); s3.phase = 'play'; s3.pushT = 1e9; s3.cols = [[c(2), c(2, '♥'), c(2, '♦'), c(5), c(5, '♥')], [], [], []];
     [0, 1, 2].forEach(k => A.toggle(s3.cols[0][k])); A.playHand(); A.update(3); const left = s3.comboT;
-    A.toggle(s3.cols[0][0]); A.toggle(s3.cols[0][1]); A.playHand();
+    s3.cols[0].filter(x => x.r === 5 && !x.joker).slice(0, 2).forEach(x => A.toggle(x)); A.playHand(); // 위에서 카드가 밀려 와도 5 두 장을 찾아 고른다
     const pairOk = s3.combo === 1 && left < 3 && s3.comboT > 4.9 && s3.hands === 2;
     // 줄 폭발
     A.newGame(); const s2 = S(); s2.phase = 'play'; s2.cols[1] = Array.from({ length: A.MAXH - 1 }, (_, i) => c(i % 7 + 1)); const t1 = s2.time; for (let k = 0; k < 300 && !s2.explodes; k++) A.push(); // 무작위 줄에 밀어 넣으니 가득 찬 줄에 닿을 때까지
@@ -56,7 +63,7 @@ const { chromium } = require('playwright');
       res.push({ score: g.score, hands: g.hands, maxCombo: g.maxCombo, explodes: g.explodes, discards: g.discards });
     }
     const avg = k => Math.round(res.reduce((a, x) => a + x[k], 0) / res.length * 10) / 10;
-    return { cases, allOk: cases.every(x => x.ok), pairOk, playOk, discardOk, explodeOk,
+    return { cases, allOk: cases.every(x => x.ok), keyOk, pairOk, playOk, discardOk, explodeOk,
       bot: { thinkSec, clickSec, avgScore: avg('score'), min: Math.min(...res.map(x => x.score)), max: Math.max(...res.map(x => x.score)), hands: avg('hands'), maxCombo: avg('maxCombo'), explodes: avg('explodes'), discards: avg('discards') } };
   }, [+(process.argv[3] || 10), +(process.argv[4] || 0.3), +(process.argv[5] || 2)]);
   console.log(JSON.stringify({ ...out, cases: out.cases.filter(x => !x.ok) }, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();
