@@ -37,9 +37,15 @@
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1000, H = 700;
 const COLS = 10, ROWS = 20, CELL = 30, OX = 350, OY = 50;
-const COLOR = { I:'#7fd6ff', O:'#ffd96a', T:'#c890ff', S:'#9cffb0', Z:'#ff8a7a', L:'#ffb36a', J:'#6a9cff', X:'#9aa0b0' };
+const COLOR = { I:'#7fd6ff', O:'#ffd96a', T:'#c890ff', S:'#9cffb0', Z:'#ff8a7a', L:'#ffb36a', J:'#6a9cff', X:'#9aa0b0',
+  V:'#d8f4ff', R:'#fff0a0', P:'#c4ff6a', A:'#ff9a50' }; // V~A: 합성 포탑
 const ATTR_NAME = { I:'빙결', O:'번개', T:'관통', S:'독', Z:'화염', L:'폭발', J:'저격' };
 const ATTR_DESC = { I:'느리게', O:'연쇄 2', T:'꿰뚫기', S:'지속 피해', Z:'작은 범위', L:'큰 범위', J:'먼 적 한 발' };
+const HYBRID_NAME = { V:'증기', R:'레일건', P:'역병', A:'포격' };
+const HYBRID_DESC = { V:'범위 + 감속', R:'일직선 전부', P:'범위 + 독', A:'먼 적 큰 범위' };
+const KIND_NAME = { ...ATTR_NAME, ...HYBRID_NAME };
+// 합성 규칙: 같은 줄에서 함께 지워지면 새 포탑이 된다
+const RECIPES = [['I', 'Z', 'V'], ['O', 'T', 'R'], ['S', 'L', 'P'], ['J', 'L', 'A']];
 const BASE = {
   I:[[0,1],[1,1],[2,1],[3,1]], O:[[1,0],[2,0],[1,1],[2,1]], T:[[1,0],[0,1],[1,1],[2,1]],
   S:[[1,0],[2,0],[0,1],[1,1]], Z:[[0,0],[1,0],[1,1],[2,1]], L:[[2,0],[0,1],[1,1],[2,1]], J:[[0,0],[0,1],[1,1],[2,1]],
@@ -75,7 +81,7 @@ function newGame() {
     enemies: [], warnings: [], fx: [], texts: [], beams: [],
     wave: 1, toSpawn: 0, spawnT: 0, breakT: 3, waveActive: false,
     core: 20, score: 0, lines: 0, kills: 0, combo: -1, gauge: 0, crushes: 0, ironNext: false,
-    merges: 0, pool: { I: 0, O: 0, T: 0, S: 0, Z: 0, L: 0, J: 0 }, over: false, paused: false, started: S ? true : false, time: 0, bossAlive: false,
+    merges: 0, fusions: 0, over: false, paused: false, started: S ? true : false, time: 0, bossAlive: false,
   };
   for (let i = 0; i < 3; i++) S.next.push(makePiece());
   spawnPiece();
@@ -92,8 +98,7 @@ const turretHp = l => 40 + 25 * l;
 function spawnPiece() {
   const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece()); // 포탑 조각을 끼워 넣어도 목록이 늘어나지 않게
   if (S.ironNext) { p.iron = true; p.turrets = []; S.ironNext = false; }
-  // 합체 대기 레벨이 있으면 이 모양 블록의 포탑에 실린다
-  if (!p.iron && S.pool[p.t] > 0) { p.turrets = [{ kind: p.t, lvl: Math.min(9, S.pool[p.t]), idx: p.turrets[0]?.idx ?? 0 }]; S.pool[p.t] = 0; }
+
   S.piece = { ...p, r: 0, x: 3, y: p.t === 'I' ? -1 : 0 };
   S.lockT = 0; S.lockMoves = 0; S.lastRotate = false; S.dropT = 0;
   if (cellsOf(S.piece).some(([x, y]) => y >= 0 && S.board[y][x])) gameOver('블록이 천장에 닿았다');
@@ -161,7 +166,8 @@ function lock() {
 }
 function clearRows(rows, tspin) {
   const n = rows.length, found = [];
-  rows.forEach(y => S.board[y].forEach(c => { if (c.turret) found.push(c.turret); }));
+  rows.forEach(y => S.board[y].forEach((c, x) => { if (c.turret) found.push({ ...c.turret, x }); }));
+  const lowest = Math.max(...rows) - (n - 1); // 줄을 지운 뒤 지운 자리의 가장 아래 줄 (위 블록이 내려와 채움)
   for (const y of rows.slice().sort((a, b) => a - b)) {
     S.board.splice(y, 1); S.board.unshift(Array(COLS).fill(null));
     S.enemies.forEach(e => { if (ENEMY[e.type].solid || e.type === 'ghost') { if (e.gy === y) e.dead = true; } if (e.gy < y) { e.gy++; e.py++; } });
@@ -172,19 +178,36 @@ function clearRows(rows, tspin) {
   S.score += [0, 100, 300, 500, 800][n] * S.wave + Math.max(0, S.combo) * 50;
   const midY = rows[0];
   popText(['', 'LINE', 'DOUBLE', 'TRIPLE', 'TETRIS'][n] + (S.combo > 0 ? `  COMBO x${S.combo}` : ''), 4.5, midY, '#ffffff');
-  // 지운 줄의 포탑: 같은 모양끼리 레벨 합산 + 여러 줄 보너스 → 그 모양의 다음 블록에 실림
-  const groups = {};
-  found.forEach(t => { (groups[t.kind] ||= []).push(t.lvl); });
-  const msgs = [];
-  for (const k in groups) {
-    const lv = Math.min(9, groups[k].reduce((a, b) => a + b, 0) + (n - 1));
-    S.pool[k] = Math.min(9, Math.max(S.pool[k], lv));
-    if (groups[k].length >= 2) S.merges++;
-    msgs.push(`${ATTR_NAME[k]} Lv${S.pool[k]}`);
+  if (!found.length) return;
+  const bonus = n - 1, results = [], msgs = [];
+  // 1) 같은 종류끼리 합체: 레벨 합산 + 여러 줄 보너스
+  const byKind = {};
+  found.forEach(t => (byKind[t.kind] ||= []).push(t));
+  let pool = [];
+  for (const k in byKind) {
+    const g2 = byKind[k];
+    if (g2.length >= 2) { const lvl = Math.min(9, g2.reduce((a, t) => a + t.lvl, 0) + bonus); results.push({ kind: k, lvl, x: g2[0].x }); S.merges++; msgs.push(`${KIND_NAME[k]} 합체 Lv${lvl}`); }
+    else pool.push(g2[0]);
   }
-  if (tspin) { S.pool.T = Math.min(9, Math.max(S.pool.T, 1) + 2); msgs.push(`T스핀 관통 Lv${S.pool.T}`); }
-  if (msgs.length) { popText((found.length >= 2 ? '합체! ' : '') + msgs.join(' · '), 4.5, midY - 1.2, '#ffd96a'); S.fx.push({ kind: 'ring', x: 4.5, y: midY + .5, t: .6, col: '#ffd96a', big: true }); }
-  if (S.board.every(r => r.every(c => !c))) { popText('PERFECT CLEAR  모든 포탑 대기 +2', 4.5, 10, '#9cffb0'); for (const k in S.pool) S.pool[k] = Math.min(9, Math.max(S.pool[k], 1) + 2); }
+  // 2) 다른 종류 합성 규칙
+  for (const [a, b, out] of RECIPES) {
+    const ta = pool.find(t => t.kind === a), tb = pool.find(t => t.kind === b);
+    if (ta && tb) { const lvl = Math.min(9, ta.lvl + tb.lvl + bonus); results.push({ kind: out, lvl, x: ta.x }); pool = pool.filter(t => t !== ta && t !== tb); S.fusions++; msgs.push(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[out]} Lv${lvl}`); }
+  }
+  // 3) 규칙이 없는 포탑은 그대로 남는다
+  pool.forEach(t => results.push({ kind: t.kind, lvl: t.lvl, x: t.x, hp: t.hp }));
+  if (tspin) results.forEach(r => { if (r.kind === 'T') { r.lvl = Math.min(9, r.lvl + 2); msgs.push(`T스핀 관통 Lv${r.lvl}`); } });
+  results.forEach(r => placeTurret(r, lowest));
+  if (msgs.length) { popText(msgs.join(' · '), 4.5, midY - 1.2, '#ffd96a'); S.fx.push({ kind: 'ring', x: 4.5, y: midY + .5, t: .5, col: '#ffd96a', big: true }); }
+}
+// 포탑을 같은 세로줄에 남긴다: 지운 자리로 내려온 블록 → 그 아래 블록 → 위쪽 블록 순서로 포탑 없는 칸에 옮겨 붙고,
+// 세로줄에 블록이 없으면 1칸 포탑 블록이 되어 바닥으로 떨어진다
+function placeTurret(r, fromY) {
+  const x = r.x, mk = () => ({ kind: r.kind, lvl: r.lvl, cd: .4, hp: r.hp ?? turretHp(r.lvl), maxhp: turretHp(r.lvl) });
+  const order = []; for (let y = fromY; y < ROWS; y++) order.push(y); for (let y = fromY - 1; y >= 0; y--) order.push(y);
+  for (const y of order) { const c = S.board[y][x]; if (c && !c.turret && !c.iron) { c.turret = mk(); S.fx.push({ kind: 'ring', x: x + .5, y: y + .5, t: .4, col: COLOR[r.kind] }); return; } }
+  let y = 0; while (y + 1 < ROWS && !S.board[y + 1][x]) y++;
+  if (!S.board[y][x]) { S.board[y][x] = { c: r.kind, iron: false, turret: mk() }; S.fx.push({ kind: 'ring', x: x + .5, y: y + .5, t: .4, col: COLOR[r.kind] }); }
 }
 function forTurrets(fn) { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (c && c.turret) fn(c, x, y); } }
 function recomputeGroups() {
@@ -282,6 +305,7 @@ const TURRET = {
   I: { dmg: 6,  cd: .5,  range: 3.2 }, O: { dmg: 8,  cd: .7, range: 3.2 }, T: { dmg: 10, cd: .7, range: 3.6 },
   S: { dmg: 4,  cd: .6,  range: 3.2 }, Z: { dmg: 8,  cd: .7, range: 2.8 }, L: { dmg: 12, cd: 1.1, range: 3.2 },
   J: { dmg: 22, cd: 1.4, range: 6.0 },
+  V: { dmg: 9, cd: .8, range: 3.2 }, R: { dmg: 30, cd: 1.5, range: 7.0 }, P: { dmg: 12, cd: 1.0, range: 3.4 }, A: { dmg: 28, cd: 1.8, range: 6.5 },
 };
 const isTrap = (x, y) => y > 0 && !S.board[y - 1][x] && (x === 0 || S.board[y - 1][x - 1]) && (x === COLS - 1 || S.board[y - 1][x + 1]);
 function updateTurrets(dt) {
@@ -298,17 +322,22 @@ function updateTurrets(dt) {
     const inR = S.enemies.filter(e => !e.dead && e.gy >= 0 && dist(e, cx, cy) <= range);
     if (!inR.length) return;
     c.turret.cd = cd;
-    const tgt = attr === 'J' ? inR.sort((a, b) => dist(b, cx, cy) - dist(a, cx, cy))[0] : inR.sort((a, b) => dist(a, cx, cy) - dist(b, cx, cy))[0];
+    const far = attr === 'J' || attr === 'A';
+    const tgt = far ? inR.sort((a, b) => dist(b, cx, cy) - dist(a, cx, cy))[0] : inR.sort((a, b) => dist(a, cx, cy) - dist(b, cx, cy))[0];
     const [ex, ey] = epos(tgt);
     S.beams.push({ x1: cx, y1: cy, x2: ex, y2: ey, t: .09, col: COLOR[attr] || '#bff0ff' });
     hitEnemy(tgt, dmg, attr);
     if (attr === 'T') S.enemies.filter(e => e !== tgt && !e.dead && segDist(e, cx, cy, ex, ey) < .5).forEach(e => hitEnemy(e, dmg * .7, null));
+    if (attr === 'R') { const L = Math.hypot(ex - cx, ey - cy) || 1, fx = cx + (ex - cx) / L * range, fy = cy + (ey - cy) / L * range;
+      S.beams.push({ x1: cx, y1: cy, x2: fx, y2: fy, t: .12, col: COLOR.R }); S.enemies.filter(e => e !== tgt && !e.dead && segDist(e, cx, cy, fx, fy) < .55).forEach(e => hitEnemy(e, dmg, 'R')); }
+    const SPLASH = { V: 1.4, P: 1.6, A: 1.8 };
+    if (SPLASH[attr]) { S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < SPLASH[attr]).forEach(e => hitEnemy(e, dmg * (attr === 'A' ? .6 : .45), attr)); S.fx.push({ kind: 'ring', x: ex, y: ey, t: .3, col: COLOR[attr] }); }
     if (attr === 'O') S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < 2.2).slice(0, 2).forEach(e => { const [a, b] = epos(e); S.beams.push({ x1: ex, y1: ey, x2: a, y2: b, t: .09, col: COLOR.O }); hitEnemy(e, dmg * .5, null); });
     if (attr === 'Z' || attr === 'L') S.enemies.filter(e => e !== tgt && !e.dead && dist(e, ex, ey) < (attr === 'L' ? 1.6 : 1.1)).forEach(e => hitEnemy(e, dmg * .45, null));
     if (attr === 'Z' || attr === 'L') S.fx.push({ kind: 'ring', x: ex, y: ey, t: .25, col: COLOR[attr] });
   });
 }
-function hitEnemy(e, dmg, attr) { if (attr === 'I') e.slow = 1.5; if (attr === 'S') e.poison = 3; damage(e, dmg, 'turret'); }
+function hitEnemy(e, dmg, attr) { if (attr === 'I' || attr === 'V') e.slow = 1.5; if (attr === 'S' || attr === 'P') e.poison = 3; damage(e, dmg, 'turret'); }
 function epos(e) { const sz = ENEMY[e.type].size || 1, k = e.prog ?? 1; return [e.px + (e.gx - e.px) * k + sz / 2, e.py + (e.gy - e.py) * k + sz / 2]; }
 function dist(e, x, y) { const [a, b] = epos(e); return Math.hypot(a - x, b - y); }
 function segDist(e, x1, y1, x2, y2) { const [px, py] = epos(e); const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1; let t = ((px - x1) * dx + (py - y1) * dy) / L; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - x1 - t * dx, py - y1 - t * dy); }
@@ -376,6 +405,10 @@ function glyph(kind, cx, cy, r) {
     case 'Z': g.moveTo(cx, cy - r); g.quadraticCurveTo(cx + r, cy, cx, cy + r); g.quadraticCurveTo(cx - r, cy, cx, cy - r); break; // 불꽃
     case 'L': for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .45 : r; g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } g.closePath(); break; // 폭발
     case 'J': g.arc(cx, cy, r * .7, 0, 6.3); g.moveTo(cx - r, cy); g.lineTo(cx + r, cy); g.moveTo(cx, cy - r); g.lineTo(cx, cy + r); break; // 조준경
+    case 'V': for (const dy of [-3, 1, 5]) { g.moveTo(cx - r, cy + dy); g.quadraticCurveTo(cx - r / 2, cy + dy - 3, cx, cy + dy); g.quadraticCurveTo(cx + r / 2, cy + dy + 3, cx + r, cy + dy); } break; // 증기
+    case 'R': g.moveTo(cx - r, cy - 2); g.lineTo(cx + r, cy - 2); g.moveTo(cx - r, cy + 2); g.lineTo(cx + r, cy + 2); g.moveTo(cx + r - 3, cy - 5); g.lineTo(cx + r + 1, cy); g.lineTo(cx + r - 3, cy + 5); break; // 레일건
+    case 'P': g.arc(cx, cy, r * .55, 0, 6.3); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.moveTo(cx + Math.cos(a) * r * .75, cy + Math.sin(a) * r * .75); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1.2, 0, 6.3); } break; // 역병
+    case 'A': g.arc(cx, cy, r * .5, 0, 6.3); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.moveTo(cx + Math.cos(a) * r * .6, cy + Math.sin(a) * r * .6); g.lineTo(cx + Math.cos(a) * r * 1.1, cy + Math.sin(a) * r * 1.1); } break; // 포격
     default: g.arc(cx, cy, r, 0, 6.3);
   }
   g.stroke();
@@ -413,7 +446,6 @@ function drawEnemy(e) {
 function drawMini(p, x0, y0, s = 15) {
   if (!p) return; SHAPES[p.t][0].forEach(([x, y], i) => { const col = p.iron ? COLOR.X : COLOR[p.c || p.t]; g.lineWidth = 1.3; glow(col, 7); g.strokeRect(x0 + x * s + 2, y0 + y * s + 2, s - 4, s - 4);
     const tq = p.turrets.find(q => q.idx === i); if (tq) { g.lineWidth = 1.2; glyph(tq.kind, x0 + x * s + s / 2, y0 + y * s + s / 2, 3.5); } });
-  const pend = p.iron ? 0 : S.pool[p.t]; if (pend > 0) text('Lv' + pend, x0 + 72, y0 + 14, '#ffd96a', 11);
 }
 function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
 function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
@@ -459,17 +491,20 @@ function draw() {
   text(S.waveActive ? `남은 적 ${S.toSpawn + S.enemies.length}` : `다음 웨이브 ${Math.max(0, S.breakT).toFixed(1)}초`, 58, 108, '#8a94a6', 12);
   text(`CORE ${Math.max(0, S.core)} / 20`, 58, 136); g.strokeStyle = 'rgba(127,214,255,.5)'; g.strokeRect(58, 144, 224, 6); glow('#7fd6ff', 8); g.fillRect(58, 144, 224 * Math.max(0, S.core) / 20, 6);
   text(`SCORE  ${S.score.toLocaleString()}`, 58, 176); text(`LINES  ${S.lines}`, 58, 198); text(`처치   ${S.kills}`, 58, 220);
-  text(`합체 ${S.merges}회`, 58, 246, '#7fd6ff', 12); text(`깔아뭉개기 ${S.crushes} / 5`, 58, 266, '#ffd96a', 12);
+  text(`합체 ${S.merges}회 · 합성 ${S.fusions}회`, 58, 246, '#7fd6ff', 12); text(`깔아뭉개기 ${S.crushes} / 5`, 58, 266, '#ffd96a', 12);
   text(S.combo > 0 ? `COMBO x${S.combo}  공속 +${Math.min(S.combo, 10) * 8}%` : '', 58, 286, '#ffd96a', 12);
   panel(40, 320, 260, 330);
   text('강화 조건', 58, 346, '#7fd6ff', 12);
-  ['모든 블록에 모양별 포탑 칸 1개', '포탑은 항상 사거리 안의 적을 쏜다', '줄을 지우면 그 줄의 포탑이', '  같은 모양끼리 합체 (레벨 합산)', '  → 그 모양의 다음 블록에 실림', '여러 줄 동시: 합체 레벨 +(줄 수-1)', 'T스핀+줄: 다음 T 포탑 +2', '1칸 구멍 바닥 포탑 = 함정 (3배)', '적은 붙은 포탑을 공격해 부순다', '깔아뭉개기 5회: 무쇠 블록']
+  ['모든 블록에 모양별 포탑 칸 1개', '포탑은 항상 사거리 안의 적을 쏜다', '줄을 지워도 포탑은 남는다', '  (같은 세로줄의 블록으로 옮겨 붙음)', '같은 종류 2개 이상: 합체, 레벨 합산', '정해진 조합: 새 포탑으로 합성', '여러 줄 동시: 합체·합성 레벨 +(줄-1)', 'T스핀+줄: 지운 줄의 T 포탑 +2', '1칸 구멍 바닥 포탑 = 함정 (3배)', '적은 붙은 포탑을 공격해 부순다']
     .forEach((s, i) => text(s, 58, 372 + i * 21, '#8a94a6', 11));
   // 오른쪽 패널
-  panel(700, 50, 260, 250); text('NEXT', 718, 76, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, 760, 92 + i * 62));
-  panel(700, 320, 260, 110); text('HOLD', 718, 346, '#7fd6ff', 12); drawMini(S.hold, 760, 362);
-  panel(700, 450, 260, 200); text('포탑 종류 · 합체 대기', 718, 476, '#7fd6ff', 12);
-  Object.entries(ATTR_NAME).forEach(([k, v], i) => { const yy = 495 + i * 22; glow(COLOR[k], 8); g.lineWidth = 1.3; glyph(k, 724, yy - 4, 5); text(`${k} ${v}`, 738, yy, COLOR[k], 11); text(ATTR_DESC[k], 806, yy, '#8a94a6', 11); if (S.pool[k] > 0) text(`Lv${S.pool[k]}`, 920, yy, '#ffd96a', 11); });
+  panel(700, 50, 260, 200); text('NEXT', 718, 74, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, 740 + i * 72, 100));
+  text('HOLD', 718, 186, '#7fd6ff', 12); drawMini(S.hold, 770, 192);
+  panel(700, 265, 260, 385); text('포탑 종류', 718, 290, '#7fd6ff', 12);
+  Object.entries(ATTR_NAME).forEach(([k, v], i) => { const yy = 312 + i * 21; glow(COLOR[k], 8); g.lineWidth = 1.3; glyph(k, 724, yy - 4, 5); text(`${k} ${v}`, 738, yy, COLOR[k], 11); text(ATTR_DESC[k], 806, yy, '#8a94a6', 11); });
+  text('합성 규칙 (같은 줄에서 함께 지우기)', 718, 474, '#7fd6ff', 12);
+  RECIPES.forEach(([a, b, o], i) => { const yy = 496 + i * 34; glow(COLOR[o], 8); g.lineWidth = 1.3; glyph(o, 724, yy - 4, 5); text(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[o]}`, 738, yy, COLOR[o], 11); text(HYBRID_DESC[o], 738, yy + 15, '#8a94a6', 11); });
+  text('같은 종류 2개 이상: 합체 (레벨 합산)', 718, 634, '#8a94a6', 11);
   text('← → 이동  ↑/X 회전  Z 역회전  ↓ 빠르게  Space 떨어뜨리기  C 보관  P 일시정지', W / 2, H - 16, '#5f6878', 11, 'center');
   // 오버레이
   if (!S.started || S.over || S.paused) {

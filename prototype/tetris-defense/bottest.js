@@ -33,7 +33,7 @@ const { chromium } = require('playwright');
       if (i % 6 === 0) A.draw(); // 그리기 오류도 잡도록 화면도 그린다
       const s = S(); maxWave = Math.max(maxWave, s.wave); s.enemies.forEach(e => enemiesSeen.add(e.type));
       let tc = 0; s.board.forEach(r => r.forEach(c => { if (c && c.turret) tc++; })); turretsMax = Math.max(turretsMax, tc);
-      if (i % (60 * 30) === 0) log.push({ sec: Math.round(t), wave: s.wave, core: s.core, lines: s.lines, kills: s.kills, enemies: s.enemies.length, turrets: tc, merges: s.merges, crushes: s.crushes });
+      if (i % (60 * 30) === 0) log.push({ sec: Math.round(t), wave: s.wave, core: s.core, lines: s.lines, kills: s.kills, enemies: s.enemies.length, turrets: tc, merges: s.merges, fusions: s.fusions, crushes: s.crushes });
       if (s.over) { log.push({ over: s.overWhy, sec: Math.round(t), wave: s.wave }); break; }
     }
     const s = S();
