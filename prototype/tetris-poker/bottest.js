@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
       return -0.6 * agg - 0.4 * bump + 1.2 * adj - (Math.max(...hs) > A.ROWS - 3 ? 40 : 0); }
     const results = [];
     for (let run = 0; run < runs; run++) {
-      A.newRun(); S().started = true; const rounds = []; let guard = 0;
+      A.setMuted(true); A.newRun(); S().started = true; const rounds = []; let guard = 0;
       while (guard++ < 6000) {
         const s = S();
         if (s.phase === 'chain') { A.chainStep(); continue; }

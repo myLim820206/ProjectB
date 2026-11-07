@@ -4,5 +4,5 @@ set -euo pipefail
 cd "$(dirname "$0")"
 CXX=${CXX:-g++}
 mkdir -p build
-"$CXX" -std=c++17 -O2 -Wall -Wextra -Wshadow -Werror -o build/core_test core_test.cpp ../Source/ProjectB/TPCore.cpp
+"$CXX" -std=c++17 -O2 -Wall -Wextra -Wshadow -Werror -o build/core_test core_test.cpp ../Source/ProjectB/TPCore.cpp ../Source/ProjectB/TPSynth.cpp
 ./build/core_test "$@"

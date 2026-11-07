@@ -23,6 +23,14 @@ public:
 	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
+	// 게임이 낸 소리를 꺼내 간다 (게임 모드가 매 프레임 재생)
+	std::vector<TP::FTPSoundEvent> TakeSounds()
+	{
+		std::vector<TP::FTPSoundEvent> Out;
+		Out.swap(Game.Sounds);
+		return Out;
+	}
+
 private:
 	struct FCanvas; // 그리기 도우미 (cpp 안에 정의)
 	void PaintAll(FCanvas& C) const;

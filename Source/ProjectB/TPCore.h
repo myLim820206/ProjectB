@@ -10,6 +10,8 @@
 #include <set>
 #include <vector>
 
+#include "TPSynth.h"
+
 namespace TP
 {
 constexpr int Cols = 10;
@@ -138,7 +140,7 @@ const FTPRoundDef& RoundDef(int Round);
 
 enum class ETPPhase : uint8_t { Play, Chain, Clear, Over, Win };
 enum class ETPOverReason : uint8_t { None, Ceiling, OutOfPieces };
-enum class ETPAction : uint8_t { Left, Right, Rotate, RotateCcw, SoftDrop, HardDrop, Hold, Next, Restart, Pause, Tap };
+enum class ETPAction : uint8_t { Left, Right, Rotate, RotateCcw, SoftDrop, HardDrop, Hold, Next, Restart, Pause, Tap, Mute };
 enum class ETPHeldKey : uint8_t { Left, Right, Down, Count };
 
 // 화면에 띄울 글자 (문구는 화면 쪽에서 만든다)
@@ -236,6 +238,9 @@ public:
 	FTPChainSummary Best;
 	std::vector<FTPPopText> Texts;
 	std::vector<FTPBurstFx> Fx;
+	// 이번 프레임에 낼 소리 (화면 쪽이 꺼내서 재생하고 비운다)
+	std::vector<FTPSoundEvent> Sounds;
+	bool bMuted = false;
 
 private:
 	void StartRound();
@@ -251,6 +256,7 @@ private:
 	void TouchLock();
 	float Gravity() const;
 	void Pop(const FTPPopText& T) { Texts.push_back(T); }
+	void Sfx(ETPSound S, int A = 0, int B = 0) { if (!bMuted) Sounds.push_back({S, A, B, 1.f}); }
 	int RandInt(int N); // 0 ~ N-1
 
 	std::mt19937 Rng;

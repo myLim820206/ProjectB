@@ -1,14 +1,80 @@
 #include "TPGameMode.h"
 
+#include "Components/AudioComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundWaveProcedural.h"
 #include "TPBoardWidget.h"
 
 ATPGameMode::ATPGameMode()
 {
 	DefaultPawnClass = nullptr; // 3D 캐릭터 없음
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;
+}
+
+namespace
+{
+constexpr int32 TPSampleRate = 44100;
+constexpr int32 TPMaxVoices = 24;
+constexpr float TPMasterVolume = 0.8f;
+}
+
+void ATPGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!BoardWidget.IsValid()) return;
+	for (const TP::FTPSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
+	// 끝난 소리 정리
+	for (int32 I = Voices.Num() - 1; I >= 0; --I)
+	{
+		UAudioComponent* V = Voices[I];
+		if (!V || !V->IsPlaying())
+		{
+			if (V) V->DestroyComponent();
+			Voices.RemoveAt(I);
+		}
+	}
+}
+
+void ATPGameMode::PlayGameSound(const TP::FTPSoundEvent& Event)
+{
+	const int32 Key = TP::SoundKey(Event.Sound, Event.A, Event.B);
+	if (!PcmCache.Contains(Key))
+	{
+		const std::vector<int16_t> Samples = TP::SynthesizeSound(Event.Sound, Event.A, Event.B, TPSampleRate);
+		TArray<uint8> Bytes;
+		Bytes.SetNumUninitialized((int32)(Samples.size() * sizeof(int16_t)));
+		FMemory::Memcpy(Bytes.GetData(), Samples.data(), Bytes.Num());
+		PcmCache.Add(Key, MoveTemp(Bytes));
+	}
+	const TArray<uint8>& Pcm = PcmCache[Key];
+	if (Pcm.Num() == 0) return;
+
+	USoundWaveProcedural* Wave = NewObject<USoundWaveProcedural>(this);
+	Wave->SetSampleRate(TPSampleRate);
+	Wave->NumChannels = 1;
+	Wave->Duration = (float)Pcm.Num() / (sizeof(int16_t) * TPSampleRate);
+	Wave->bLooping = false;
+	Wave->QueueAudio(Pcm.GetData(), Pcm.Num());
+
+	UAudioComponent* Voice = UGameplayStatics::CreateSound2D(this, Wave, TPMasterVolume * Event.Volume, 1.f, 0.f, nullptr, false, false);
+	if (!Voice) return;
+	Voice->bIsUISound = true;
+	Voice->Play();
+	Voices.Add(Voice);
+	while (Voices.Num() > TPMaxVoices)
+	{
+		if (UAudioComponent* Old = Voices[0])
+		{
+			Old->Stop();
+			Old->DestroyComponent();
+		}
+		Voices.RemoveAt(0);
+	}
 }
 
 void ATPGameMode::BeginPlay()
@@ -37,5 +103,8 @@ void ATPGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		GEngine->GameViewport->RemoveViewportWidgetContent(BoardWidget.ToSharedRef());
 	}
 	BoardWidget.Reset();
+	for (UAudioComponent* V : Voices)
+		if (V) V->DestroyComponent();
+	Voices.Empty();
 	Super::EndPlay(EndPlayReason);
 }

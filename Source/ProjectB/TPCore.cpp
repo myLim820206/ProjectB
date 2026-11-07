@@ -425,6 +425,7 @@ void FTPGame::SpawnPiece()
 	{
 		Phase = ETPPhase::Over;
 		OverReason = ETPOverReason::Ceiling;
+		Sfx(ETPSound::GameOver);
 	}
 }
 
@@ -476,6 +477,7 @@ void FTPGame::Move(int Dx)
 	if (Phase == ETPPhase::Play && bHasPiece && !Collide(Piece, Piece.X + Dx, Piece.Y, Piece.Rot))
 	{
 		Piece.X += Dx;
+		Sfx(ETPSound::Move);
 		TouchLock();
 	}
 }
@@ -499,6 +501,7 @@ void FTPGame::Rotate(int Dir)
 			Piece.X += K[0];
 			Piece.Y += K[1];
 			Piece.Rot = NR;
+			Sfx(ETPSound::Rotate);
 			TouchLock();
 			return;
 		}
@@ -514,6 +517,7 @@ void FTPGame::HoldPiece()
 		T.X = 4.5f;
 		T.Y = 2.f;
 		Pop(T);
+		Sfx(ETPSound::Denied);
 		return;
 	}
 	FTPPiece Cur = Piece;
@@ -535,12 +539,14 @@ void FTPGame::HoldPiece()
 		PiecesLeft = Left;
 	}
 	bCanHold = false;
+	Sfx(ETPSound::Hold);
 }
 
 void FTPGame::HardDrop()
 {
 	if (Phase != ETPPhase::Play || !bHasPiece) return;
 	while (!OnGround()) Piece.Y++;
+	Sfx(ETPSound::HardDrop);
 	LockPiece();
 }
 
@@ -586,6 +592,16 @@ void FTPGame::ChainStep()
 	int Sum = 0;
 	for (const FTPHand& H : Hands) Sum += H.Score;
 	const int Sc = Sum * Chain * (St ? St : 1);
+	int Size = 0;
+	bool bAnyFlush = false;
+	for (const FTPHand& H : Hands)
+	{
+		Size = std::max(Size, H.Kind == ETPHandKind::Five ? 2 : (H.Kind == ETPHandKind::Four || H.Kind == ETPHandKind::FullHouse) ? 1 : 0);
+		bAnyFlush = bAnyFlush || H.bFlush;
+	}
+	Sfx(ETPSound::Burst, Chain, Size);
+	if (bAnyFlush) Sfx(ETPSound::Flush);
+	if (St) Sfx(ETPSound::Straight, St);
 	if (St)
 	{
 		FTPPopText T;
@@ -641,6 +657,7 @@ void FTPGame::AfterTurn()
 	{
 		Phase = ETPPhase::Clear;
 		Bonus = PiecesLeft;
+		Sfx(ETPSound::Clear);
 		return;
 	}
 	if (PiecesLeft <= 0) { EndRound(); return; }
@@ -654,11 +671,13 @@ void FTPGame::EndRound()
 	{
 		Phase = ETPPhase::Clear;
 		Bonus = 0;
+		Sfx(ETPSound::Clear);
 	}
 	else
 	{
 		Phase = ETPPhase::Over;
 		OverReason = ETPOverReason::OutOfPieces;
+		Sfx(ETPSound::GameOver);
 	}
 }
 
@@ -669,9 +688,11 @@ void FTPGame::NextRound()
 	if (Round >= NumRounds)
 	{
 		Phase = ETPPhase::Win;
+		Sfx(ETPSound::Win);
 		return;
 	}
 	StartRound();
+	Sfx(ETPSound::Start);
 }
 
 void FTPGame::Update(float Dt)
@@ -704,7 +725,11 @@ void FTPGame::Update(float Dt)
 	if (OnGround())
 	{
 		LockT += Dt;
-		if (LockT >= LockDelay) LockPiece();
+		if (LockT >= LockDelay)
+		{
+			Sfx(ETPSound::Lock);
+			LockPiece();
+		}
 	}
 	else
 		LockT = 0.f;
@@ -729,10 +754,11 @@ void FTPGame::SetHeld(ETPHeldKey Key, bool bDown)
 
 void FTPGame::Act(ETPAction A)
 {
-	if (!bStarted) { bStarted = true; return; }
+	if (A == ETPAction::Mute) { bMuted = !bMuted; Sounds.clear(); return; }
+	if (!bStarted) { bStarted = true; Sfx(ETPSound::Start); return; }
 	if (Phase == ETPPhase::Over || Phase == ETPPhase::Win)
 	{
-		if (A == ETPAction::Restart || A == ETPAction::Tap || A == ETPAction::Next) NewRun();
+		if (A == ETPAction::Restart || A == ETPAction::Tap || A == ETPAction::Next) { NewRun(); Sfx(ETPSound::Start); }
 		return;
 	}
 	if (Phase == ETPPhase::Clear)

@@ -313,6 +313,7 @@ FReply STPBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::Enter) Game.Act(ETPAction::Next);
 	else if (K == EKeys::R) Game.Act(ETPAction::Restart);
 	else if (K == EKeys::P) Game.Act(ETPAction::Pause);
+	else if (K == EKeys::M) Game.Act(ETPAction::Mute);
 	else return FReply::Unhandled();
 	return FReply::Handled();
 }
@@ -539,7 +540,7 @@ void STPBoardWidget::PaintAll(FCanvas& C) const
 		C.Text(HandsJoined(Ks, Fs, TEXT(", ")), RX + 18, 558, Grey, 11);
 	}
 	C.Text(FString::Printf(TEXT("덱: A~7 × 4무늬 × %d벌 · 남은 카드 %d"), DeckCopies, (int)G.Deck.size()), RX + 18, 648, Dim, 11);
-	C.Text(TEXT("방향키 좌우 이동   위/X 회전   Z 역회전   아래 빠르게   Space 떨어뜨리기   C 보관   P 일시정지   Enter 다음 라운드"), DesignW / 2.f,
+	C.Text(TEXT("방향키 좌우 이동   위/X 회전   Z 역회전   아래 빠르게   Space 떨어뜨리기   C 보관   P 일시정지   Enter 다음 라운드   M 소리"), DesignW / 2.f,
 		DesignH - 14.f, Dim, 11, 1);
 
 	// 덮개 화면

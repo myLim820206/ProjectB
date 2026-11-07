@@ -26,7 +26,9 @@
   <button id="tDrop" data-a="drop" aria-label="떨어뜨리기">⤓</button>
   <button id="tHold" data-a="hold" aria-label="보관">H</button>
   <button id="tNext" data-a="next" aria-label="다음">▶▶</button>
+  <button id="tMute" data-a="mute" aria-label="소리 켜기/끄기">♪</button>
 </div>
+<script src="sounds.js"></script>
 <script>
 'use strict';
 // =====================================================================
@@ -156,6 +158,25 @@ const BOSS_TEXT = { noHold: '보스: 보관(HOLD) 금지', noRed: '보스: 빨�
 const PIECES_PER_ROUND = 40;
 const CHAIN_STEP = .3;
 
+// ---------------------------------------------------------------- 소리
+// sounds.js: 언리얼과 같은 합성기(Source/ProjectB/TPSynth.cpp)로 만든 효과음
+let muted = false, actx = null; const sfxBuf = {};
+function audioCtx() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+  if (actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function sfx(name, a = 0, b = 0) {
+  if (muted || !window.TP_SOUNDS) return; const ctx = audioCtx(); if (!ctx) return;
+  if (name === 'Burst') a = Math.min(8, Math.max(1, a)); if (name === 'Straight') a = Math.min(7, Math.max(3, a));
+  const key = `${name}_${a}_${b}`, src = window.TP_SOUNDS[key]; if (!src) return;
+  const play = buf => { const sn = ctx.createBufferSource(); sn.buffer = buf; const gn = ctx.createGain(); gn.gain.value = .8; sn.connect(gn).connect(ctx.destination); sn.start(); };
+  const c = sfxBuf[key]; if (c instanceof AudioBuffer) { play(c); return; } if (c) return;
+  sfxBuf[key] = 'loading';
+  const bin = atob(src.split(',')[1]), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  ctx.decodeAudioData(arr.buffer).then(buf => { sfxBuf[key] = buf; play(buf); }).catch(() => { sfxBuf[key] = null; });
+}
+
 let S;
 function newRun() { S = { round: 0, totalScore: 0, best: null, started: S ? S.started : false, time: 0 }; startRound(); }
 function startRound() {
@@ -183,7 +204,7 @@ function spawnPiece() {
   if (S.piecesLeft <= 0) { endRound(); return; }
   const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece());
   S.piece = { ...p, r: 0, x: 3, y: p.t === 'I' ? -1 : 0 }; S.dropT = 0; S.lockT = 0; S.lockMoves = 0;
-  if (collide(S.piece, S.piece.x, S.piece.y, S.piece.r)) { S.phase = 'over'; S.overWhy = '카드가 천장에 닿았다'; }
+  if (collide(S.piece, S.piece.x, S.piece.y, S.piece.r)) { S.phase = 'over'; S.overWhy = '카드가 천장에 닿았다'; sfx('GameOver'); }
 }
 const cellsOf = (p, x = p.x, y = p.y, r = p.r) => SHAPES[p.t][r].map(([dx, dy]) => [x + dx, y + dy]);
 const cardAt = (p, i) => p.cards[i < 2 ? 0 : 1];
@@ -199,21 +220,21 @@ function landing(p) {
 const gravity = () => Math.max(.22, .9 - S.round * .08);
 const onGround = () => collide(S.piece, S.piece.x, S.piece.y + 1, S.piece.r);
 function touchLock() { if (S.piece && onGround() && S.lockMoves < 15) { S.lockT = 0; S.lockMoves++; } }
-function move(dx) { const p = S.piece; if (S.phase === 'play' && p && !collide(p, p.x + dx, p.y, p.r)) { p.x += dx; touchLock(); } }
+function move(dx) { const p = S.piece; if (S.phase === 'play' && p && !collide(p, p.x + dx, p.y, p.r)) { p.x += dx; sfx('Move'); touchLock(); } }
 function softDrop() { const p = S.piece; if (S.phase === 'play' && p && !onGround()) { p.y++; S.dropT = 0; } }
 function rotate(dir) {
   const p = S.piece; if (S.phase !== 'play' || !p) return; const nr = (p.r + dir + 4) % 4;
-  for (const [kx, ky] of KICKS) if (!collide(p, p.x + kx, p.y + ky, nr)) { p.x += kx; p.y += ky; p.r = nr; touchLock(); return; }
+  for (const [kx, ky] of KICKS) if (!collide(p, p.x + kx, p.y + ky, nr)) { p.x += kx; p.y += ky; p.r = nr; sfx('Rotate'); touchLock(); return; }
 }
 function holdPiece() {
   if (S.phase !== 'play' || !S.canHold) return;
-  if (rules().noHold) { popText('보관 금지 라운드', 4.5, 2, '#ff6a6a'); return; }
+  if (rules().noHold) { popText('보관 금지 라운드', 4.5, 2, '#ff6a6a'); sfx('Denied'); return; }
   const cur = { t: S.piece.t, cards: S.piece.cards };
   if (S.hold) { const h = S.hold; S.hold = cur; S.piece = { ...h, r: 0, x: 3, y: h.t === 'I' ? -1 : 0 }; } else { S.hold = cur; const left = S.piecesLeft; S.piecesLeft++; spawnPiece(); S.piecesLeft = left; }
-  S.canHold = false;
+  S.canHold = false; sfx('Hold');
 }
 function preview() { const p = S.piece; if (!p) return null; const L = landing(p); return { ...L, ...simulate(L.board, rules()) }; }
-function drop() { if (S.phase !== 'play' || !S.piece) return; while (!onGround()) S.piece.y++; lockPiece(); }
+function drop() { if (S.phase !== 'play' || !S.piece) return; while (!onGround()) S.piece.y++; sfx('HardDrop'); lockPiece(); }
 function lockPiece() {
   const p = S.piece;
   cellsOf(p).forEach(([x, yy], i) => S.board[yy][x] = cardAt(p, i));
@@ -231,6 +252,9 @@ function chainStep() {
   S.chain++; S.maxChain = Math.max(S.maxChain, S.chain);
   S.rankSteps.push(new Set(hands.flatMap(h => h.ranks))); const st = chainStraight(S.rankSteps);
   const sc = hands.reduce((s, h) => s + h.score, 0) * S.chain * (st || 1);
+  sfx('Burst', S.chain, Math.max(...hands.map(h => h.key === 'five' ? 2 : h.key === 'four' || h.key === 'fullHouse' ? 1 : 0)));
+  if (hands.some(h => h.flush)) sfx('Flush');
+  if (st) sfx('Straight', st);
   if (st) popText(`연쇄 스트레이트 ${st}  ×${st}`, COLS / 2 - .5, 1.5, '#7fd6ff');
   S.score += sc; S.totalScore += sc; S.chainScore += sc; S.bursts += hands.length; hands.forEach(h => S.chainHands.push(h.name + (h.flush ? '·플러시' : '')));
   const map = cardsOf(S.board);
@@ -248,15 +272,15 @@ function update(dt) {
   for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) if (keys[k]) { rep[k] = (rep[k] ?? 0) - dt; if (rep[k] <= 0) { rep[k] = k === 'ArrowDown' ? .04 : .05; if (k === 'ArrowDown') softDrop(); else move(k === 'ArrowLeft' ? -1 : 1); } }
   S.dropT += dt;
   if (S.dropT >= gravity()) { S.dropT = 0; if (!onGround()) S.piece.y++; }
-  if (onGround()) { S.lockT += dt; if (S.lockT >= .5) lockPiece(); } else S.lockT = 0;
+  if (onGround()) { S.lockT += dt; if (S.lockT >= .5) { sfx('Lock'); lockPiece(); } } else S.lockT = 0;
 }
 function afterTurn() {
-  if (S.score >= ROUNDS[S.round].target) { S.phase = 'clear'; S.bonus = S.piecesLeft; return; }
+  if (S.score >= ROUNDS[S.round].target) { S.phase = 'clear'; S.bonus = S.piecesLeft; sfx('Clear'); return; }
   if (S.piecesLeft <= 0) { endRound(); return; }
   spawnPiece();
 }
-function endRound() { if (S.score >= ROUNDS[S.round].target) { S.phase = 'clear'; S.bonus = 0; } else { S.phase = 'over'; S.overWhy = `블록 ${PIECES_PER_ROUND}개를 다 썼지만 목표 점수에 못 미쳤다`; } }
-function nextRound() { if (S.phase !== 'clear') return; S.round++; if (S.round >= ROUNDS.length) { S.phase = 'win'; return; } startRound(); }
+function endRound() { if (S.score >= ROUNDS[S.round].target) { S.phase = 'clear'; S.bonus = 0; sfx('Clear'); } else { S.phase = 'over'; sfx('GameOver'); S.overWhy = `블록 ${PIECES_PER_ROUND}개를 다 썼지만 목표 점수에 못 미쳤다`; } }
+function nextRound() { if (S.phase !== 'clear') return; S.round++; if (S.round >= ROUNDS.length) { S.phase = 'win'; sfx('Win'); return; } startRound(); sfx('Start'); }
 function popText(s, x, y, col) { S.texts.push({ s, x, y, t: 1.2, col }); }
 
 // ---------------------------------------------------------------- 그리기
@@ -338,7 +362,7 @@ function draw() {
   panel(RX, 476, 400, 190); text('마지막 연쇄', RX + 18, 502, '#7fd6ff', 12);
   if (S.lastResult) { text(`${S.lastResult.chain} 연쇄  +${S.lastResult.total.toLocaleString()}`, RX + 18, 532, '#ffffff', 16, 'left', 'bold'); text(S.lastResult.hands.slice(0, 5).join(', '), RX + 18, 558, '#8a94a6', 11); }
   text(`덱: A~7 × 4무늬 × ${DECK_COPIES}벌 · 남은 카드 ${S.deck.length}`, RX + 18, 648, '#5f6878', 11);
-  text('← → 이동   ↑/X 회전   Z 역회전   ↓ 빠르게   Space 떨어뜨리기   C 보관   P 일시정지   Enter 다음 라운드', W / 2, H - 14, '#5f6878', 11, 'center');
+  text('← → 이동   ↑/X 회전   Z 역회전   ↓ 빠르게   Space 떨어뜨리기   C 보관   P 일시정지   Enter 다음 라운드   M 소리', W / 2, H - 14, '#5f6878', 11, 'center');
   const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.86)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
   if (S.paused && S.phase === 'play') { g.fillStyle = 'rgba(6,6,11,.8)'; g.fillRect(0, 0, W, H); text('PAUSED', W / 2, 340, '#7fd6ff', 30, 'center'); }
   if (!S.started) overlay('TETRIS POKER', '#7fd6ff', ['카드 2장을 이어 붙인 4칸 블록이 떨어진다. 같은 숫자 3장 이상이 붙거나, 페어 두 쌍이 맞닿으면 터진다', '같은 무늬로 터지면 플러시 ×2, 연쇄로 3→4→5처럼 터지면 연쇄 스트레이트 보너스', '받침 없는 카드는 따로 떨어져 또 맞으면 연쇄! 연쇄할수록 배수가 커진다'], 'Enter 키 또는 화면을 눌러 시작');
@@ -359,8 +383,9 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function act(a) {
-  if (!S.started) { S.started = true; return; }
-  if (S.phase === 'over' || S.phase === 'win') { if (a === 'restart' || a === 'tap' || a === 'next') newRun(); return; }
+  if (a === 'mute') { muted = !muted; return; }
+  if (!S.started) { S.started = true; sfx('Start'); return; }
+  if (S.phase === 'over' || S.phase === 'win') { if (a === 'restart' || a === 'tap' || a === 'next') { newRun(); sfx('Start'); } return; }
   if (S.phase === 'clear') { if (a === 'next' || a === 'tap') nextRound(); return; }
   if (a === 'pause') { S.paused = !S.paused; return; } if (S.paused) return;
   ({ left: () => move(-1), right: () => move(1), rot: () => rotate(1), ccw: () => rotate(-1), down: softDrop, drop, hold: holdPiece })[a]?.();
@@ -369,7 +394,7 @@ const keys = {}, rep = {};
 addEventListener('keydown', e => {
   if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(e.key)) e.preventDefault();
   if (e.repeat) return;
-  const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'rot', x: 'rot', X: 'rot', z: 'ccw', Z: 'ccw', ' ': 'drop', c: 'hold', C: 'hold', Shift: 'hold', Enter: 'next', r: 'restart', R: 'restart', p: 'pause', P: 'pause' };
+  const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'rot', x: 'rot', X: 'rot', z: 'ccw', Z: 'ccw', ' ': 'drop', c: 'hold', C: 'hold', Shift: 'hold', Enter: 'next', r: 'restart', R: 'restart', p: 'pause', P: 'pause', m: 'mute', M: 'mute' };
   if (['ArrowLeft', 'ArrowRight', 'ArrowDown'].includes(e.key)) { keys[e.key] = true; rep[e.key] = e.key === 'ArrowDown' ? .04 : .16; }
   if (map[e.key]) act(map[e.key]);
 });
@@ -378,7 +403,7 @@ cv.addEventListener('pointerdown', () => { if (!S.started || (S.phase !== 'play'
 document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => { ev.preventDefault(); act(b.dataset.a); }));
 newRun(); S.started = false;
 window.__tp = () => S;
-window.__api = { detect, settle, simulate, chainStraight, cardsOf, move, rotate, drop, holdPiece, preview, landing, nextRound, newRun, update, draw, chainStep, cellsOf, collide, COLS, ROWS, ROUNDS, SHAPES };
+window.__api = { setMuted: v => { muted = v; }, detect, settle, simulate, chainStraight, cardsOf, move, rotate, drop, holdPiece, preview, landing, nextRound, newRun, update, draw, chainStep, cellsOf, collide, COLS, ROWS, ROUNDS, SHAPES };
 requestAnimationFrame(frame);
 </script>
 </body>
