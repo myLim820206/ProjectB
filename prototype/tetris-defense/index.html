@@ -81,7 +81,7 @@ function newGame() {
     enemies: [], warnings: [], fx: [], texts: [], beams: [],
     wave: 1, toSpawn: 0, spawnT: 0, breakT: 3, waveActive: false,
     core: 20, score: 0, lines: 0, kills: 0, combo: -1, gauge: 0, crushes: 0, ironNext: false,
-    merges: 0, fusions: 0, over: false, paused: false, started: S ? true : false, time: 0, bossAlive: false,
+    merges: 0, fusions: 0, carry: [], over: false, paused: false, started: S ? true : false, time: 0, bossAlive: false,
   };
   for (let i = 0; i < 3; i++) S.next.push(makePiece());
   spawnPiece();
@@ -95,9 +95,19 @@ function makePiece() {
   return { t, c: t, turrets: [{ kind: t, lvl: 1, idx: Math.random() * 4 | 0 }], iron: false };
 }
 const turretHp = l => 40 + 25 * l;
+// 줄 지우기로 넘어온 포탑을 다음 블록부터 차례로 빈 칸에 싣는다 (블록당 최대 4칸)
+function attachCarry() {
+  for (const q of S.next) {
+    if (!S.carry.length) return;
+    if (q.iron) continue;
+    const free = [0, 1, 2, 3].filter(i => !q.turrets.some(t => t.idx === i)).sort(() => Math.random() - .5);
+    while (free.length && S.carry.length) { const t = S.carry.shift(); q.turrets.push({ kind: t.kind, lvl: t.lvl, idx: free.shift(), carried: true }); }
+  }
+}
 function spawnPiece() {
-  const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece()); // 포탑 조각을 끼워 넣어도 목록이 늘어나지 않게
-  if (S.ironNext) { p.iron = true; p.turrets = []; S.ironNext = false; }
+  const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece());
+  if (S.ironNext) { p.iron = true; S.carry.unshift(...p.turrets.filter(t => t.carried)); p.turrets = []; S.ironNext = false; }
+  attachCarry();
 
   S.piece = { ...p, r: 0, x: 3, y: p.t === 'I' ? -1 : 0 };
   S.lockT = 0; S.lockMoves = 0; S.lastRotate = false; S.dropT = 0;
@@ -167,7 +177,6 @@ function lock() {
 function clearRows(rows, tspin) {
   const n = rows.length, found = [];
   rows.forEach(y => S.board[y].forEach((c, x) => { if (c.turret) found.push({ ...c.turret, x }); }));
-  const lowest = Math.max(...rows) - (n - 1); // 줄을 지운 뒤 지운 자리의 가장 아래 줄 (위 블록이 내려와 채움)
   for (const y of rows.slice().sort((a, b) => a - b)) {
     S.board.splice(y, 1); S.board.unshift(Array(COLS).fill(null));
     S.enemies.forEach(e => { if (ENEMY[e.type].solid || e.type === 'ghost') { if (e.gy === y) e.dead = true; } if (e.gy < y) { e.gy++; e.py++; } });
@@ -194,20 +203,14 @@ function clearRows(rows, tspin) {
     const ta = pool.find(t => t.kind === a), tb = pool.find(t => t.kind === b);
     if (ta && tb) { const lvl = Math.min(9, ta.lvl + tb.lvl + bonus); results.push({ kind: out, lvl, x: ta.x }); pool = pool.filter(t => t !== ta && t !== tb); S.fusions++; msgs.push(`${KIND_NAME[a]}+${KIND_NAME[b]} → ${KIND_NAME[out]} Lv${lvl}`); }
   }
-  // 3) 규칙이 없는 포탑은 그대로 남는다
+  // 3) 규칙이 없는 포탑은 그대로 다음 블록들에 실린다
   pool.forEach(t => results.push({ kind: t.kind, lvl: t.lvl, x: t.x, hp: t.hp }));
   if (tspin) results.forEach(r => { if (r.kind === 'T') { r.lvl = Math.min(9, r.lvl + 2); msgs.push(`T스핀 관통 Lv${r.lvl}`); } });
-  results.forEach(r => placeTurret(r, lowest));
+  // 합체·합성 결과가 앞(다음 블록), 규칙 없는 포탑은 그 뒤 블록들에 실린다
+  S.carry = results.map(r => ({ kind: r.kind, lvl: r.lvl })).concat(S.carry);
+  attachCarry();
+  if (S.carry.length) msgs.push(`대기 포탑 ${S.carry.length}`);
   if (msgs.length) { popText(msgs.join(' · '), 4.5, midY - 1.2, '#ffd96a'); S.fx.push({ kind: 'ring', x: 4.5, y: midY + .5, t: .5, col: '#ffd96a', big: true }); }
-}
-// 포탑을 같은 세로줄에 남긴다: 지운 자리로 내려온 블록 → 그 아래 블록 → 위쪽 블록 순서로 포탑 없는 칸에 옮겨 붙고,
-// 세로줄에 블록이 없으면 1칸 포탑 블록이 되어 바닥으로 떨어진다
-function placeTurret(r, fromY) {
-  const x = r.x, mk = () => ({ kind: r.kind, lvl: r.lvl, cd: .4, hp: r.hp ?? turretHp(r.lvl), maxhp: turretHp(r.lvl) });
-  const order = []; for (let y = fromY; y < ROWS; y++) order.push(y); for (let y = fromY - 1; y >= 0; y--) order.push(y);
-  for (const y of order) { const c = S.board[y][x]; if (c && !c.turret && !c.iron) { c.turret = mk(); S.fx.push({ kind: 'ring', x: x + .5, y: y + .5, t: .4, col: COLOR[r.kind] }); return; } }
-  let y = 0; while (y + 1 < ROWS && !S.board[y + 1][x]) y++;
-  if (!S.board[y][x]) { S.board[y][x] = { c: r.kind, iron: false, turret: mk() }; S.fx.push({ kind: 'ring', x: x + .5, y: y + .5, t: .4, col: COLOR[r.kind] }); }
 }
 function forTurrets(fn) { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (c && c.turret) fn(c, x, y); } }
 function recomputeGroups() {
@@ -445,7 +448,7 @@ function drawEnemy(e) {
 }
 function drawMini(p, x0, y0, s = 15) {
   if (!p) return; SHAPES[p.t][0].forEach(([x, y], i) => { const col = p.iron ? COLOR.X : COLOR[p.c || p.t]; g.lineWidth = 1.3; glow(col, 7); g.strokeRect(x0 + x * s + 2, y0 + y * s + 2, s - 4, s - 4);
-    const tq = p.turrets.find(q => q.idx === i); if (tq) { g.lineWidth = 1.2; glyph(tq.kind, x0 + x * s + s / 2, y0 + y * s + s / 2, 3.5); } });
+    const tq = p.turrets.find(q => q.idx === i); if (tq) { g.lineWidth = 1.2; glow(COLOR[tq.kind] || col, 7); glyph(tq.kind, x0 + x * s + s / 2, y0 + y * s + s / 2, 3.5); if (tq.lvl > 1) text(tq.lvl, x0 + x * s + s - 3, y0 + y * s + 4, '#ffd96a', 9); } });
 }
 function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
 function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
@@ -491,11 +494,11 @@ function draw() {
   text(S.waveActive ? `남은 적 ${S.toSpawn + S.enemies.length}` : `다음 웨이브 ${Math.max(0, S.breakT).toFixed(1)}초`, 58, 108, '#8a94a6', 12);
   text(`CORE ${Math.max(0, S.core)} / 20`, 58, 136); g.strokeStyle = 'rgba(127,214,255,.5)'; g.strokeRect(58, 144, 224, 6); glow('#7fd6ff', 8); g.fillRect(58, 144, 224 * Math.max(0, S.core) / 20, 6);
   text(`SCORE  ${S.score.toLocaleString()}`, 58, 176); text(`LINES  ${S.lines}`, 58, 198); text(`처치   ${S.kills}`, 58, 220);
-  text(`합체 ${S.merges}회 · 합성 ${S.fusions}회`, 58, 246, '#7fd6ff', 12); text(`깔아뭉개기 ${S.crushes} / 5`, 58, 266, '#ffd96a', 12);
+  text(`합체 ${S.merges}회 · 합성 ${S.fusions}회 · 대기 ${S.carry.length}`, 58, 246, '#7fd6ff', 12); text(`깔아뭉개기 ${S.crushes} / 5`, 58, 266, '#ffd96a', 12);
   text(S.combo > 0 ? `COMBO x${S.combo}  공속 +${Math.min(S.combo, 10) * 8}%` : '', 58, 286, '#ffd96a', 12);
   panel(40, 320, 260, 330);
   text('강화 조건', 58, 346, '#7fd6ff', 12);
-  ['모든 블록에 모양별 포탑 칸 1개', '포탑은 항상 사거리 안의 적을 쏜다', '줄을 지워도 포탑은 남는다', '  (같은 세로줄의 블록으로 옮겨 붙음)', '같은 종류 2개 이상: 합체, 레벨 합산', '정해진 조합: 새 포탑으로 합성', '여러 줄 동시: 합체·합성 레벨 +(줄-1)', 'T스핀+줄: 지운 줄의 T 포탑 +2', '1칸 구멍 바닥 포탑 = 함정 (3배)', '적은 붙은 포탑을 공격해 부순다']
+  ['모든 블록에 모양별 포탑 칸 1개', '포탑은 항상 사거리 안의 적을 쏜다', '줄을 지우면 그 줄의 포탑은', '  다음 블록들의 빈 칸에 실린다', '같은 종류 2개 이상: 합체, 레벨 합산', '정해진 조합: 새 포탑으로 합성', '합체·합성 결과는 바로 다음 블록에', '여러 줄 동시: 합체·합성 레벨 +(줄-1)', 'T스핀+줄: 지운 줄의 T 포탑 +2', '1칸 구멍 바닥 포탑 = 함정 (3배)']
     .forEach((s, i) => text(s, 58, 372 + i * 21, '#8a94a6', 11));
   // 오른쪽 패널
   panel(700, 50, 260, 200); text('NEXT', 718, 74, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, 740 + i * 72, 100));
