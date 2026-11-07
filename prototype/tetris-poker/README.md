@@ -3,6 +3,8 @@
 블록의 칸마다 카드가 붙어 있는 턴 방식 테트리스. 한 줄을 채워 지우면 그 줄의 카드 10장으로 포커 족보 점수를 얻는다.
 브라우저에서 `index.html`을 열면 바로 플레이할 수 있다. 외부 라이브러리 없음.
 
+온라인 플레이: https://claude.ai/artifact/LMLCq1wWpMuFG1NovMx9sD (비공개. 공유 메뉴에서 공유해야 다른 사람이 열 수 있음)
+
 | 미리보기 | 점수 계산 순간 |
 |---|---|
 | ![미리보기](../../docs/images/prototype-tetris-poker-preview.png) | ![점수](../../docs/images/prototype-tetris-poker-scoring.png) |
