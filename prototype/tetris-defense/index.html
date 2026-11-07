@@ -447,7 +447,7 @@ function draw() {
   S.beams.forEach(b => { g.lineWidth = 2; glow(b.col, 10); g.globalAlpha = Math.min(1, b.t * 14); g.beginPath(); g.moveTo(OX + b.x1 * CELL, OY + b.y1 * CELL); g.lineTo(OX + b.x2 * CELL, OY + b.y2 * CELL); g.stroke(); g.globalAlpha = 1; });
   S.fx.forEach(f => {
     if (f.kind === 'line') { g.shadowBlur = 0; g.fillStyle = `rgba(255,255,255,${f.t * 1.6})`; g.fillRect(OX, Y(f.y), COLS * CELL, CELL); }
-    if (f.kind === 'ring') { g.globalAlpha = f.t * 2; g.lineWidth = 1.5; glow(f.col, 10); g.beginPath(); g.arc(OX + f.x * CELL, OY + f.y * CELL, (1 - f.t * 2) * (f.big ? 60 : 30) + 6, 0, 6.3); g.stroke(); g.globalAlpha = 1; }
+    if (f.kind === 'ring') { g.globalAlpha = f.t * 2; g.lineWidth = 1.5; glow(f.col, 10); g.beginPath(); g.arc(OX + f.x * CELL, OY + f.y * CELL, Math.max(1, (1 - Math.min(f.t, .5) * 2) * (f.big ? 60 : 30) + 6), 0, 6.3); g.stroke(); g.globalAlpha = 1; }
     if (f.kind === 'burst') { glow(f.col, 8); const n = f.big ? 22 : 10; for (let i = 0; i < n; i++) { const a = i / n * 6.28 + f.x, r = (0.5 - f.t) * (f.big ? 90 : 50) + 4; g.globalAlpha = f.t * 2; g.fillRect(OX + f.x * CELL + Math.cos(a) * r, OY + f.y * CELL + Math.sin(a) * r, 2.2, 2.2); } g.globalAlpha = 1; }
   });
   S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, OX + t.x * CELL, OY + t.y * CELL - (1.1 - t.t) * 30, t.col, 13, 'center'); g.globalAlpha = 1; });
@@ -480,7 +480,12 @@ function draw() {
   }
 }
 let last = performance.now();
-function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; if (S.started && !S.over && !S.paused) update(dt); draw(); requestAnimationFrame(frame); }
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  // 한 프레임에서 오류가 나도 게임 루프는 계속 돈다 (오류는 콘솔에 남김)
+  try { if (S.started && !S.over && !S.paused) update(dt); draw(); } catch (err) { console.error(err); }
+  requestAnimationFrame(frame);
+}
 addEventListener('keydown', e => {
   if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(e.key)) e.preventDefault();
   if (!S.started) { if (e.key === 'Enter') S.started = true; return; }
@@ -506,7 +511,7 @@ document.querySelectorAll('#touch button').forEach(b => b.addEventListener('poin
 newGame(); S.started = false;
 window.__td = () => S;
 // 자동 시험용 진입점
-window.__api = { update, move, rotate, hardDrop, collide, cellsOf, SHAPES, COLS, ROWS, newGame, spawnEnemy };
+window.__api = { update, draw, move, rotate, hardDrop, collide, cellsOf, SHAPES, COLS, ROWS, newGame, spawnEnemy };
 requestAnimationFrame(frame);
 </script>
 </body>
