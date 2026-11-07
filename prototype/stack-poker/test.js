@@ -38,7 +38,7 @@ const { chromium } = require('playwright');
     A.toggle(s3.cols[0][0]); A.toggle(s3.cols[0][1]); A.playHand();
     const pairOk = s3.combo === 1 && left < 3 && s3.comboT > 4.9 && s3.hands === 2;
     // 줄 폭발
-    A.newGame(); const s2 = S(); s2.phase = 'play'; s2.cols[1] = Array.from({ length: A.MAXH - 1 }, (_, i) => c(i % 7 + 1)); const t1 = s2.time; for (let k = 0; k < 12; k++) A.push();
+    A.newGame(); const s2 = S(); s2.phase = 'play'; s2.cols[1] = Array.from({ length: A.MAXH - 1 }, (_, i) => c(i % 7 + 1)); const t1 = s2.time; for (let k = 0; k < 300 && !s2.explodes; k++) A.push(); // 무작위 줄에 밀어 넣으니 가득 찬 줄에 닿을 때까지
     const explodeOk = s2.explodes >= 1 && s2.time <= t1 - 8;
     // 봇
     function subsets(arr, k, start = 0, cur = [], out = []) { if (cur.length === k) { out.push(cur.slice()); return out; } for (let i = start; i < arr.length; i++) { cur.push(arr[i]); subsets(arr, k, i + 1, cur, out); cur.pop(); } return out; }
