@@ -11,6 +11,7 @@
 | [docs/10-balatro-reverse-design.md](docs/10-balatro-reverse-design.md) | 발라트로 역기획 (성장 구조 참고) |
 | [docs/11-rule-cards.md](docs/11-rule-cards.md) | 규칙 카드 기획 (라운드 사이 성장) |
 | [docs/12-unreal-port.md](docs/12-unreal-port.md) | 언리얼 이식: 열어 보는 법, 구조, 검증 상태 |
+| [docs/13-stack-poker.md](docs/13-stack-poker.md) | 스택 포커 (3줄 쏘기 족보 퍼즐, 새 프로토타입) |
 | [docs/08-shape-concepts.md](docs/08-shape-concepts.md) | 도형 기반 게임 콘셉트 검토, 테트리스 디펜스 기록 |
 | [docs/02-technical-plan.md](docs/02-technical-plan.md) | 기술 계획: 엔진, 플랫폼, 빌드, 협업 규칙 |
 | [docs/03-steam-release.md](docs/03-steam-release.md) | Steam 출시 계획과 체크리스트 |
@@ -27,6 +28,7 @@
 | `ProjectB.uproject`, `Source/`, `Config/` | 언리얼 프로젝트 (테트리스 포커 C++ 이식) |
 | `Tests/` | 규칙 코어 시험 (`./Tests/run.sh`, 언리얼 없이 실행) |
 | `prototype/tetris-poker/` | 테트리스 포커 웹 프로토타입 |
+| `prototype/stack-poker/` | 스택 포커 웹 프로토타입 |
 | `prototype/tetris-defense/` | 테트리스 디펜스 웹 프로토타입 (보류) |
 | `tools/pixelart/` | 픽셀 아트 생성 스크립트 (Python, Pillow) |
 | `tools/preview/` | 3D 미리보기 렌더러 (three.js, 헤드리스 Chromium) |
