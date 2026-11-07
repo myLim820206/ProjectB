@@ -30,96 +30,118 @@
 <script>
 'use strict';
 // =====================================================================
-// 테트리스 포커 v3: 카드 2장씩 떨어지는 족보 퍼즐
-// 카드 2장이 붙은 블록이 떨어진다. 회전하면 두 번째 카드가 첫 카드 둘레를 돈다.
-// 내려앉으면 받침이 없는 카드는 각자 아래로 떨어진다 (뿌요뿌요식).
-// 이어진 카드 중 포커 족보가 맞으면 그 카드들이 터진다.
-//  - 같은 숫자 3/4/5장 이상 이어짐: 트리플 / 포카드 / 파이브 카드
-//  - 같은 무늬 5장 이상 이어짐: 플러시
-//  - 이어진 카드를 따라 숫자 5개가 차례로 (꺾여도 됨): 스트레이트, 무늬까지 같으면 스트레이트 플러시
-//  - 트리플과 맞닿은 다른 숫자 페어: 풀하우스
-// 터진 자리로 위 카드가 떨어지고, 또 맞으면 연쇄. 연쇄 단계마다 배수가 커진다.
+// 테트리스 포커 v5: 카드 한 장 = 칸 2개, 블록 = 카드 2장 = 4칸
+// 카드는 세로로 서거나 가로로 누운 직사각형(칸 2개)이다. 카드 2장을 이어 붙인
+// 4칸 블록(I, O, L, J, S, Z)이 테트리스처럼 떨어지고 회전한다. T는 카드 2장으로 만들 수 없다.
+// 내려앉으면 받침 없는 카드는 한 장씩 따로 떨어진다.
+// 터지는 조건 (카드 단위, 한 칸이라도 맞닿으면 붙은 것)
+//  1) 같은 숫자 3장 이상이 붙음: 트리플 / 포카드 / 파이브 카드
+//     트리플에 다른 숫자 페어가 맞닿아 있으면 그 페어도 함께 터져 풀하우스
+//  2) 서로 다른 숫자 페어 두 쌍이 맞닿음: 투 페어
+// 원 페어는 터지지 않는다 (준비 상태로 선을 그어 보여 준다).
+// 점수 보너스: 한 족보가 모두 같은 무늬면 플러시 ×2,
+//             연쇄로 터진 숫자가 3단계 이상 차례로 이어지면 연쇄 스트레이트 ×이어진 단계 수.
 // =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1280, H = 720;
-const COLS = 8, ROWS = 12, CELL = 50, OX = 440, OY = 60;
+const COLS = 10, ROWS = 18, CELL = 34, OX = 470, OY = 54;
 const SUITS = ['♠', '♥', '♦', '♣'];
 const SUIT_COL = { '♠': '#cfe4ff', '♥': '#ff6a8a', '♦': '#ffa86a', '♣': '#8affc4' };
-const RANKS = [1, 2, 3, 4, 5, 6, 7];          // 작은 덱: A(1) ~ 7
-const DECK_COPIES = 2;                         // 무늬 4 × 숫자 7 × 2벌 = 56장
+const RANKS = [1, 2, 3, 4, 5, 6, 7];
+const DECK_COPIES = 2;
 const RANK_TXT = r => r === 1 ? 'A' : String(r);
 const chipOf = r => r === 1 ? 11 : r;
-const ORIENT = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // 두 번째 카드 위치: 위, 오른쪽, 아래, 왼쪽
-
-// ---------------------------------------------------------------- 족보 찾기
-const HANDS = {
-  straightFlush: { name: '스트레이트 플러시', chips: 100, mult: 8 },
-  five:          { name: '파이브 카드',       chips: 80,  mult: 8 },
-  four:          { name: '포카드',           chips: 50,  mult: 5 },
-  fullHouse:     { name: '풀하우스',         chips: 40,  mult: 4 },
-  flush:         { name: '플러시',           chips: 30,  mult: 3 },
-  straight:      { name: '스트레이트',       chips: 30,  mult: 4 },
-  triple:        { name: '트리플',           chips: 20,  mult: 2 },
+// 블록 모양: 칸 4개, 앞의 두 칸이 첫 번째 카드, 뒤의 두 칸이 두 번째 카드
+const BASE = {
+  I: [[0,1],[1,1],[2,1],[3,1]],
+  O: [[1,0],[1,1],[2,0],[2,1]],
+  L: [[2,0],[2,1],[0,1],[1,1]],
+  J: [[0,0],[0,1],[1,1],[2,1]],
+  S: [[1,0],[2,0],[0,1],[1,1]],
+  Z: [[0,0],[1,0],[1,1],[2,1]],
 };
-const HAND_ORDER = ['straightFlush', 'five', 'four', 'fullHouse', 'flush', 'straight', 'triple'];
-const COND = { straightFlush: '스트레이트 + 같은 무늬', five: '같은 숫자 5장+ 이어짐', four: '같은 숫자 4장 이어짐', fullHouse: '트리플 + 맞닿은 페어', flush: '같은 무늬 5장+ 이어짐', straight: '이어진 카드로 숫자 5개 차례로 (꺾여도 됨)', triple: '같은 숫자 3장 이어짐' };
+const SHAPES = {};
+for (const t in BASE) {
+  const n = t === 'I' ? 4 : 3; let cur = BASE[t]; SHAPES[t] = [cur];
+  for (let r = 1; r < 4; r++) { cur = t === 'O' ? cur.map(([x, y]) => [2 - y, x - 1]) : cur.map(([x, y]) => [n - 1 - y, x]); SHAPES[t].push(cur); }
+}
+const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[0,1]];
 const N4 = [[1,0],[-1,0],[0,1],[0,-1]];
 const inB = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS;
-function clusters(b, keyFn) {
-  const seen = Array.from({ length: ROWS }, () => Array(COLS).fill(false)), out = [];
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-    const c = b[y][x]; if (!c || seen[y][x]) continue; const k = keyFn(c), grp = [], st = [[x, y]]; seen[y][x] = true;
-    while (st.length) { const [a, bb] = st.pop(); grp.push([a, bb]); for (const [dx, dy] of N4) { const nx = a + dx, ny = bb + dy; if (!inB(nx, ny) || seen[ny][nx]) continue; const n = b[ny][nx]; if (n && keyFn(n) === k) { seen[ny][nx] = true; st.push([nx, ny]); } } }
-    out.push({ key: k, cells: grp });
+
+// ---------------------------------------------------------------- 카드 단위 판
+// 판은 칸 격자이고, 카드 한 장이 두 칸을 같은 객체로 차지한다
+function cardsOf(b) { const m = new Map(); for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = b[y][x]; if (c) { if (!m.has(c)) m.set(c, []); m.get(c).push([x, y]); } } return m; }
+function settle(b) { // 받침 없는 카드는 한 장씩 아래로 떨어진다
+  let moved = true, any = false;
+  while (moved) { moved = false;
+    const cards = [...cardsOf(b)].sort((a, c) => Math.max(...c[1].map(p => p[1])) - Math.max(...a[1].map(p => p[1])));
+    for (const [card, cells] of cards) {
+      const free = cells.every(([x, y]) => y + 1 < ROWS && (!b[y + 1][x] || b[y + 1][x] === card));
+      if (free) { cells.forEach(([x, y]) => b[y][x] = null); cells.forEach(([x, y]) => b[y + 1][x] = card); moved = true; any = true; }
+    }
   }
-  return out;
+  return any;
 }
-// 이어진 카드를 따라 숫자가 1씩 오르는 5칸 경로 (A=1 … 7). 서로 겹치지 않게 고른다
-function straightPaths(b) {
-  const found = [], used = new Set();
-  const dfs = (path) => {
-    if (path.length === 5) return path.slice();
-    const [x, y] = path[path.length - 1], r = b[y][x].r;
-    for (const [dx, dy] of N4) { const nx = x + dx, ny = y + dy; if (!inB(nx, ny)) continue; const n = b[ny][nx];
-      if (n && n.r === r + 1 && !path.some(([a, c]) => a === nx && c === ny) && !used.has(nx + ',' + ny)) { path.push([nx, ny]); const res = dfs(path); if (res) return res; path.pop(); } }
-    return null;
-  };
-  for (let y = ROWS - 1; y >= 0; y--) for (let x = 0; x < COLS; x++) { const c = b[y][x]; if (!c || used.has(x + ',' + y)) continue;
-    const p = dfs([[x, y]]); if (p) { p.forEach(([a, c2]) => used.add(a + ',' + c2)); found.push(p); } }
-  return found;
+function neighbors(b, card, cells) { const out = new Set(); for (const [x, y] of cells) for (const [dx, dy] of N4) { const n = b[y + dy]?.[x + dx]; if (n && n !== card) out.add(n); } return out; }
+
+// ---------------------------------------------------------------- 족보
+const HANDS = {
+  five:      { name: '파이브 카드', chips: 80, mult: 8 },
+  four:      { name: '포카드',     chips: 50, mult: 5 },
+  fullHouse: { name: '풀하우스',   chips: 40, mult: 4 },
+  triple:    { name: '트리플',     chips: 20, mult: 2 },
+  twoPair:   { name: '투 페어',    chips: 15, mult: 2 },
+};
+const HAND_ORDER = ['five', 'four', 'fullHouse', 'triple', 'twoPair'];
+const COND = { five: '같은 숫자 5장+ 붙음', four: '같은 숫자 4장 붙음', fullHouse: '트리플 + 맞닿은 다른 숫자 페어', triple: '같은 숫자 3장 붙음', twoPair: '다른 숫자 페어 두 쌍이 맞닿음' };
+function rankClusters(b) {
+  const map = cardsOf(b), seen = new Set(), out = [];
+  for (const [card] of map) { if (seen.has(card)) continue; const grp = [], st = [card]; seen.add(card);
+    while (st.length) { const c = st.pop(); grp.push(c); for (const n of neighbors(b, c, map.get(c))) if (!seen.has(n) && n.r === card.r) { seen.add(n); st.push(n); } }
+    out.push({ key: card.r, cards: grp }); }
+  return { clusters: out, map };
 }
 function detect(b, rules = {}) {
-  const hands = [];
-  const rankCl = clusters(b, c => c.r), suitCl = clusters(b, c => c.s);
-  const cellCl = new Map(); rankCl.forEach(cl => cl.cells.forEach(([x, y]) => cellCl.set(x + ',' + y, cl)));
-  for (const cl of rankCl) {
-    const n = cl.cells.length; if (n < 3) continue;
-    if (n >= 5) { hands.push({ key: 'five', cells: cl.cells }); continue; }
-    if (n === 4) { hands.push({ key: 'four', cells: cl.cells }); continue; }
-    let pair = null;
-    for (const [x, y] of cl.cells) for (const [dx, dy] of N4) { const o = cellCl.get((x + dx) + ',' + (y + dy)); if (o && o !== cl && o.cells.length === 2) pair = o; }
-    hands.push(pair ? { key: 'fullHouse', cells: [...cl.cells, ...pair.cells] } : { key: 'triple', cells: cl.cells });
+  const { clusters, map } = rankClusters(b), hands = [];
+  const of = new Map(); clusters.forEach(cl => cl.cards.forEach(c => of.set(c, cl)));
+  const touching = (a, o) => a.cards.some(c => [...neighbors(b, c, map.get(c))].some(n => of.get(n) === o));
+  const used = new Set();
+  for (const cl of clusters) {
+    const n = cl.cards.length; if (n < 3) continue;
+    if (n >= 5) { hands.push({ key: 'five', cards: cl.cards, ranks: [cl.key] }); continue; }
+    if (n === 4) { hands.push({ key: 'four', cards: cl.cards, ranks: [cl.key] }); continue; }
+    const pair = clusters.find(o => o !== cl && o.cards.length === 2 && !used.has(o) && touching(cl, o));
+    if (pair) { used.add(pair); hands.push({ key: 'fullHouse', cards: [...cl.cards, ...pair.cards], ranks: [cl.key] }); }
+    else hands.push({ key: 'triple', cards: cl.cards, ranks: [cl.key] });
   }
-  if (!rules.noFlush) for (const cl of suitCl) if (cl.cells.length >= 5) hands.push({ key: 'flush', cells: cl.cells });
-  for (const p of straightPaths(b)) { const s0 = b[p[0][1]][p[0][0]].s; hands.push({ key: p.every(([x, y]) => b[y][x].s === s0) ? 'straightFlush' : 'straight', cells: p }); }
+  const pairs = clusters.filter(cl => cl.cards.length === 2 && !used.has(cl));
+  for (const a of pairs) { if (used.has(a)) continue;
+    const o = pairs.find(p => p !== a && !used.has(p) && p.key !== a.key && touching(a, p));
+    if (o) { used.add(a); used.add(o); hands.push({ key: 'twoPair', cards: [...a.cards, ...o.cards], ranks: [a.key, o.key] }); } }
   hands.forEach(h => { const H0 = HANDS[h.key]; h.name = H0.name; h.mult = H0.mult;
-    h.chips = H0.chips + h.cells.reduce((s, [x, y]) => { const c = b[y][x]; return s + (rules.noRed && (c.s === '♥' || c.s === '♦') ? 0 : chipOf(c.r)); }, 0); h.score = h.chips * h.mult; });
+    h.flush = !rules.noFlush && h.cards.every(c => c.s === h.cards[0].s); if (h.flush) h.mult *= 2;
+    h.chips = H0.chips + h.cards.reduce((s, c) => s + (rules.noRed && (c.s === '♥' || c.s === '♦') ? 0 : chipOf(c.r)), 0); h.score = h.chips * h.mult;
+    h.cells = h.cards.flatMap(c => map.get(c)); });
   return hands;
 }
-function settle(b) { // 받침 없는 카드는 각자 아래로 떨어진다
-  let moved = false;
-  for (let x = 0; x < COLS; x++) { let w = ROWS - 1; for (let y = ROWS - 1; y >= 0; y--) if (b[y][x]) { if (w !== y) { b[w][x] = b[y][x]; b[y][x] = null; moved = true; } w--; } }
-  return moved;
+function chainStraight(rankSteps) {
+  if (rankSteps.length < 3) return 0;
+  let up = new Map(), down = new Map(), best = 0;
+  rankSteps.forEach((set, i) => { const nu = new Map(), nd = new Map();
+    for (const r of set) { const u = i && up.has(r - 1) ? up.get(r - 1) + 1 : 1, d = i && down.has(r + 1) ? down.get(r + 1) + 1 : 1; nu.set(r, u); nd.set(r, d); if (i === rankSteps.length - 1) best = Math.max(best, u, d); }
+    up = nu; down = nd; });
+  return best >= 3 ? best : 0;
 }
-// 한 번 내려앉은 뒤 일어나는 전체 연쇄 계산 (미리보기와 봇용, 판을 바꾸지 않음)
+function removeHands(b, hands) { hands.forEach(h => h.cells.forEach(([x, y]) => b[y][x] = null)); }
 function simulate(board, rules) {
-  const b = board.map(r => r.slice()); settle(b); let chain = 0, total = 0; const steps = [];
+  const b = board.map(r => r.slice()); settle(b); let chain = 0, total = 0; const steps = [], rankSteps = [];
   while (true) {
     const hands = detect(b, rules); if (!hands.length) break;
-    chain++; const cells = new Set(); hands.forEach(h => h.cells.forEach(([x, y]) => cells.add(x + ',' + y)));
-    const sc = hands.reduce((s, h) => s + h.score, 0) * chain; total += sc;
-    steps.push({ chain, hands: hands.map(h => h.name), score: sc, cells: [...cells] });
-    cells.forEach(k => { const [x, y] = k.split(',').map(Number); b[y][x] = null; }); settle(b);
+    chain++; rankSteps.push(new Set(hands.flatMap(h => h.ranks))); const st = chainStraight(rankSteps);
+    const sc = hands.reduce((s, h) => s + h.score, 0) * chain * (st || 1); total += sc;
+    steps.push({ chain, hands: hands.map(h => h.name + (h.flush ? '·플러시' : '')), score: sc, cells: hands.flatMap(h => h.cells.map(([x, y]) => x + ',' + y)), straight: st });
+    removeHands(b, hands); settle(b);
   }
   return { chain, total, steps, board: b };
 }
@@ -127,10 +149,10 @@ function simulate(board, rules) {
 // ---------------------------------------------------------------- 라운드
 const ROUNDS = [
   { target: 400 }, { target: 700 }, { target: 1000, boss: 'noHold' },
-  { target: 1400 }, { target: 1850 }, { target: 2350, boss: 'noRed' },
-  { target: 2900 }, { target: 3600, boss: 'noFlush' },
+  { target: 1400 }, { target: 1850 }, { target: 2150, boss: 'noRed' },
+  { target: 2650 }, { target: 3200, boss: 'noFlush' },
 ];
-const BOSS_TEXT = { noHold: '보스: 보관(HOLD) 금지', noRed: '보스: 빨간 카드(♥♦)는 칩 0', noFlush: '보스: 플러시는 터지지 않음' };
+const BOSS_TEXT = { noHold: '보스: 보관(HOLD) 금지', noRed: '보스: 빨간 카드(♥♦)는 칩 0', noFlush: '보스: 플러시 보너스 없음' };
 const PIECES_PER_ROUND = 40;
 const CHAIN_STEP = .3;
 
@@ -139,9 +161,9 @@ function newRun() { S = { round: 0, totalScore: 0, best: null, started: S ? S.st
 function startRound() {
   Object.assign(S, {
     board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
-    deck: [], next: [], hold: null, canHold: true, piece: null,
+    deck: [], bag: [], next: [], hold: null, canHold: true, piece: null,
     score: 0, piecesLeft: PIECES_PER_ROUND, bursts: 0, maxChain: 0, lastResult: null,
-    dropT: 0, lockT: 0, lockMoves: 0, phase: 'play', chainT: 0, chain: 0, chainScore: 0, chainHands: [],
+    dropT: 0, lockT: 0, lockMoves: 0, phase: 'play', chainT: 0, chain: 0, chainScore: 0, chainHands: [], rankSteps: [],
     fx: [], texts: [], paused: false,
   });
   for (let i = 0; i < 3; i++) S.next.push(makePiece());
@@ -150,55 +172,54 @@ function startRound() {
 const rules = () => { const b = ROUNDS[S.round].boss; return { noRed: b === 'noRed', noFlush: b === 'noFlush', noHold: b === 'noHold' }; };
 function drawCard() {
   if (!S.deck.length) { for (let k = 0; k < DECK_COPIES; k++) for (const s of SUITS) for (const r of RANKS) S.deck.push({ r, s }); for (let i = S.deck.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.deck[i], S.deck[j]] = [S.deck[j], S.deck[i]]; } }
-  return S.deck.pop();
+  const c = S.deck.pop(); return { r: c.r, s: c.s }; // 판 위에서 카드마다 다른 객체
 }
-function makePiece() { return { cards: [drawCard(), drawCard()] }; }
+function fromBag() {
+  if (!S.bag.length) { S.bag = Object.keys(BASE); for (let i = S.bag.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.bag[i], S.bag[j]] = [S.bag[j], S.bag[i]]; } }
+  return S.bag.pop();
+}
+function makePiece() { return { t: fromBag(), cards: [drawCard(), drawCard()] }; }
 function spawnPiece() {
   if (S.piecesLeft <= 0) { endRound(); return; }
   const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece());
-  S.piece = { cards: p.cards, x: 3, y: 1, o: 0 }; S.dropT = 0; S.lockT = 0; S.lockMoves = 0;
-  if (collide(S.piece, S.piece.x, S.piece.y, S.piece.o)) { S.phase = 'over'; S.overWhy = '카드가 천장에 닿았다'; }
+  S.piece = { ...p, r: 0, x: 3, y: p.t === 'I' ? -1 : 0 }; S.dropT = 0; S.lockT = 0; S.lockMoves = 0;
+  if (collide(S.piece, S.piece.x, S.piece.y, S.piece.r)) { S.phase = 'over'; S.overWhy = '카드가 천장에 닿았다'; }
 }
-// 블록의 두 칸: 첫 카드(축)와 두 번째 카드
-const cellsOf = (p, x = p.x, y = p.y, o = p.o) => [[x, y], [x + ORIENT[o][0], y + ORIENT[o][1]]];
-const collide = (p, x, y, o) => cellsOf(p, x, y, o).some(([cx, cy]) => cx < 0 || cx >= COLS || cy >= ROWS || (cy >= 0 && S.board[cy][cx]));
-// 착지 후 카드가 각자 떨어진 최종 위치
+const cellsOf = (p, x = p.x, y = p.y, r = p.r) => SHAPES[p.t][r].map(([dx, dy]) => [x + dx, y + dy]);
+const cardAt = (p, i) => p.cards[i < 2 ? 0 : 1];
+const collide = (p, x, y, r) => cellsOf(p, x, y, r).some(([cx, cy]) => cx < 0 || cx >= COLS || cy >= ROWS || cy < 0 || S.board[cy][cx]);
 function landing(p) {
-  let y = p.y; while (!collide(p, p.x, y + 1, p.o)) y++;
-  const b = S.board.map(r => r.slice()); const cs = cellsOf(p, p.x, y, p.o);
-  const marks = cs.map(([x, yy], i) => { const m = { card: p.cards[i], mark: i }; if (yy >= 0) b[yy][x] = m; return m; });
-  settle(b);
-  const pos = []; for (let yy = 0; yy < ROWS; yy++) for (let x = 0; x < COLS; x++) { const m = b[yy][x]; if (m && m.mark !== undefined) pos[m.mark] = [x, yy]; }
-  return { y, pos, board: b.map(r => r.map(c => c && c.mark !== undefined ? c.card : c)) };
+  let y = p.y; while (!collide(p, p.x, y + 1, p.r)) y++;
+  const b = S.board.map(r => r.slice()); cellsOf(p, p.x, y).forEach(([x, yy], i) => b[yy][x] = cardAt(p, i));
+  settle(b); const m = cardsOf(b);
+  return { y, pos: [m.get(p.cards[0]) || [], m.get(p.cards[1]) || []], board: b };
 }
 
 // ---------------------------------------------------------------- 조작
 const gravity = () => Math.max(.22, .9 - S.round * .08);
-const onGround = () => collide(S.piece, S.piece.x, S.piece.y + 1, S.piece.o);
+const onGround = () => collide(S.piece, S.piece.x, S.piece.y + 1, S.piece.r);
 function touchLock() { if (S.piece && onGround() && S.lockMoves < 15) { S.lockT = 0; S.lockMoves++; } }
-function move(dx) { const p = S.piece; if (S.phase === 'play' && p && !collide(p, p.x + dx, p.y, p.o)) { p.x += dx; touchLock(); } }
+function move(dx) { const p = S.piece; if (S.phase === 'play' && p && !collide(p, p.x + dx, p.y, p.r)) { p.x += dx; touchLock(); } }
 function softDrop() { const p = S.piece; if (S.phase === 'play' && p && !onGround()) { p.y++; S.dropT = 0; } }
 function rotate(dir) {
-  const p = S.piece; if (S.phase !== 'play' || !p) return; const no = (p.o + dir + 4) % 4;
-  for (const [kx, ky] of [[0, 0], [-1, 0], [1, 0], [0, -1]]) if (!collide(p, p.x + kx, p.y + ky, no)) { p.x += kx; p.y += ky; p.o = no; touchLock(); return; }
-  // 좁은 곳에서는 두 카드 자리를 맞바꾼다
-  p.cards = [p.cards[1], p.cards[0]]; touchLock();
+  const p = S.piece; if (S.phase !== 'play' || !p) return; const nr = (p.r + dir + 4) % 4;
+  for (const [kx, ky] of KICKS) if (!collide(p, p.x + kx, p.y + ky, nr)) { p.x += kx; p.y += ky; p.r = nr; touchLock(); return; }
 }
 function holdPiece() {
   if (S.phase !== 'play' || !S.canHold) return;
-  if (rules().noHold) { popText('보관 금지 라운드', 3.5, 2, '#ff6a6a'); return; }
-  const cur = { cards: S.piece.cards };
-  if (S.hold) { const h = S.hold; S.hold = cur; S.piece = { cards: h.cards, x: 3, y: 1, o: 0 }; } else { S.hold = cur; const left = S.piecesLeft; S.piecesLeft++; spawnPiece(); S.piecesLeft = left; }
+  if (rules().noHold) { popText('보관 금지 라운드', 4.5, 2, '#ff6a6a'); return; }
+  const cur = { t: S.piece.t, cards: S.piece.cards };
+  if (S.hold) { const h = S.hold; S.hold = cur; S.piece = { ...h, r: 0, x: 3, y: h.t === 'I' ? -1 : 0 }; } else { S.hold = cur; const left = S.piecesLeft; S.piecesLeft++; spawnPiece(); S.piecesLeft = left; }
   S.canHold = false;
 }
 function preview() { const p = S.piece; if (!p) return null; const L = landing(p); return { ...L, ...simulate(L.board, rules()) }; }
 function drop() { if (S.phase !== 'play' || !S.piece) return; while (!onGround()) S.piece.y++; lockPiece(); }
 function lockPiece() {
   const p = S.piece;
-  cellsOf(p).forEach(([x, yy], i) => { if (yy >= 0) S.board[yy][x] = p.cards[i]; });
+  cellsOf(p).forEach(([x, yy], i) => S.board[yy][x] = cardAt(p, i));
   S.piece = null; S.canHold = true; S.piecesLeft--;
   settle(S.board);
-  S.chain = 0; S.chainScore = 0; S.chainHands = [];
+  S.chain = 0; S.chainScore = 0; S.chainHands = []; S.rankSteps = [];
   chainStep();
 }
 function chainStep() {
@@ -208,22 +229,23 @@ function chainStep() {
     S.phase = 'play'; afterTurn(); return;
   }
   S.chain++; S.maxChain = Math.max(S.maxChain, S.chain);
-  const cells = new Set(); hands.forEach(h => h.cells.forEach(([x, y]) => cells.add(x + ',' + y)));
-  const sc = hands.reduce((s, h) => s + h.score, 0) * S.chain;
-  S.score += sc; S.totalScore += sc; S.chainScore += sc; S.bursts += hands.length; hands.forEach(h => S.chainHands.push(h.name));
-  S.fx.push({ kind: 'burst', cells: [...cells].map(k => { const [x, y] = k.split(',').map(Number); return { x, y, c: S.board[y][x] }; }), t: .5 });
-  hands.forEach(h => { const [cx, cy] = h.cells.reduce((a, [x, y]) => [a[0] + x / h.cells.length, a[1] + y / h.cells.length], [0, 0]); popText(`${h.name}  ${h.chips}×${h.mult}`, cx, cy - .3, '#ffd96a'); });
+  S.rankSteps.push(new Set(hands.flatMap(h => h.ranks))); const st = chainStraight(S.rankSteps);
+  const sc = hands.reduce((s, h) => s + h.score, 0) * S.chain * (st || 1);
+  if (st) popText(`연쇄 스트레이트 ${st}  ×${st}`, COLS / 2 - .5, 1.5, '#7fd6ff');
+  S.score += sc; S.totalScore += sc; S.chainScore += sc; S.bursts += hands.length; hands.forEach(h => S.chainHands.push(h.name + (h.flush ? '·플러시' : '')));
+  const map = cardsOf(S.board);
+  S.fx.push({ kind: 'burst', cards: hands.flatMap(h => h.cards.map(c => ({ c, cells: map.get(c) }))), t: .5 });
+  hands.forEach(h => { const [cx, cy] = h.cells.reduce((a, [x, y]) => [a[0] + x / h.cells.length, a[1] + y / h.cells.length], [0, 0]); popText(`${h.name}${h.flush ? ' 플러시' : ''}  ${h.chips}×${h.mult}`, cx, cy - .3, h.flush ? '#ff9ad5' : '#ffd96a'); });
   S.texts = S.texts.filter(t => !t.big);
-  S.texts.push({ s: `+${sc.toLocaleString()}${S.chain > 1 ? `   ${S.chain} 연쇄 ×${S.chain}` : ''}`, x: COLS / 2 - .5, y: -0.5, t: 1.1, col: S.chain > 1 ? '#9cffb0' : '#ffffff', big: true });
-  cells.forEach(k => { const [x, y] = k.split(',').map(Number); S.board[y][x] = null; });
-  settle(S.board);
+  S.texts.push({ s: `+${sc.toLocaleString()}${S.chain > 1 ? `   ${S.chain} 연쇄 ×${S.chain}` : ''}`, x: COLS / 2 - .5, y: -0.4, t: 1.1, col: S.chain > 1 ? '#9cffb0' : '#ffffff', big: true });
+  removeHands(S.board, hands); settle(S.board);
   S.phase = 'chain'; S.chainT = CHAIN_STEP;
 }
 function update(dt) {
   if (S.paused) return;
   if (S.phase === 'chain') { S.chainT -= dt; if (S.chainT <= 0) chainStep(); return; }
   if (S.phase !== 'play' || !S.piece) return;
-  for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) if (keys[k]) { rep[k] = (rep[k] ?? 0) - dt; if (rep[k] <= 0) { rep[k] = k === 'ArrowDown' ? .04 : .06; if (k === 'ArrowDown') softDrop(); else move(k === 'ArrowLeft' ? -1 : 1); } }
+  for (const k of ['ArrowLeft', 'ArrowRight', 'ArrowDown']) if (keys[k]) { rep[k] = (rep[k] ?? 0) - dt; if (rep[k] <= 0) { rep[k] = k === 'ArrowDown' ? .04 : .05; if (k === 'ArrowDown') softDrop(); else move(k === 'ArrowLeft' ? -1 : 1); } }
   S.dropT += dt;
   if (S.dropT >= gravity()) { S.dropT = 0; if (!onGround()) S.piece.y++; }
   if (onGround()) { S.lockT += dt; if (S.lockT >= .5) lockPiece(); } else S.lockT = 0;
@@ -242,20 +264,27 @@ const X = x => OX + x * CELL, Y = y => OY + y * CELL;
 const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = b; };
 function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left', weight = '') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${weight} ${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
 function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
-// 카드 한 장: 테두리는 무늬 색, 큰 숫자와 무늬
-function cardCell(px, py, card, o = {}) {
-  const a = o.alpha ?? 1, s = o.size ?? CELL; g.globalAlpha = a;
-  const col = card ? SUIT_COL[card.s] : '#7fd6ff';
-  g.lineWidth = o.hot ? 2.4 : 1.5; glow(o.hot ? '#ffffff' : col, o.hot ? 20 : 8); if (o.dash) g.setLineDash([4, 4]);
-  g.beginPath(); g.roundRect ? g.roundRect(px + 3, py + 3, s - 6, s - 6, 5) : g.rect(px + 3, py + 3, s - 6, s - 6); g.stroke(); g.setLineDash([]);
+// 카드 한 장을 칸 두 개에 걸쳐 그린다 (세로 카드 또는 가로 카드)
+function cardRect(px, py, w, h, card, o = {}) {
+  const a = o.alpha ?? 1; g.globalAlpha = a; const col = card ? SUIT_COL[card.s] : '#7fd6ff';
+  g.lineWidth = o.hot ? 2.4 : 1.6; glow(o.hot ? '#ffffff' : col, o.hot ? 20 : 8); if (o.dash) g.setLineDash([4, 4]);
+  g.beginPath(); if (g.roundRect) g.roundRect(px + 3, py + 3, w - 6, h - 6, 6); else g.rect(px + 3, py + 3, w - 6, h - 6); g.stroke(); g.setLineDash([]);
   if (card && !o.dash) {
-    g.shadowColor = col; g.shadowBlur = o.hot ? 12 : 5; g.fillStyle = col;
-    g.font = `bold ${Math.round(s * .42)}px "DejaVu Sans Mono", monospace`; g.textAlign = 'left'; g.fillText(RANK_TXT(card.r), px + s * .14, py + s * .48);
-    g.font = `${Math.round(s * .4)}px "DejaVu Sans", sans-serif`; g.textAlign = 'right'; g.fillText(card.s, px + s * .88, py + s * .86); g.textAlign = 'left';
+    const s = Math.min(w, h); g.shadowColor = col; g.shadowBlur = o.hot ? 12 : 5; g.fillStyle = col;
+    if (h > w) { // 세로 카드: 위에 숫자, 아래에 무늬
+      g.textAlign = 'center'; g.font = `bold ${Math.round(s * .62)}px "DejaVu Sans Mono", monospace`; g.fillText(RANK_TXT(card.r), px + w / 2, py + h * .42);
+      g.font = `${Math.round(s * .62)}px "DejaVu Sans", sans-serif`; g.fillText(card.s, px + w / 2, py + h * .82);
+    } else {       // 가로 카드: 왼쪽에 숫자, 오른쪽에 무늬
+      g.textAlign = 'center'; g.font = `bold ${Math.round(s * .62)}px "DejaVu Sans Mono", monospace`; g.fillText(RANK_TXT(card.r), px + w * .3, py + h * .7);
+      g.font = `${Math.round(s * .62)}px "DejaVu Sans", sans-serif`; g.fillText(card.s, px + w * .72, py + h * .72);
+    }
+    g.textAlign = 'left';
   }
   g.globalAlpha = 1;
 }
-function drawPair(p, x0, y0, s = 36) { if (!p) return; cardCell(x0, y0, p.cards[1], { size: s }); cardCell(x0, y0 + s, p.cards[0], { size: s }); }
+function rectOf(cells, cs = CELL, ox = OX, oy = OY) { const xs = cells.map(c => c[0]), ys = cells.map(c => c[1]); const x0 = Math.min(...xs), y0 = Math.min(...ys); return [ox + x0 * cs, oy + y0 * cs, (Math.max(...xs) - x0 + 1) * cs, (Math.max(...ys) - y0 + 1) * cs]; }
+function drawPieceAt(p, cellsList, o = {}) { [0, 1].forEach(k => { const cells = cellsList.filter((_, i) => (i < 2 ? 0 : 1) === k); if (cells.some(c => c[1] < 0)) return; const [x, y, w, h] = rectOf(cells); cardRect(x, y, w, h, o.noCard ? null : p.cards[k], o); }); }
+function drawMini(p, x0, y0, s = 20) { if (!p) return; const cells = SHAPES[p.t][0]; [0, 1].forEach(k => { const cs = cells.filter((_, i) => (i < 2 ? 0 : 1) === k); const [x, y, w, h] = rectOf(cs, s, x0, y0); cardRect(x, y, w, h, p.cards[k]); }); }
 function draw() {
   g.setTransform(1, 0, 0, 1, 0, 0); g.shadowBlur = 0; g.fillStyle = '#06060b'; g.fillRect(0, 0, W, H);
   const R = ROUNDS[Math.min(S.round, ROUNDS.length - 1)];
@@ -266,47 +295,53 @@ function draw() {
   let pv = null; const hot = new Set();
   if (S.piece && S.phase === 'play') { pv = preview(); if (pv.steps.length) pv.steps[0].cells.forEach(k => hot.add(k)); }
   const blink = (S.time * 4 | 0) % 2 === 0;
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (c) cardCell(X(x), Y(y), c, { hot: hot.has(x + ',' + y) && blink }); }
+  const map = cardsOf(S.board);
+  // 원 페어 준비 표시: 같은 숫자 카드 2장이 붙어 있으면 중심끼리 선
+  rankClusters(S.board).clusters.forEach(cl => { if (cl.cards.length !== 2) return; const [a, b2] = cl.cards.map(c => { const [x, y, w, h] = rectOf(map.get(c)); return [x + w / 2, y + h / 2]; });
+    g.lineWidth = 4; glow('rgba(255,217,106,.4)', 12); g.beginPath(); g.moveTo(...a); g.lineTo(...b2); g.stroke(); });
+  for (const [card, cells] of map) { const [x, y, w, h] = rectOf(cells); cardRect(x, y, w, h, card, { hot: cells.some(([a, b2]) => hot.has(a + ',' + b2)) && blink }); }
   if (S.piece && S.phase === 'play') {
     const p = S.piece;
-    pv.pos.forEach(([x, y], i) => { if (!(cellsOf(p).some(([a, b2]) => a === x && b2 === y))) cardCell(X(x), Y(y), p.cards[i], { alpha: hot.has(x + ',' + y) ? .75 : .35, hot: hot.has(x + ',' + y) && blink }); });
-    cellsOf(p).forEach(([x, y], i) => { if (y >= 0) cardCell(X(x), Y(y), p.cards[i]); });
+    pv.pos.forEach((cells, k) => { if (!cells.length) return; const isHot = cells.some(([a, b2]) => hot.has(a + ',' + b2)); const [x, y, w, h] = rectOf(cells); cardRect(x, y, w, h, isHot ? p.cards[k] : null, { alpha: isHot ? .75 : .4, dash: !isHot, hot: isHot && blink }); });
+    drawPieceAt(p, cellsOf(p));
   }
   S.fx.forEach(f => { if (f.kind !== 'burst') return; const a = Math.min(1, f.t / .5);
-    f.cells.forEach(({ x, y, c }) => { cardCell(X(x), Y(y) - (1 - a) * 8, c, { hot: true, alpha: a }); glow('#ffffff', 10); for (let i = 0; i < 6; i++) { const ang = i * 1.05 + x, r = (1 - a) * 30; g.globalAlpha = a; g.fillRect(X(x) + CELL / 2 + Math.cos(ang) * r, Y(y) + CELL / 2 + Math.sin(ang) * r, 2.5, 2.5); } g.globalAlpha = 1; }); });
+    f.cards.forEach(({ c, cells }) => { const [x, y, w, h] = rectOf(cells); cardRect(x, y - (1 - a) * 10, w, h, c, { hot: true, alpha: a }); glow('#ffffff', 10); for (let i = 0; i < 8; i++) { const ang = i * .785 + x, r = (1 - a) * 36; g.globalAlpha = a; g.fillRect(x + w / 2 + Math.cos(ang) * r, y + h / 2 + Math.sin(ang) * r, 2.5, 2.5); } g.globalAlpha = 1; }); });
   S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, X(t.x) + CELL / 2, Y(t.y) - (1.2 - t.t) * 30, t.col, t.big ? 24 : 15, 'center', 'bold'); g.globalAlpha = 1; });
   // 왼쪽: 라운드
-  panel(30, 60, 380, 230);
-  text(`ROUND ${Math.min(S.round + 1, ROUNDS.length)} / ${ROUNDS.length}`, 48, 94, '#e8f0ff', 22);
-  text(R.boss ? BOSS_TEXT[R.boss] : '일반 라운드', 48, 118, R.boss ? '#ff6a8a' : '#8a94a6', 12);
-  text('목표', 48, 152, '#8a94a6', 12); text(R.target.toLocaleString(), 48, 180, '#ffd96a', 26, 'left', 'bold');
-  text('점수', 220, 152, '#8a94a6', 12); text(S.score.toLocaleString(), 220, 180, '#ffffff', 26, 'left', 'bold');
-  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(48, 196, 344, 6); glow('#ffd96a', 8); g.fillRect(48, 196, 344 * Math.min(1, S.score / R.target), 6);
-  text(`남은 블록 ${S.piecesLeft} / ${PIECES_PER_ROUND}`, 48, 230, '#7fd6ff', 14);
-  text(`터뜨린 족보 ${S.bursts}   최대 연쇄 ${S.maxChain}`, 48, 254, '#8a94a6', 12);
-  if (S.best) text(`최고 한 방 ${S.best.total.toLocaleString()} (${S.best.chain} 연쇄)`, 48, 276, '#8a94a6', 11);
-  // 왼쪽: 족보표
-  panel(30, 306, 380, 354); text('터지는 족보  (칩 × 배수)', 48, 332, '#7fd6ff', 12);
-  const pvKeys = new Set(pv && pv.steps.length ? pv.steps[0].hands : []);
-  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = 360 + i * 33, on = pvKeys.has(h.name);
-    text(h.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${h.chips} × ${h.mult}`, 392, y, on ? '#ffd96a' : '#8a94a6', 13, 'right'); text(COND[k], 48, y + 15, '#5f6878', 10); });
-  text('칩 = 기본 + 터진 카드 숫자 (A는 11)', 48, 612, '#5f6878', 11);
-  text('연쇄 n단계: 그 단계 점수 ×n', 48, 632, '#5f6878', 11);
-  text('받침 없는 카드는 각자 떨어진다', 48, 652, '#5f6878', 11);
+  panel(30, 54, 400, 230);
+  text(`ROUND ${Math.min(S.round + 1, ROUNDS.length)} / ${ROUNDS.length}`, 48, 88, '#e8f0ff', 22);
+  text(R.boss ? BOSS_TEXT[R.boss] : '일반 라운드', 48, 112, R.boss ? '#ff6a8a' : '#8a94a6', 12);
+  text('목표', 48, 146, '#8a94a6', 12); text(R.target.toLocaleString(), 48, 174, '#ffd96a', 26, 'left', 'bold');
+  text('점수', 230, 146, '#8a94a6', 12); text(S.score.toLocaleString(), 230, 174, '#ffffff', 26, 'left', 'bold');
+  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(48, 190, 364, 6); glow('#ffd96a', 8); g.fillRect(48, 190, 364 * Math.min(1, S.score / R.target), 6);
+  text(`남은 블록 ${S.piecesLeft} / ${PIECES_PER_ROUND}`, 48, 224, '#7fd6ff', 14);
+  text(`터뜨린 족보 ${S.bursts}   최대 연쇄 ${S.maxChain}`, 48, 248, '#8a94a6', 12);
+  if (S.best) text(`최고 한 방 ${S.best.total.toLocaleString()} (${S.best.chain} 연쇄)`, 48, 270, '#8a94a6', 11);
+  panel(30, 300, 400, 366); text('터지는 조건  (칩 × 배수)', 48, 326, '#7fd6ff', 12);
+  const pvKeys = new Set(pv && pv.steps.length ? pv.steps[0].hands.map(h => h.replace('·플러시', '')) : []);
+  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = 354 + i * 36, on = pvKeys.has(h.name);
+    text(h.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 14); text(`${h.chips} × ${h.mult}`, 412, y, on ? '#ffd96a' : '#8a94a6', 13, 'right'); text(COND[k], 48, y + 16, '#5f6878', 11); });
+  text('원 페어는 터지지 않는다 (노란 선 = 하나만 더!)', 48, 542, '#ffd96a', 11);
+  text('점수 보너스', 48, 570, '#7fd6ff', 12);
+  text('플러시: 한 족보가 모두 같은 무늬 → 배수 ×2', 48, 592, '#ff9ad5', 11);
+  text('연쇄 스트레이트: 연쇄로 터진 숫자가 3단계+ 차례로', 48, 612, '#7fd6ff', 11);
+  text('  이어지면 (3→4→5) ×이어진 단계 수', 48, 628, '#7fd6ff', 11);
+  text('연쇄 n단계 ×n · 칩 = 기본 + 카드 숫자(A=11)', 48, 652, '#5f6878', 10);
   // 오른쪽
-  const RX = 880;
-  panel(RX, 60, 370, 170); text('이 자리에 떨어뜨리면', RX + 18, 86, '#7fd6ff', 12);
-  if (pv && pv.steps.length) { pv.steps.slice(0, 4).forEach((st, i) => text(`${st.chain}단계  ${st.hands.join(' + ')}  +${st.score}`, RX + 18, 112 + i * 20, st.chain > 1 ? '#9cffb0' : '#ffd96a', 12)); text(`= ${pv.total.toLocaleString()}점${pv.chain > 1 ? `  (${pv.chain} 연쇄)` : ''}`, RX + 18, 112 + Math.min(4, pv.steps.length) * 20 + 6, '#ffffff', 16, 'left', 'bold'); }
-  else if (S.phase === 'play') text('터지는 족보 없음', RX + 18, 112, '#5f6878', 13);
-  panel(RX, 246, 370, 200); text('NEXT', RX + 18, 272, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawPair(p, RX + 24 + i * 70, 290));
-  text('HOLD', RX + 250, 272, '#7fd6ff', 12); drawPair(S.hold, RX + 260, 290);
-  panel(RX, 462, 370, 198); text('마지막 연쇄', RX + 18, 488, '#7fd6ff', 12);
-  if (S.lastResult) { text(`${S.lastResult.chain} 연쇄  +${S.lastResult.total.toLocaleString()}`, RX + 18, 518, '#ffffff', 16, 'left', 'bold'); text(S.lastResult.hands.slice(0, 5).join(', '), RX + 18, 544, '#8a94a6', 11); }
-  text(`덱: A~7 × 4무늬 × ${DECK_COPIES}벌 · 남은 카드 ${S.deck.length}`, RX + 18, 642, '#5f6878', 11);
-  text('← → 이동   ↑/X 회전   Z 역회전   ↓ 빠르게   Space 떨어뜨리기   C 보관   P 일시정지   Enter 다음 라운드', W / 2, H - 16, '#5f6878', 11, 'center');
+  const RX = 850;
+  panel(RX, 54, 400, 170); text('이 자리에 떨어뜨리면', RX + 18, 80, '#7fd6ff', 12);
+  if (pv && pv.steps.length) { pv.steps.slice(0, 4).forEach((st, i) => text(`${st.chain}단계  ${st.hands.join(' + ')}${st.straight ? '  스트레이트×' + st.straight : ''}  +${st.score}`, RX + 18, 106 + i * 20, st.straight ? '#7fd6ff' : st.chain > 1 ? '#9cffb0' : '#ffd96a', 12)); text(`= ${pv.total.toLocaleString()}점${pv.chain > 1 ? `  (${pv.chain} 연쇄)` : ''}`, RX + 18, 106 + Math.min(4, pv.steps.length) * 20 + 6, '#ffffff', 16, 'left', 'bold'); }
+  else if (S.phase === 'play') text('터지는 족보 없음', RX + 18, 106, '#5f6878', 13);
+  panel(RX, 240, 400, 220); text('NEXT', RX + 18, 266, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, RX + 22 + i * 96, 290));
+  text('HOLD', RX + 18, 376, '#7fd6ff', 12); drawMini(S.hold, RX + 22, 390);
+  panel(RX, 476, 400, 190); text('마지막 연쇄', RX + 18, 502, '#7fd6ff', 12);
+  if (S.lastResult) { text(`${S.lastResult.chain} 연쇄  +${S.lastResult.total.toLocaleString()}`, RX + 18, 532, '#ffffff', 16, 'left', 'bold'); text(S.lastResult.hands.slice(0, 5).join(', '), RX + 18, 558, '#8a94a6', 11); }
+  text(`덱: A~7 × 4무늬 × ${DECK_COPIES}벌 · 남은 카드 ${S.deck.length}`, RX + 18, 648, '#5f6878', 11);
+  text('← → 이동   ↑/X 회전   Z 역회전   ↓ 빠르게   Space 떨어뜨리기   C 보관   P 일시정지   Enter 다음 라운드', W / 2, H - 14, '#5f6878', 11, 'center');
   const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.86)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
   if (S.paused && S.phase === 'play') { g.fillStyle = 'rgba(6,6,11,.8)'; g.fillRect(0, 0, W, H); text('PAUSED', W / 2, 340, '#7fd6ff', 30, 'center'); }
-  if (!S.started) overlay('TETRIS POKER', '#7fd6ff', ['카드 2장씩 떨어진다. 이어진 카드끼리 포커 족보를 이루면 터진다', '같은 숫자 3장 이상, 같은 무늬 5장 이상, 이어진 카드로 숫자 5개 차례로 …', '터진 자리로 위 카드가 떨어져 또 맞으면 연쇄! 연쇄할수록 배수가 커진다'], 'Enter 키 또는 화면을 눌러 시작');
+  if (!S.started) overlay('TETRIS POKER', '#7fd6ff', ['카드 2장을 이어 붙인 4칸 블록이 떨어진다. 같은 숫자 3장 이상이 붙거나, 페어 두 쌍이 맞닿으면 터진다', '같은 무늬로 터지면 플러시 ×2, 연쇄로 3→4→5처럼 터지면 연쇄 스트레이트 보너스', '받침 없는 카드는 따로 떨어져 또 맞으면 연쇄! 연쇄할수록 배수가 커진다'], 'Enter 키 또는 화면을 눌러 시작');
   else if (S.phase === 'clear') overlay(`ROUND ${S.round + 1} CLEAR`, '#9cffb0', [`점수 ${S.score.toLocaleString()} / 목표 ${R.target.toLocaleString()}`, `남은 블록 ${S.bonus}개 · 최대 연쇄 ${S.maxChain}`, S.round + 1 < ROUNDS.length ? `다음: ROUND ${S.round + 2}  목표 ${ROUNDS[S.round + 1].target.toLocaleString()}${ROUNDS[S.round + 1].boss ? '  · ' + BOSS_TEXT[ROUNDS[S.round + 1].boss] : ''}` : '마지막 라운드였다'], 'Enter 키 또는 화면을 눌러 계속');
   else if (S.phase === 'over') overlay('GAME OVER', '#ff6a6a', [S.overWhy, `ROUND ${S.round + 1} · 점수 ${S.score.toLocaleString()} / ${R.target.toLocaleString()} · 누적 ${S.totalScore.toLocaleString()}`], 'R 키 또는 화면을 눌러 처음부터');
   else if (S.phase === 'win') overlay('ALL CLEAR', '#ffd96a', [`8라운드를 모두 넘겼다 · 누적 ${S.totalScore.toLocaleString()}`, S.best ? `최고 한 방 ${S.best.total.toLocaleString()} (${S.best.chain} 연쇄)` : ''], 'R 키 또는 화면을 눌러 다시');
@@ -343,7 +378,7 @@ cv.addEventListener('pointerdown', () => { if (!S.started || (S.phase !== 'play'
 document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => { ev.preventDefault(); act(b.dataset.a); }));
 newRun(); S.started = false;
 window.__tp = () => S;
-window.__api = { detect, settle, simulate, straightPaths, move, rotate, drop, holdPiece, preview, landing, nextRound, newRun, update, draw, chainStep, cellsOf, collide, COLS, ROWS, ROUNDS, ORIENT };
+window.__api = { detect, settle, simulate, chainStraight, cardsOf, move, rotate, drop, holdPiece, preview, landing, nextRound, newRun, update, draw, chainStep, cellsOf, collide, COLS, ROWS, ROUNDS, SHAPES };
 requestAnimationFrame(frame);
 </script>
 </body>

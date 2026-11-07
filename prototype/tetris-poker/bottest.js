@@ -1,5 +1,5 @@
 // 실행: node prototype/tetris-poker/bottest.js "$(pwd)/prototype/tetris-poker/index.html" [판 수]
-// 봇이 2장 블록의 모든 자리(방향 4 × 열)를 따져 "예상 점수(연쇄 포함) + 판 상태"가 가장 좋은 곳에 놓으며 진행한다.
+// 봇이 4칸 블록(카드 2장)의 모든 자리(회전 4 × 열)를 따져 "예상 점수(연쇄 포함) + 판 상태"가 가장 좋은 곳에 놓으며 진행한다.
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage();
@@ -23,15 +23,15 @@ const { chromium } = require('playwright');
         if (s.phase === 'clear') { rounds.push({ r: s.round + 1, score: s.score, left: s.piecesLeft, bursts: s.bursts, maxChain: s.maxChain }); A.nextRound(); continue; }
         if (s.phase === 'over' || s.phase === 'win') break;
         const pc = s.piece; let best = null;
-        for (let o = 0; o < 4; o++) for (let x = -1; x <= A.COLS; x++) {
+        for (let o = 0; o < 4; o++) for (let x = -2; x <= A.COLS; x++) {
           if (A.collide(pc, x, pc.y, o)) continue;
-          const sv = { x: pc.x, o: pc.o }; pc.x = x; pc.o = o;
+          const sv = { x: pc.x, r: pc.r }; pc.x = x; pc.r = o;
           const pv = A.preview(); const sc = pv.total * 0.06 + boardValue(pv.board);
-          pc.x = sv.x; pc.o = sv.o;
+          pc.x = sv.x; pc.r = sv.r;
           if (!best || sc > best.sc) best = { x, o, sc };
         }
         if (!best) break;
-        pc.x = best.x; pc.o = best.o; A.drop(); if (guard % 40 === 0) A.draw();
+        pc.x = best.x; pc.r = best.o; A.drop(); if (guard % 40 === 0) A.draw();
       }
       const s = S();
       results.push({ reached: s.phase === 'win' ? 9 : s.round + 1, phase: s.phase, why: s.overWhy || '', rounds, best: s.best && `${s.best.total}점 ${s.best.chain}연쇄`, lastMaxChain: s.maxChain });

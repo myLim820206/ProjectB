@@ -1,40 +1,48 @@
 // 실행: node prototype/tetris-poker/handtest.js "$(pwd)/prototype/tetris-poker/index.html"
-// v3 족보 판정과 연쇄 단위 시험 (8 × 12 판에 카드를 직접 배치)
+// v5 규칙 단위 시험: 카드 한 장 = 칸 2개. 터짐 조건(같은 숫자 3장+, 투 페어), 원 페어 안 터짐,
+// 플러시 보너스, 연쇄 스트레이트, 연쇄, 받침 없는 카드 따로 떨어짐, 블록 회전 시 카드 유지
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage();
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.goto('file://' + process.argv[2]);
   const out = await p.evaluate(() => {
-    const A = window.__api, B = A.ROWS - 1; // 맨 아래 줄
+    const A = window.__api, B = A.ROWS - 1, SU = ['♠', '♥', '♦', '♣'];
     const empty = () => Array.from({ length: A.ROWS }, () => Array(A.COLS).fill(null));
-    const put = (b, x, y, r, s) => { b[y][x] = { r, s }; };
-    const F = ['♠', '♥', '♦', '♣'];
+    // v: 세로 카드 (x, y) 와 (x, y-1) / h: 가로 카드 (x, y) 와 (x+1, y)
+    const v = (b, x, y, r, s) => { const c = { r, s }; b[y][x] = c; b[y - 1][x] = c; return c; };
+    const h = (b, x, y, r, s) => { const c = { r, s }; b[y][x] = c; b[y][x + 1] = c; return c; };
     const cases = [];
-    const test = (label, build, want) => { const b = empty(); build(b); const keys = A.detect(b).map(h => h.key).sort(); cases.push({ label, got: keys.join(',') || '없음', ok: JSON.stringify(keys) === JSON.stringify(want.slice().sort()) }); };
-    test('세로 트리플', b => { put(b, 2, B, 5, '♠'); put(b, 2, B - 1, 5, '♥'); put(b, 2, B - 2, 5, '♦'); }, ['triple']);
-    test('ㄱ자 포카드', b => { put(b, 2, B, 3, '♠'); put(b, 3, B, 3, '♥'); put(b, 4, B, 3, '♦'); put(b, 4, B - 1, 3, '♣'); }, ['four']);
-    test('파이브 카드', b => { [0, 1, 2, 3, 4].forEach((x, i) => put(b, x, B, 6, F[i % 4])); }, ['five']);
-    test('플러시 덩어리', b => { [[0,B,1],[1,B,3],[2,B,6],[1,B-1,2],[1,B-2,7]].forEach(([x, y, r]) => put(b, x, y, r, '♥')); }, ['flush']);
-    test('가로 스트레이트', b => { [1, 2, 3, 4, 5].forEach((r, i) => put(b, 2 + i, B, r, F[i % 4])); }, ['straight']);
-    test('꺾인 스트레이트 (ㄴ자)', b => { put(b, 0, B - 2, 3, '♠'); put(b, 0, B - 1, 4, '♥'); put(b, 0, B, 5, '♦'); put(b, 1, B, 6, '♣'); put(b, 2, B, 7, '♠'); }, ['straight']);
-    test('계단 스트레이트', b => { put(b, 0, B, 1, '♠'); put(b, 1, B, 2, '♥'); put(b, 1, B - 1, 3, '♦'); put(b, 2, B - 1, 4, '♣'); put(b, 2, B - 2, 5, '♠'); }, ['straight']);
-    test('스트레이트 플러시', b => { [2, 3, 4, 5, 6].forEach((r, i) => put(b, i, B, r, '♣')); }, ['flush', 'straightFlush']);
-    test('풀하우스', b => { put(b, 0, B, 4, '♠'); put(b, 1, B, 4, '♥'); put(b, 2, B, 4, '♦'); put(b, 3, B, 7, '♣'); put(b, 3, B - 1, 7, '♠'); }, ['fullHouse']);
-    test('페어만으로는 안 터짐', b => { put(b, 0, B, 4, '♠'); put(b, 1, B, 4, '♥'); }, []);
-    test('떨어진 같은 숫자는 안 터짐', b => { put(b, 0, B, 4, '♠'); put(b, 2, B, 4, '♥'); put(b, 4, B, 4, '♦'); }, []);
-    test('끊긴 연속 숫자는 스트레이트 아님', b => { [1, 2, 3].forEach((r, i) => put(b, i, B, r, F[i])); [4, 5].forEach((r, i) => put(b, 5 + i, B, r, F[i])); }, []);
-    // 연쇄: 가운데 세로 2 트리플이 터지면 그 위 7이 내려와 양옆 7과 가로 트리플
+    const test = (label, build, want, check) => { const b = empty(); build(b); const hs = A.detect(b); const keys = hs.map(x => x.key).sort();
+      let ok = JSON.stringify(keys) === JSON.stringify(want.slice().sort()); if (check) ok = ok && check(hs, b); cases.push({ label, got: keys.join(',') || '없음', ok }); };
+    test('세로 카드 3장 나란히 → 트리플', b => { v(b, 0, B, 5, '♠'); v(b, 1, B, 5, '♥'); v(b, 2, B, 5, '♦'); }, ['triple'], hs => !hs[0].flush && hs[0].cells.length === 6);
+    test('가로 카드 3장 쌓기 → 트리플', b => { h(b, 0, B, 5, '♠'); h(b, 0, B - 1, 5, '♥'); h(b, 1, B - 2, 5, '♦'); }, ['triple']);
+    test('한 칸만 맞닿아도 붙은 것', b => { h(b, 0, B, 3, '♠'); h(b, 1, B - 1, 3, '♥'); v(b, 3, B, 3, '♦'); }, ['triple']);
+    test('포카드', b => { [0, 1, 2, 3].forEach(i => v(b, i, B, 3, SU[i])); }, ['four']);
+    test('파이브 카드', b => { [0, 1, 2, 3, 4].forEach(i => v(b, i, B, 6, SU[i % 4])); }, ['five']);
+    test('풀하우스 (트리플 + 맞닿은 페어)', b => { v(b, 0, B, 4, '♠'); v(b, 1, B, 4, '♥'); v(b, 2, B, 4, '♦'); h(b, 3, B, 7, '♣'); h(b, 3, B - 1, 7, '♠'); }, ['fullHouse'], hs => hs[0].cards.length === 5 && hs[0].cells.length === 10);
+    test('투 페어 (맞닿은 두 페어)', b => { v(b, 0, B, 4, '♠'); v(b, 1, B, 4, '♥'); v(b, 2, B, 7, '♦'); v(b, 3, B, 7, '♣'); }, ['twoPair'], hs => hs[0].cards.length === 4);
+    test('원 페어는 안 터짐', b => { v(b, 0, B, 4, '♠'); v(b, 1, B, 4, '♥'); }, []);
+    test('떨어진 페어 두 쌍은 안 터짐', b => { v(b, 0, B, 4, '♠'); v(b, 1, B, 4, '♥'); v(b, 5, B, 7, '♦'); v(b, 6, B, 7, '♣'); }, []);
+    test('대각선은 안 붙음', b => { h(b, 0, B, 2, '♠'); h(b, 2, B - 1, 2, '♥'); h(b, 4, B - 2, 2, '♦'); }, []);
+    test('같은 무늬 트리플 → 플러시 ×2', b => { v(b, 2, B, 5, '♥'); v(b, 3, B, 5, '♥'); v(b, 4, B, 5, '♥'); }, ['triple'], hs => hs[0].flush && hs[0].mult === 4);
+    const st = (arr) => A.chainStraight(arr.map(a => new Set(a)));
+    const straight = { '3→4→5': st([[3], [4], [5]]), '5→4→3': st([[5], [4], [3]]), '3→5→4': st([[3], [5], [4]]), '2→3→4→5': st([[2, 6], [3], [4], [5]]), '2단계만': st([[3], [4]]) };
+    // 받침 없는 가로 카드가 떨어진다: 아래 세로 카드 한쪽만 받치는 건 받침 있음
+    const sb = empty(); v(sb, 0, B, 1, '♠'); const fl = h(sb, 4, B - 5, 2, '♥'); const held = h(sb, 0, B - 2, 3, '♦'); A.settle(sb);
+    const m = A.cardsOf(sb); const settleOk = JSON.stringify(m.get(fl)) === JSON.stringify([[4, B], [5, B]]) && JSON.stringify(m.get(held)) === JSON.stringify([[0, B - 2], [1, B - 2]]);
+    // 연쇄: 가로 2 카드 3장 트리플이 터지면 위의 가로 7 카드가 내려와 양옆 7과 트리플
     const cb = empty();
-    put(cb, 1, B, 2, '♠'); put(cb, 1, B - 1, 2, '♥'); put(cb, 1, B - 2, 2, '♦');
-    put(cb, 0, B, 7, '♣'); put(cb, 2, B, 7, '♥'); put(cb, 1, B - 3, 7, '♠');
+    h(cb, 1, B, 2, '♠'); h(cb, 1, B - 1, 2, '♥'); h(cb, 1, B - 2, 2, '♦');
+    v(cb, 0, B, 7, '♣'); v(cb, 3, B, 7, '♥'); h(cb, 1, B - 3, 7, '♠');
     const sim = A.simulate(cb, {});
-    // 블록 착지: 가로로 놓인 2장 중 받침 없는 카드는 따로 떨어진다
-    const s = window.__td ? null : window.__tp(); A.newRun(); const st = window.__tp();
-    st.board[B][0] = { r: 1, s: '♠' }; // 0열에만 받침
-    st.piece = { cards: [{ r: 2, s: '♥' }, { r: 3, s: '♦' }], x: 0, y: 1, o: 1 }; // 가로 (0열, 1열)
-    const L = A.landing(st.piece);
-    return { cases, allOk: cases.every(c => c.ok), chain: { chain: sim.chain, steps: sim.steps.map(x => `${x.chain}단계 ${x.hands.join('+')} +${x.score}`) }, split: { first: L.pos[0], second: L.pos[1] } };
+    // 블록 회전해도 카드 두 장이 각각 칸 2개 그대로
+    const rotOk = Object.entries(A.SHAPES).every(([t, rs]) => rs.every(cells => { const k = (a, c) => Math.abs(a[0] - c[0]) + Math.abs(a[1] - c[1]) === 1; return k(cells[0], cells[1]) && k(cells[2], cells[3]) && new Set(cells.map(c => c + '')).size === 4; }));
+    // 실제 진행: 블록 떨어뜨리고 미리보기
+    A.newRun(); const s = window.__tp(); s.started = true; const pv = A.preview(); A.drop(); while (s.phase === 'chain') A.chainStep();
+    const placed = A.cardsOf(s.board);
+    return { cases, allOk: cases.every(c => c.ok), chainStraight: straight, settleOk, rotOk,
+      chain: sim.steps.map(x => `${x.chain}단계 ${x.hands.join('+')} +${x.score}`), previewCards: pv.pos.map(c => c.length), placedCards: placed.size, placedCells: [...placed.values()].map(c => c.length) };
   });
   console.log(JSON.stringify(out, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();
 })();
