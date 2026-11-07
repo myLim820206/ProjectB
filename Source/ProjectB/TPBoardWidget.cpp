@@ -167,7 +167,8 @@ struct STPBoardWidget::FCanvas
 				const float A = (Start[K] + S / 5.f * 0.25f) * TwoPi;
 				P.Add(Centers[K] + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R);
 			}
-		P.Add(P[0]);
+		const FVector2f First = P[0]; // 같은 배열 원소를 Add 하면 재할당 중 잘못된 참조가 된다
+		P.Add(First);
 		return P;
 	}
 	static FSlateFontInfo Font(float Px, bool bBold)
