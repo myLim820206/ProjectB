@@ -18,7 +18,6 @@ const { chromium } = require('playwright');
       let guard = 0;
       while (guard++ < 5000) {
         const s = S();
-        if (s.phase === 'scoring') { A.finishScoring(); continue; }
         if (s.phase === 'clear') { rounds.push({ r: s.round + 1, score: s.score, target: A.ROUNDS[s.round].target, left: s.piecesLeft }); A.nextRound(); continue; }
         if (s.phase === 'over' || s.phase === 'win') break;
         const pc = s.piece; let best = null;
@@ -35,7 +34,7 @@ const { chromium } = require('playwright');
           if (!best || sc > best.sc) best = { x, r, sc };
         }
         if (!best) { break; }
-        pc.x = best.x; pc.r = best.r; A.drop();
+        pc.x = best.x; pc.r = best.r; A.drop(); if (guard % 25 === 0) A.draw();
       }
       const s = S();
       results.push({ reached: s.phase === 'win' ? 9 : s.round + 1, phase: s.phase, why: s.overWhy || '', rounds, lastScore: s.score, best: s.best && s.best.name });
