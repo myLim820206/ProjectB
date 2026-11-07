@@ -48,7 +48,8 @@ const BASE = {
 const SHAPES = {};
 for (const t in BASE) {
   const n = t === 'I' ? 4 : 3; let cur = BASE[t]; SHAPES[t] = [cur];
-  for (let r = 1; r < 4; r++) { cur = t === 'O' ? cur : cur.map(([x, y]) => [n - 1 - y, x]); SHAPES[t].push(cur); }
+  // O는 칸 배치는 같지만 칸 순서를 시계 방향으로 돌려서, 회전하면 포탑 칸이 옮겨 가게 한다
+  for (let r = 1; r < 4; r++) { cur = t === 'O' ? cur.map(([x, y]) => [2 - y, x - 1]) : cur.map(([x, y]) => [n - 1 - y, x]); SHAPES[t].push(cur); }
 }
 const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[0,1]];
 
