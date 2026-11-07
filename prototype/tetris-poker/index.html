@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tetris Poker</title>
+<style>
+  :root { --bg:#06060b; --fg:#cfd8e6; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  canvas{display:block;width:100%;max-width:1280px;max-height:calc(100% - 80px);object-fit:contain;touch-action:none}
+  #touch{display:none;gap:8px;flex-wrap:wrap;justify-content:center}
+  #touch button{font:600 18px/1 "DejaVu Sans Mono",monospace;color:#cfd8e6;background:transparent;border:1px solid rgba(127,214,255,.45);border-radius:6px;min-width:52px;height:48px;touch-action:manipulation}
+  #touch button:active{background:rgba(127,214,255,.15)}
+  #touch button:focus-visible{outline:2px solid #7fd6ff}
+  @media (pointer: coarse){ #touch{display:flex} }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="700"></canvas>
+<div id="touch" aria-label="터치 조작">
+  <button id="tLeft" data-a="left" aria-label="왼쪽">◀</button>
+  <button id="tRight" data-a="right" aria-label="오른쪽">▶</button>
+  <button id="tRot" data-a="rot" aria-label="회전">⟳</button>
+  <button id="tDrop" data-a="drop" aria-label="떨어뜨리기">⤓</button>
+  <button id="tHold" data-a="hold" aria-label="보관">H</button>
+  <button id="tNext" data-a="next" aria-label="다음">▶▶</button>
+</div>
+<script>
+'use strict';
+// =====================================================================
+// 테트리스 포커 프로토타입
+// 블록의 4칸마다 카드가 한 장씩 붙어 있다. 블록은 저절로 떨어지지 않고(턴 방식),
+// 한 줄을 채워 지우면 그 줄의 카드 10장으로 포커 족보를 계산해 점수를 얻는다.
+// 점수 = (족보 기본 칩 + 족보를 이룬 카드의 칩) × 배수. 여러 줄을 함께 지우면 줄 보너스 배수.
+// 라운드마다 정해진 블록 수 안에 목표 점수를 넘겨야 한다.
+// =====================================================================
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const W = 1280, H = 700;
+const COLS = 10, ROWS = 16, CELL = 36, OX = 460, OY = 70;
+const PIECE_COL = { I:'#7fd6ff', O:'#ffd96a', T:'#c890ff', S:'#9cffb0', Z:'#ff8a7a', L:'#ffb36a', J:'#6a9cff' };
+const SUITS = ['♠', '♥', '♦', '♣'];
+const SUIT_COL = { '♠': '#cfe4ff', '♥': '#ff6a8a', '♦': '#ff9a6a', '♣': '#8affc4' };
+const RANK_TXT = r => ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[r] || String(r);
+const chipOf = r => r === 14 ? 11 : Math.min(10, r);
+const BASE = {
+  I:[[0,1],[1,1],[2,1],[3,1]], O:[[1,0],[2,0],[1,1],[2,1]], T:[[1,0],[0,1],[1,1],[2,1]],
+  S:[[1,0],[2,0],[0,1],[1,1]], Z:[[0,0],[1,0],[1,1],[2,1]], L:[[2,0],[0,1],[1,1],[2,1]], J:[[0,0],[0,1],[1,1],[2,1]],
+};
+const SHAPES = {};
+for (const t in BASE) {
+  const n = t === 'I' ? 4 : 3; let cur = BASE[t]; SHAPES[t] = [cur];
+  for (let r = 1; r < 4; r++) { cur = t === 'O' ? cur.map(([x, y]) => [2 - y, x - 1]) : cur.map(([x, y]) => [n - 1 - y, x]); SHAPES[t].push(cur); }
+}
+const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[0,1]];
+
+// ---------------------------------------------------------------- 족보
+const HANDS = {
+  straightFlush: { name: '스트레이트 플러시', chips: 100, mult: 8 },
+  four:          { name: '포카드',           chips: 60,  mult: 7 },
+  fullHouse:     { name: '풀하우스',         chips: 40,  mult: 4 },
+  flush:         { name: '플러시',           chips: 35,  mult: 4 },
+  straight:      { name: '스트레이트',       chips: 30,  mult: 4 },
+  three:         { name: '트리플',           chips: 30,  mult: 3 },
+  twoPair:       { name: '투 페어',          chips: 20,  mult: 2 },
+  pair:          { name: '원 페어',          chips: 10,  mult: 2 },
+  high:          { name: '하이 카드',        chips: 5,   mult: 1 },
+};
+const HAND_ORDER = ['straightFlush', 'four', 'fullHouse', 'flush', 'straight', 'three', 'twoPair', 'pair', 'high'];
+const LINE_MULT = [0, 1, 1.5, 2, 3];
+// 줄 안에서 왼쪽부터 순서대로 이어진 스트레이트 (올라가거나 내려가거나). A는 1로도 쓸 수 있다.
+function positionalStraights(cards) {
+  const out = [];
+  for (let i = 0; i < cards.length; i++) for (const dir of [1, -1]) for (const aceLow of [false, true]) {
+    const val = c => aceLow && c.r === 14 ? 1 : c.r;
+    let j = i + 1; while (j < cards.length && val(cards[j]) === val(cards[j - 1]) + dir) j++;
+    if (j - i >= 5) out.push(cards.slice(i, j).slice(0, 5));
+  }
+  return out;
+}
+function evaluateRow(cards, rules = {}) {
+  const byRank = {}, bySuit = {};
+  cards.forEach(c => { (byRank[c.r] ||= []).push(c); (bySuit[c.s] ||= []).push(c); });
+  const groups = Object.values(byRank).sort((a, b) => b.length - a.length || b[0].r - a[0].r);
+  const straights = positionalStraights(cards);
+  const sf = straights.find(st => st.every(c => c.s === st[0].s));
+  const flushSuit = Object.keys(bySuit).find(s => bySuit[s].length >= 5);
+  let key, used;
+  if (sf) { key = 'straightFlush'; used = sf; }
+  else if (groups[0].length >= 4) { key = 'four'; used = groups[0].slice(0, 4); }
+  else if (groups[0].length === 3 && groups[1] && groups[1].length >= 2) { key = 'fullHouse'; used = [...groups[0], ...groups[1].slice(0, 2)]; }
+  else if (flushSuit) { key = 'flush'; used = bySuit[flushSuit].slice().sort((a, b) => b.r - a.r).slice(0, 5); }
+  else if (straights.length) { key = 'straight'; used = straights.sort((a, b) => b.reduce((s, c) => s + chipOf(c.r), 0) - a.reduce((s, c) => s + chipOf(c.r), 0))[0]; }
+  else if (groups[0].length === 3) { key = 'three'; used = groups[0]; }
+  else if (groups[0].length === 2 && groups[1] && groups[1].length === 2) { key = 'twoPair'; used = [...groups[0], ...groups[1]]; }
+  else if (groups[0].length === 2) { key = 'pair'; used = groups[0]; }
+  else { key = 'high'; used = [cards.slice().sort((a, b) => b.r - a.r)[0]]; }
+  const h = HANDS[key];
+  const counted = used.filter(c => !(rules.noRed && (c.s === '♥' || c.s === '♦')));
+  const chips = h.chips + counted.reduce((s, c) => s + chipOf(c.r), 0);
+  return { key, name: h.name, chips, mult: h.mult, score: chips * h.mult, used };
+}
+function scoreRows(rowsCards, rules = {}) {
+  const results = rowsCards.map(cards => evaluateRow(cards, rules));
+  const n = results.length;
+  let total = Math.round(results.reduce((s, r) => s + r.score, 0) * LINE_MULT[n]);
+  if (rules.noSingle && n === 1) total = 0;
+  return { results, lineMult: LINE_MULT[n], total };
+}
+
+// ---------------------------------------------------------------- 라운드
+const ROUNDS = [
+  { target: 250 }, { target: 400 }, { target: 600, boss: 'noHold' },
+  { target: 800 }, { target: 1000 }, { target: 1300, boss: 'noRed' },
+  { target: 1600 }, { target: 2000, boss: 'noSingle' },
+];
+const BOSS_TEXT = { noHold: '보스: 보관(HOLD) 금지', noRotate: '보스: 회전 금지', noRed: '보스: 빨간 카드(♥♦)는 칩 0', noSingle: '보스: 한 줄만 지우면 점수 0' };
+const PIECES_PER_ROUND = 24;
+
+let S;
+function newRun() { S = { round: 0, totalScore: 0, best: null, started: S ? S.started : false }; startRound(); }
+function startRound() {
+  Object.assign(S, {
+    board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
+    deck: [], bag: [], next: [], hold: null, canHold: true, piece: null,
+    score: 0, piecesLeft: PIECES_PER_ROUND, lines: 0, anim: null, lastResult: null,
+    phase: 'play', fx: [], texts: [],
+  });
+  for (let i = 0; i < 3; i++) S.next.push(makePiece());
+  spawnPiece();
+}
+const rules = () => { const b = ROUNDS[S.round].boss; return { noRed: b === 'noRed', noSingle: b === 'noSingle', noRotate: b === 'noRotate', noHold: b === 'noHold' }; };
+function drawCard() {
+  if (!S.deck.length) { for (const s of SUITS) for (let r = 2; r <= 14; r++) S.deck.push({ r, s }); for (let i = S.deck.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.deck[i], S.deck[j]] = [S.deck[j], S.deck[i]]; } }
+  return S.deck.pop();
+}
+function fromBag() {
+  if (!S.bag.length) { S.bag = Object.keys(BASE); for (let i = S.bag.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.bag[i], S.bag[j]] = [S.bag[j], S.bag[i]]; } }
+  return S.bag.pop();
+}
+function makePiece() { return { t: fromBag(), cards: [drawCard(), drawCard(), drawCard(), drawCard()] }; }
+function spawnPiece() {
+  if (S.piecesLeft <= 0) { endRound(); return; }
+  const p = S.next.shift(); while (S.next.length < 3) S.next.push(makePiece());
+  S.piece = { ...p, r: 0, x: 3, y: 0 };
+  if (collide(S.piece, S.piece.x, S.piece.y, S.piece.r)) { S.phase = 'over'; S.overWhy = '블록이 천장에 닿았다'; }
+}
+const cellsOf = (p, x = p.x, y = p.y, r = p.r) => SHAPES[p.t][r].map(([dx, dy]) => [x + dx, y + dy]);
+const collide = (p, x, y, r) => cellsOf(p, x, y, r).some(([cx, cy]) => cx < 0 || cx >= COLS || cy >= ROWS || cy < 0 || S.board[cy][cx]);
+const landY = p => { let y = p.y; while (!collide(p, p.x, y + 1, p.r)) y++; return y; };
+
+// ---------------------------------------------------------------- 조작 (턴 방식: 저절로 떨어지지 않음)
+function move(dx) { const p = S.piece; if (S.phase === 'play' && p && !collide(p, p.x + dx, p.y, p.r)) p.x += dx; }
+function rotate(dir) {
+  const p = S.piece; if (S.phase !== 'play' || !p) return;
+  if (rules().noRotate) { popText('회전 금지 라운드', 4.5, 2, '#ff6a6a'); return; }
+  const nr = (p.r + dir + 4) % 4;
+  for (const [kx, ky] of KICKS) if (!collide(p, p.x + kx, p.y + ky, nr)) { p.x += kx; p.y += ky; p.r = nr; return; }
+}
+function holdPiece() {
+  if (S.phase !== 'play' || !S.canHold) return;
+  if (rules().noHold) { popText('보관 금지 라운드', 4.5, 2, '#ff6a6a'); return; }
+  const cur = { t: S.piece.t, cards: S.piece.cards };
+  if (S.hold) { const h = S.hold; S.hold = cur; S.piece = { ...h, r: 0, x: 3, y: 0 }; } else { S.hold = cur; const left = S.piecesLeft; S.piecesLeft++; spawnPiece(); S.piecesLeft = left; }
+  S.canHold = false;
+}
+// 이 자리에 떨어뜨리면 지워질 줄과 점수 미리보기
+function preview() {
+  const p = S.piece; if (!p) return null; const y = landY(p);
+  const b = S.board.map(r => r.slice()); cellsOf(p, p.x, y).forEach(([x, yy], i) => b[yy][x] = { t: p.t, card: p.cards[i] });
+  const full = []; for (let r = 0; r < ROWS; r++) if (b[r].every(c => c)) full.push(r);
+  if (!full.length) return { y, full };
+  return { y, full, ...scoreRows(full.map(r => b[r].map(c => c.card)), rules()) };
+}
+function drop() {
+  if (S.phase !== 'play' || !S.piece) return;
+  const p = S.piece, y = landY(p);
+  cellsOf(p, p.x, y).forEach(([x, yy], i) => S.board[yy][x] = { t: p.t, card: p.cards[i] });
+  S.piece = null; S.canHold = true; S.piecesLeft--;
+  const full = []; for (let r = 0; r < ROWS; r++) if (S.board[r].every(c => c)) full.push(r);
+  if (full.length) {
+    const res = scoreRows(full.map(r => S.board[r].map(c => c.card)), rules());
+    S.anim = { rows: full, res, t: 0, dur: 1.2 + .25 * full.length }; S.phase = 'scoring';
+  } else afterTurn();
+}
+function finishScoring() {
+  const { rows, res } = S.anim;
+  for (const y of rows.slice().sort((a, b) => a - b)) { S.board.splice(y, 1); S.board.unshift(Array(COLS).fill(null)); }
+  S.score += res.total; S.totalScore += res.total; S.lines += rows.length; S.lastResult = res;
+  if (!S.best || res.total > S.best.total) S.best = { total: res.total, name: res.results.map(r => r.name).join(' + '), round: S.round + 1 };
+  S.anim = null; S.phase = 'play'; afterTurn();
+}
+function afterTurn() {
+  if (S.score >= ROUNDS[S.round].target) { S.phase = 'clear'; S.bonus = S.piecesLeft; return; }
+  if (S.piecesLeft <= 0) { endRound(); return; }
+  spawnPiece();
+}
+function endRound() { if (S.score >= ROUNDS[S.round].target) { S.phase = 'clear'; S.bonus = 0; } else { S.phase = 'over'; S.overWhy = `블록 ${PIECES_PER_ROUND}개를 다 썼지만 목표 점수에 못 미쳤다`; } }
+function nextRound() { if (S.phase !== 'clear') return; S.round++; if (S.round >= ROUNDS.length) { S.phase = 'win'; return; } startRound(); }
+function popText(s, x, y, col) { S.texts.push({ s, x, y, t: 1.2, col }); }
+
+// ---------------------------------------------------------------- 그리기
+const X = x => OX + x * CELL, Y = y => OY + y * CELL;
+const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = b; };
+function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left', weight = '') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${weight} ${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
+function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
+function cardCell(px, py, t, card, o = {}) {
+  const a = o.alpha ?? 1, s = o.size ?? CELL; g.globalAlpha = a;
+  g.lineWidth = o.hot ? 2.2 : 1.4; glow(o.hot ? '#ffffff' : PIECE_COL[t], o.hot ? 18 : 8); if (o.dash) g.setLineDash([3, 4]);
+  g.strokeRect(px + 2, py + 2, s - 4, s - 4); g.setLineDash([]);
+  if (card && !o.dash) {
+    const col = SUIT_COL[card.s]; g.shadowColor = col; g.shadowBlur = o.hot ? 10 : 4; g.fillStyle = col;
+    g.font = `bold ${Math.round(s * .36)}px "DejaVu Sans Mono", monospace`; g.textAlign = 'left'; g.fillText(RANK_TXT(card.r), px + 5, py + s * .42);
+    g.font = `${Math.round(s * .42)}px "DejaVu Sans", sans-serif`; g.textAlign = 'right'; g.fillText(card.s, px + s - 4, py + s - 5); g.textAlign = 'left';
+  }
+  g.globalAlpha = 1;
+}
+function drawMini(p, x0, y0, s = 22) { if (!p) return; SHAPES[p.t][0].forEach(([x, y], i) => cardCell(x0 + x * s, y0 + y * s, p.t, p.cards[i], { size: s })); }
+function draw() {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.shadowBlur = 0; g.fillStyle = '#06060b'; g.fillRect(0, 0, W, H);
+  const R = ROUNDS[Math.min(S.round, ROUNDS.length - 1)];
+  // 우물
+  g.strokeStyle = 'rgba(120,140,180,.07)'; g.lineWidth = 1;
+  for (let x = 1; x < COLS; x++) { g.beginPath(); g.moveTo(X(x), OY); g.lineTo(X(x), Y(ROWS)); g.stroke(); }
+  for (let y = 1; y < ROWS; y++) { g.beginPath(); g.moveTo(OX, Y(y)); g.lineTo(X(COLS), Y(y)); g.stroke(); }
+  g.lineWidth = 1.5; glow('rgba(127,214,255,.5)', 8); g.strokeRect(OX, OY, COLS * CELL, ROWS * CELL);
+  const hotCards = new Set(); const animRows = new Set(S.anim ? S.anim.rows : []);
+  if (S.anim) S.anim.res.results.forEach(r => r.used.forEach(c => hotCards.add(c)));
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = S.board[y][x]; if (!c) continue;
+    const inRow = animRows.has(y); cardCell(X(x), Y(y), c.t, c.card, { hot: inRow && hotCards.has(c.card), alpha: inRow && !hotCards.has(c.card) ? .45 : 1 }); }
+  // 미리보기와 현재 블록
+  let pv = null;
+  if (S.piece && S.phase === 'play') {
+    pv = preview(); const p = S.piece;
+    if (pv.full.length) pv.full.forEach(r => { g.shadowBlur = 0; g.fillStyle = 'rgba(255,217,106,.08)'; g.fillRect(OX, Y(r), COLS * CELL, CELL); });
+    cellsOf(p, p.x, pv.y).forEach(([x, y]) => cardCell(X(x), Y(y), p.t, null, { alpha: .45, dash: true }));
+    cellsOf(p).forEach(([x, y], i) => cardCell(X(x), Y(y), p.t, p.cards[i]));
+  }
+  // 점수 계산 연출
+  if (S.anim) {
+    const a = S.anim, k = Math.min(1, a.t / (a.dur * .7));
+    // 지워지는 줄 바로 위, 판 안쪽에 족보 이름과 칩 × 배수를 띄운다
+    a.res.results.forEach((r, i) => { const cy = Y(a.rows[i]) - 16, cx = OX + COLS * CELL / 2;
+      g.shadowBlur = 0; g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(cx - 120, cy - 14, 240, 26); g.strokeStyle = 'rgba(255,217,106,.6)'; g.lineWidth = 1; g.strokeRect(cx - 120, cy - 14, 240, 26);
+      text(`${r.name}   ${Math.round(r.chips * Math.min(1, k * 1.5))} × ${r.mult}`, cx, cy + 4, '#ffd96a', 14, 'center', 'bold'); });
+    const total = Math.round(a.res.total * k);
+    text(`+${total.toLocaleString()}`, OX + COLS * CELL / 2, OY - 18, '#ffffff', 26, 'center', 'bold');
+    if (a.res.lineMult > 1) text(`${a.rows.length}줄 보너스 ×${a.res.lineMult}`, OX + COLS * CELL / 2, OY - 46, '#9cffb0', 13, 'center');
+  }
+  S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, X(t.x), Y(t.y) - (1.2 - t.t) * 30, t.col, 14, 'center'); g.globalAlpha = 1; });
+  // 왼쪽: 라운드
+  panel(30, 70, 390, 230);
+  text(`ROUND ${Math.min(S.round + 1, ROUNDS.length)} / ${ROUNDS.length}`, 48, 104, '#e8f0ff', 22);
+  text(R.boss ? BOSS_TEXT[R.boss] : '일반 라운드', 48, 128, R.boss ? '#ff6a8a' : '#8a94a6', 12);
+  text('목표', 48, 162, '#8a94a6', 12); text(R.target.toLocaleString(), 48, 190, '#ffd96a', 26, 'left', 'bold');
+  text('점수', 230, 162, '#8a94a6', 12); text(S.score.toLocaleString(), 230, 190, '#ffffff', 26, 'left', 'bold');
+  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(48, 206, 354, 6); glow('#ffd96a', 8); g.fillRect(48, 206, 354 * Math.min(1, S.score / R.target), 6);
+  text(`남은 블록 ${S.piecesLeft} / ${PIECES_PER_ROUND}`, 48, 240, '#7fd6ff', 14);
+  text(`지운 줄 ${S.lines}   누적 ${S.totalScore.toLocaleString()}`, 48, 264, '#8a94a6', 12);
+  if (S.best) text(`최고 한 방 ${S.best.total.toLocaleString()} (${S.best.name})`, 48, 286, '#8a94a6', 11);
+  // 왼쪽: 족보표
+  panel(30, 316, 390, 334); text('족보  (칩 × 배수, 줄의 카드 10장 중 최고)', 48, 342, '#7fd6ff', 12);
+  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = 368 + i * 24; const on = pv && pv.results && pv.results.some(r => r.key === k);
+    text(h.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${h.chips} × ${h.mult}`, 400, y, on ? '#ffd96a' : '#8a94a6', 13, 'right'); });
+  text('스트레이트는 줄 안에서 순서대로 이어져야 인정', 48, 590, '#5f6878', 11);
+  text('여러 줄 동시: ×1.5 / ×2 / ×3', 48, 610, '#5f6878', 11);
+  text('카드 칩: 숫자 그대로, J Q K 10, A 11', 48, 630, '#5f6878', 11);
+  // 오른쪽: 미리보기 점수, NEXT, HOLD
+  const RX = 860;
+  panel(RX, 70, 390, 150); text('이 자리에 떨어뜨리면', RX + 18, 96, '#7fd6ff', 12);
+  if (pv && pv.full.length) { pv.results.forEach((r, i) => text(`${r.name}  ${r.chips} × ${r.mult}`, RX + 18, 124 + i * 20, '#ffd96a', 13)); text(`= ${pv.total.toLocaleString()}점${pv.lineMult > 1 ? `  (×${pv.lineMult})` : ''}`, RX + 18, 124 + pv.results.length * 20 + 6, '#ffffff', 16, 'left', 'bold'); }
+  else if (S.phase === 'play') text('줄이 지워지지 않음', RX + 18, 124, '#5f6878', 13);
+  panel(RX, 236, 390, 250); text('NEXT', RX + 18, 262, '#7fd6ff', 12); S.next.slice(0, 3).forEach((p, i) => drawMini(p, RX + 20 + i * 124, 290));
+  text('HOLD', RX + 18, 390, '#7fd6ff', 12); drawMini(S.hold, RX + 20, 408);
+  panel(RX, 502, 390, 148); text('마지막 점수', RX + 18, 528, '#7fd6ff', 12);
+  if (S.lastResult) { S.lastResult.results.forEach((r, i) => text(`${r.name}  ${r.chips} × ${r.mult} = ${r.score}`, RX + 18, 556 + i * 20, '#cfd8e6', 12)); text(`합계 ${S.lastResult.total.toLocaleString()}`, RX + 18, 556 + S.lastResult.results.length * 20 + 4, '#ffffff', 14, 'left', 'bold'); }
+  text(`덱 남은 카드 ${S.deck.length}`, RX + 370, 528, '#5f6878', 11, 'right');
+  text('← → 이동   ↑/X 회전   Z 역회전   Space 떨어뜨리기   C 보관   Enter 다음 라운드', W / 2, H - 16, '#5f6878', 11, 'center');
+  // 오버레이
+  const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.86)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
+  if (!S.started) overlay('TETRIS POKER', '#7fd6ff', ['블록의 칸마다 카드가 붙어 있다. 한 줄을 채워 지우면 그 줄의 카드 10장으로 포커 족보 점수를 얻는다', '블록은 저절로 떨어지지 않는다. 천천히 자리를 고르고 Space로 떨어뜨려라', `라운드마다 블록 ${PIECES_PER_ROUND}개 안에 목표 점수를 넘겨라`], 'Enter 키 또는 화면을 눌러 시작');
+  else if (S.phase === 'clear') overlay(`ROUND ${S.round + 1} CLEAR`, '#9cffb0', [`점수 ${S.score.toLocaleString()} / 목표 ${R.target.toLocaleString()}`, `남은 블록 ${S.bonus}개`, S.round + 1 < ROUNDS.length ? `다음: ROUND ${S.round + 2}  목표 ${ROUNDS[S.round + 1].target.toLocaleString()}${ROUNDS[S.round + 1].boss ? '  · ' + BOSS_TEXT[ROUNDS[S.round + 1].boss] : ''}` : '마지막 라운드였다'], 'Enter 키 또는 화면을 눌러 계속');
+  else if (S.phase === 'over') overlay('GAME OVER', '#ff6a6a', [S.overWhy, `ROUND ${S.round + 1} · 점수 ${S.score.toLocaleString()} / ${R.target.toLocaleString()} · 누적 ${S.totalScore.toLocaleString()}`], 'R 키 또는 화면을 눌러 처음부터');
+  else if (S.phase === 'win') overlay('ALL CLEAR', '#ffd96a', [`8라운드를 모두 넘겼다 · 누적 ${S.totalScore.toLocaleString()}`, S.best ? `최고 한 방 ${S.best.total.toLocaleString()} (${S.best.name})` : ''], 'R 키 또는 화면을 눌러 다시');
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  try {
+    if (S.anim) { S.anim.t += dt; if (S.anim.t >= S.anim.dur) finishScoring(); }
+    S.texts.forEach(t => t.t -= dt); S.texts = S.texts.filter(t => t.t > 0);
+    draw();
+  } catch (err) { console.error(err); }
+  requestAnimationFrame(frame);
+}
+function act(a) {
+  if (!S.started) { S.started = true; return; }
+  if (S.phase === 'over' || S.phase === 'win') { if (a === 'restart' || a === 'tap' || a === 'next') newRun(); return; }
+  if (S.phase === 'clear') { if (a === 'next' || a === 'tap') nextRound(); return; }
+  ({ left: () => move(-1), right: () => move(1), rot: () => rotate(1), ccw: () => rotate(-1), drop, hold: holdPiece })[a]?.();
+}
+addEventListener('keydown', e => {
+  if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(e.key)) e.preventDefault();
+  const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'rot', x: 'rot', X: 'rot', z: 'ccw', Z: 'ccw', ' ': 'drop', c: 'hold', C: 'hold', Shift: 'hold', Enter: 'next', r: 'restart', R: 'restart' };
+  if (map[e.key]) act(map[e.key]);
+});
+cv.addEventListener('pointerdown', () => { if (!S.started || S.phase !== 'play') act('tap'); });
+document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => { ev.preventDefault(); act(b.dataset.a); }));
+newRun(); S.started = false;
+window.__tp = () => S;
+window.__api = { evaluateRow, scoreRows, move, rotate, drop, holdPiece, preview, nextRound, newRun, finishScoring, cellsOf, collide, landY, SHAPES, COLS, ROWS, ROUNDS };
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
