@@ -10,7 +10,7 @@
   body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
   canvas{display:block;width:100%;max-width:1280px;max-height:calc(100% - 80px);object-fit:contain;touch-action:none}
   #touch{display:none;gap:8px;flex-wrap:wrap;justify-content:center}
-  #touch button{font:600 18px/1 "DejaVu Sans Mono",monospace;color:#cfd8e6;background:transparent;border:1px solid rgba(127,214,255,.45);border-radius:6px;min-width:52px;height:48px;touch-action:manipulation}
+  #touch button{font:600 16px/1 "DejaVu Sans Mono","Noto Sans KR",monospace;color:#cfd8e6;background:transparent;border:1px solid rgba(127,214,255,.45);border-radius:6px;min-width:64px;height:48px;touch-action:manipulation}
   #touch button:active{background:rgba(127,214,255,.15)}
   #touch button:focus-visible{outline:2px solid #7fd6ff}
   @media (pointer: coarse){ #touch{display:flex} }
@@ -19,52 +19,54 @@
 <body>
 <canvas id="c" width="1280" height="720"></canvas>
 <div id="touch" aria-label="터치 조작">
-  <button data-a="swap" aria-label="카드 바꾸기">⇄</button>
-  <button data-a="bomb" aria-label="폭탄">B</button>
+  <button data-a="play" aria-label="족보 내기">내기</button>
+  <button data-a="clear" aria-label="선택 취소">취소</button>
+  <button data-a="discard" aria-label="버리기">버리기</button>
+  <button data-a="bomb" aria-label="폭탄">폭탄</button>
   <button data-a="mute" aria-label="소리 켜기/끄기">♪</button>
 </div>
 <script src="../tetris-poker/sounds.js"></script>
 <script>
 'use strict';
 // =====================================================================
-// 스택 포커 (가제): 카드를 쏘아 올려 족보를 맞추는 3줄 퍼즐
-// 참고: 액션퍼즐패밀리의 3줄 쌓기 모드. 블록 색 맞추기 대신 포커 족보로 터진다.
-//  - 카드 3줄이 위에 매달려 있고, 시간이 지나면 위에서 새 카드가 밀고 내려온다
-//  - 아래의 내 카드를 원하는 줄로 쏘면 그 줄 맨 아래에 붙는다
-//  - 그 줄 맨 아래 카드 3~5장이 족보면 터진다 (순서 상관없음)
-//  - 줄이 경고선에 닿으면 그 줄이 폭발해 전부 사라지고 시간이 깎인다
-//  - 연속으로 터뜨리면 콤보 배수, 폭탄 게이지가 차면 모든 줄의 아래 3장을 날린다
-//  - 조커(BONUS)는 어떤 숫자·무늬로도 친다
+// 스택 포커 v2 (가제): 내려오는 카드를 골라 족보를 만드는 4줄 퍼즐
+// 참고: 액션퍼즐패밀리의 줄 쌓기 모드. 색 맞추기 대신 포커 족보.
+//  - 카드 4줄이 위에 매달려 있고, 위에서 새 카드가 계속 밀고 내려온다
+//  - 내려오는 카드 중에서 클릭해 고른다 (어느 줄이든 섞어 골라도 됨)
+//  - 고른 카드가 족보면 내서 터뜨린다 (Space 또는 오른쪽 클릭). 원 페어는 안 됨
+//  - 터진 카드 아래 카드는 위로 붙어 올라간다
+//  - 4초 안에 다음 족보를 내면 콤보 배수, 줄이 경고선에 닿으면 줄 폭발과 시간 -8초
+//  - 막히면 버리기(카드 1~2장, 시간 -3초), 폭탄 게이지가 차면 모든 줄 맨 아래 2장 폭파
 // =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1280, H = 720;
-const NCOL = 3, CW = 196, GAP = 18, FX = 343, FY = 64, CH = 38, MAXH = 13;
-const DANGER_Y = FY + MAXH * CH;          // 경고선
-const SHOOT_Y = DANGER_Y + 54;            // 내 카드 위치
+const NCOL = 4, CW = 142, GAP = 14, FX = 330, FY = 64, CH = 38, MAXH = 14;
+const PICK_DEPTH = 99;                   // 각 줄 맨 아래 몇 장까지 고를 수 있나 (99 = 전부)
+const DANGER_Y = FY + MAXH * CH;
 const colX = i => FX + i * (CW + GAP);
+const FIELD_R = colX(NCOL - 1) + CW;
 const SUITS = ['♠', '♥', '♦', '♣'];
 const SUIT_COL = { '♠': '#cfe4ff', '♥': '#ff6a8a', '♦': '#ffa86a', '♣': '#8affc4' };
 const JOKER_COL = '#ff9ad5';
 const RANKS = [1, 2, 3, 4, 5, 6, 7];
 const RANK_TXT = r => r === 1 ? 'A' : String(r);
 const chipOf = c => c.joker ? 10 : c.r === 1 ? 11 : c.r;
-const TIME_LIMIT = 90;
-const JOKER_RATE = 0.035;
+const TIME_LIMIT = 90, JOKER_RATE = 0.03, COMBO_WINDOW = 5, DISCARD_COST = 3, EXPLODE_COST = 8;
 
-// ---------------------------------------------------------------- 족보 (줄 맨 아래 n장, 순서 상관없음)
+// ---------------------------------------------------------------- 족보 (고른 카드 전부가 족보를 이뤄야 함, 순서 상관없음)
 const HANDS = {
   straightFlush: { name: '스트레이트 플러시', chips: 100, mult: 8, cond: '같은 무늬로 숫자 5개 연속' },
   five:          { name: '파이브 카드',       chips: 80,  mult: 8, cond: '같은 숫자 5장' },
   four:          { name: '포카드',            chips: 50,  mult: 5, cond: '같은 숫자 4장' },
-  fullHouse:     { name: '풀하우스',          chips: 40,  mult: 4, cond: '같은 숫자 3장 + 2장 (5장)' },
+  fullHouse:     { name: '풀하우스',          chips: 40,  mult: 4, cond: '같은 숫자 3장 + 2장' },
   flush:         { name: '플러시',            chips: 35,  mult: 4, cond: '같은 무늬 5장' },
-  straight:      { name: '스트레이트',        chips: 30,  mult: 3, cond: '숫자 4개 연속 (예: 3 4 5 6)' },
+  straight:      { name: '스트레이트',        chips: 30,  mult: 3, cond: '숫자 4~5개 연속 (예: 3 4 5 6)' },
   triple:        { name: '트리플',            chips: 20,  mult: 2, cond: '같은 숫자 3장' },
   twoPair:       { name: '투 페어',           chips: 15,  mult: 2, cond: '페어 두 쌍 (4장)' },
 };
 const HAND_ORDER = ['straightFlush', 'five', 'four', 'fullHouse', 'flush', 'straight', 'triple', 'twoPair'];
 function classify(cards) {
-  const n = cards.length, real = cards.filter(c => !c.joker), J = n - real.length;
+  const n = cards.length, real = cards.filter(c => !c.joker);
   const cnt = {}; real.forEach(c => cnt[c.r] = (cnt[c.r] || 0) + 1);
   const vals = Object.values(cnt), distinct = vals.length, maxCnt = Math.max(0, ...vals);
   const sameRank = distinct <= 1, sameSuit = new Set(real.map(c => c.s)).size <= 1;
@@ -76,104 +78,102 @@ function classify(cards) {
   const out = [];
   if (n === 3 && sameRank) out.push('triple');
   if (n === 4) { if (sameRank) out.push('four'); if (straight) out.push('straight'); if (distinct <= 2 && maxCnt <= 2) out.push('twoPair'); }
-  if (n === 5) { if (sameRank) out.push('five'); if (straight && sameSuit) out.push('straightFlush'); if (distinct <= 2 && maxCnt <= 3) out.push('fullHouse'); if (sameSuit) out.push('flush'); }
+  if (n === 5) { if (sameRank) out.push('five'); if (straight && sameSuit) out.push('straightFlush'); if (distinct <= 2 && maxCnt <= 3) out.push('fullHouse'); if (sameSuit) out.push('flush'); if (straight) out.push('straight'); }
   return out;
 }
-// 줄 맨 아래에서 가장 점수가 큰 족보
-function bestHand(col) {
+function evalHand(cards) {
   let best = null;
-  for (const n of [5, 4, 3]) {
-    if (col.length < n) continue; const cards = col.slice(-n);
-    for (const key of classify(cards)) {
-      const h = HANDS[key], chips = h.chips + cards.reduce((s, c) => s + chipOf(c), 0), score = chips * h.mult;
-      if (!best || score > best.score) best = { key, name: h.name, n, cards, chips, mult: h.mult, score };
-    }
+  for (const key of classify(cards)) {
+    const h = HANDS[key], chips = h.chips + cards.reduce((s, c) => s + chipOf(c), 0), score = chips * h.mult;
+    if (!best || score > best.score) best = { key, name: h.name, chips, mult: h.mult, score };
   }
   return best;
 }
-const comboMult = c => 1 + 0.5 * Math.max(0, c - 1);
+const comboMult = c => Math.min(3, 1 + 0.25 * Math.max(0, c - 1)); // 최대 ×3
 
 // ---------------------------------------------------------------- 상태
 let S;
 function newGame() {
-  S = { phase: S && S.phase !== 'title' ? 'play' : 'title', cols: [[], [], []], sel: 1, deck: [], cur: null, next: [], score: 0, time: TIME_LIMIT, elapsed: 0,
-    combo: 0, maxCombo: 0, bomb: 0, pushT: 2, fx: [], texts: [], shots: [], drop: [0, 0, 0], last: null, bursts: 0, explodes: 0, now: 0,
-    best: S ? S.best : loadBest(), newBest: false };
-  for (let i = 0; i < NCOL; i++) for (let k = 0; k < 4; k++) S.cols[i].unshift(drawCard(false));
-  S.cur = drawCard(); S.next = [drawCard(), drawCard()];
+  S = { phase: S && S.phase !== 'title' ? 'play' : 'title', cols: [[], [], [], []], sel: [], deck: [], score: 0, time: TIME_LIMIT, elapsed: 0,
+    combo: 0, comboT: 0, maxCombo: 0, bomb: 0, pushT: 1.5, fx: [], texts: [], last: null, hands: 0, explodes: 0, discards: 0, now: 0, shake: 0,
+    best: S ? S.best : loadBest(), newBest: false, paused: false };
+  for (let i = 0; i < NCOL; i++) for (let k = 0; k < 7; k++) { const c = drawCard(false); S.cols[i].unshift(c); }
+  S.cols.forEach(col => col.forEach((c, k) => c.y = FY + k * CH));
 }
-function loadBest() { try { return +localStorage.getItem('stackPokerBest') || 0; } catch (e) { return 0; } }
-function saveBest(v) { try { localStorage.setItem('stackPokerBest', String(v)); } catch (e) {} }
+function loadBest() { try { return +localStorage.getItem('stackPokerBest2') || 0; } catch (e) { return 0; } }
+function saveBest(v) { try { localStorage.setItem('stackPokerBest2', String(v)); } catch (e) {} }
 function drawCard(allowJoker = true) {
-  if (allowJoker && Math.random() < JOKER_RATE) return { joker: true };
+  if (allowJoker && Math.random() < JOKER_RATE) return { joker: true, y: FY - CH };
   if (!S.deck.length) { for (let k = 0; k < 2; k++) for (const s of SUITS) for (const r of RANKS) S.deck.push({ r, s }); for (let i = S.deck.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.deck[i], S.deck[j]] = [S.deck[j], S.deck[i]]; } }
-  const c = S.deck.pop(); return { r: c.r, s: c.s };
+  const c = S.deck.pop(); return { r: c.r, s: c.s, y: FY - CH };
 }
-const pushInterval = () => Math.max(0.85, 2.3 - S.elapsed * 0.017);
+const pushInterval = () => Math.max(0.42, 0.95 - S.elapsed * 0.0055); // 처음 초당 약 1.05장 → 90초 무렵 약 2.2장
+const colOf = c => S.cols.findIndex(col => col.includes(c));
+const pickable = c => { const i = colOf(c); if (i < 0) return false; const col = S.cols[i]; return col.indexOf(c) >= col.length - PICK_DEPTH; };
+const selHand = () => S.sel.length >= 3 ? evalHand(S.sel) : null;
 
 // ---------------------------------------------------------------- 조작
-function select(i) { if (S.phase !== 'play') return; const n = Math.max(0, Math.min(NCOL - 1, i)); if (n !== S.sel) { S.sel = n; sfx('Move'); } }
-function swap() { if (S.phase !== 'play') return; [S.cur, S.next[0]] = [S.next[0], S.cur]; sfx('Hold'); }
-function shoot(i = S.sel) {
+function toggle(c) {
+  if (S.phase !== 'play' || !pickable(c)) return;
+  const k = S.sel.indexOf(c);
+  if (k >= 0) S.sel.splice(k, 1); else if (S.sel.length < 5) S.sel.push(c); else return;
+  sfx(k >= 0 ? 'Lock' : 'Move');
+}
+function clearSel() { if (S.sel.length) { S.sel = []; sfx('Lock'); } }
+function removeCards(cards, kind) {
+  for (const c of cards) { const i = colOf(c); if (i < 0) continue; const col = S.cols[i]; col.splice(col.indexOf(c), 1); S.fx.push({ kind, x: colX(i), y: c.y, c, t: .45 }); }
+}
+function playHand() {
   if (S.phase !== 'play') return;
-  S.sel = i; const card = S.cur; S.cur = S.next.shift(); S.next.push(drawCard());
-  const col = S.cols[i];
-  S.shots.push({ card, col: i, fromY: SHOOT_Y, toY: FY + col.length * CH + S.drop[i], t: 0 });
-  col.push(card); sfx('HardDrop');
-  resolve(i, true);
+  const h = selHand();
+  if (!h) { if (S.sel.length) { popText(S.sel.length < 3 ? '3장 이상 골라야 한다' : '족보가 아니다', (FX + FIELD_R) / 2, DANGER_Y + 40, '#ff6a6a'); sfx('Denied'); } return; }
+  S.combo = S.comboT > 0 ? S.combo + 1 : 1; S.comboT = COMBO_WINDOW; S.maxCombo = Math.max(S.maxCombo, S.combo);
+  const sc = Math.round(h.score * comboMult(S.combo));
+  const cx = S.sel.reduce((a, c) => a + colX(colOf(c)) + CW / 2, 0) / S.sel.length, cy = S.sel.reduce((a, c) => a + c.y, 0) / S.sel.length;
+  removeCards(S.sel, 'burst'); S.sel = [];
+  S.score += sc; S.hands++; S.bomb = Math.min(100, S.bomb + 8 + h.chips / 8);
+  S.last = { name: h.name, chips: h.chips, mult: h.mult, combo: S.combo, score: sc };
+  popText(`${h.name}  ${h.chips}×${h.mult}`, cx, cy, h.key === 'flush' || h.key === 'straightFlush' ? '#ff9ad5' : '#ffd96a');
+  popText(`+${sc.toLocaleString()}${S.combo > 1 ? `  콤보 ${S.combo} ×${comboMult(S.combo)}` : ''}`, cx, cy + 24, S.combo > 1 ? '#9cffb0' : '#ffffff', true);
+  sfx('Burst', S.combo, h.key === 'five' || h.key === 'straightFlush' ? 2 : ['four', 'fullHouse', 'flush'].includes(h.key) ? 1 : 0);
+  if (h.key === 'flush' || h.key === 'straightFlush') sfx('Flush');
+  if (h.key === 'straight' || h.key === 'straightFlush') sfx('Straight', 4);
 }
-function resolve(i, fromShot) {
-  const col = S.cols[i]; let chain = 0, got = false;
-  while (true) {
-    const h = bestHand(col); if (!h) break;
-    chain++; got = true;
-    if (chain === 1) S.combo++;
-    const sc = Math.round(h.score * comboMult(S.combo) * chain);
-    S.score += sc; S.bursts++; S.maxCombo = Math.max(S.maxCombo, S.combo);
-    S.bomb = Math.min(100, S.bomb + 6 + h.n * 2);
-    const y0 = FY + (col.length - h.n) * CH;
-    S.fx.push({ kind: 'burst', col: i, cards: h.cards.slice(), y: y0, t: .45 });
-    col.splice(col.length - h.n, h.n);
-    S.last = { name: h.name, chips: h.chips, mult: h.mult, combo: S.combo, chain, score: sc };
-    popText(`${h.name}  ${h.chips}×${h.mult}`, colX(i) + CW / 2, y0 + 10, h.key === 'flush' || h.key === 'straightFlush' ? '#ff9ad5' : '#ffd96a');
-    popText(`+${sc.toLocaleString()}${S.combo > 1 ? `  콤보 ${S.combo} ×${comboMult(S.combo)}` : ''}${chain > 1 ? `  연쇄 ×${chain}` : ''}`, colX(i) + CW / 2, y0 + 34, S.combo > 1 ? '#9cffb0' : '#ffffff', true);
-    sfx('Burst', S.combo, h.key === 'five' || h.key === 'straightFlush' ? 2 : ['four', 'fullHouse', 'flush'].includes(h.key) ? 1 : 0);
-    if (h.key === 'flush' || h.key === 'straightFlush') sfx('Flush');
-    if (h.key === 'straight' || h.key === 'straightFlush') sfx('Straight', 4);
-  }
-  if (fromShot && !got) { if (S.combo > 1) popText('콤보 끊김', colX(i) + CW / 2, SHOOT_Y - 40, '#8a94a6'); S.combo = 0; }
-  checkDanger(i);
-}
-function checkDanger(i) {
-  if (S.cols[i].length < MAXH) return;
-  const n = S.cols[i].length; S.fx.push({ kind: 'explode', col: i, cards: S.cols[i].slice(), y: FY + S.drop[i], t: .6 });
-  S.cols[i] = []; S.time = Math.max(0, S.time - 8); S.combo = 0; S.explodes++;
-  popText(`줄 폭발! 시간 -8초`, colX(i) + CW / 2, FY + 200, '#ff6a6a', true); sfx('Denied'); sfx('GameOver');
-  if (n) S.shake = .35;
+function discard() {
+  if (S.phase !== 'play') return;
+  if (!S.sel.length || S.sel.length > 2) { popText('버리기: 카드를 1~2장 고른 뒤', (FX + FIELD_R) / 2, DANGER_Y + 40, '#8a94a6'); sfx('Denied'); return; }
+  removeCards(S.sel, 'drop'); S.sel = []; S.time = Math.max(0, S.time - DISCARD_COST); S.discards++; S.combo = 0; S.comboT = 0;
+  popText(`버림  시간 -${DISCARD_COST}초`, (FX + FIELD_R) / 2, DANGER_Y + 40, '#8a94a6'); sfx('HardDrop');
 }
 function bomb() {
   if (S.phase !== 'play' || S.bomb < 100) return;
-  S.bomb = 0; let sc = 0;
-  for (let i = 0; i < NCOL; i++) { const col = S.cols[i], k = Math.min(3, col.length); if (!k) continue; const cards = col.splice(col.length - k, k); sc += cards.reduce((s, c) => s + chipOf(c), 0) * 2;
-    S.fx.push({ kind: 'burst', col: i, cards, y: FY + col.length * CH, t: .45 }); }
-  S.score += sc; popText(`폭탄! +${sc}`, W / 2, FY + 160, '#ffd96a', true); sfx('HardDrop'); sfx('Flush'); S.shake = .25;
+  S.bomb = 0; let sc = 0; const cards = [];
+  S.cols.forEach(col => cards.push(...col.slice(-2)));
+  sc = cards.reduce((s, c) => s + chipOf(c), 0) * 2;
+  S.sel = S.sel.filter(c => !cards.includes(c)); removeCards(cards, 'burst');
+  S.score += sc; popText(`폭탄! +${sc}`, (FX + FIELD_R) / 2, FY + 200, '#ffd96a', true); sfx('HardDrop'); sfx('Flush'); S.shake = .25;
 }
 function push() {
-  // 가장 짧은 줄이 덜 자주 밀리도록 약간 가중치
-  const w = S.cols.map(c => 1 + c.length * 0.15), tot = w.reduce((a, b) => a + b, 0); let r = Math.random() * tot, i = 0; while (r > w[i]) { r -= w[i]; i++; }
-  S.cols[i].unshift(drawCard()); S.drop[i] -= CH; checkDanger(i);
+  const w = S.cols.map(c => 1 + c.length * 0.12), tot = w.reduce((a, b) => a + b, 0); let r = Math.random() * tot, i = 0; while (r > w[i] && i < NCOL - 1) { r -= w[i]; i++; }
+  S.cols[i].unshift(drawCard());
+  if (S.cols[i].length >= MAXH) explode(i);
+}
+function explode(i) {
+  const col = S.cols[i]; S.sel = S.sel.filter(c => !col.includes(c));
+  removeCards(col.slice(), 'explode'); S.time = Math.max(0, S.time - EXPLODE_COST); S.combo = 0; S.comboT = 0; S.explodes++; S.shake = .35;
+  popText(`줄 폭발! 시간 -${EXPLODE_COST}초`, colX(i) + CW / 2, FY + 200, '#ff6a6a', true); sfx('Denied'); sfx('GameOver');
 }
 function popText(s, x, y, col, big = false) { S.texts.push({ s, x, y, col, t: 1.1, big }); }
 
 function update(dt) {
   S.now += dt;
-  S.drop = S.drop.map(d => d < 0 ? Math.min(0, d + dt * 260) : 0);
-  S.shots.forEach(s => s.t += dt); S.shots = S.shots.filter(s => s.t < .12);
+  S.cols.forEach(col => col.forEach((c, k) => { const ty = FY + k * CH; c.y += (ty - c.y) * Math.min(1, dt * 14); }));
   if (S.shake) S.shake = Math.max(0, S.shake - dt);
   if (S.phase !== 'play' || S.paused) return;
   S.time -= dt; S.elapsed += dt;
+  if (S.comboT > 0) { S.comboT -= dt; if (S.comboT <= 0) S.combo = 0; }
   S.pushT -= dt; if (S.pushT <= 0) { S.pushT = pushInterval(); push(); }
-  if (S.time <= 0) { S.time = 0; S.phase = 'end'; if (S.score > S.best) { S.best = S.score; S.newBest = true; saveBest(S.best); } sfx('Clear'); }
+  if (S.time <= 0) { S.time = 0; S.phase = 'end'; S.sel = []; if (S.score > S.best) { S.best = S.score; S.newBest = true; saveBest(S.best); } sfx('Clear'); }
 }
 
 // ---------------------------------------------------------------- 그리기
@@ -181,12 +181,12 @@ const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadow
 function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left', weight = '') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${weight} ${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
 function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
 function rr(x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
-// 가로로 누운 카드: 왼쪽 숫자, 오른쪽 무늬
 function card(x, y, w, h, c, o = {}) {
   const a = o.alpha ?? 1; g.globalAlpha = a; const col = c.joker ? JOKER_COL : SUIT_COL[c.s];
-  g.lineWidth = o.hot ? 2.4 : 1.6; glow(o.hot ? '#ffffff' : col, o.hot ? 18 : 8); rr(x + 3, y + 3, w - 6, h - 6, 6); g.stroke();
+  if (o.sel) { g.shadowBlur = 0; g.fillStyle = 'rgba(255,217,106,.14)'; rr(x + 3, y + 3, w - 6, h - 6, 6); g.fill(); }
+  g.lineWidth = o.sel ? 2.6 : o.hot ? 2.2 : 1.6; glow(o.sel ? '#ffd96a' : o.hot ? '#ffffff' : col, o.sel || o.hot ? 18 : 8); rr(x + 3, y + 3, w - 6, h - 6, 6); g.stroke();
   g.shadowBlur = 5; g.fillStyle = col; g.textAlign = 'center';
-  if (c.joker) { g.font = `bold ${Math.round(h * .5)}px "DejaVu Sans Mono", monospace`; g.fillText('JOKER', x + w / 2, y + h * .68); }
+  if (c.joker) { g.font = `bold ${Math.round(h * .46)}px "DejaVu Sans Mono", monospace`; g.fillText('JOKER', x + w / 2, y + h * .66); }
   else {
     g.font = `bold ${Math.round(h * .55)}px "DejaVu Sans Mono", monospace`; g.fillText(RANK_TXT(c.r), x + w * .3, y + h * .7);
     g.font = `${Math.round(h * .55)}px "DejaVu Sans", sans-serif`; g.fillText(c.s, x + w * .7, y + h * .72);
@@ -196,73 +196,61 @@ function card(x, y, w, h, c, o = {}) {
 function draw() {
   g.setTransform(1, 0, 0, 1, 0, 0); g.shadowBlur = 0; g.fillStyle = '#06060b'; g.fillRect(0, 0, W, H);
   if (S.shake) { const k = S.shake * 14; g.translate((Math.random() - .5) * k, (Math.random() - .5) * k); }
-  const blink = (S.now * 4 | 0) % 2 === 0;
-  // 줄
+  const blink = (S.now * 4 | 0) % 2 === 0, play = S.phase === 'play';
+  const h = selHand();
   for (let i = 0; i < NCOL; i++) {
-    const x = colX(i), on = i === S.sel && S.phase === 'play';
-    g.lineWidth = 1; glow(on ? 'rgba(127,214,255,.55)' : 'rgba(127,214,255,.18)', on ? 10 : 0); g.strokeRect(x, FY, CW, DANGER_Y - FY);
-    if (on) { g.shadowBlur = 0; g.fillStyle = 'rgba(127,214,255,.04)'; g.fillRect(x, FY, CW, DANGER_Y - FY); }
-    const col = S.cols[i], pv = S.phase === 'play' && on ? bestHand(col.concat([S.cur])) : null;
-    const hotFrom = pv ? col.length + 1 - pv.n : 99;
-    // 페어 준비 표시: 맨 아래 두 장이 같은 숫자
-    col.forEach((c, k) => card(x, FY + k * CH + S.drop[i], CW, CH, c, { hot: k >= hotFrom && blink }));
-    const n = col.length;
-    if (n >= 2 && !col[n - 1].joker && !col[n - 2].joker && col[n - 1].r === col[n - 2].r) { glow('rgba(255,217,106,.45)', 10); g.lineWidth = 3; g.beginPath(); g.moveTo(x + 8, FY + (n - 2) * CH + S.drop[i] + CH / 2); g.lineTo(x + 8, FY + (n - 1) * CH + S.drop[i] + CH / 2); g.stroke(); }
-    // 붙을 자리 미리보기
-    if (on) { g.setLineDash([4, 4]); g.lineWidth = 1.4; glow(pv ? '#ffd96a' : 'rgba(127,214,255,.5)', 6); rr(x + 3, FY + n * CH + S.drop[i] + 3, CW - 6, CH - 6, 6); g.stroke(); g.setLineDash([]); }
-    // 쏘면 무엇이 되는지
-    if (S.phase === 'play') { const p = bestHand(col.concat([S.cur])); text(p ? `${p.name} +${Math.round(p.score * comboMult(S.combo + 1))}` : '-', x + CW / 2, DANGER_Y + 18, p ? '#ffd96a' : '#3f4756', 12, 'center', p ? 'bold' : ''); }
-    // 위험 표시
+    const x = colX(i), col = S.cols[i], n = col.length;
+    g.lineWidth = 1; glow('rgba(127,214,255,.18)', 0); g.strokeRect(x, FY, CW, DANGER_Y - FY);
+    // 고를 수 있는 구역 (PICK_DEPTH < 99일 때만 표시)
+    if (n && PICK_DEPTH < MAXH) { const top = col[Math.max(0, n - PICK_DEPTH)].y; g.shadowBlur = 0; g.fillStyle = 'rgba(127,214,255,.05)'; g.fillRect(x + 1, top, CW - 2, col[n - 1].y + CH - top); }
+    col.forEach(c => { const sel = S.sel.includes(c), canPick = play && pickable(c);
+      card(x, c.y, CW, CH, c, { sel, hot: sel && h && blink, alpha: canPick || !play ? 1 : .42 }); });
     if (n >= MAXH - 3) { g.globalAlpha = blink ? .9 : .4; text('위험', x + CW / 2, FY - 10, '#ff6a6a', 12, 'center', 'bold'); g.globalAlpha = 1; }
   }
-  // 경고선
-  g.lineWidth = 2; glow('rgba(255,106,106,.7)', 10); g.beginPath(); g.moveTo(FX - 10, DANGER_Y); g.lineTo(colX(NCOL - 1) + CW + 10, DANGER_Y); g.stroke();
-  // 쏘는 카드
-  S.shots.forEach(s => { const u = s.t / .12; card(colX(s.col), s.fromY + (s.toY - s.fromY) * u, CW, CH, s.card, { alpha: 1 - u * .3 }); });
-  if (S.phase === 'play' || S.phase === 'title') {
-    card(colX(S.sel), SHOOT_Y, CW, CH, S.cur, { hot: false });
-    glow('#7fd6ff', 8); g.lineWidth = 1.5; const ax = colX(S.sel) + CW / 2; g.beginPath(); g.moveTo(ax - 8, SHOOT_Y - 6); g.lineTo(ax, SHOOT_Y - 14); g.lineTo(ax + 8, SHOOT_Y - 6); g.stroke();
+  g.lineWidth = 2; glow('rgba(255,106,106,.7)', 10); g.beginPath(); g.moveTo(FX - 10, DANGER_Y); g.lineTo(FIELD_R + 10, DANGER_Y); g.stroke();
+  // 고른 카드 표시줄
+  const by = DANGER_Y + 18;
+  if (play) {
+    S.sel.forEach((c, k) => card(FX + k * 96, by, 90, 32, c, { sel: true }));
+    for (let k = S.sel.length; k < 5; k++) { g.setLineDash([4, 4]); g.lineWidth = 1; glow('rgba(127,214,255,.3)', 0); rr(FX + k * 96 + 3, by + 3, 84, 26, 6); g.stroke(); g.setLineDash([]); }
+    const tx = FX + 5 * 96 + 8;
+    if (h) { const cm = comboMult(S.comboT > 0 ? S.combo + 1 : 1); text(`${h.name}  ${h.chips}×${h.mult}`, tx, by + 14, '#ffd96a', 13, 'left', 'bold'); text(`= ${Math.round(h.score * cm).toLocaleString()}${cm > 1 ? ` (콤보 ×${cm})` : ''}  Space`, tx, by + 32, '#ffffff', 12); }
+    else text(S.sel.length ? (S.sel.length < 3 ? '3장 이상 고르기' : '족보 아님') : '카드를 클릭해 고르기', tx, by + 22, S.sel.length >= 3 ? '#ff6a6a' : '#5f6878', 12);
   }
   // 연출
-  S.fx.forEach(f => { const a = Math.min(1, f.t / (f.kind === 'explode' ? .6 : .45));
-    f.cards.forEach((c, k) => { const x = colX(f.col), y = f.y + k * CH;
-      card(x + (f.kind === 'explode' ? (k % 2 ? 1 : -1) * (1 - a) * 40 : 0), y - (1 - a) * 12, CW, CH, c, { hot: true, alpha: a });
-      glow(f.kind === 'explode' ? '#ff6a6a' : '#ffffff', 10); for (let i = 0; i < 6; i++) { const ang = i * 1.05 + k, r = (1 - a) * 60; g.globalAlpha = a; g.fillRect(x + CW / 2 + Math.cos(ang) * r * 1.6, y + CH / 2 + Math.sin(ang) * r * .6, 2.5, 2.5); } g.globalAlpha = 1; }); });
+  S.fx.forEach(f => { const a = Math.min(1, f.t / .45), x = f.x + (f.kind === 'explode' ? (f.c.y % 2 ? 1 : -1) * (1 - a) * 40 : 0), y = f.y - (f.kind === 'drop' ? -(1 - a) * 30 : (1 - a) * 12);
+    card(x, y, CW, CH, f.c, { hot: f.kind !== 'drop', alpha: a * (f.kind === 'drop' ? .6 : 1) });
+    if (f.kind !== 'drop') { glow(f.kind === 'explode' ? '#ff6a6a' : '#ffffff', 10); for (let i = 0; i < 6; i++) { const ang = i * 1.05 + f.y, r = (1 - a) * 60; g.globalAlpha = a; g.fillRect(f.x + CW / 2 + Math.cos(ang) * r * 1.3, f.y + CH / 2 + Math.sin(ang) * r * .6, 2.5, 2.5); } g.globalAlpha = 1; } });
   S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, t.x, t.y - (1.1 - t.t) * 30, t.col, t.big ? 20 : 14, 'center', 'bold'); g.globalAlpha = 1; });
 
-  // 왼쪽: 점수와 시간
-  panel(30, 64, 280, 250);
+  // 왼쪽
+  panel(30, 64, 270, 250);
   text('SCORE', 48, 94, '#8a94a6', 12); text(S.score.toLocaleString(), 48, 130, '#ffffff', 32, 'left', 'bold');
   text(`최고 ${S.best.toLocaleString()}`, 48, 156, '#8a94a6', 12);
-  text('TIME', 48, 188, '#8a94a6', 12); text(`${Math.ceil(S.time)}`, 292, 188, S.time < 15 ? '#ff6a6a' : '#7fd6ff', 14, 'right', 'bold');
-  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(48, 198, 244, 8); glow(S.time < 15 ? '#ff6a6a' : '#9cffb0', 8); g.fillRect(48, 198, 244 * S.time / TIME_LIMIT, 8);
-  text('COMBO', 48, 236, '#8a94a6', 12); text(S.combo > 1 ? `${S.combo}  ×${comboMult(S.combo)}` : '-', 292, 236, '#9cffb0', 16, 'right', 'bold');
-  text('BOMB', 48, 272, '#8a94a6', 12); g.strokeStyle = 'rgba(127,214,255,.5)'; g.strokeRect(110, 262, 182, 10);
-  glow(S.bomb >= 100 ? '#ffd96a' : '#ffa86a', S.bomb >= 100 ? 16 : 6); g.fillRect(110, 262, 182 * S.bomb / 100, 10);
-  if (S.bomb >= 100) text(blink ? 'B 키: 모든 줄 아래 3장 폭파!' : '', 48, 298, '#ffd96a', 12, 'left', 'bold');
-  panel(30, 330, 280, 336); text('터지는 족보  (칩 × 배수)', 48, 356, '#7fd6ff', 12);
-  const pvKey = S.phase === 'play' ? bestHand(S.cols[S.sel].concat([S.cur]))?.key : null;
-  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = 384 + i * 33, on = k === pvKey;
-    text(h.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${h.chips}×${h.mult}`, 292, y, on ? '#ffd96a' : '#8a94a6', 12, 'right'); text(h.cond, 48, y + 14, '#5f6878', 10); });
-  text('줄 맨 아래 카드로만 판정 · 순서 상관없음', 48, 654, '#5f6878', 10);
-
+  text('TIME', 48, 188, '#8a94a6', 12); text(`${Math.ceil(S.time)}`, 282, 188, S.time < 15 ? '#ff6a6a' : '#7fd6ff', 14, 'right', 'bold');
+  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(48, 198, 234, 8); glow(S.time < 15 ? '#ff6a6a' : '#9cffb0', 8); g.fillRect(48, 198, 234 * S.time / TIME_LIMIT, 8);
+  text('COMBO', 48, 236, '#8a94a6', 12); text(S.combo > 0 && S.comboT > 0 ? `${S.combo}  ×${comboMult(S.combo)}` : '-', 282, 236, '#9cffb0', 16, 'right', 'bold');
+  if (S.comboT > 0) { glow('#9cffb0', 6); g.fillRect(48, 244, 234 * S.comboT / COMBO_WINDOW, 3); }
+  text('BOMB', 48, 278, '#8a94a6', 12); g.strokeStyle = 'rgba(127,214,255,.5)'; g.shadowBlur = 0; g.strokeRect(100, 268, 182, 10);
+  glow(S.bomb >= 100 ? '#ffd96a' : '#ffa86a', S.bomb >= 100 ? 16 : 6); g.fillRect(100, 268, 182 * S.bomb / 100, 10);
+  if (S.bomb >= 100) text(blink ? 'B: 모든 줄 맨 아래 2장 폭파' : '', 48, 302, '#ffd96a', 12, 'left', 'bold');
+  panel(30, 330, 270, 336); text('족보  (칩 × 배수)', 48, 356, '#7fd6ff', 12);
+  HAND_ORDER.forEach((k, i) => { const hd = HANDS[k], y = 384 + i * 33, on = h && h.key === k;
+    text(hd.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${hd.chips}×${hd.mult}`, 282, y, on ? '#ffd96a' : '#8a94a6', 12, 'right'); text(hd.cond, 48, y + 14, '#5f6878', 10); });
+  text('원 페어 안 됨 · 고른 카드 전부가 족보여야 함', 48, 654, '#5f6878', 10);
   // 오른쪽
-  const RX = 970;
-  panel(RX, 64, 280, 200); text('NEXT', RX + 18, 90, '#7fd6ff', 12);
-  S.next.forEach((c, i) => card(RX + 18, 102 + i * 46, 150, 34, c, { alpha: i ? .6 : 1 }));
-  text('C / Shift: 지금 카드와 바꾸기', RX + 18, 210, '#5f6878', 11);
-  text(`조커(JOKER) = 아무 숫자·무늬`, RX + 18, 232, JOKER_COL, 11);
-  panel(RX, 280, 280, 150); text('마지막 족보', RX + 18, 306, '#7fd6ff', 12);
-  if (S.last) { text(S.last.name, RX + 18, 336, '#ffd96a', 16, 'left', 'bold'); text(`${S.last.chips} × ${S.last.mult}${S.last.combo > 1 ? ` × 콤보 ${comboMult(S.last.combo)}` : ''}${S.last.chain > 1 ? ` × 연쇄 ${S.last.chain}` : ''}`, RX + 18, 360, '#8a94a6', 12); text(`+${S.last.score.toLocaleString()}`, RX + 18, 392, '#ffffff', 20, 'left', 'bold'); }
-  panel(RX, 446, 280, 220); text('규칙', RX + 18, 472, '#7fd6ff', 12);
-  ['카드를 줄로 쏘면 맨 아래에 붙는다', '맨 아래 3~5장이 족보면 터진다', '위에서 카드가 계속 밀고 내려온다', '경고선에 닿으면 줄 폭발, 시간 -8초', '연속으로 터뜨리면 콤보 배수 상승', '못 터뜨리면 콤보가 끊긴다'].forEach((l, i) => text(l, RX + 18, 498 + i * 24, '#8a94a6', 11));
-  text('← → 또는 1 2 3 줄 고르기   Space/↑ 쏘기   C 바꾸기   B 폭탄   P 일시정지   M 소리   (줄을 눌러도 쏜다)', W / 2, H - 12, '#5f6878', 11, 'center');
+  const RX = 990;
+  panel(RX, 64, 260, 160); text('마지막 족보', RX + 18, 90, '#7fd6ff', 12);
+  if (S.last) { text(S.last.name, RX + 18, 120, '#ffd96a', 16, 'left', 'bold'); text(`${S.last.chips} × ${S.last.mult}${S.last.combo > 1 ? ` × 콤보 ${comboMult(S.last.combo)}` : ''}`, RX + 18, 144, '#8a94a6', 12); text(`+${S.last.score.toLocaleString()}`, RX + 18, 176, '#ffffff', 20, 'left', 'bold'); }
+  panel(RX, 240, 260, 426); text('규칙', RX + 18, 266, '#7fd6ff', 12);
+  ['위에서 카드가 계속 밀고 내려온다', '아무 카드나 클릭해서 고른다', '여러 줄에서 섞어 골라도 된다', '고른 카드가 족보면 Space로 내기', '터진 자리는 아래 카드가 위로 붙는다', `${COMBO_WINDOW}초 안에 또 내면 콤보 배수`, `경고선에 닿으면 줄 폭발, 시간 -${EXPLODE_COST}초`, `막히면 1~2장 버리기 (D), 시간 -${DISCARD_COST}초`, '조커 = 아무 숫자·무늬', '폭탄 게이지가 차면 B'].forEach((l, i) => text(l, RX + 18, 294 + i * 26, '#8a94a6', 11));
+  text('클릭 고르기   Space/Enter/오른쪽 클릭 내기   Esc 취소   D 버리기   B 폭탄   P 일시정지   M 소리', W / 2, H - 12, '#5f6878', 11, 'center');
 
   g.setTransform(1, 0, 0, 1, 0, 0);
   const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
-  if (S.paused && S.phase === 'play') { g.fillStyle = 'rgba(6,6,11,.8)'; g.fillRect(0, 0, W, H); text('PAUSED', W / 2, 340, '#7fd6ff', 30, 'center'); }
-  if (S.phase === 'title') overlay('STACK POKER', '#7fd6ff', ['카드를 3줄 중 하나로 쏘아 올린다. 줄 맨 아래 3~5장이 포커 족보면 터진다', '위에서 카드가 계속 밀고 내려온다. 경고선에 닿으면 줄이 폭발하고 시간이 깎인다', `${TIME_LIMIT}초 동안 최대한 높은 점수! 연속으로 터뜨리면 콤보 배수`], 'Enter 키 또는 화면을 눌러 시작');
-  else if (S.phase === 'end') overlay('TIME UP', '#9cffb0', [`점수 ${S.score.toLocaleString()}${S.newBest ? '   최고 기록!' : `   (최고 ${S.best.toLocaleString()})`}`, `터뜨린 족보 ${S.bursts} · 최대 콤보 ${S.maxCombo} · 줄 폭발 ${S.explodes}`], 'Enter 키 또는 화면을 눌러 다시');
+  if (S.paused && play) { g.fillStyle = 'rgba(6,6,11,.8)'; g.fillRect(0, 0, W, H); text('PAUSED', W / 2, 340, '#7fd6ff', 30, 'center'); }
+  if (S.phase === 'title') overlay('STACK POKER', '#7fd6ff', ['카드 4줄이 위에서 계속 밀고 내려온다', '내려오는 카드를 클릭해 골라 포커 족보를 만들어 터뜨린다 (어느 줄이든 섞어서)', `경고선에 닿으면 줄이 폭발하고 시간이 깎인다. ${TIME_LIMIT}초 동안 최대 점수!`], 'Enter 키 또는 화면을 눌러 시작');
+  else if (S.phase === 'end') overlay('TIME UP', '#9cffb0', [`점수 ${S.score.toLocaleString()}${S.newBest ? '   최고 기록!' : `   (최고 ${S.best.toLocaleString()})`}`, `낸 족보 ${S.hands} · 최대 콤보 ${S.maxCombo} · 줄 폭발 ${S.explodes} · 버리기 ${S.discards}`], 'Enter 키 또는 화면을 눌러 다시');
 }
 
 // ---------------------------------------------------------------- 소리 (테트리스 포커와 같은 합성 효과음)
@@ -282,24 +270,27 @@ function sfx(name, a = 0, b = 0) {
 // ---------------------------------------------------------------- 입력과 루프
 function act(a) {
   if (a === 'mute') { muted = !muted; return; }
-  if (S.phase === 'title') { if (a === 'start' || a === 'tap') { S.phase = 'play'; sfx('Start'); } return; }
-  if (S.phase === 'end') { if (a === 'start' || a === 'tap') { newGame(); S.phase = 'play'; sfx('Start'); } return; }
+  if (S.phase === 'title') { if (a === 'start' || a === 'tap' || a === 'play') { S.phase = 'play'; sfx('Start'); } return; }
+  if (S.phase === 'end') { if (a === 'start' || a === 'tap' || a === 'play') { newGame(); S.phase = 'play'; sfx('Start'); } return; }
   if (a === 'pause') { S.paused = !S.paused; return; } if (S.paused) return;
-  ({ left: () => select(S.sel - 1), right: () => select(S.sel + 1), shoot: () => shoot(), swap, bomb, c0: () => shoot(0), c1: () => shoot(1), c2: () => shoot(2) })[a]?.();
+  ({ play: playHand, start: playHand, clear: clearSel, discard, bomb })[a]?.();
 }
 addEventListener('keydown', e => {
-  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
-  if (e.repeat && !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
-  const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'shoot', ' ': 'shoot', Enter: 'start', c: 'swap', C: 'swap', Shift: 'swap', b: 'bomb', B: 'bomb', p: 'pause', P: 'pause', m: 'mute', M: 'mute', '1': 'c0', '2': 'c1', '3': 'c2' };
+  if ([' ', 'Enter'].includes(e.key)) e.preventDefault();
+  if (e.repeat) return;
+  const map = { ' ': 'play', Enter: 'start', Escape: 'clear', d: 'discard', D: 'discard', b: 'bomb', B: 'bomb', p: 'pause', P: 'pause', m: 'mute', M: 'mute' };
   if (map[e.key]) act(map[e.key]);
 });
 function toCanvas(ev) { const r = cv.getBoundingClientRect(), s = Math.min(r.width / W, r.height / H); return [(ev.clientX - r.left - (r.width - W * s) / 2) / s, (ev.clientY - r.top - (r.height - H * s) / 2) / s]; }
+cv.addEventListener('contextmenu', ev => ev.preventDefault());
 cv.addEventListener('pointerdown', ev => {
   if (S.phase !== 'play') { act('tap'); return; }
+  if (ev.button === 2) { playHand(); return; }
   const [x, y] = toCanvas(ev);
-  for (let i = 0; i < NCOL; i++) if (x >= colX(i) && x <= colX(i) + CW && y >= FY && y <= SHOOT_Y + CH) { shoot(i); return; }
-  if (x >= 970 && y >= 64 && y <= 264) swap();
-  else if (x < 320 && y >= 250 && y <= 310) bomb();
+  for (let i = 0; i < NCOL; i++) if (x >= colX(i) && x <= colX(i) + CW) { const c = S.cols[i].find(cc => y >= cc.y && y < cc.y + CH); if (c) { toggle(c); return; } }
+  // 아래 고른 카드 줄을 누르면 그 카드 빼기
+  const by = DANGER_Y + 18; if (y >= by && y <= by + 32) { const k = Math.floor((x - FX) / 96); if (k >= 0 && k < S.sel.length) { S.sel.splice(k, 1); sfx('Lock'); } else if (x > FX + 5 * 96) playHand(); }
+  else if (x < 310 && y >= 256 && y <= 310) bomb();
 });
 document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => { ev.preventDefault(); act(b.dataset.a); }));
 let last = performance.now();
@@ -310,7 +301,7 @@ function frame(now) {
 }
 newGame();
 window.__sp = () => S;
-window.__api = { classify, bestHand, shoot, swap, bomb, select, push, update, draw, newGame, act, setMuted: v => { muted = v; }, HANDS, NCOL, MAXH };
+window.__api = { classify, evalHand, toggle, playHand, discard, bomb, push, update, draw, newGame, act, pickable, setMuted: v => { muted = v; }, HANDS, NCOL, MAXH, PICK_DEPTH };
 requestAnimationFrame(frame);
 </script>
 </body>
