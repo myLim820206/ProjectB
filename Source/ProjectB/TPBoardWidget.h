@@ -22,7 +22,6 @@ public:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(1280.0, 720.0); }
 
 private:
 	struct FCanvas; // 그리기 도우미 (cpp 안에 정의)

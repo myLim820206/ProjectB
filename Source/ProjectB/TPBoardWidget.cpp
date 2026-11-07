@@ -338,9 +338,10 @@ int32 STPBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	// 창 전체 배경
 	FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), &WhiteBrush, ESlateDrawEffect::None, Hex(TEXT("06060b")));
 	// 1280 x 720 화면을 비율 유지하며 가운데에 맞춘다
-	const FVector2D Size = AllottedGeometry.GetLocalSize();
-	const float Scale = FMath::Max(0.01f, FMath::Min((float)Size.X / DesignW, (float)Size.Y / DesignH));
-	const FVector2f Offset(((float)Size.X - DesignW * Scale) / 2.f, ((float)Size.Y - DesignH * Scale) / 2.f);
+	const auto LocalSize = AllottedGeometry.GetLocalSize(); // 엔진 버전에 따라 FVector2D 또는 FVector2f
+	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
+	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
+	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
 	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
 	FCanvas C{OutDrawElements, Design, LayerId, &WhiteBrush};
 	PaintAll(C);

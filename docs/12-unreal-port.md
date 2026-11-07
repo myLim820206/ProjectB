@@ -8,7 +8,7 @@
 ### Windows
 1. Visual Studio 2022에 "C++를 사용한 게임 개발" 워크로드 설치
 2. `ProjectB.uproject`를 더블클릭 → "모듈을 다시 빌드할까요?"에서 **예**
-   - 엔진 버전이 다르다고 나오면 `ProjectB.uproject` 우클릭 → Switch Unreal Engine version → 설치된 버전 선택
+   - 엔진 버전을 물으면 `ProjectB.uproject` 우클릭 → Switch Unreal Engine version → 5.8 선택
 3. 에디터가 열리면 상단 **Play** 버튼. 게임 화면이 뜨면 Enter로 시작
 
 ### macOS
@@ -22,7 +22,7 @@
 ## 2. 구조
 
 ```
-ProjectB.uproject              엔진 버전 5.7로 지정 (다르면 바꿔도 됨)
+ProjectB.uproject              엔진 버전 5.8 (현재 사용 중인 5.8.4)
 Config/                        시작 맵(/Engine/Maps/Entry), 게임 모드, 해상도 1280x720
 Source/ProjectB/
   TPCore.h / .cpp              규칙 코어: 판, 카드, 블록, 족보 판정, 연쇄, 라운드 (언리얼 의존성 없는 순수 C++)
