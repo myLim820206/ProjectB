@@ -13,6 +13,8 @@ const { chromium } = require('playwright');
     const cases = [];
     const t = (label, cards, want) => { const got = A.evalHand(cards)?.key || 'none'; cases.push({ label, got, ok: got === want }); };
     t('트리플', [c(5, '♥'), c(5, '♦'), c(5)], 'triple');
+    t('원 페어', [c(4), c(4, '♥')], 'onePair');
+    t('다른 숫자 2장은 안 됨', [c(4), c(5, '♥')], 'none');
     t('트리플 + 남는 카드는 안 됨', [c(5, '♥'), c(5, '♦'), c(5), c(2)], 'none');
     t('투 페어', [c(3, '♥'), c(6), c(3, '♦'), c(6, '♣')], 'twoPair');
     t('스트레이트 4장', [c(5, '♥'), c(3), c(6, '♦'), c(4, '♣')], 'straight');
@@ -30,6 +32,11 @@ const { chromium } = require('playwright');
     A.toggle(s.cols[0][2]); A.toggle(s.cols[1][0]); A.toggle(s.cols[2][0]); A.playHand();
     const playOk = topBlocked && s.hands === 1 && s.cols[0].length === 4 && s.cols[0][2].r === 3 && s.score === (20 + 18) * 2 && s.combo === 1;
     A.update(1); A.toggle(s.cols[0][3]); const t0 = s.time; A.discard(); const discardOk = s.cols[0].length === 3 && s.time <= t0 - 3 && s.combo === 0;
+    // 원 페어: 콤보 시간은 이어주고 단계는 안 올림
+    A.newGame(); const s3 = S(); s3.phase = 'play'; s3.cols = [[c(2), c(2, '♥'), c(2, '♦'), c(5), c(5, '♥')], [], [], []];
+    [0, 1, 2].forEach(k => A.toggle(s3.cols[0][k])); A.playHand(); A.update(3); const left = s3.comboT;
+    A.toggle(s3.cols[0][0]); A.toggle(s3.cols[0][1]); A.playHand();
+    const pairOk = s3.combo === 1 && left < 3 && s3.comboT > 4.9 && s3.hands === 2;
     // 줄 폭발
     A.newGame(); const s2 = S(); s2.phase = 'play'; s2.cols[1] = Array.from({ length: A.MAXH - 1 }, (_, i) => c(i % 7 + 1)); const t1 = s2.time; for (let k = 0; k < 12; k++) A.push();
     const explodeOk = s2.explodes >= 1 && s2.time <= t1 - 8;
@@ -41,7 +48,7 @@ const { chromium } = require('playwright');
       while (g.phase === 'play' && guard++ < 2000) {
         const cand = g.cols.flatMap(col => col.slice(-6)); // 사람처럼 아래쪽 6장씩만 본다
         let best = null;
-        for (const k of [5, 4, 3]) for (const sub of subsets(cand, k)) { const h = A.evalHand(sub); if (h && (!best || h.score > best.h.score)) best = { h, sub }; }
+        for (const k of [5, 4, 3, 2]) for (const sub of subsets(cand, k)) { const h = A.evalHand(sub); if (h && (!best || h.score > best.h.score)) best = { h, sub }; }
         if (best) { step(THINK + clickSec * best.sub.length); if (g.phase !== 'play') break; if (best.sub.every(cc => A.pickable(cc))) { best.sub.forEach(cc => A.toggle(cc)); A.playHand(); } }
         else { step(0.5); if (g.phase !== 'play') break; const tall = g.cols.reduce((a, col, i) => col.length > g.cols[a].length ? i : a, 0); if (g.cols[tall].length >= A.MAXH - 2) { A.toggle(g.cols[tall].at(-1)); A.discard(); } }
         if (g.bomb >= 100 && g.cols.some(col => col.length > A.MAXH - 4)) A.bomb();
@@ -49,7 +56,7 @@ const { chromium } = require('playwright');
       res.push({ score: g.score, hands: g.hands, maxCombo: g.maxCombo, explodes: g.explodes, discards: g.discards });
     }
     const avg = k => Math.round(res.reduce((a, x) => a + x[k], 0) / res.length * 10) / 10;
-    return { cases, allOk: cases.every(x => x.ok), playOk, discardOk, explodeOk,
+    return { cases, allOk: cases.every(x => x.ok), pairOk, playOk, discardOk, explodeOk,
       bot: { thinkSec, clickSec, avgScore: avg('score'), min: Math.min(...res.map(x => x.score)), max: Math.max(...res.map(x => x.score)), hands: avg('hands'), maxCombo: avg('maxCombo'), explodes: avg('explodes'), discards: avg('discards') } };
   }, [+(process.argv[3] || 10), +(process.argv[4] || 0.3), +(process.argv[5] || 2)]);
   console.log(JSON.stringify({ ...out, cases: out.cases.filter(x => !x.ok) }, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();

@@ -33,7 +33,7 @@
 // 참고: 액션퍼즐패밀리의 줄 쌓기 모드. 색 맞추기 대신 포커 족보.
 //  - 카드 4줄이 위에 매달려 있고, 위에서 새 카드가 계속 밀고 내려온다
 //  - 내려오는 카드 중에서 클릭해 고른다 (어느 줄이든 섞어 골라도 됨)
-//  - 고른 카드가 족보면 내서 터뜨린다 (Space 또는 오른쪽 클릭). 원 페어는 안 됨
+//  - 고른 카드가 족보면 내서 터뜨린다 (Space 또는 오른쪽 클릭). 원 페어도 되지만 콤보 단계는 안 오름
 //  - 터진 카드 아래 카드는 위로 붙어 올라간다
 //  - 4초 안에 다음 족보를 내면 콤보 배수, 줄이 경고선에 닿으면 줄 폭발과 시간 -8초
 //  - 막히면 버리기(카드 1~2장, 시간 -3초), 폭탄 게이지가 차면 모든 줄 맨 아래 2장 폭파
@@ -63,8 +63,9 @@ const HANDS = {
   straight:      { name: '스트레이트',        chips: 30,  mult: 3, cond: '숫자 4~5개 연속 (예: 3 4 5 6)' },
   triple:        { name: '트리플',            chips: 20,  mult: 2, cond: '같은 숫자 3장' },
   twoPair:       { name: '투 페어',           chips: 15,  mult: 2, cond: '페어 두 쌍 (4장)' },
+  onePair:       { name: '원 페어',           chips: 10,  mult: 1, cond: '같은 숫자 2장 · 콤보 시간만 이어줌' },
 };
-const HAND_ORDER = ['straightFlush', 'five', 'four', 'fullHouse', 'flush', 'straight', 'triple', 'twoPair'];
+const HAND_ORDER = ['straightFlush', 'five', 'four', 'fullHouse', 'flush', 'straight', 'triple', 'twoPair', 'onePair'];
 function classify(cards) {
   const n = cards.length, real = cards.filter(c => !c.joker);
   const cnt = {}; real.forEach(c => cnt[c.r] = (cnt[c.r] || 0) + 1);
@@ -76,6 +77,7 @@ function classify(cards) {
     else { const lo = Math.min(...real.map(c => c.r)), hi = Math.max(...real.map(c => c.r)); straight = Math.max(1, hi - n + 1) <= Math.min(lo, 8 - n); }
   }
   const out = [];
+  if (n === 2 && sameRank) out.push('onePair');
   if (n === 3 && sameRank) out.push('triple');
   if (n === 4) { if (sameRank) out.push('four'); if (straight) out.push('straight'); if (distinct <= 2 && maxCnt <= 2) out.push('twoPair'); }
   if (n === 5) { if (sameRank) out.push('five'); if (straight && sameSuit) out.push('straightFlush'); if (distinct <= 2 && maxCnt <= 3) out.push('fullHouse'); if (sameSuit) out.push('flush'); if (straight) out.push('straight'); }
@@ -110,7 +112,9 @@ function drawCard(allowJoker = true) {
 const pushInterval = () => Math.max(0.42, 0.95 - S.elapsed * 0.0055); // 처음 초당 약 1.05장 → 90초 무렵 약 2.2장
 const colOf = c => S.cols.findIndex(col => col.includes(c));
 const pickable = c => { const i = colOf(c); if (i < 0) return false; const col = S.cols[i]; return col.indexOf(c) >= col.length - PICK_DEPTH; };
-const selHand = () => S.sel.length >= 3 ? evalHand(S.sel) : null;
+const selHand = () => S.sel.length >= 2 ? evalHand(S.sel) : null;
+// 원 페어는 콤보 단계를 올리지 않고 콤보 시간만 이어준다
+const handComboMult = h => h && h.key === 'onePair' ? (S.comboT > 0 ? comboMult(S.combo) : 1) : comboMult(S.comboT > 0 ? S.combo + 1 : 1);
 
 // ---------------------------------------------------------------- 조작
 function toggle(c) {
@@ -126,15 +130,17 @@ function removeCards(cards, kind) {
 function playHand() {
   if (S.phase !== 'play') return;
   const h = selHand();
-  if (!h) { if (S.sel.length) { popText(S.sel.length < 3 ? '3장 이상 골라야 한다' : '족보가 아니다', (FX + FIELD_R) / 2, DANGER_Y + 40, '#ff6a6a'); sfx('Denied'); } return; }
-  S.combo = S.comboT > 0 ? S.combo + 1 : 1; S.comboT = COMBO_WINDOW; S.maxCombo = Math.max(S.maxCombo, S.combo);
-  const sc = Math.round(h.score * comboMult(S.combo));
+  if (!h) { if (S.sel.length) { popText(S.sel.length < 2 ? '2장 이상 골라야 한다' : '족보가 아니다', (FX + FIELD_R) / 2, DANGER_Y + 40, '#ff6a6a'); sfx('Denied'); } return; }
+  const cm = handComboMult(h);
+  if (h.key === 'onePair') { if (S.comboT > 0) S.comboT = COMBO_WINDOW; }
+  else { S.combo = S.comboT > 0 ? S.combo + 1 : 1; S.comboT = COMBO_WINDOW; S.maxCombo = Math.max(S.maxCombo, S.combo); }
+  const sc = Math.round(h.score * cm);
   const cx = S.sel.reduce((a, c) => a + colX(colOf(c)) + CW / 2, 0) / S.sel.length, cy = S.sel.reduce((a, c) => a + c.y, 0) / S.sel.length;
   removeCards(S.sel, 'burst'); S.sel = [];
   S.score += sc; S.hands++; S.bomb = Math.min(100, S.bomb + 8 + h.chips / 8);
-  S.last = { name: h.name, chips: h.chips, mult: h.mult, combo: S.combo, score: sc };
+  S.last = { name: h.name, chips: h.chips, mult: h.mult, cm, score: sc };
   popText(`${h.name}  ${h.chips}×${h.mult}`, cx, cy, h.key === 'flush' || h.key === 'straightFlush' ? '#ff9ad5' : '#ffd96a');
-  popText(`+${sc.toLocaleString()}${S.combo > 1 ? `  콤보 ${S.combo} ×${comboMult(S.combo)}` : ''}`, cx, cy + 24, S.combo > 1 ? '#9cffb0' : '#ffffff', true);
+  popText(`+${sc.toLocaleString()}${cm > 1 ? `  콤보 ${S.combo} ×${cm}` : ''}`, cx, cy + 24, S.combo > 1 ? '#9cffb0' : '#ffffff', true);
   sfx('Burst', S.combo, h.key === 'five' || h.key === 'straightFlush' ? 2 : ['four', 'fullHouse', 'flush'].includes(h.key) ? 1 : 0);
   if (h.key === 'flush' || h.key === 'straightFlush') sfx('Flush');
   if (h.key === 'straight' || h.key === 'straightFlush') sfx('Straight', 4);
@@ -214,8 +220,8 @@ function draw() {
     S.sel.forEach((c, k) => card(FX + k * 96, by, 90, 32, c, { sel: true }));
     for (let k = S.sel.length; k < 5; k++) { g.setLineDash([4, 4]); g.lineWidth = 1; glow('rgba(127,214,255,.3)', 0); rr(FX + k * 96 + 3, by + 3, 84, 26, 6); g.stroke(); g.setLineDash([]); }
     const tx = FX + 5 * 96 + 8;
-    if (h) { const cm = comboMult(S.comboT > 0 ? S.combo + 1 : 1); text(`${h.name}  ${h.chips}×${h.mult}`, tx, by + 14, '#ffd96a', 13, 'left', 'bold'); text(`= ${Math.round(h.score * cm).toLocaleString()}${cm > 1 ? ` (콤보 ×${cm})` : ''}  Space`, tx, by + 32, '#ffffff', 12); }
-    else text(S.sel.length ? (S.sel.length < 3 ? '3장 이상 고르기' : '족보 아님') : '카드를 클릭해 고르기', tx, by + 22, S.sel.length >= 3 ? '#ff6a6a' : '#5f6878', 12);
+    if (h) { const cm = handComboMult(h); text(`${h.name}  ${h.chips}×${h.mult}`, tx, by + 14, '#ffd96a', 13, 'left', 'bold'); text(`= ${Math.round(h.score * cm).toLocaleString()}${cm > 1 ? ` (콤보 ×${cm})` : ''}`, tx, by + 32, '#ffffff', 12); }
+    else text(S.sel.length ? (S.sel.length < 2 ? '2장 이상 고르기' : '족보 아님') : '카드를 클릭해 고르기', tx, by + 22, S.sel.length >= 2 ? '#ff6a6a' : '#5f6878', 12);
   }
   // 연출
   S.fx.forEach(f => { const a = Math.min(1, f.t / .45), x = f.x + (f.kind === 'explode' ? (f.c.y % 2 ? 1 : -1) * (1 - a) * 40 : 0), y = f.y - (f.kind === 'drop' ? -(1 - a) * 30 : (1 - a) * 12);
@@ -235,13 +241,13 @@ function draw() {
   glow(S.bomb >= 100 ? '#ffd96a' : '#ffa86a', S.bomb >= 100 ? 16 : 6); g.fillRect(100, 268, 182 * S.bomb / 100, 10);
   if (S.bomb >= 100) text(blink ? 'B: 모든 줄 맨 아래 2장 폭파' : '', 48, 302, '#ffd96a', 12, 'left', 'bold');
   panel(30, 330, 270, 336); text('족보  (칩 × 배수)', 48, 356, '#7fd6ff', 12);
-  HAND_ORDER.forEach((k, i) => { const hd = HANDS[k], y = 384 + i * 33, on = h && h.key === k;
-    text(hd.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${hd.chips}×${hd.mult}`, 282, y, on ? '#ffd96a' : '#8a94a6', 12, 'right'); text(hd.cond, 48, y + 14, '#5f6878', 10); });
-  text('원 페어 안 됨 · 고른 카드 전부가 족보여야 함', 48, 654, '#5f6878', 10);
+  HAND_ORDER.forEach((k, i) => { const hd = HANDS[k], y = 382 + i * 30, on = h && h.key === k;
+    text(hd.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${hd.chips}×${hd.mult}`, 282, y, on ? '#ffd96a' : '#8a94a6', 12, 'right'); text(hd.cond, 48, y + 13, '#5f6878', 10); });
+  text('고른 카드 전부가 족보여야 함', 48, 656, '#5f6878', 10);
   // 오른쪽
   const RX = 990;
   panel(RX, 64, 260, 160); text('마지막 족보', RX + 18, 90, '#7fd6ff', 12);
-  if (S.last) { text(S.last.name, RX + 18, 120, '#ffd96a', 16, 'left', 'bold'); text(`${S.last.chips} × ${S.last.mult}${S.last.combo > 1 ? ` × 콤보 ${comboMult(S.last.combo)}` : ''}`, RX + 18, 144, '#8a94a6', 12); text(`+${S.last.score.toLocaleString()}`, RX + 18, 176, '#ffffff', 20, 'left', 'bold'); }
+  if (S.last) { text(S.last.name, RX + 18, 120, '#ffd96a', 16, 'left', 'bold'); text(`${S.last.chips} × ${S.last.mult}${S.last.cm > 1 ? ` × 콤보 ${S.last.cm}` : ''}`, RX + 18, 144, '#8a94a6', 12); text(`+${S.last.score.toLocaleString()}`, RX + 18, 176, '#ffffff', 20, 'left', 'bold'); }
   panel(RX, 240, 260, 426); text('규칙', RX + 18, 266, '#7fd6ff', 12);
   ['위에서 카드가 계속 밀고 내려온다', '아무 카드나 클릭해서 고른다', '여러 줄에서 섞어 골라도 된다', '고른 카드가 족보면 Space로 내기', '터진 자리는 아래 카드가 위로 붙는다', `${COMBO_WINDOW}초 안에 또 내면 콤보 배수`, `경고선에 닿으면 줄 폭발, 시간 -${EXPLODE_COST}초`, `막히면 1~2장 버리기 (D), 시간 -${DISCARD_COST}초`, '조커 = 아무 숫자·무늬', '폭탄 게이지가 차면 B'].forEach((l, i) => text(l, RX + 18, 294 + i * 26, '#8a94a6', 11));
   text('클릭 고르기   Space/Enter/오른쪽 클릭 내기   Esc 취소   D 버리기   B 폭탄   P 일시정지   M 소리', W / 2, H - 12, '#5f6878', 11, 'center');
