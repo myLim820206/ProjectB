@@ -44,14 +44,12 @@ const HANDS = {
   four:          { name: '포카드',            n: [4],       val: 90,  col: '#ff6a6a', eff: '공격력 ×3.5' },
   fullHouse:     { name: '풀하우스',          n: [5],       val: 80,  col: '#ffa86a', eff: '공격력 ×1.5 · 연사 ×1.5 · 범위' },
   flush:         { name: '플러시',            n: [3, 4, 5], val: 30,  col: '#ff9ad5', eff: '범위 공격 (장수만큼 넓게)' },
-  straight:      { name: '스트레이트',        n: [3, 4, 5], val: 28,  col: '#7fd6ff', eff: '연사 ×1.5 / ×1.75 / ×2' },
+  straight:      { name: '스트레이트',        n: [2, 3, 4, 5], val: 28, col: '#7fd6ff', eff: '연사 ×1.25 / ×1.5 / ×1.75 / ×2' },
   triple:        { name: '트리플',            n: [3],       val: 60,  col: '#ffd96a', eff: '공격력 ×2' },
   twoPair:       { name: '투 페어',           n: [4],       val: 45,  col: '#cfe4ff', eff: '공격력 ×1.5 · 사거리 ×1.25' },
   pair:          { name: '원 페어',           n: [2],       val: 20,  col: '#cfd8e6', eff: '공격력 ×1.5' },
 };
 const HAND_ORDER = ['straightFlush', 'four', 'fullHouse', 'flush', 'straight', 'triple', 'twoPair', 'pair'];
-// 길 (격자 좌표, 화면 밖에서 들어와 밖으로 나간다)
-const PATH = [[-1, 1], [3, 1], [3, 7], [7, 7], [7, 2], [11, 2], [11, 8], [14, 8], [14, 4], [16, 4]];
 
 // ---------------------------------------------------------------- 족보 판정 (줄 안의 연속 2~5장, 순서 상관없음)
 function windowHands(cards) {
@@ -69,7 +67,7 @@ function windowHands(cards) {
   if (n === 5 && vals[0] === 3 && vals[1] === 2) out.push('fullHouse');
   if (n >= 3 && sameSuit && straight && n === 5) out.push('straightFlush');
   if (n >= 3 && sameSuit) out.push('flush');
-  if (n >= 3 && straight) out.push('straight');
+  if (n >= 2 && straight) out.push('straight'); // 이어진 숫자는 2장부터 (페어와 맞춤)
   return out;
 }
 // 같은 족보라도 장수가 많으면 더 크게 친다 (플러시·스트레이트)
@@ -117,17 +115,40 @@ function towerStats(t) {
 
 // ---------------------------------------------------------------- 길
 const center = (x, y) => [FX + x * CS + CS / 2, FY + y * CS + CS / 2];
-const PATH_PX = PATH.map(([x, y]) => center(x, y));
-const SEG = []; let PATH_LEN = 0;
-for (let i = 1; i < PATH_PX.length; i++) { const [ax, ay] = PATH_PX[i - 1], [bx, by] = PATH_PX[i], l = Math.hypot(bx - ax, by - ay); SEG.push({ ax, ay, bx, by, l, d0: PATH_LEN }); PATH_LEN += l; }
-const PATH_CELLS = new Set();
-for (let i = 1; i < PATH.length; i++) { const [ax, ay] = PATH[i - 1], [bx, by] = PATH[i], dx = Math.sign(bx - ax), dy = Math.sign(by - ay); let x = ax, y = ay; while (true) { if (x >= 0 && x < COLS) PATH_CELLS.add(x + ',' + y); if (x === bx && y === by) break; x += dx; y += dy; } }
+// 길은 판마다 새로 만든다 (setPath)
+let PATH = [], PATH_PX = [], SEG = [], PATH_LEN = 0, PATH_CELLS = new Set();
+function setPath(path) {
+  PATH = path; PATH_PX = PATH.map(([x, y]) => center(x, y)); SEG = []; PATH_LEN = 0; PATH_CELLS = new Set();
+  for (let i = 1; i < PATH_PX.length; i++) { const [ax, ay] = PATH_PX[i - 1], [bx, by] = PATH_PX[i], l = Math.hypot(bx - ax, by - ay); SEG.push({ ax, ay, bx, by, l, d0: PATH_LEN }); PATH_LEN += l; }
+  for (let i = 1; i < PATH.length; i++) { const [ax, ay] = PATH[i - 1], [bx, by] = PATH[i], dx = Math.sign(bx - ax), dy = Math.sign(by - ay); let x = ax, y = ay; while (true) { if (x >= 0 && x < COLS) PATH_CELLS.add(x + ',' + y); if (x === bx && y === by) break; x += dx; y += dy; } }
+}
+// 무작위 지그재그 길: 왼쪽 밖에서 들어와 오른쪽 밖으로 나간다.
+// 가로로 2~4칸 가고 위아래로 2칸 이상 꺾기를 반복. 세로 구간끼리는 한 칸 이상 떨어져 서로 붙지 않는다.
+// 길이가 PATH_MIN~PATH_MAX 칸일 때만 받아서 판마다 난이도가 크게 흔들리지 않게 한다.
+const PATH_MIN = 34, PATH_MAX = 46;
+function genPath() {
+  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  for (let tries = 0; tries < 500; tries++) {
+    let x = -1, y = ri(1, ROWS - 2); const pts = [[x, y]];
+    while (true) {
+      const nx = x + ri(2, 4);
+      if (nx >= COLS - 2) { pts.push([COLS, y]); break; }
+      pts.push([nx, y]); x = nx;
+      let ny; do ny = ri(1, ROWS - 2); while (Math.abs(ny - y) < 2);
+      pts.push([x, ny]); y = ny;
+    }
+    let cells = 0; for (let i = 1; i < pts.length; i++) cells += Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]);
+    if (cells >= PATH_MIN && cells <= PATH_MAX) return pts;
+  }
+  return [[-1, 1], [3, 1], [3, 7], [7, 7], [7, 2], [11, 2], [11, 8], [14, 8], [14, 4], [16, 4]];
+}
 function posAt(d) { for (const s of SEG) if (d <= s.d0 + s.l) { const u = (d - s.d0) / s.l; return [s.ax + (s.bx - s.ax) * u, s.ay + (s.by - s.ay) * u]; } const s = SEG[SEG.length - 1]; return [s.bx, s.by]; }
 const buildable = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && !PATH_CELLS.has(x + ',' + y);
 
 // ---------------------------------------------------------------- 상태
 let S;
 function newGame(start = false) {
+  setPath(genPath());
   S = { phase: start ? 'build' : 'title', wave: 0, lives: START_LIVES, deck: [], hand: [], towers: new Map(), syn: [], enemies: [], spawn: [], spawnT: 0,
     sel: -1, hover: null, fx: [], texts: [], speed: 1, now: 0, kills: 0, leaks: 0, discarded: 0 };
   for (const s of SUITS) for (let r = 2; r <= 14; r++) S.deck.push({ r, s });
@@ -136,7 +157,7 @@ function newGame(start = false) {
 }
 function draw(n) { let got = 0; while (got < n && S.hand.length < HAND_MAX && S.deck.length) { S.hand.push(S.deck.pop()); got++; } return got; }
 function waveSpec(w) {
-  const list = [], hp = 26 * Math.pow(1.37, w - 1), n = 8 + w * 2;
+  const list = [], hp = 26 * Math.pow(1.35, w - 1), n = 8 + w * 2;
   for (let i = 0; i < n; i++) {
     let type = 'normal';
     if (w >= 3 && i % 4 === 3) type = 'fast';
@@ -224,17 +245,22 @@ function cardShape(card, cx, cy, r, o = {}) {
   text(RANK_TXT(card.r), cx, cy + (s.shape === 'tri' ? r * .38 : r * .3), s.col, Math.round(r * (card.r === 10 ? .62 : .78)), 'center', 'bold');
   g.globalAlpha = 1;
 }
+// 족보에 든 연속 칸들을 둥근 테두리 하나로 감싼다 (도형 안 숫자를 가리지 않게)
 function drawSynLine(s, alpha = 1) {
-  const h = HANDS[s.key], ps = s.towers.map(t => center(t.x, t.y));
-  g.globalAlpha = alpha; g.lineWidth = 3; glow(h.col, 10); g.beginPath(); g.moveTo(...ps[0]); g.lineTo(...ps[ps.length - 1]); g.stroke();
+  const h = HANDS[s.key], xs = s.towers.map(t => t.x), ys = s.towers.map(t => t.y);
+  const x0 = FX + Math.min(...xs) * CS + 3, y0 = FY + Math.min(...ys) * CS + 3, w = (Math.max(...xs) - Math.min(...xs) + 1) * CS - 6, hh = (Math.max(...ys) - Math.min(...ys) + 1) * CS - 6;
+  g.globalAlpha = alpha; g.beginPath(); if (g.roundRect) g.roundRect(x0, y0, w, hh, CS * .42); else g.rect(x0, y0, w, hh);
+  g.shadowBlur = 0; g.fillStyle = h.col; g.globalAlpha = alpha * .07; g.fill();
+  g.globalAlpha = alpha; g.lineWidth = 2; glow(h.col, 10); g.stroke();
   g.globalAlpha = 1;
 }
 // 족보 이름표: 칸 가장자리에 어두운 바탕으로 (타워 위에 그려 읽기 쉽게)
 function drawSynBadge(s, alpha = 1) {
-  const h = HANDS[s.key], ps = s.towers.map(t => center(t.x, t.y)), [mx, my] = midOf(s), horiz = ps[0][1] === ps[ps.length - 1][1];
+  // 테두리 위쪽 가장자리 가운데에 붙인다 (옆 줄을 가리지 않게)
+  const h = HANDS[s.key], mx = midOf(s)[0], top = FY + Math.min(...s.towers.map(t => t.y)) * CS + 3;
   const label = `${h.name}${s.key === 'flush' || s.key === 'straight' ? s.n : ''}`;
   g.font = 'bold 11px "DejaVu Sans Mono", "Noto Sans KR", monospace'; const w = g.measureText(label).width + 10, hh = 16;
-  const bx = horiz ? mx - w / 2 : mx + CS * .5 - 4, by = horiz ? my - CS * .5 - hh / 2 : my - hh / 2;
+  const bx = mx - w / 2, by = top - hh / 2;
   g.globalAlpha = alpha; g.shadowBlur = 0; g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(bx, by, w, hh); g.strokeStyle = h.col; g.lineWidth = 1; g.strokeRect(bx + .5, by + .5, w - 1, hh - 1);
   text(label, bx + w / 2, by + 12, h.col, 11, 'center', 'bold'); g.globalAlpha = 1;
 }
@@ -298,7 +324,7 @@ function render() {
   panel(RX, FY + 166, W - RX - 20, 300); text('족보 시너지 (가로·세로 한 줄)', RX + 16, FY + 190, '#7fd6ff', 12);
   const pvKeys = new Set((pvSyn || []).map(s => s.key));
   HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = FY + 216 + i * 31, on = pvKeys.has(k);
-    text(h.name + (k === 'flush' || k === 'straight' ? ' (3~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 14, on ? '#ffd96a' : '#5f6878', 10); });
+    text(h.name + (k === 'flush' ? ' (3~5장)' : k === 'straight' ? ' (2~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 14, on ? '#ffd96a' : '#5f6878', 10); });
   panel(RX, FY + 482, W - RX - 20, 132); text('무늬 = 공격 방식, 숫자 = 공격력', RX + 16, FY + 506, '#7fd6ff', 12);
   SUITS.forEach((s, i) => { const y = FY + 530 + i * 22; cardShape({ r: 0, s }, RX + 26, y - 4, 8); text(`${SUIT[s].name}: ${SUIT[s].desc}`, RX + 42, y, SUIT[s].col, 11); });
   text('카드 클릭(1~7) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소', W / 2, H - 8, '#5f6878', 11, 'center');
@@ -356,7 +382,7 @@ function frame(now) {
 }
 newGame();
 window.__pd = () => S;
-window.__api = { windowHands, synergies, applyEffects, towerStats, place, startWave, update, render, newGame, buildable, center, discardCard, setMuted: v => { muted = v; }, PATH_CELLS, COLS, ROWS, CS, WAVES, posAt, PATH_LEN };
+window.__api = { windowHands, synergies, applyEffects, towerStats, place, startWave, update, render, newGame, buildable, center, discardCard, setPath, genPath, pathLen: () => PATH_LEN, pathCells: () => PATH_CELLS, setMuted: v => { muted = v; }, COLS, ROWS, CS, WAVES, posAt };
 requestAnimationFrame(frame);
 </script>
 </body>

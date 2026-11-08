@@ -13,7 +13,9 @@ const { chromium } = require('playwright');
     const cases = [];
     const t = (label, cards, want) => { const got = A.windowHands(cards).sort().join(',') || 'none'; cases.push({ label, got, ok: got === want }); };
     t('원 페어', [c(7), c(7, '♥')], 'pair');
-    t('다른 숫자 2장', [c(7), c(8, '♥')], 'none');
+    t('떨어진 숫자 2장', [c(7), c(9, '♥')], 'none');
+    t('이어진 숫자 2장 = 스트레이트', [c(4, '♥'), c(3, '♠')], 'straight');
+    t('K-A도 이어짐', [c(13, '♥'), c(14, '♠')], 'straight');
     t('같은 무늬 2장은 아직 아님', [c(7, '♥'), c(9, '♥')], 'none');
     t('플러시 3장', [c(7, '♥'), c(9, '♥'), c(2, '♥')], 'flush');
     t('스트레이트 3장', [c(7, '♥'), c(9, '♠'), c(8, '♦')], 'straight');
@@ -34,17 +36,22 @@ const { chromium } = require('playwright');
     const tripleOk = A.applyEffects(tw2).map(s => s.key).join() === 'triple';
     // 설치와 교체 (길 위에는 못 놓음)
     A.newGame(true); const g = S(); g.hand = [c(9), c(9, '♥'), c(4, '♦')];
-    const onPath = A.place(0, 3, 3); const p1 = A.place(0, 0, 0); const p2 = A.place(0, 1, 0);
+    const [px, py] = [...A.pathCells()][3].split(',').map(Number); const onPath = A.place(0, px, py); const p1 = A.place(0, 0, 0); const p2 = A.place(0, 1, 0);
     const placeOk = !onPath && p1 && p2 && g.syn.length === 1 && g.syn[0].key === 'pair' && g.hand.length === 1;
     A.place(0, 1, 0); const replaceOk = g.towers.get('1,0').card.r === 4 && g.syn.length === 0 && g.discarded === 1;
+    // 무작위 길: 판마다 다르고, 길이가 범위 안이고, 왼쪽 밖에서 오른쪽 밖으로
+    const paths = Array.from({ length: 200 }, () => A.genPath());
+    const lens = paths.map(pp => pp.slice(1).reduce((a, q, i) => a + Math.abs(q[0] - pp[i][0]) + Math.abs(q[1] - pp[i][1]), 0));
+    const pathOk = new Set(paths.map(pp => JSON.stringify(pp))).size > 150 && lens.every(l => l >= 34 && l <= 46) && paths.every(pp => pp[0][0] === -1 && pp.at(-1)[0] === A.COLS);
     // 봇
-    const cells = []; for (let y = 0; y < A.ROWS; y++) for (let x = 0; x < A.COLS; x++) if (A.buildable(x, y)) cells.push([x, y]);
-    const pathPts = []; for (let d = 0; d < A.PATH_LEN; d += A.CS / 2) pathPts.push(A.posAt(d));
+    let cells = [], pathPts = [];
     const coverage = (x, y, range) => { const [cx, cy] = A.center(x, y); return pathPts.filter(([px, py]) => Math.hypot(px - cx, py - cy) <= range * A.CS).length; };
     function power(towers) { A.applyEffects(towers); let sum = 0; for (const t of towers.values()) { const st = A.towerStats(t); sum += st.dmg * st.rate * (1 + st.splash * 0.8) * coverage(t.x, t.y, st.range); } return sum; }
     const res = [];
     for (let r = 0; r < runs; r++) {
       A.newGame(true); const gg = S(); let guard = 0;
+      cells = []; for (let y = 0; y < A.ROWS; y++) for (let x = 0; x < A.COLS; x++) if (A.buildable(x, y)) cells.push([x, y]);
+      pathPts = []; for (let d = 0; d < A.pathLen(); d += A.CS / 2) pathPts.push(A.posAt(d));
       while (gg.phase !== 'over' && gg.phase !== 'win' && guard++ < 200) {
         if (dumb) { // 족보를 생각 안 하는 봇: 길을 덮는 빈칸에 아무렇게나
           while (gg.hand.length) { const free = cells.filter(([x, y]) => !gg.towers.has(x + ',' + y) && coverage(x, y, 2.2) > 4); if (!free.length) break; const [x, y] = free[Math.random() * free.length | 0]; A.place(0, x, y); }
@@ -60,7 +67,7 @@ const { chromium } = require('playwright');
       res.push({ wave: gg.phase === 'win' ? 16 : gg.wave, lives: gg.lives, towers: gg.towers.size, hands: gg.syn.map(s => s.key) });
     }
     const hist = {}; res.forEach(x => hist[x.wave] = (hist[x.wave] || 0) + 1);
-    return { cases, allOk: cases.every(x => x.ok), crossOk, tripleOk, placeOk, replaceOk, bot: { reachedWave: hist, avgLives: Math.round(res.reduce((a, x) => a + x.lives, 0) / res.length * 10) / 10, sampleHands: res[0].hands } };
+    return { cases, allOk: cases.every(x => x.ok), pathOk, crossOk, tripleOk, placeOk, replaceOk, bot: { reachedWave: hist, avgLives: Math.round(res.reduce((a, x) => a + x.lives, 0) / res.length * 10) / 10, sampleHands: res[0].hands } };
   }, [+(process.argv[3] || 10), process.argv[4] === 'dumb']);
   console.log(JSON.stringify({ ...out, cases: out.cases.filter(x => !x.ok) }, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();
 })();

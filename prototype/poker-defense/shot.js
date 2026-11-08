@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const hover = await p.evaluate(() => {
     const A = window.__api, S = () => window.__pd(); A.setMuted(true); A.newGame(true); const g = S();
     const cells = []; for (let y = 0; y < A.ROWS; y++) for (let x = 0; x < A.COLS; x++) if (A.buildable(x, y)) cells.push([x, y]);
-    const pathPts = []; for (let d = 0; d < A.PATH_LEN; d += A.CS / 2) pathPts.push(A.posAt(d));
+    const pathPts = []; for (let d = 0; d < A.pathLen(); d += A.CS / 2) pathPts.push(A.posAt(d));
     const coverage = (x, y, range) => { const [cx, cy] = A.center(x, y); return pathPts.filter(([px, py]) => Math.hypot(px - cx, py - cy) <= range * A.CS).length; };
     const power = towers => { A.applyEffects(towers); let s = 0; for (const t of towers.values()) { const st = A.towerStats(t); s += st.dmg * st.rate * (1 + st.splash * .8) * coverage(t.x, t.y, st.range); } return s; };
     const bestMove = () => { let best = null; for (let i = 0; i < g.hand.length; i++) for (const [x, y] of cells) { if (g.towers.has(x + ',' + y)) continue; const tw = new Map([...g.towers].map(([k, v]) => [k, { ...v }])); tw.set(x + ',' + y, { card: g.hand[i], x, y }); const v = power(tw); if (!best || v > best.v) best = { v, i, x, y }; } return best; };
