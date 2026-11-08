@@ -14,6 +14,7 @@
   #touch button:active{background:rgba(127,214,255,.15)}
   #touch button:focus-visible{outline:2px solid #7fd6ff}
   @media (pointer: coarse){ #touch{display:flex} }
+  @media (pointer: fine){ canvas{max-height:100%} } /* 데스크톱은 터치 버튼 자리를 비우지 않는다 */
 </style>
 </head>
 <body>
@@ -40,7 +41,7 @@
 // =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1280, H = 720;
-const NCOL = 4, CW = 142, GAP = 14, FX = 330, FY = 64, CH = 38, MAXH = 14;
+const NCOL = 4, CW = 168, GAP = 12, FX = 286, FY = 64, CH = 46, MAXH = 12; // 카드 168x46
 const PICK_DEPTH = 99;                   // 각 줄 맨 아래 몇 장까지 고를 수 있나 (99 = 전부)
 const DANGER_Y = FY + MAXH * CH;
 const colX = i => FX + i * (CW + GAP);
@@ -109,7 +110,7 @@ function drawCard(allowJoker = true) {
   if (!S.deck.length) { for (let k = 0; k < 2; k++) for (const s of SUITS) for (const r of RANKS) S.deck.push({ r, s }); for (let i = S.deck.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.deck[i], S.deck[j]] = [S.deck[j], S.deck[i]]; } }
   const c = S.deck.pop(); return { r: c.r, s: c.s, y: FY - CH };
 }
-const pushInterval = () => Math.max(0.42, 0.95 - S.elapsed * 0.0055); // 처음 초당 약 1.05장 → 90초 무렵 약 2.2장
+const pushInterval = () => Math.max(0.48, 1.1 - S.elapsed * 0.0063); // 처음 초당 약 0.9장 → 90초 무렵 약 2.1장
 const colOf = c => S.cols.findIndex(col => col.includes(c));
 const pickable = c => { const i = colOf(c); if (i < 0) return false; const col = S.cols[i]; return col.indexOf(c) >= col.length - PICK_DEPTH; };
 const selHand = () => S.sel.length >= 2 ? evalHand(S.sel) : null;
@@ -243,25 +244,25 @@ function draw() {
   S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, t.x, t.y - (1.1 - t.t) * 30, t.col, t.big ? 20 : 14, 'center', 'bold'); g.globalAlpha = 1; });
 
   // 왼쪽
-  panel(30, 64, 270, 250);
-  text('SCORE', 48, 94, '#8a94a6', 12); text(S.score.toLocaleString(), 48, 130, '#ffffff', 32, 'left', 'bold');
-  text(`최고 ${S.best.toLocaleString()}`, 48, 156, '#8a94a6', 12);
-  text('TIME', 48, 188, '#8a94a6', 12); text(`${Math.ceil(S.time)}`, 282, 188, S.time < 15 ? '#ff6a6a' : '#7fd6ff', 14, 'right', 'bold');
-  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(48, 198, 234, 8); glow(S.time < 15 ? '#ff6a6a' : '#9cffb0', 8); g.fillRect(48, 198, 234 * S.time / TIME_LIMIT, 8);
-  text('COMBO', 48, 236, '#8a94a6', 12); text(S.combo > 0 && S.comboT > 0 ? `${S.combo}  ×${comboMult(S.combo)}` : '-', 282, 236, '#9cffb0', 16, 'right', 'bold');
-  if (S.comboT > 0) { glow('#9cffb0', 6); g.fillRect(48, 244, 234 * S.comboT / COMBO_WINDOW, 3); }
-  text('BOMB', 48, 278, '#8a94a6', 12); g.strokeStyle = 'rgba(127,214,255,.5)'; g.shadowBlur = 0; g.strokeRect(100, 268, 182, 10);
-  glow(S.bomb >= 100 ? '#ffd96a' : '#ffa86a', S.bomb >= 100 ? 16 : 6); g.fillRect(100, 268, 182 * S.bomb / 100, 10);
-  if (S.bomb >= 100) text(blink ? 'B: 모든 줄 맨 아래 2장 폭파' : '', 48, 302, '#ffd96a', 12, 'left', 'bold');
-  panel(30, 330, 270, 336); text('족보  (칩 × 배수)', 48, 356, '#7fd6ff', 12);
+  panel(20, 64, 248, 250);
+  text('SCORE', 36, 94, '#8a94a6', 12); text(S.score.toLocaleString(), 36, 130, '#ffffff', 32, 'left', 'bold');
+  text(`최고 ${S.best.toLocaleString()}`, 36, 156, '#8a94a6', 12);
+  text('TIME', 36, 188, '#8a94a6', 12); text(`${Math.ceil(S.time)}`, 256, 188, S.time < 15 ? '#ff6a6a' : '#7fd6ff', 14, 'right', 'bold');
+  g.strokeStyle = 'rgba(127,214,255,.5)'; g.lineWidth = 1; g.strokeRect(36, 198, 220, 8); glow(S.time < 15 ? '#ff6a6a' : '#9cffb0', 8); g.fillRect(36, 198, 220 * S.time / TIME_LIMIT, 8);
+  text('COMBO', 36, 236, '#8a94a6', 12); text(S.combo > 0 && S.comboT > 0 ? `${S.combo}  ×${comboMult(S.combo)}` : '-', 256, 236, '#9cffb0', 16, 'right', 'bold');
+  if (S.comboT > 0) { glow('#9cffb0', 6); g.fillRect(36, 244, 220 * S.comboT / COMBO_WINDOW, 3); }
+  text('BOMB', 36, 278, '#8a94a6', 12); g.strokeStyle = 'rgba(127,214,255,.5)'; g.shadowBlur = 0; g.strokeRect(88, 268, 168, 10);
+  glow(S.bomb >= 100 ? '#ffd96a' : '#ffa86a', S.bomb >= 100 ? 16 : 6); g.fillRect(88, 268, 168 * S.bomb / 100, 10);
+  if (S.bomb >= 100) text(blink ? 'B: 모든 줄 맨 아래 2장 폭파' : '', 36, 302, '#ffd96a', 12, 'left', 'bold');
+  panel(20, 330, 248, 336); text('족보  (칩 × 배수)', 36, 356, '#7fd6ff', 12);
   HAND_ORDER.forEach((k, i) => { const hd = HANDS[k], y = 382 + i * 30, on = h && h.key === k;
-    text(hd.name, 48, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${hd.chips}×${hd.mult}`, 282, y, on ? '#ffd96a' : '#8a94a6', 12, 'right'); text(hd.cond, 48, y + 13, '#5f6878', 10); });
-  text('고른 카드 전부가 족보여야 함', 48, 656, '#5f6878', 10);
+    text(hd.name, 36, y, on ? '#ffd96a' : '#cfd8e6', 13); text(`${hd.chips}×${hd.mult}`, 256, y, on ? '#ffd96a' : '#8a94a6', 12, 'right'); text(hd.cond, 36, y + 13, '#5f6878', 10); });
+  text('고른 카드 전부가 족보여야 함', 36, 656, '#5f6878', 10);
   // 오른쪽
-  const RX = 990;
-  panel(RX, 64, 260, 160); text('마지막 족보', RX + 18, 90, '#7fd6ff', 12);
+  const RX = 1008;
+  panel(RX, 64, 252, 160); text('마지막 족보', RX + 18, 90, '#7fd6ff', 12);
   if (S.last) { text(S.last.name, RX + 18, 120, '#ffd96a', 16, 'left', 'bold'); text(`${S.last.chips} × ${S.last.mult}${S.last.cm > 1 ? ` × 콤보 ${S.last.cm}` : ''}`, RX + 18, 144, '#8a94a6', 12); text(`+${S.last.score.toLocaleString()}`, RX + 18, 176, '#ffffff', 20, 'left', 'bold'); }
-  panel(RX, 240, 260, 426); text('규칙', RX + 18, 266, '#7fd6ff', 12);
+  panel(RX, 240, 252, 426); text('규칙', RX + 18, 266, '#7fd6ff', 12);
   ['위에서 카드가 계속 밀고 내려온다', '방향키로 커서, Z로 고르기 (클릭도 됨)', '여러 줄에서 섞어 골라도 된다', '고른 카드가 족보면 X로 내서 점수', '터진 자리는 아래 카드가 위로 붙는다', `${COMBO_WINDOW}초 안에 또 내면 콤보 배수`, `경고선에 닿으면 줄 폭발, 시간 -${EXPLODE_COST}초`, `막히면 1~2장 버리기 (D), 시간 -${DISCARD_COST}초`, '조커 = 아무 숫자·무늬', '폭탄 게이지가 차면 B'].forEach((l, i) => text(l, RX + 18, 294 + i * 26, '#8a94a6', 11));
   text('방향키 커서   Z 고르기   X 족보 내기   Esc 취소   D 버리기   B 폭탄   P 일시정지   M 소리   (마우스: 클릭 고르기, 오른쪽 클릭 내기)', W / 2, H - 12, '#5f6878', 11, 'center');
 
@@ -310,7 +311,7 @@ cv.addEventListener('pointerdown', ev => {
   for (let i = 0; i < NCOL; i++) if (x >= colX(i) && x <= colX(i) + CW) { const col = S.cols[i], c = col.find(cc => y >= cc.y && y < cc.y + CH); if (c) { S.cursor = { col: i, row: col.length - 1 - col.indexOf(c) }; toggle(c); return; } }
   // 아래 고른 카드 줄을 누르면 그 카드 빼기
   const by = DANGER_Y + 18; if (y >= by && y <= by + 32) { const k = Math.floor((x - FX) / 96); if (k >= 0 && k < S.sel.length) { S.sel.splice(k, 1); sfx('Lock'); } else if (x > FX + 5 * 96) playHand(); }
-  else if (x < 310 && y >= 256 && y <= 310) bomb();
+  else if (x < 270 && y >= 256 && y <= 310) bomb();
 });
 document.querySelectorAll('#touch button').forEach(b => b.addEventListener('pointerdown', ev => { ev.preventDefault(); act(b.dataset.a); }));
 let last = performance.now();
