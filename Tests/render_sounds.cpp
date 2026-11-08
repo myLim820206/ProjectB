@@ -1,13 +1,13 @@
-// 웹 프로토타입용 효과음 파일을 만든다: 언리얼과 같은 합성기(TPSynth)로 WAV를 만들어 base64로 묶는다
-//   g++ -std=c++17 -O2 -o build/render_sounds render_sounds.cpp ../Source/ProjectB/TPSynth.cpp
+// 웹 프로토타입용 효과음 파일을 만든다: 언리얼과 같은 합성기(PDSynth)로 WAV를 만들어 base64로 묶는다
+//   g++ -std=c++17 -O2 -o build/render_sounds render_sounds.cpp ../Source/ProjectB/PDSynth.cpp
 //   ./build/render_sounds > ../prototype/tetris-poker/sounds.js
-#include "../Source/ProjectB/TPSynth.h"
+#include "../Source/ProjectB/PDSynth.h"
 
 #include <cstdio>
 #include <string>
 #include <vector>
 
-using namespace TP;
+using namespace PD;
 
 static std::string Base64(const std::vector<unsigned char>& D)
 {
@@ -46,16 +46,16 @@ int main()
 {
 	const int Rate = 22050;
 	const char* Names[] = {"Move", "Rotate", "HardDrop", "Lock", "Hold", "Denied", "Burst", "Straight", "Flush", "Clear", "GameOver", "Win", "Start"};
-	std::printf("// 자동 생성 파일: Tests/render_sounds.cpp (언리얼과 같은 합성기 TPSynth)\nwindow.TP_SOUNDS = {\n");
+	std::printf("// 자동 생성 파일: Tests/render_sounds.cpp (언리얼과 같은 합성기 PDSynth)\nwindow.TP_SOUNDS = {\n");
 	size_t Total = 0;
-	for (int S = 0; S < (int)ETPSound::Count; ++S)
+	for (int S = 0; S < (int)EPDSound::Count; ++S)
 	{
 		std::vector<std::pair<int, int>> Vars = {{0, 0}};
-		if ((ETPSound)S == ETPSound::Burst) { Vars.clear(); for (int A = 1; A <= 8; ++A) for (int B = 0; B <= 2; ++B) Vars.push_back({A, B}); }
-		if ((ETPSound)S == ETPSound::Straight) { Vars.clear(); for (int A = 3; A <= 7; ++A) Vars.push_back({A, 0}); }
+		if ((EPDSound)S == EPDSound::Burst) { Vars.clear(); for (int A = 1; A <= 8; ++A) for (int B = 0; B <= 2; ++B) Vars.push_back({A, B}); }
+		if ((EPDSound)S == EPDSound::Straight) { Vars.clear(); for (int A = 3; A <= 7; ++A) Vars.push_back({A, 0}); }
 		for (auto [A, B] : Vars)
 		{
-			const std::string B64 = Base64(Wav(SynthesizeSound((ETPSound)S, A, B, Rate), Rate));
+			const std::string B64 = Base64(Wav(SynthesizeSound((EPDSound)S, A, B, Rate), Rate));
 			Total += B64.size();
 			std::printf("  \"%s_%d_%d\": \"data:audio/wav;base64,%s\",\n", Names[S], A, B, B64.c_str());
 		}

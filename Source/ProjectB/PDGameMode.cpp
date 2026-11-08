@@ -1,4 +1,4 @@
-#include "TPGameMode.h"
+#include "PDGameMode.h"
 
 #include "Components/AudioComponent.h"
 #include "Engine/Engine.h"
@@ -7,9 +7,9 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundWaveProcedural.h"
-#include "TPBoardWidget.h"
+#include "PDBoardWidget.h"
 
-ATPGameMode::ATPGameMode()
+APDGameMode::APDGameMode()
 {
 	DefaultPawnClass = nullptr; // 3D 캐릭터 없음
 	PrimaryActorTick.bCanEverTick = true;
@@ -23,11 +23,11 @@ constexpr int32 TPMaxVoices = 24;
 constexpr float TPMasterVolume = 0.8f;
 }
 
-void ATPGameMode::Tick(float DeltaSeconds)
+void APDGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	if (!BoardWidget.IsValid()) return;
-	for (const TP::FTPSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
+	for (const PD::FPDSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
 	// 끝난 소리 정리
 	for (int32 I = Voices.Num() - 1; I >= 0; --I)
 	{
@@ -40,12 +40,12 @@ void ATPGameMode::Tick(float DeltaSeconds)
 	}
 }
 
-void ATPGameMode::PlayGameSound(const TP::FTPSoundEvent& Event)
+void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 {
-	const int32 Key = TP::SoundKey(Event.Sound, Event.A, Event.B);
+	const int32 Key = PD::SoundKey(Event.Sound, Event.A, Event.B);
 	if (!PcmCache.Contains(Key))
 	{
-		const std::vector<int16_t> Samples = TP::SynthesizeSound(Event.Sound, Event.A, Event.B, TPSampleRate);
+		const std::vector<int16_t> Samples = PD::SynthesizeSound(Event.Sound, Event.A, Event.B, TPSampleRate);
 		TArray<uint8> Bytes;
 		Bytes.SetNumUninitialized((int32)(Samples.size() * sizeof(int16_t)));
 		FMemory::Memcpy(Bytes.GetData(), Samples.data(), Bytes.Num());
@@ -77,12 +77,12 @@ void ATPGameMode::PlayGameSound(const TP::FTPSoundEvent& Event)
 	}
 }
 
-void ATPGameMode::BeginPlay()
+void APDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 	if (!GEngine || !GEngine->GameViewport) return;
 
-	SAssignNew(BoardWidget, STPBoardWidget);
+	SAssignNew(BoardWidget, SPDBoardWidget);
 	GEngine->GameViewport->AddViewportWidgetContent(BoardWidget.ToSharedRef(), 10);
 
 	if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
@@ -96,7 +96,7 @@ void ATPGameMode::BeginPlay()
 	FSlateApplication::Get().SetKeyboardFocus(BoardWidget);
 }
 
-void ATPGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void APDGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (BoardWidget.IsValid() && GEngine && GEngine->GameViewport)
 	{

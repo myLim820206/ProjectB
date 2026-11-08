@@ -1,9 +1,9 @@
-#include "TPSynth.h"
+#include "PDSynth.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace TP
+namespace PD
 {
 namespace
 {
@@ -101,35 +101,35 @@ float BurstRoot(int Chain)
 }
 } // namespace
 
-std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
+std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int Rate)
 {
 	FSynthBuf Buf(Rate);
 	float Gain = 1.f;
 	switch (Sound)
 	{
-	case ETPSound::Move:
+	case EPDSound::Move:
 		Buf.Tone(0.f, 0.022f, 1250.f, 1100.f, EWave::Square, 0.10f, 0.001f, 6.f);
 		break;
-	case ETPSound::Rotate:
+	case EPDSound::Rotate:
 		Buf.Tone(0.f, 0.05f, 700.f, 1080.f, EWave::Triangle, 0.20f, 0.002f, 3.f);
 		break;
-	case ETPSound::HardDrop:
+	case EPDSound::HardDrop:
 		Buf.Tone(0.f, 0.16f, 190.f, 52.f, EWave::Sine, 0.65f, 0.002f, 3.f);
 		Buf.Noise(0.f, 0.05f, 0.30f, 0.25f, 11);
 		Buf.Tone(0.f, 0.03f, 1800.f, 900.f, EWave::Triangle, 0.06f, 0.001f, 5.f);
 		break;
-	case ETPSound::Lock:
+	case EPDSound::Lock:
 		Buf.Tone(0.f, 0.06f, 340.f, 300.f, EWave::Triangle, 0.22f, 0.002f, 5.f);
 		break;
-	case ETPSound::Hold:
+	case EPDSound::Hold:
 		Buf.Note(0.f, 0.05f, 79.f, EWave::Triangle, 0.18f);
 		Buf.Note(0.05f, 0.06f, 74.f, EWave::Triangle, 0.18f);
 		break;
-	case ETPSound::Denied:
+	case EPDSound::Denied:
 		Buf.Tone(0.f, 0.15f, 150.f, 140.f, EWave::Square, 0.16f, 0.003f, 2.f);
 		Buf.Tone(0.f, 0.15f, 156.f, 146.f, EWave::Square, 0.16f, 0.003f, 2.f);
 		break;
-	case ETPSound::Burst:
+	case EPDSound::Burst:
 	{
 		// 화음을 빠르게 펼친다. 연쇄가 깊을수록 높게, 족보가 클수록 음이 많고 길게
 		const float Root = BurstRoot(A);
@@ -149,7 +149,7 @@ std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
 		Gain = 1.1f;
 		break;
 	}
-	case ETPSound::Straight:
+	case EPDSound::Straight:
 	{
 		const int N = std::max(3, A) + 1;
 		static const int Pent[5] = {0, 2, 4, 7, 9};
@@ -158,13 +158,13 @@ std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
 		Buf.Echo(0.09f, 0.3f, 3);
 		break;
 	}
-	case ETPSound::Flush:
+	case EPDSound::Flush:
 		Buf.Tone(0.f, 0.5f, 1568.f, 1568.f, EWave::Sine, 0.10f, 0.02f, 2.5f, 17.f);
 		Buf.Tone(0.f, 0.5f, 1577.f, 1577.f, EWave::Sine, 0.10f, 0.02f, 2.5f, 13.f);
 		Buf.Tone(0.03f, 0.45f, 2093.f, 2093.f, EWave::Sine, 0.07f, 0.02f, 3.f, 19.f);
 		Buf.Echo(0.13f, 0.3f, 3);
 		break;
-	case ETPSound::Clear:
+	case EPDSound::Clear:
 	{
 		const float Ns[5] = {72.f, 76.f, 79.f, 84.f, 88.f};
 		for (int I = 0; I < 5; ++I) Buf.Note(0.09f * I, I == 4 ? 0.6f : 0.2f, Ns[I], EWave::Triangle, 0.22f, I == 4 ? 3.f : 4.f);
@@ -172,7 +172,7 @@ std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
 		Buf.Echo(0.12f, 0.3f, 3);
 		break;
 	}
-	case ETPSound::GameOver:
+	case EPDSound::GameOver:
 	{
 		const float Ns[4] = {67.f, 63.f, 60.f, 55.f};
 		for (int I = 0; I < 4; ++I) Buf.Note(0.18f * I, I == 3 ? 0.9f : 0.24f, Ns[I], EWave::Square, 0.14f, I == 3 ? 2.5f : 3.f);
@@ -180,7 +180,7 @@ std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
 		Buf.Echo(0.15f, 0.25f, 3);
 		break;
 	}
-	case ETPSound::Win:
+	case EPDSound::Win:
 	{
 		const float Ns[4] = {72.f, 76.f, 79.f, 84.f};
 		for (int I = 0; I < 4; ++I) Buf.Note(0.11f * I, 0.22f, Ns[I], EWave::Triangle, 0.22f);
@@ -190,7 +190,7 @@ std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
 		Buf.Echo(0.14f, 0.3f, 4);
 		break;
 	}
-	case ETPSound::Start:
+	case EPDSound::Start:
 		Buf.Tone(0.f, 0.26f, 300.f, 900.f, EWave::Sine, 0.18f, 0.01f, 1.5f);
 		Buf.Tone(0.f, 0.26f, 600.f, 1800.f, EWave::Triangle, 0.06f, 0.01f, 2.f);
 		Buf.Echo(0.1f, 0.25f, 2);
@@ -200,4 +200,4 @@ std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int Rate)
 	}
 	return Buf.ToPcm(Gain);
 }
-} // namespace TP
+} // namespace PD

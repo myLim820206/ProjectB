@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.8",
 	"Category": "",
-	"Description": "ProjectB - Tetris Poker",
+	"Description": "ProjectB - Poker Defense",
 	"Modules": [
 		{
 			"Name": "ProjectB",

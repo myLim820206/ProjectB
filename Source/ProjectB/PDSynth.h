@@ -1,15 +1,15 @@
 // 효과음 합성기
 // 사운드 파일 없이 코드로 효과음을 만든다 (네온 화풍에 맞춘 신스 소리).
 // 언리얼 의존성 없는 순수 C++. 언리얼에서는 이 PCM을 USoundWaveProcedural로 재생하고,
-// 웹 프로토타입용 소리(prototype/tetris-poker/sounds.js)도 같은 코드로 뽑는다.
+// 웹 프로토타입용 소리(prototype/tetris-poker/sounds.js)도 같은 코드로 뽑는다 (Tests/render_sounds.cpp).
 #pragma once
 
 #include <cstdint>
 #include <vector>
 
-namespace TP
+namespace PD
 {
-enum class ETPSound : uint8_t
+enum class EPDSound : uint8_t
 {
 	Move,       // 좌우 이동
 	Rotate,     // 회전
@@ -27,16 +27,16 @@ enum class ETPSound : uint8_t
 	Count
 };
 
-struct FTPSoundEvent
+struct FPDSoundEvent
 {
-	ETPSound Sound = ETPSound::Move;
+	EPDSound Sound = EPDSound::Move;
 	int A = 0;
 	int B = 0;
 	float Volume = 1.f;
 };
 
 // 소리 하나를 합성한다. 모노 16비트 PCM
-std::vector<int16_t> SynthesizeSound(ETPSound Sound, int A, int B, int SampleRate = 44100);
+std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int SampleRate = 44100);
 // 캐시 키
-inline int SoundKey(ETPSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }
-} // namespace TP
+inline int SoundKey(EPDSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }
+} // namespace PD

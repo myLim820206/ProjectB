@@ -1,0 +1,817 @@
+﻿#include "PDBoardWidget.h"
+
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "InputCoreTypes.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/SlateRenderer.h"
+#include "Styling/CoreStyle.h"
+
+using namespace PD;
+
+namespace PDDraw
+{
+constexpr float DesignW = 1280.f;
+constexpr float DesignH = 720.f;
+constexpr float CS = 54.f;          // 칸 크기
+constexpr float FX = 24.f;          // 판 왼쪽 위
+constexpr float FY = 24.f;
+constexpr float HandY = FY + Rows * CS + 22.f;
+constexpr float CardW = 66.f, CardH = 92.f;
+constexpr float RX = FX + Cols * CS + 26.f; // 오른쪽 패널
+constexpr float TwoPi = 6.2831853f;
+
+FLinearColor Hex(const TCHAR* InHex, float Alpha = 1.f)
+{
+	FLinearColor C(FColor::FromHex(InHex));
+	C.A = Alpha;
+	return C;
+}
+FLinearColor WithAlpha(FLinearColor C, float Alpha)
+{
+	C.A *= Alpha;
+	return C;
+}
+FLinearColor SuitColor(EPDSuit S)
+{
+	switch (S)
+	{
+	case EPDSuit::Heart: return Hex(TEXT("ff6a8a"));
+	case EPDSuit::Diamond: return Hex(TEXT("ffd96a"));
+	case EPDSuit::Club: return Hex(TEXT("8affc4"));
+	default: return Hex(TEXT("7fb8ff"));
+	}
+}
+const TCHAR* SuitName(EPDSuit S)
+{
+	static const TCHAR* N[] = {TEXT("저격"), TEXT("폭발"), TEXT("연사"), TEXT("둔화")};
+	return N[(int)S];
+}
+const TCHAR* SuitDesc(EPDSuit S)
+{
+	static const TCHAR* N[] = {TEXT("사거리 길고 한 방이 셈"), TEXT("맞은 자리 주변도 피해"), TEXT("약하지만 아주 빠름"), TEXT("맞은 적이 느려짐")};
+	return N[(int)S];
+}
+FLinearColor HandColor(EPDHand H)
+{
+	static const TCHAR* C[] = {TEXT("ff9ad5"), TEXT("ff6a6a"), TEXT("ffa86a"), TEXT("ff9ad5"), TEXT("7fd6ff"), TEXT("ffd96a"), TEXT("cfe4ff"), TEXT("cfd8e6")};
+	return Hex(C[(int)H]);
+}
+const TCHAR* HandName(EPDHand H)
+{
+	static const TCHAR* N[] = {TEXT("스트레이트 플러시"), TEXT("포카드"), TEXT("풀하우스"), TEXT("플러시"), TEXT("스트레이트"), TEXT("트리플"), TEXT("투 페어"), TEXT("원 페어")};
+	return N[(int)H];
+}
+const TCHAR* HandEffect(EPDHand H)
+{
+	static const TCHAR* N[] = {TEXT("공격력 ×2 · 연사 ×2 · 범위"), TEXT("공격력 ×3.5"), TEXT("공격력 ×1.5 · 연사 ×1.5 · 범위"), TEXT("범위 공격 (장수만큼 넓게)"),
+		TEXT("연사 ×1.25 / ×1.5 / ×1.75 / ×2"), TEXT("공격력 ×2"), TEXT("공격력 ×1.5 · 사거리 ×1.25"), TEXT("공격력 ×1.5")};
+	return N[(int)H];
+}
+FString HandLabel(const FPDSynergy& S)
+{
+	FString L = HandName(S.Kind);
+	if (S.Kind == EPDHand::Flush || S.Kind == EPDHand::Straight) L += FString::FromInt(S.N);
+	if (S.Chain >= 2) L += FString::Printf(TEXT(" 연쇄×%s"), *FString::SanitizeFloat(1.f + ChainStep * (S.Chain - 1)));
+	return L;
+}
+FString RankText(int R)
+{
+	switch (R)
+	{
+	case 11: return TEXT("J");
+	case 12: return TEXT("Q");
+	case 13: return TEXT("K");
+	case 14: return TEXT("A");
+	default: return FString::FromInt(R);
+	}
+}
+FLinearColor EnemyColor(EPDEnemy T)
+{
+	switch (T)
+	{
+	case EPDEnemy::Fast: return Hex(TEXT("ffa86a"));
+	case EPDEnemy::Tank: return Hex(TEXT("c49aff"));
+	case EPDEnemy::Boss: return Hex(TEXT("ff6a6a"));
+	default: return Hex(TEXT("e8f0ff"));
+	}
+}
+FVector2f CellPx(float X, float Y) { return FVector2f(FX + X * CS, FY + Y * CS); } // 칸 좌표(실수) → 화면
+FVector2f CellCenter(int Key) { return CellPx(Key % Cols + 0.5f, Key / Cols + 0.5f); }
+} // namespace PDDraw
+
+using namespace PDDraw;
+
+// ---------------------------------------------------------------- 그리기 도우미
+struct SPDBoardWidget::FCanvas
+{
+	FSlateWindowElementList& Out;
+	FGeometry Geo;
+	int32* Layer;
+	const FSlateBrush* White;
+
+	int32 NextLayer() { return ++(*Layer); }
+
+	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
+	{
+		FSlateDrawElement::MakeLines(Out, NextLayer(), Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
+	}
+	// 네온 선: 넓고 옅은 선 두 겹 + 가늘고 밝은 선
+	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
+	{
+		if (Strength > 0.f)
+		{
+			Lines(P, WithAlpha(Col, 0.10f * Strength), Thick * 5.f);
+			Lines(P, WithAlpha(Col, 0.22f * Strength), Thick * 2.4f);
+		}
+		Lines(P, Col, Thick);
+	}
+	void Dashed(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Dash = 6.f, float Gap = 6.f)
+	{
+		bool bOn = true;
+		float Left = Dash;
+		for (int32 I = 0; I + 1 < P.Num(); ++I)
+		{
+			FVector2f A = P[I];
+			const FVector2f B = P[I + 1];
+			float SegLen = FVector2f::Distance(A, B);
+			const FVector2f Dir = SegLen > 0.f ? (B - A) / SegLen : FVector2f::ZeroVector;
+			while (SegLen > 0.f)
+			{
+				const float Step = FMath::Min(Left, SegLen);
+				const FVector2f E = A + Dir * Step;
+				if (bOn) Lines({A, E}, Col, Thick);
+				A = E;
+				SegLen -= Step;
+				Left -= Step;
+				if (Left <= 0.f)
+				{
+					bOn = !bOn;
+					Left = bOn ? Dash : Gap;
+				}
+			}
+		}
+	}
+	void Box(float X, float Y, float W, float H, const FLinearColor& Col)
+	{
+		BoxAt(NextLayer(), X, Y, W, H, Col);
+	}
+	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
+	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
+	{
+		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))), White, ESlateDrawEffect::None, Col);
+	}
+	static TArray<FVector2f> RectPoints(float X, float Y, float W, float H) { return {{X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X, Y}}; }
+	static TArray<FVector2f> CirclePoints(FVector2f C, float R, int32 Seg = 32)
+	{
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= Seg; ++I)
+		{
+			const float A = I / (float)Seg * TwoPi;
+			P.Add(C + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R);
+		}
+		return P;
+	}
+	static TArray<FVector2f> RoundRectPoints(float X, float Y, float W, float H, float R)
+	{
+		TArray<FVector2f> P;
+		const FVector2f Centers[4] = {{X + W - R, Y + R}, {X + W - R, Y + H - R}, {X + R, Y + H - R}, {X + R, Y + R}};
+		const float Start[4] = {-0.25f, 0.f, 0.25f, 0.5f};
+		for (int32 K = 0; K < 4; ++K)
+			for (int32 S = 0; S <= 5; ++S)
+			{
+				const float A = (Start[K] + S / 5.f * 0.25f) * TwoPi;
+				P.Add(Centers[K] + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R);
+			}
+		const FVector2f First = P[0]; // 같은 배열 원소를 Add 하면 재할당 중 잘못된 참조가 된다
+		P.Add(First);
+		return P;
+	}
+	static FSlateFontInfo Font(float Px, bool bBold)
+	{
+		// Slate 글자 크기는 포인트(96 DPI) 단위. 웹 캔버스 px 크기 x 0.75
+		return FCoreStyle::GetDefaultFontStyle(bBold ? "Bold" : "Regular", FMath::Max(1, FMath::RoundToInt(Px * 0.75f)));
+	}
+	static FVector2f Measure(const FString& S, const FSlateFontInfo& F)
+	{
+		const TSharedRef<FSlateFontMeasure> M = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+		return FVector2f(M->Measure(S, F));
+	}
+	// Y는 웹 캔버스처럼 글자 기준선. Align: 0 왼쪽, 1 가운데, 2 오른쪽
+	void Text(const FString& S, float X, float Y, const FLinearColor& Col, float Px = 13.f, int32 Align = 0, bool bBold = false)
+	{
+		const FSlateFontInfo F = Font(Px, bBold);
+		const FVector2f Sz = Measure(S, F);
+		const float Left = Align == 1 ? X - Sz.X / 2.f : Align == 2 ? X - Sz.X : X;
+		const float Top = Y - Sz.Y * 0.8f;
+		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(Left, Top))), S, F, ESlateDrawEffect::None, Col);
+	}
+	void TextCentered(const FString& S, float CX, float CY, const FLinearColor& Col, float Px, bool bBold)
+	{
+		const FSlateFontInfo F = Font(Px, bBold);
+		const FVector2f Sz = Measure(S, F);
+		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(CX - Sz.X / 2.f, CY - Sz.Y / 2.f))), S, F,
+			ESlateDrawEffect::None, Col);
+	}
+	void Panel(float X, float Y, float W, float H) { Lines(RectPoints(X, Y, W, H), Hex(TEXT("7fd6ff"), 0.3f), 1.f); }
+
+	// 무늬 도형: ♠ 삼각형, ♥ 원, ♦ 마름모, ♣ 사각형
+	void Shape(EPDSuit S, float CX, float CY, float R, const FLinearColor& Col, float Thick, float GlowK)
+	{
+		switch (S)
+		{
+		case EPDSuit::Spade: Glow({{CX, CY - R}, {CX + R * 0.9f, CY + R * 0.72f}, {CX - R * 0.9f, CY + R * 0.72f}, {CX, CY - R}}, Col, Thick, GlowK); break;
+		case EPDSuit::Heart: Glow(CirclePoints(FVector2f(CX, CY), R * 0.86f), Col, Thick, GlowK); break;
+		case EPDSuit::Diamond: Glow({{CX, CY - R}, {CX + R * 0.8f, CY}, {CX, CY + R}, {CX - R * 0.8f, CY}, {CX, CY - R}}, Col, Thick, GlowK); break;
+		case EPDSuit::Club: Glow(RectPoints(CX - R * 0.76f, CY - R * 0.76f, R * 1.52f, R * 1.52f), Col, Thick, GlowK); break;
+		}
+	}
+	// 카드(=타워): 무늬 도형 안에 숫자
+	void CardShape(const FPDCard& Card, float CX, float CY, float R, float Alpha, bool bStrong, float Pulse = 0.f)
+	{
+		const FLinearColor Col = WithAlpha(SuitColor(Card.Suit), Alpha);
+		if (bStrong) Shape(Card.Suit, CX, CY, R * (1.12f + 0.06f * Pulse), WithAlpha(Col, 0.25f + 0.2f * Pulse), 1.f, 0.6f);
+		Shape(Card.Suit, CX, CY, R, Col, bStrong ? 2.6f : 1.8f, bStrong ? 1.6f : 0.9f);
+		const float Px = R * (Card.Rank == 10 ? 0.62f : 0.78f);
+		TextCentered(RankText(Card.Rank), CX, CY + (Card.Suit == EPDSuit::Spade ? R * 0.22f : 0.f), Col, Px, true);
+	}
+	void Badge(const FString& S, float CX, float CY, const FLinearColor& Col, float Alpha)
+	{
+		const FSlateFontInfo F = Font(11.f, true);
+		const FVector2f Sz = Measure(S, F);
+		const float W = Sz.X + 10.f, H = 16.f;
+		Box(CX - W / 2.f, CY - H / 2.f, W, H, Hex(TEXT("06060b"), 0.88f * Alpha));
+		Lines(RectPoints(CX - W / 2.f, CY - H / 2.f, W, H), WithAlpha(Col, Alpha), 1.f);
+		TextCentered(S, CX, CY, WithAlpha(Col, Alpha), 11.f, true);
+	}
+	void Overlay(const FString& Title, const FLinearColor& Col, const TArray<FString>& Body, const FString& Foot)
+	{
+		Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.86f));
+		Text(Title, DesignW / 2.f, 240.f, Col, 34.f, 1, true);
+		for (int32 I = 0; I < Body.Num(); ++I) Text(Body[I], DesignW / 2.f, 290.f + I * 26.f, Hex(TEXT("cfd8e6")), 14.f, 1);
+		Text(Foot, DesignW / 2.f, 300.f + Body.Num() * 26.f + 50.f, Hex(TEXT("ffd96a")), 18.f, 1);
+	}
+};
+
+// ---------------------------------------------------------------- 위젯
+void SPDBoardWidget::Construct(const FArguments& InArgs)
+{
+	SetCanTick(true);
+}
+
+void SPDBoardWidget::Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak, float Gravity)
+{
+	for (int I = 0; I < N && Particles.Num() < 2600; ++I)
+	{
+		const float A = FMath::FRandRange(0.f, TwoPi), Sp = FMath::FRandRange(SpeedMin, SpeedMax);
+		FParticle Pa;
+		Pa.P = P;
+		Pa.V = FVector2f(FMath::Cos(A), FMath::Sin(A)) * Sp;
+		Pa.MaxLife = Pa.Life = Life * FMath::FRandRange(0.6f, 1.2f);
+		Pa.Size = Size * FMath::FRandRange(0.7f, 1.3f);
+		Pa.Drag = 3.f;
+		Pa.Gravity = Gravity;
+		Pa.Col = Col;
+		Pa.bStreak = bStreak;
+		Particles.Add(Pa);
+	}
+}
+
+void SPDBoardWidget::HandleEvents()
+{
+	for (const FPDEvent& E : Game.Events)
+	{
+		const FVector2f P = CellPx(E.X, E.Y);
+		switch (E.Kind)
+		{
+		case FPDEvent::EKind::Shot:
+		{
+			const FLinearColor Col = SuitColor(E.Suit);
+			Beams.Add({CellPx(E.X, E.Y), CellPx(E.X2, E.Y2), 0.f, 0.12f, E.A ? 2.6f : 1.6f, Col});
+			Rings.Add({P, 4.f, 14.f, 0.f, 0.15f, 1.5f, Col});
+			Burst(CellPx(E.X2, E.Y2), E.A ? 5 : 3, Col, 40.f, 140.f, 0.25f, 2.f, true);
+			break;
+		}
+		case FPDEvent::EKind::Splash:
+		{
+			const FLinearColor Col = SuitColor(E.Suit);
+			Rings.Add({P, 6.f, E.R * CS, 0.f, 0.35f, 2.f, Col});
+			Burst(P, 10, Col, 60.f, 200.f, 0.35f, 2.2f, true);
+			break;
+		}
+		case FPDEvent::EKind::Kill:
+		{
+			const FLinearColor Col = EnemyColor(E.Enemy);
+			const bool bBoss = E.Enemy == EPDEnemy::Boss, bTank = E.Enemy == EPDEnemy::Tank;
+			Burst(P, bBoss ? 70 : bTank ? 26 : 14, Col, 50.f, bBoss ? 320.f : 190.f, bBoss ? 1.0f : 0.5f, bBoss ? 3.2f : 2.4f);
+			Burst(P, bBoss ? 30 : 6, FLinearColor::White, 80.f, 260.f, 0.3f, 1.6f, true);
+			Rings.Add({P, 4.f, bBoss ? 120.f : bTank ? 40.f : 24.f, 0.f, bBoss ? 0.6f : 0.3f, bBoss ? 3.f : 1.8f, Col});
+			if (bBoss) { Shake = FMath::Max(Shake, 0.6f); FlashT = 0.35f; FlashCol = Col; }
+			else if (bTank) Shake = FMath::Max(Shake, 0.15f);
+			break;
+		}
+		case FPDEvent::EKind::Leak:
+			Shake = FMath::Max(Shake, 0.35f);
+			FlashT = 0.4f;
+			FlashCol = Hex(TEXT("ff3a4a"));
+			Floats.Add({FString::Printf(TEXT("목숨 -%d"), E.A), FVector2f(FX + Cols * CS - 60.f, FY + 40.f), 0.f, 1.2f, 20.f, Hex(TEXT("ff6a6a"))});
+			break;
+		case FPDEvent::EKind::Place:
+		{
+			const FLinearColor Col = SuitColor(E.Suit);
+			Rings.Add({P, 8.f, 46.f, 0.f, 0.4f, 2.f, Col});
+			Burst(P, 14, Col, 40.f, 160.f, 0.45f, 2.2f);
+			break;
+		}
+		case FPDEvent::EKind::Synergy:
+		{
+			const FLinearColor Col = HandColor(E.Hand);
+			const int Val = HandValue(E.Hand, E.A);
+			// 이 족보의 칸들을 찾아 칸마다 빛과 상승 입자
+			for (const FPDSynergy& S : Game.Synergies)
+			{
+				if (S.Kind != E.Hand) continue;
+				float CX = 0.f, CY = 0.f;
+				for (int K : S.Cells) { CX += K % Cols + 0.5f; CY += K / Cols + 0.5f; }
+				if (FMath::Abs(CX / S.Cells.size() - E.X) > 0.01f || FMath::Abs(CY / S.Cells.size() - E.Y) > 0.01f) continue;
+				for (int K : S.Cells)
+				{
+					CellFlashes.Add({K, 0.6f, Col});
+					for (int I = 0; I < 10; ++I)
+					{
+						FParticle Pa;
+						Pa.P = CellCenter(K) + FVector2f(FMath::FRandRange(-20.f, 20.f), FMath::FRandRange(-20.f, 20.f));
+						Pa.V = FVector2f(FMath::FRandRange(-20.f, 20.f), FMath::FRandRange(-160.f, -60.f));
+						Pa.MaxLife = Pa.Life = FMath::FRandRange(0.5f, 1.0f);
+						Pa.Size = FMath::FRandRange(1.5f, 3.f);
+						Pa.Drag = 1.2f;
+						Pa.Gravity = 0.f;
+						Pa.Col = Col;
+						Pa.bStreak = true;
+						Particles.Add(Pa);
+					}
+				}
+				break;
+			}
+			Rings.Add({P, 10.f, 70.f + Val * 0.6f, 0.f, 0.55f, 3.f, Col});
+			Burst(P, 18 + Val / 3, Col, 80.f, 260.f, 0.7f, 2.6f, true);
+			FString Label = HandName(E.Hand);
+			if (E.Hand == EPDHand::Flush || E.Hand == EPDHand::Straight) Label += FString::FromInt(E.A);
+			Floats.Add({Label + TEXT("!"), P - FVector2f(0.f, 24.f), 0.f, 1.4f, Val >= 80 ? 30.f : 22.f, Col});
+			if (E.B >= 2)
+			{
+				Floats.Add({FString::Printf(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (E.B - 1))), P + FVector2f(0.f, 6.f), 0.f, 1.4f, 18.f, FLinearColor::White});
+				Shake = FMath::Max(Shake, 0.12f + 0.05f * E.B);
+			}
+			if (Val >= 80) { FlashT = 0.3f; FlashCol = Col; Shake = FMath::Max(Shake, 0.3f); }
+			break;
+		}
+		case FPDEvent::EKind::WaveStart:
+			BannerText = E.B ? FString::Printf(TEXT("BOSS WAVE %d"), E.A) : FString::Printf(TEXT("WAVE %d"), E.A);
+			BannerSub = E.B ? TEXT("거대한 적이 온다") : FString::Printf(TEXT("%d / %d"), E.A, NumWaves);
+			BannerCol = E.B ? Hex(TEXT("ff6a6a")) : Hex(TEXT("7fd6ff"));
+			BannerT = BannerMax = 1.6f;
+			if (E.B) { FlashT = 0.25f; FlashCol = BannerCol; }
+			break;
+		case FPDEvent::EKind::WaveClear:
+			BannerText = TEXT("WAVE CLEAR");
+			BannerSub = FString::Printf(TEXT("카드 +%d%s"), E.A, E.A < DrawPerWave ? TEXT(" (손패 가득)") : TEXT(""));
+			BannerCol = Hex(TEXT("9cffb0"));
+			BannerT = BannerMax = 1.4f;
+			break;
+		case FPDEvent::EKind::GameOver:
+			Shake = 0.8f;
+			FlashT = 0.6f;
+			FlashCol = Hex(TEXT("ff3a4a"));
+			break;
+		case FPDEvent::EKind::Win:
+			for (int I = 0; I < 6; ++I) Burst(FVector2f(FX + FMath::FRandRange(100.f, Cols * CS - 100.f), FY + FMath::FRandRange(80.f, Rows * CS - 80.f)), 40, HandColor((EPDHand)(I % 8)), 60.f, 300.f, 1.4f, 3.f, false, 120.f);
+			FlashT = 0.5f;
+			FlashCol = Hex(TEXT("ffd96a"));
+			break;
+		case FPDEvent::EKind::Discard: break;
+		}
+	}
+	Game.Events.clear();
+}
+
+void SPDBoardWidget::UpdateFx(float Dt)
+{
+	for (FParticle& Pa : Particles)
+	{
+		Pa.P += Pa.V * Dt;
+		Pa.V *= FMath::Max(0.f, 1.f - Pa.Drag * Dt);
+		Pa.V.Y += Pa.Gravity * Dt;
+		Pa.Life -= Dt;
+	}
+	Particles.RemoveAll([](const FParticle& Pa) { return Pa.Life <= 0.f; });
+	for (FBeam& B : Beams) B.T += Dt;
+	Beams.RemoveAll([](const FBeam& B) { return B.T >= B.MaxT; });
+	for (FRing& R : Rings) R.T += Dt;
+	Rings.RemoveAll([](const FRing& R) { return R.T >= R.MaxT; });
+	for (FFloatText& F : Floats) F.T += Dt;
+	Floats.RemoveAll([](const FFloatText& F) { return F.T >= F.MaxT; });
+	for (FCellFlash& F : CellFlashes) F.T -= Dt;
+	CellFlashes.RemoveAll([](const FCellFlash& F) { return F.T <= 0.f; });
+	Shake = FMath::Max(0.f, Shake - Dt);
+	FlashT = FMath::Max(0.f, FlashT - Dt);
+	BannerT = FMath::Max(0.f, BannerT - Dt);
+	// 빠른 적과 보스 잔상
+	TSet<int32> Alive;
+	for (const FPDEnemy& E : Game.Enemies)
+	{
+		Alive.Add(E.Id);
+		if (E.Type != EPDEnemy::Fast && E.Type != EPDEnemy::Boss) continue;
+		const FPDPoint Pt = Game.Path.At(E.D);
+		TArray<FVector2f>& T = Trails.FindOrAdd(E.Id);
+		T.Insert(CellPx(Pt.X, Pt.Y), 0);
+		if (T.Num() > 8) T.SetNum(8);
+	}
+	for (auto It = Trails.CreateIterator(); It; ++It) if (!Alive.Contains(It.Key())) It.RemoveCurrent();
+}
+
+void SPDBoardWidget::UpdatePreview()
+{
+	const bool bOk = Sel >= 0 && Sel < (int32)Game.Hand.size() && HoverX >= 0 && Game.Buildable(HoverX, HoverY) && Game.Phase != EPDPhase::Title;
+	const FString Key = bOk ? FString::Printf(TEXT("%d|%d|%d|%d|%d|%d"), Sel, HoverX, HoverY, (int32)Game.Towers.size(), Game.Discarded, (int32)Game.Hand.size()) : FString();
+	if (Key == PreviewKey) return;
+	PreviewKey = Key;
+	Preview = bOk ? Game.PreviewSynergies(Sel, HoverX, HoverY) : std::vector<FPDSynergy>();
+}
+
+void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	const float Dt = FMath::Min(InDeltaTime, 0.05f);
+	Clock += Dt;
+	Game.Tick(Dt);
+	HandleEvents();
+	UpdateFx(Dt);
+	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
+	UpdatePreview();
+	Invalidate(EInvalidateWidgetReason::Paint);
+}
+
+FVector2f SPDBoardWidget::ToDesign(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
+{
+	const auto Local = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	return FVector2f(((float)Local.X - ViewOffset.X) / ViewScale, ((float)Local.Y - ViewOffset.Y) / ViewScale);
+}
+
+FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	Mouse = ToDesign(MyGeometry, MouseEvent);
+	const int32 CX = FMath::FloorToInt((Mouse.X - FX) / CS), CY = FMath::FloorToInt((Mouse.Y - FY) / CS);
+	const bool bIn = CX >= 0 && CY >= 0 && CX < Cols && CY < Rows;
+	HoverX = bIn ? CX : -1;
+	HoverY = bIn ? CY : -1;
+	return FReply::Handled();
+}
+
+void SPDBoardWidget::Click(FVector2f P, bool bRight)
+{
+	auto Sound = [this](EPDSound S) { if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f}); };
+	if (Game.Phase == EPDPhase::Title) { Game.Phase = EPDPhase::Build; Sound(EPDSound::Start); return; }
+	if (Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Win) { Game.NewGame(true); Sel = -1; Particles.Empty(); Sound(EPDSound::Start); return; }
+	int32 HandHit = -1;
+	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
+	{
+		const float X = FX + 96.f + I * (CardW + 10.f);
+		if (P.X >= X && P.X <= X + CardW && P.Y >= HandY - 12.f && P.Y <= HandY + CardH) HandHit = I;
+	}
+	if (bRight)
+	{
+		if (HandHit >= 0) { Game.Discard(HandHit); if (Sel == HandHit) Sel = -1; else if (Sel > HandHit) --Sel; }
+		else Sel = -1;
+		return;
+	}
+	if (HandHit >= 0) { Sel = Sel == HandHit ? -1 : HandHit; Sound(EPDSound::Move); return; }
+	const int32 CX = FMath::FloorToInt((P.X - FX) / CS), CY = FMath::FloorToInt((P.Y - FY) / CS);
+	if (CX >= 0 && CY >= 0 && CX < Cols && CY < Rows && Sel >= 0)
+	{
+		if (Game.Place(Sel, CX, CY)) Sel = -1;
+		else Sound(EPDSound::Denied);
+		return;
+	}
+	if (Game.Phase == EPDPhase::Build && P.X >= RX + 16.f && P.X <= RX + 216.f && P.Y >= FY + 96.f && P.Y <= FY + 134.f) Game.StartWave();
+}
+
+FReply SPDBoardWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	Click(ToDesign(MyGeometry, MouseEvent), MouseEvent.GetEffectingButton() == EKeys::RightMouseButton);
+	return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
+}
+
+FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.IsRepeat()) return FReply::Handled();
+	const FKey K = InKeyEvent.GetKey();
+	const FKey Nums[7] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven};
+	auto Sound = [this](EPDSound S) { if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f}); };
+	if (Game.Phase == EPDPhase::Title)
+	{
+		if (K == EKeys::Enter || K == EKeys::SpaceBar) { Game.Phase = EPDPhase::Build; Sound(EPDSound::Start); return FReply::Handled(); }
+		return FReply::Unhandled();
+	}
+	if (Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Win)
+	{
+		if (K == EKeys::R || K == EKeys::Enter) { Game.NewGame(true); Sel = -1; Particles.Empty(); Sound(EPDSound::Start); return FReply::Handled(); }
+		return FReply::Unhandled();
+	}
+	for (int32 I = 0; I < 7; ++I)
+		if (K == Nums[I])
+		{
+			if (I < (int32)Game.Hand.size()) { Sel = Sel == I ? -1 : I; Sound(EPDSound::Move); }
+			return FReply::Handled();
+		}
+	if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave();
+	else if (K == EKeys::Escape) Sel = -1;
+	else if (K == EKeys::F) Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1;
+	else if (K == EKeys::M) Game.bMuted = !Game.bMuted;
+	else return FReply::Unhandled();
+	return FReply::Handled();
+}
+
+int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
+	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), &WhiteBrush, ESlateDrawEffect::None, Hex(TEXT("06060b")));
+	const auto LocalSize = AllottedGeometry.GetLocalSize(); // 엔진 버전에 따라 FVector2D 또는 FVector2f
+	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
+	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
+	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
+	ViewScale = Scale;
+	ViewOffset = Offset;
+	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
+	// 판은 흔들림을 받고, 패널은 고정
+	const float SK = Shake * 14.f;
+	const FVector2f ShakeOff(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
+	const FGeometry Field = Design.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(ShakeOff));
+	int32 Layer = LayerId;
+	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
+	FCanvas F{OutDrawElements, Field, &Layer, &WhiteBrush};
+	PaintAll(C, F);
+	return Layer;
+}
+
+void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
+{
+	const FPDGame& G = Game;
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6")),
+					   Green = Hex(TEXT("9cffb0")), Red = Hex(TEXT("ff6a6a"));
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+
+	// ---- 판: 격자, 길, 길 위를 흐르는 에너지
+	for (int Y = 0; Y < Rows; ++Y)
+		for (int X = 0; X < Cols; ++X)
+		{
+			const FVector2f P = CellPx((float)X, (float)Y);
+			if (G.Path.IsPath(X, Y)) F.Box(P.X, P.Y, CS, CS, Hex(TEXT("7fd6ff"), 0.05f));
+			else F.Lines(FCanvas::RectPoints(P.X + 0.5f, P.Y + 0.5f, CS - 1.f, CS - 1.f), Hex(TEXT("788cb4"), 0.06f + 0.02f * FMath::Sin(Clock * 1.5f + X * 0.4f + Y * 0.3f)), 1.f);
+		}
+	TArray<FVector2f> PathPts;
+	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
+	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
+	{
+		const int32 L = F.NextLayer();
+		for (int I = 0; I < 14; ++I)
+		{
+			const float D = FMath::Fmod(Clock * 1.6f + I * G.Path.Length / 14.f, G.Path.Length);
+			const FPDPoint Pt = G.Path.At(D);
+			const FVector2f P = CellPx(Pt.X, Pt.Y);
+			F.BoxAt(L, P.X - 4.f, P.Y - 4.f, 8.f, 8.f, Hex(TEXT("7fd6ff"), 0.12f));
+			F.BoxAt(L, P.X - 1.5f, P.Y - 1.5f, 3.f, 3.f, Hex(TEXT("bfeaff"), 0.8f));
+		}
+	}
+	F.Glow(FCanvas::RectPoints(FX, FY, Cols * CS, Rows * CS), Hex(TEXT("7fd6ff"), 0.5f), 1.5f, 0.6f);
+
+	// ---- 족보 테두리 (칸 모양대로 바깥 변만) + 연쇄 번개
+	const bool bPv = !Preview.empty();
+	auto DrawSyn = [&](const std::vector<FPDSynergy>& List, float Alpha, bool bLightning) {
+		for (const FPDSynergy& S : List)
+		{
+			const FLinearColor Col = WithAlpha(HandColor(S.Kind), Alpha);
+			TSet<int32> Has;
+			for (int K : S.Cells) Has.Add(K);
+			const float M = 4.f;
+			for (int K : S.Cells)
+			{
+				const int X = K % Cols, Y = K / Cols;
+				const bool bL = X == 0 || !Has.Contains(K - 1), bR = X == Cols - 1 || !Has.Contains(K + 1), bU = !Has.Contains(K - Cols), bD = !Has.Contains(K + Cols);
+				const FVector2f P = CellPx((float)X, (float)Y);
+				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
+				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.07f));
+				if (bU) F.Glow({{X0, Y0}, {X1, Y0}}, Col, 2.f, 0.8f);
+				if (bD) F.Glow({{X0, Y1}, {X1, Y1}}, Col, 2.f, 0.8f);
+				if (bL) F.Glow({{X0, Y0}, {X0, Y1}}, Col, 2.f, 0.8f);
+				if (bR) F.Glow({{X1, Y0}, {X1, Y1}}, Col, 2.f, 0.8f);
+			}
+			if (!bLightning) continue;
+			for (int J : S.Links)
+			{
+				if (J < 0 || J >= (int)List.size()) continue;
+				for (int A : S.Cells)
+					for (int B : List[J].Cells)
+					{
+						if (FMath::Abs(A % Cols - B % Cols) + FMath::Abs(A / Cols - B / Cols) != 1) continue;
+						const FVector2f PA = CellCenter(A), PB = CellCenter(B);
+						TArray<FVector2f> Bolt{PA};
+						for (int Seg = 1; Seg < 5; ++Seg)
+						{
+							const FVector2f Mid = PA + (PB - PA) * (Seg / 5.f);
+							Bolt.Add(Mid + FVector2f(FMath::FRandRange(-6.f, 6.f), FMath::FRandRange(-6.f, 6.f)));
+						}
+						Bolt.Add(PB);
+						F.Glow(Bolt, WithAlpha(FLinearColor::White, Alpha * (0.5f + 0.5f * Pulse)), 1.4f, 1.2f);
+					}
+			}
+		}
+	};
+	DrawSyn(G.Synergies, bPv ? 0.35f : 1.f, true);
+	if (bPv) DrawSyn(Preview, 0.6f + 0.4f * Pulse, true);
+	for (const FCellFlash& Fl : CellFlashes)
+	{
+		const FVector2f P = CellPx((float)(Fl.Key % Cols), (float)(Fl.Key / Cols));
+		F.Box(P.X + 2.f, P.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Fl.Col, Fl.T * 0.5f));
+	}
+
+	// ---- 타워
+	for (const auto& KV : G.Towers)
+	{
+		const FPDTower& T = KV.second;
+		if (bPv && T.X == HoverX && T.Y == HoverY) continue;
+		const FVector2f P = CellCenter(KV.first);
+		const float Pop = T.Age < 0.3f ? 1.f + 0.5f * (1.f - T.Age / 0.3f) : 1.f; // 놓는 순간 커졌다 줄어듦
+		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
+	}
+	// 미리보기: 고른 카드를 마우스 칸에
+	if (Sel >= 0 && Sel < (int32)G.Hand.size() && HoverX >= 0 && G.Buildable(HoverX, HoverY))
+	{
+		const FPDCard& Card = G.Hand[Sel];
+		const FVector2f P = CellCenter(CellKey(HoverX, HoverY));
+		F.Dashed(FCanvas::CirclePoints(P, SuitDef(Card.Suit).Range * CS, 48), Hex(TEXT("7fd6ff"), 0.45f), 1.f, 4.f, 6.f);
+		F.CardShape(Card, P.X, P.Y, CS * 0.4f, 0.8f, bPv, Pulse);
+	}
+	else if (HoverX >= 0 && Sel < 0)
+	{
+		auto It = G.Towers.find(CellKey(HoverX, HoverY));
+		if (It != G.Towers.end()) F.Dashed(FCanvas::CirclePoints(CellCenter(It->first), TowerStats(It->second).Range * CS, 48), Hex(TEXT("7fd6ff"), 0.45f), 1.f, 4.f, 6.f);
+	}
+
+	// ---- 적 (잔상, 몸체, 둔화 서리, 체력)
+	for (const auto& KV : Trails)
+	{
+		const TArray<FVector2f>& T = KV.Value;
+		for (int I = 1; I < T.Num(); ++I) F.Lines({T[I - 1], T[I]}, Hex(TEXT("ffa86a"), 0.35f * (1.f - I / (float)T.Num())), 4.f * (1.f - I / (float)T.Num()));
+	}
+	for (const FPDEnemy& E : G.Enemies)
+	{
+		const FPDPoint Pt = G.Path.At(E.D);
+		const FVector2f P = CellPx(Pt.X, Pt.Y);
+		const FLinearColor Col = EnemyColor(E.Type);
+		switch (E.Type)
+		{
+		case EPDEnemy::Fast: F.Glow({{P.X + 10.f, P.Y}, {P.X - 7.f, P.Y - 8.f}, {P.X - 7.f, P.Y + 8.f}, {P.X + 10.f, P.Y}}, Col, 2.f); break;
+		case EPDEnemy::Tank:
+		{
+			TArray<FVector2f> Hexa;
+			for (int K = 0; K <= 6; ++K) { const float A = K / 6.f * TwoPi + Clock; Hexa.Add(P + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 14.f); }
+			F.Glow(Hexa, Col, 2.f);
+			break;
+		}
+		case EPDEnemy::Boss:
+			F.Glow(FCanvas::CirclePoints(P, 20.f + 2.f * Pulse), Col, 2.4f, 1.4f);
+			F.Glow(FCanvas::CirclePoints(P, 12.f), Col, 2.f);
+			break;
+		default: F.Glow(FCanvas::CirclePoints(P, 9.f, 20), Col, 2.f); break;
+		}
+		if (E.SlowT > 0.f) F.Lines(FCanvas::CirclePoints(P, E.Type == EPDEnemy::Boss ? 26.f : 15.f, 24), Hex(TEXT("8affc4"), 0.6f), 1.2f);
+		const float W = E.Type == EPDEnemy::Boss ? 40.f : 24.f, BY = P.Y - (E.Type == EPDEnemy::Boss ? 30.f : 22.f);
+		F.Box(P.X - W / 2.f, BY, W, 3.f, Hex(TEXT("ffffff"), 0.15f));
+		F.Box(P.X - W / 2.f, BY, W * FMath::Max(0.f, E.Hp / E.MaxHp), 3.f, Col);
+	}
+
+	// ---- 이펙트: 레이저, 충격파, 파티클
+	for (const FBeam& B : Beams)
+	{
+		const float A = 1.f - B.T / B.MaxT;
+		F.Glow({B.A, B.B}, WithAlpha(B.Col, A), B.Width, 1.4f);
+		F.Lines({B.A, B.B}, WithAlpha(FLinearColor::White, A * 0.8f), B.Width * 0.4f);
+	}
+	for (const FRing& R : Rings)
+	{
+		const float U = R.T / R.MaxT, Rad = R.R0 + (R.R1 - R.R0) * (1.f - (1.f - U) * (1.f - U));
+		F.Glow(FCanvas::CirclePoints(R.C, Rad, 36), WithAlpha(R.Col, 1.f - U), R.Width * (1.f - U * 0.5f), 1.f);
+	}
+	{
+		const int32 L1 = F.NextLayer(), L2 = F.NextLayer();
+		for (const FParticle& Pa : Particles)
+		{
+			const float A = FMath::Clamp(Pa.Life / Pa.MaxLife, 0.f, 1.f), S = Pa.Size;
+			F.BoxAt(L1, Pa.P.X - S * 2.f, Pa.P.Y - S * 2.f, S * 4.f, S * 4.f, WithAlpha(Pa.Col, 0.15f * A));
+			if (Pa.bStreak)
+			{
+				const FVector2f Tail = Pa.P - Pa.V * 0.04f;
+				F.Lines({Tail, Pa.P}, WithAlpha(Pa.Col, A), S);
+			}
+			else F.BoxAt(L2, Pa.P.X - S / 2.f, Pa.P.Y - S / 2.f, S, S, WithAlpha(Pa.Col, A));
+		}
+	}
+	// ---- 족보 이름표 (타워 위에)
+	auto DrawBadges = [&](const std::vector<FPDSynergy>& List, float Alpha) {
+		for (const FPDSynergy& S : List)
+		{
+			int Top = S.Cells[0];
+			for (int K : S.Cells) if (K / Cols < Top / Cols || (K / Cols == Top / Cols && K % Cols < Top % Cols)) Top = K;
+			const FVector2f P = CellPx(Top % Cols + 0.5f, (float)(Top / Cols));
+			F.Badge(HandLabel(S), P.X, P.Y + 4.f, HandColor(S.Kind), Alpha);
+		}
+	};
+	DrawBadges(G.Synergies, bPv ? 0.35f : 1.f);
+	if (bPv) DrawBadges(Preview, 1.f);
+	for (const FFloatText& Ft : Floats)
+	{
+		const float U = Ft.T / Ft.MaxT, A = FMath::Min(1.f, (1.f - U) * 3.f), Pop = U < 0.12f ? 1.f + (0.12f - U) * 4.f : 1.f;
+		F.TextCentered(Ft.S, Ft.P.X, Ft.P.Y - U * 30.f, WithAlpha(Ft.Col, A), Ft.Size * Pop, true);
+	}
+	// 배너 (웨이브 시작·통과)
+	if (BannerT > 0.f)
+	{
+		const float U = 1.f - BannerT / BannerMax, A = FMath::Min(1.f, FMath::Min(U * 6.f, (1.f - U) * 4.f));
+		const float CY = FY + Rows * CS * 0.42f, Sweep = (1.f - FMath::Min(1.f, U * 5.f)) * 120.f;
+		F.Box(FX, CY - 40.f, Cols * CS, 80.f, Hex(TEXT("06060b"), 0.7f * A));
+		F.Glow({{FX, CY - 40.f}, {FX + Cols * CS, CY - 40.f}}, WithAlpha(BannerCol, A), 1.5f);
+		F.Glow({{FX, CY + 40.f}, {FX + Cols * CS, CY + 40.f}}, WithAlpha(BannerCol, A), 1.5f);
+		F.TextCentered(BannerText, FX + Cols * CS / 2.f - Sweep, CY - 8.f, WithAlpha(BannerCol, A), 40.f, true);
+		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false);
+	}
+
+	// ---- 손패
+	C.Text(FString::Printf(TEXT("손패 %d/%d"), (int32)G.Hand.size(), HandMax), FX, HandY + 12.f, Cyan, 12.f);
+	C.Text(FString::Printf(TEXT("덱 %d장"), (int32)G.Deck.size()), FX, HandY + 30.f, Dim, 11.f);
+	for (int32 I = 0; I < (int32)G.Hand.size(); ++I)
+	{
+		const FPDCard& Card = G.Hand[I];
+		const bool bSel = I == Sel;
+		const float X = FX + 96.f + I * (CardW + 10.f), Y = HandY - (bSel ? 10.f : 0.f);
+		const FLinearColor Col = SuitColor(Card.Suit);
+		C.Glow(FCanvas::RoundRectPoints(X, Y, CardW, CardH, 8.f), bSel ? FLinearColor::White : Col, bSel ? 2.4f : 1.4f, bSel ? 1.4f : 0.6f);
+		C.CardShape(Card, X + CardW / 2.f, Y + CardH / 2.f - 6.f, 22.f, 1.f, bSel, Pulse);
+		C.TextCentered(SuitName(Card.Suit), X + CardW / 2.f, Y + CardH - 12.f, Col, 10.f, false);
+		C.Text(FString::FromInt(I + 1), X + 6.f, Y + 13.f, Dim, 10.f);
+	}
+
+	// ---- 오른쪽 패널
+	const float PW = DesignW - RX - 20.f;
+	C.Panel(RX, FY, PW, 150.f);
+	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : FString::Printf(TEXT("WAVE %d / %d"), G.Wave, NumWaves), RX + 16.f, FY + 30.f, Hex(TEXT("e8f0ff")), 20.f, 0, true);
+	C.Text(FString::Printf(TEXT("목숨 %d"), G.Lives), RX + 16.f, FY + 58.f, G.Lives <= 5 ? Red : Green, 15.f, 0, true);
+	C.Text(FString::Printf(TEXT("처치 %d · 놓친 적 %d"), G.Kills, G.Leaks), RX + 16.f, FY + 80.f, Grey, 11.f);
+	if (G.Phase == EPDPhase::Build)
+	{
+		C.Glow(FCanvas::RectPoints(RX + 16.f, FY + 96.f, 200.f, 38.f), Green, 1.6f, 0.6f + 0.8f * Pulse);
+		C.TextCentered(FString::Printf(TEXT("웨이브 %d 시작 (Space)"), G.Wave + 1), RX + 116.f, FY + 115.f, Green, 13.f, true);
+	}
+	else if (G.Phase == EPDPhase::Wave)
+		C.Text(FString::Printf(TEXT("남은 적 %d   속도 ×%d (F)"), (int32)G.Enemies.size(), G.Speed), RX + 16.f, FY + 118.f, Gold, 12.f);
+
+	C.Panel(RX, FY + 166.f, PW, 300.f);
+	C.Text(TEXT("족보 시너지 (붙어 있으면 모양 상관없이)"), RX + 16.f, FY + 190.f, Cyan, 12.f);
+	TSet<int32> PvKinds;
+	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
+	for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
+	{
+		const EPDHand H = (EPDHand)I;
+		const float Y = FY + 214.f + I * 28.f;
+		const bool bOn = PvKinds.Contains(I);
+		FString Name = HandName(H);
+		if (H == EPDHand::Flush) Name += TEXT(" (3~5장)");
+		if (H == EPDHand::Straight) Name += TEXT(" (2~5장)");
+		C.Text(Name, RX + 16.f, Y, bOn ? Gold : HandColor(H), 12.f, 0, true);
+		C.Text(HandEffect(H), RX + 16.f, Y + 13.f, bOn ? Gold : Dim, 10.f);
+	}
+	C.Text(TEXT("연쇄: 족보끼리 맞닿으면 하나에 +25%씩 공격력"), RX + 16.f, FY + 452.f, FLinearColor::White, 11.f, 0, true);
+
+	C.Panel(RX, FY + 482.f, PW, 132.f);
+	C.Text(TEXT("무늬 = 공격 방식, 숫자 = 공격력"), RX + 16.f, FY + 506.f, Cyan, 12.f);
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const EPDSuit S = (EPDSuit)I;
+		const float Y = FY + 530.f + I * 22.f;
+		C.Shape(S, RX + 26.f, Y - 4.f, 8.f, SuitColor(S), 1.4f, 0.6f);
+		C.Text(FString::Printf(TEXT("%s: %s"), SuitName(S), SuitDesc(S)), RX + 42.f, Y, SuitColor(S), 11.f);
+	}
+	C.Text(TEXT("카드 클릭(1~7) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소 · F 속도 · M 소리"), DesignW / 2.f, DesignH - 8.f, Dim, 11.f, 1);
+
+	// ---- 화면 번쩍임과 덮개 화면
+	if (FlashT > 0.f) C.Box(0.f, 0.f, DesignW, DesignH, WithAlpha(FlashCol, FlashT * 0.45f));
+	if (G.Phase == EPDPhase::Title)
+		C.Overlay(TEXT("POKER DEFENSE"), Cyan,
+			{TEXT("카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력"), TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이). 족보끼리 맞닿으면 연쇄 보너스"),
+				FString::Printf(TEXT("웨이브를 막을 때마다 카드 %d장. 지금 놓을지, 아껴서 큰 족보를 노릴지!"), DrawPerWave)},
+			TEXT("Enter 키 또는 화면을 눌러 시작"));
+	else if (G.Phase == EPDPhase::Over)
+		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills)}, TEXT("R 키 또는 화면을 눌러 다시"));
+	else if (G.Phase == EPDPhase::Win)
+		C.Overlay(TEXT("ALL CLEAR"), Gold, {FString::Printf(TEXT("%d 웨이브를 모두 막았다 · 남은 목숨 %d · 처치 %d"), NumWaves, G.Lives, G.Kills)}, TEXT("R 키 또는 화면을 눌러 다시"));
+}

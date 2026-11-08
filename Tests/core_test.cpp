@@ -1,15 +1,16 @@
-// 규칙 코어 시험 (언리얼 없이 실행)
-//   ./Tests/run.sh          단위 시험 + 봇 40판
-// 웹 프로토타입의 handtest.js, bottest.js 와 같은 경우를 확인한다.
-#include "../Source/ProjectB/TPCore.h"
+// 포커 디펜스 규칙 코어 시험 (언리얼 없이 실행)
+//   ./Tests/run.sh [봇 판 수]
+// 웹 프로토타입(prototype/poker-defense/test.js)과 같은 경우를 확인한다.
+#include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <map>
+#include <set>
 #include <string>
 
-using namespace TP;
+using namespace PD;
 
 static int GFails = 0;
 static void Expect(bool bOk, const std::string& Label)
@@ -17,178 +18,194 @@ static void Expect(bool bOk, const std::string& Label)
 	std::printf("%s %s\n", bOk ? "  ok " : "FAIL ", Label.c_str());
 	if (!bOk) ++GFails;
 }
-
-struct FBuilder
+static FPDCard C(int R, EPDSuit S = EPDSuit::Spade) { return {R, S}; }
+static std::string Names(std::vector<EPDHand> V)
 {
-	FTPGrid G = EmptyGrid();
-	std::vector<FTPCard> Pool{FTPCard{}};
-	int Add(int Rank, ETPSuit S) { Pool.push_back({Rank, S}); return (int)Pool.size() - 1; }
-	// 세로 카드: (x, y) 와 (x, y-1)
-	int V(int X, int Y, int Rank, ETPSuit S) { const int Id = Add(Rank, S); G[Y][X] = Id; G[Y - 1][X] = Id; return Id; }
-	// 가로 카드: (x, y) 와 (x+1, y)
-	int H(int X, int Y, int Rank, ETPSuit S) { const int Id = Add(Rank, S); G[Y][X] = Id; G[Y][X + 1] = Id; return Id; }
-};
-
-static std::string Kinds(const std::vector<FTPHand>& Hs)
+	static const char* N[] = {"straightFlush", "four", "fullHouse", "flush", "straight", "triple", "twoPair", "pair"};
+	std::vector<std::string> S;
+	for (EPDHand H : V) S.push_back(N[(int)H]);
+	std::sort(S.begin(), S.end());
+	std::string O;
+	for (auto& X : S) O += (O.empty() ? "" : ",") + X;
+	return O.empty() ? "none" : O;
+}
+static void Put(FPDTowerMap& M, int X, int Y, FPDCard Card)
 {
-	static const char* Names[] = {"five", "four", "fullHouse", "triple", "twoPair"};
-	std::vector<std::string> V;
-	for (const FTPHand& H : Hs) V.push_back(Names[(int)H.Kind]);
-	std::sort(V.begin(), V.end());
-	std::string S;
-	for (auto& X : V) S += (S.empty() ? "" : ",") + X;
-	return S.empty() ? "none" : S;
+	FPDTower T;
+	T.Card = Card;
+	T.X = X;
+	T.Y = Y;
+	M[CellKey(X, Y)] = T;
 }
 
-static void HandTests()
+static void UnitTests()
 {
-	const int B = Rows - 1;
-	const ETPSuit Sp = ETPSuit::Spade, He = ETPSuit::Heart, Di = ETPSuit::Diamond, Cl = ETPSuit::Club;
-	const ETPSuit Su[4] = {Sp, He, Di, Cl};
-	auto Case = [](const char* Label, FBuilder& F, const char* Want, bool bExtra = true) {
-		const auto Hs = Detect(F.G, F.Pool, FTPRules{});
-		const std::string Got = Kinds(Hs);
-		Expect(Got == Want && bExtra, std::string(Label) + " -> " + Got);
-		return Hs;
+	const EPDSuit He = EPDSuit::Heart, Di = EPDSuit::Diamond, Cl = EPDSuit::Club;
+	auto Case = [](const char* Label, std::vector<FPDCard> Cards, const char* Want) {
+		const std::string Got = Names(ClassifyHand(Cards));
+		Expect(Got == Want, std::string(Label) + " -> " + Got);
 	};
-	{ FBuilder F; F.V(0, B, 5, Sp); F.V(1, B, 5, He); F.V(2, B, 5, Di);
-	  auto Hs = Detect(F.G, F.Pool, {}); Case("세로 카드 3장 나란히 = 트리플", F, "triple", !Hs[0].bFlush && Hs[0].Cells.size() == 6); }
-	{ FBuilder F; F.H(0, B, 5, Sp); F.H(0, B - 1, 5, He); F.H(1, B - 2, 5, Di); Case("가로 카드 3장 쌓기 = 트리플", F, "triple"); }
-	{ FBuilder F; F.H(0, B, 3, Sp); F.H(1, B - 1, 3, He); F.V(3, B, 3, Di); Case("한 칸만 맞닿아도 붙음", F, "triple"); }
-	{ FBuilder F; for (int I = 0; I < 4; ++I) F.V(I, B, 3, Su[I]); Case("포카드", F, "four"); }
-	{ FBuilder F; for (int I = 0; I < 5; ++I) F.V(I, B, 6, Su[I % 4]); Case("파이브 카드", F, "five"); }
-	{ FBuilder F; F.V(0, B, 4, Sp); F.V(1, B, 4, He); F.V(2, B, 4, Di); F.H(3, B, 7, Cl); F.H(3, B - 1, 7, Sp);
-	  auto Hs = Detect(F.G, F.Pool, {}); Case("풀하우스", F, "fullHouse", Hs.size() == 1 && Hs[0].CardIds.size() == 5 && Hs[0].Cells.size() == 10); }
-	{ FBuilder F; F.V(0, B, 4, Sp); F.V(1, B, 4, He); F.V(2, B, 7, Di); F.V(3, B, 7, Cl); Case("투 페어", F, "twoPair"); }
-	{ FBuilder F; F.V(0, B, 4, Sp); F.V(1, B, 4, He); Case("원 페어는 안 터짐", F, "none"); }
-	{ FBuilder F; F.V(0, B, 4, Sp); F.V(1, B, 4, He); F.V(5, B, 7, Di); F.V(6, B, 7, Cl); Case("떨어진 페어 두 쌍은 안 터짐", F, "none"); }
-	{ FBuilder F; F.H(0, B, 2, Sp); F.H(2, B - 1, 2, He); F.H(4, B - 2, 2, Di); Case("대각선은 안 붙음", F, "none"); }
-	{ FBuilder F; F.V(2, B, 5, He); F.V(3, B, 5, He); F.V(4, B, 5, He);
-	  auto Hs = Detect(F.G, F.Pool, {}); Case("같은 무늬 트리플 = 플러시 x2", F, "triple", Hs[0].bFlush && Hs[0].Mult == 4); }
-	{ FBuilder F; F.V(2, B, 5, He); F.V(3, B, 5, He); F.V(4, B, 5, He); FTPRules R; R.bNoFlush = true; R.bNoRed = true;
-	  auto Hs = Detect(F.G, F.Pool, R); Expect(Hs.size() == 1 && !Hs[0].bFlush && Hs[0].Chips == 20, "보스 규칙: 플러시 없음, 빨간 카드 칩 0"); }
+	Case("원 페어", {C(7), C(7, He)}, "pair");
+	Case("떨어진 숫자 2장", {C(7), C(9, He)}, "none");
+	Case("이어진 숫자 2장 = 스트레이트", {C(4, He), C(3)}, "straight");
+	Case("K-A도 이어짐", {C(13, He), C(14)}, "straight");
+	Case("같은 무늬 2장은 아직 아님", {C(7, He), C(9, He)}, "none");
+	Case("플러시 3장", {C(7, He), C(9, He), C(2, He)}, "flush");
+	Case("스트레이트 3장", {C(7, He), C(9), C(8, Di)}, "straight");
+	Case("A-2-3 스트레이트", {C(14, He), C(2), C(3, Di)}, "straight");
+	Case("트리플", {C(5), C(5, He), C(5, Di)}, "triple");
+	Case("투 페어", {C(5), C(9, He), C(5, Di), C(9)}, "twoPair");
+	Case("포카드", {C(5), C(5, He), C(5, Di), C(5, Cl)}, "four");
+	Case("풀하우스", {C(5), C(9, He), C(5, Di), C(9), C(5, Cl)}, "fullHouse");
+	Case("스트레이트 플러시", {C(5), C(6), C(7), C(8), C(9)}, "flush,straight,straightFlush");
 
-	auto St = [](std::vector<std::vector<int>> A) { std::vector<std::set<int>> S; for (auto& X : A) S.emplace_back(X.begin(), X.end()); return ChainStraight(S); };
-	Expect(St({{3}, {4}, {5}}) == 3, "연쇄 스트레이트 3-4-5 = 3");
-	Expect(St({{5}, {4}, {3}}) == 3, "연쇄 스트레이트 5-4-3 = 3");
-	Expect(St({{3}, {5}, {4}}) == 0, "3-5-4 는 아님");
-	Expect(St({{2, 6}, {3}, {4}, {5}}) == 4, "2-3-4-5 = 4");
-	Expect(St({{3}, {4}}) == 0, "2단계만은 아님");
-
-	{ // 받침 없는 가로 카드는 떨어지고, 한 칸만 받쳐도 걸린다
-		FBuilder F; F.V(0, B, 1, Sp); const int Fl = F.H(4, B - 5, 2, He); const int Hd = F.H(0, B - 2, 3, Di);
-		Settle(F.G); const auto Cs = CardsOf(F.G);
-		const auto* A = FindCard(Cs, Fl); const auto* C = FindCard(Cs, Hd);
-		Expect(A && A->Cells[0] == FTPCell{4, B} && A->Cells[1] == FTPCell{5, B} && C && C->Cells[0] == FTPCell{0, B - 2}, "받침 없는 카드 낙하");
+	{ // ㄴ자 플러시
+		FPDTowerMap M;
+		Put(M, 0, 0, C(7, He)); Put(M, 0, 1, C(2, He)); Put(M, 1, 1, C(11, He));
+		auto S = ApplyEffects(M);
+		Expect(S.size() == 1 && S[0].Kind == EPDHand::Flush && S[0].N == 3 && M[CellKey(0, 0)].Eff.Splash == 1.25f, "ㄴ자 하트 3장 = 플러시3");
 	}
-	{ // 2단계 연쇄: 가로 2 트리플이 터지면 위의 가로 7 이 내려와 양옆 7 과 트리플
-		FBuilder F; F.H(1, B, 2, Sp); F.H(1, B - 1, 2, He); F.H(1, B - 2, 2, Di);
-		F.V(0, B, 7, Cl); F.V(3, B, 7, He); F.H(1, B - 3, 7, Sp);
-		const FTPSimResult R = Simulate(F.G, F.Pool, {});
-		Expect(R.Chain == 2 && R.Steps[0].Score == 52 && R.Steps[1].Score == 164, "2단계 연쇄 52 -> 164 (웹과 같음), 실제 " + std::to_string(R.Steps.empty() ? 0 : R.Steps[0].Score) + " -> " + std::to_string(R.Steps.size() > 1 ? R.Steps[1].Score : 0));
+	{ // 연쇄: 스트레이트(7 8) + 트리플(5 5 5) 맞닿음
+		FPDTowerMap M;
+		Put(M, 0, 3, C(7)); Put(M, 1, 3, C(8, He)); Put(M, 2, 3, C(5)); Put(M, 3, 3, C(5, He)); Put(M, 4, 3, C(5, Di));
+		auto S = ApplyEffects(M);
+		Expect(S.size() == 2 && S[0].Chain == 2 && S[1].Chain == 2 && M[CellKey(0, 3)].Eff.Dmg == 1.25f && M[CellKey(4, 3)].Eff.Dmg == 2.5f, "맞닿은 족보 = 연쇄 2 (공격력 ×1.25)");
+		FPDTowerMap F;
+		Put(F, 0, 3, C(7)); Put(F, 1, 3, C(7, He)); Put(F, 2, 3, C(5)); Put(F, 3, 3, C(5, He)); Put(F, 4, 3, C(5, Di));
+		auto SF = ApplyEffects(F);
+		Expect(SF.size() == 1 && SF[0].Kind == EPDHand::FullHouse, "7 7 5 5 5 는 풀하우스 하나");
+		FPDTowerMap D;
+		Put(D, 0, 6, C(7)); Put(D, 1, 6, C(7, He)); Put(D, 3, 6, C(5)); Put(D, 4, 6, C(5, He));
+		auto SD = ApplyEffects(D);
+		Expect(SD.size() == 2 && SD[0].Chain == 1 && SD[1].Chain == 1, "떨어진 족보는 연쇄 아님");
+		FPDTowerMap T3;
+		Put(T3, 0, 5, C(7)); Put(T3, 1, 5, C(7, He)); Put(T3, 2, 5, C(7, Di));
+		Expect(ApplyEffects(T3).size() == 1 && ApplyEffects(T3)[0].Kind == EPDHand::Triple, "7 7 7 은 페어가 아니라 트리플");
 	}
-	{ // 모든 회전에서 카드 두 장이 각각 이웃한 칸 2개
+	{ // 무작위 길
+		std::mt19937 R(5);
+		std::set<std::vector<std::array<int, 2>>> Uniq;
 		bool bOk = true;
-		for (int T = 0; T < (int)ETPPieceType::Count; ++T)
-			for (int R = 0; R < 4; ++R)
-			{
-				const auto& C = ShapeCells((ETPPieceType)T, R);
-				auto Adj = [](FTPCell A, FTPCell D) { return std::abs(A.X - D.X) + std::abs(A.Y - D.Y) == 1; };
-				std::set<std::pair<int, int>> U;
-				for (auto& X : C) U.insert({X.X, X.Y});
-				bOk = bOk && Adj(C[0], C[1]) && Adj(C[2], C[3]) && U.size() == 4;
-			}
-		Expect(bOk, "회전 모양 검사");
-	}
-	{ // 실제 진행: 떨어뜨리면 카드 2장, 칸 4개
-		FTPGame G(7); G.bStarted = true; const FTPPreview Pv = G.Preview(); G.HardDrop();
-		while (G.Phase == ETPPhase::Chain) G.ChainStep();
-		const auto Cs = CardsOf(G.Board);
-		Expect(Pv.CardCells[0].size() == 2 && Pv.CardCells[1].size() == 2 && Cs.size() == 2 && Cs[0].Cells.size() == 2, "블록 떨어뜨리기");
-	}
-}
-
-// ---------------------------------------------------------------- 봇 (bottest.js 와 같은 평가)
-static double BoardValue(const FTPGrid& Bd, const std::vector<FTPCard>& Pool)
-{
-	double Agg = 0, Bump = 0, Adj = 0;
-	int Hs[Cols], MaxH = 0;
-	for (int X = 0; X < Cols; ++X)
-	{
-		int H = 0;
-		for (int Y = 0; Y < Rows; ++Y) if (Bd[Y][X]) { H = Rows - Y; break; }
-		Hs[X] = H; Agg += H; MaxH = std::max(MaxH, H);
-	}
-	for (int X = 1; X < Cols; ++X) Bump += std::abs(Hs[X] - Hs[X - 1]);
-	for (int Y = 0; Y < Rows; ++Y)
-		for (int X = 0; X < Cols; ++X)
+		for (int I = 0; I < 200; ++I)
 		{
-			const int C = Bd[Y][X];
-			if (!C) continue;
-			const int Ns[2][2] = {{X + 1, Y}, {X, Y + 1}};
-			for (auto& N : Ns)
-			{
-				if (N[0] >= Cols || N[1] >= Rows) continue;
-				const int O = Bd[N[1]][N[0]];
-				if (!O) continue;
-				if (Pool[O].Rank == Pool[C].Rank) Adj += 1;
-				if (Pool[O].Suit == Pool[C].Suit) Adj += 0.3;
-			}
+			auto P = GeneratePath(R);
+			Uniq.insert(P);
+			FPDPath Pa;
+			Pa.Build(P);
+			bOk = bOk && Pa.CellCount() >= PathMin && Pa.CellCount() <= PathMax && P.front()[0] == -1 && P.back()[0] == Cols;
 		}
-	return -0.6 * Agg - 0.4 * Bump + 1.2 * Adj - (MaxH > Rows - 3 ? 40 : 0);
+		Expect(bOk && Uniq.size() > 150, "무작위 길 200개: 서로 다르고 길이 34~46칸");
+	}
+	{ // 설치와 교체
+		FPDGame G(3);
+		G.NewGame(true);
+		G.Hand = {C(9), C(9, He), C(4, Di)};
+		int PX = -1, PY = -1;
+		for (int Y = 0; Y < Rows && PX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Path.IsPath(X, Y)) { PX = X; PY = Y; break; }
+		const bool bOnPath = G.Place(0, PX, PY);
+		const bool bP1 = G.Place(0, 0, 0), bP2 = G.Place(0, 1, 0);
+		Expect(!bOnPath && bP1 && bP2 && G.Synergies.size() == 1 && G.Synergies[0].Kind == EPDHand::Pair && G.Hand.size() == 1, "설치 (길 위는 불가), 페어 생김");
+		G.Place(0, 1, 0);
+		Expect(G.Towers[CellKey(1, 0)].Card.Rank == 4 && G.Synergies.empty() && G.Discarded == 1, "타워 위에 놓으면 교체");
+	}
+	{ // 덱: 52장, 중복 없음
+		FPDGame G(9);
+		G.NewGame(true);
+		std::set<int> U;
+		for (auto& Cd : G.Deck) U.insert(Cd.Rank * 4 + (int)Cd.Suit);
+		for (auto& Cd : G.Hand) U.insert(Cd.Rank * 4 + (int)Cd.Suit);
+		Expect(U.size() == 52 && G.Deck.size() + G.Hand.size() == 52, "덱 52장 중복 없음");
+	}
 }
 
-static void BotTest(int Runs)
+// ---------------------------------------------------------------- 봇 (test.js 와 같은 평가)
+static int Coverage(const FPDGame& G, int X, int Y, float Range)
+{
+	int N = 0;
+	for (float D = 0.f; D < G.Path.Length; D += 0.5f) { const FPDPoint P = G.Path.At(D); if (std::hypot(P.X - X - 0.5f, P.Y - Y - 0.5f) <= Range) N++; }
+	return N;
+}
+static double Power(FPDGame& G, FPDTowerMap& Tw)
+{
+	ApplyEffects(Tw);
+	double Sum = 0;
+	for (auto& KV : Tw) { const FPDTowerStats S = TowerStats(KV.second); Sum += S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, KV.second.X, KV.second.Y, S.Range); }
+	return Sum;
+}
+static void BotTest(int Runs, bool bDumb)
 {
 	std::map<int, int> Hist;
-	std::map<int, std::vector<int>> PerRound;
-	int MaxChainSeen = 0;
+	int LivesSum = 0;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
-		FTPGame G(1000 + Run);
-		G.bStarted = true;
-		for (int Guard = 0; Guard < 6000; ++Guard)
+		FPDGame G(1000 + Run);
+		G.NewGame(true);
+		G.bMuted = true;
+		std::mt19937 R(77 + Run);
+		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Win; ++Guard)
 		{
-			if (G.Phase == ETPPhase::Chain) { G.ChainStep(); continue; }
-			if (G.Phase == ETPPhase::Clear) { PerRound[G.Round + 1].push_back(G.Score); MaxChainSeen = std::max(MaxChainSeen, G.MaxChain); G.NextRound(); continue; }
-			if (G.Phase != ETPPhase::Play) break;
-			bool bFound = false;
-			double BestSc = 0;
-			int BX = 0, BR = 0;
-			const FTPPiece Saved = G.Piece;
-			for (int R = 0; R < 4; ++R)
-				for (int X = -2; X <= Cols; ++X)
+			std::vector<std::array<int, 2>> Free;
+			for (int Y = 0; Y < Rows; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && !G.Towers.count(CellKey(X, Y))) Free.push_back({X, Y});
+			if (bDumb)
+			{
+				while (!G.Hand.empty())
 				{
-					if (G.Collide(G.Piece, X, G.Piece.Y, R)) continue;
-					G.Piece.X = X; G.Piece.Rot = R;
-					const FTPPreview Pv = G.Preview();
-					const double Sc = Pv.Sim.Total * 0.06 + BoardValue(Pv.Sim.Board, G.Pool);
-					G.Piece = Saved;
-					if (!bFound || Sc > BestSc) { bFound = true; BestSc = Sc; BX = X; BR = R; }
+					std::vector<std::array<int, 2>> Ok;
+					for (auto& F : Free) if (!G.Towers.count(CellKey(F[0], F[1])) && Coverage(G, F[0], F[1], 2.2f) > 4) Ok.push_back(F);
+					if (Ok.empty()) break;
+					auto F = Ok[std::uniform_int_distribution<int>(0, (int)Ok.size() - 1)(R)];
+					G.Place(0, F[0], F[1]);
 				}
-			if (!bFound) break;
-			G.Piece.X = BX; G.Piece.Rot = BR;
-			G.HardDrop();
+			}
+			while (!G.Hand.empty())
+			{
+				std::vector<std::array<int, 2>> Cand;
+				std::vector<std::pair<int, std::array<int, 2>>> Cov;
+				for (auto& F : Free)
+				{
+					if (G.Towers.count(CellKey(F[0], F[1]))) continue;
+					bool bNear = false;
+					for (int K = 0; K < 4; ++K) { static const int D[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}; bNear = bNear || G.Towers.count(CellKey(std::clamp(F[0] + D[K][0], 0, Cols - 1), std::clamp(F[1] + D[K][1], 0, Rows - 1))); }
+					if (bNear) Cand.push_back(F);
+					Cov.push_back({Coverage(G, F[0], F[1], 2.4f), F});
+				}
+				std::sort(Cov.begin(), Cov.end(), [](auto& A, auto& B) { return A.first > B.first; });
+				for (int I = 0; I < 14 && I < (int)Cov.size(); ++I) if (std::find(Cand.begin(), Cand.end(), Cov[I].second) == Cand.end()) Cand.push_back(Cov[I].second);
+				double BestV = -1;
+				int BI = -1, BX = 0, BY = 0;
+				for (int I = 0; I < (int)G.Hand.size(); ++I)
+					for (auto& F : Cand)
+					{
+						FPDTowerMap Tw = G.Towers;
+						FPDTower T;
+						T.Card = G.Hand[I];
+						T.X = F[0];
+						T.Y = F[1];
+						Tw[CellKey(F[0], F[1])] = T;
+						const double V = Power(G, Tw);
+						if (V > BestV) { BestV = V; BI = I; BX = F[0]; BY = F[1]; }
+					}
+				if (BI < 0) break;
+				G.Place(BI, BX, BY);
+			}
+			G.StartWave();
+			for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K) G.Update(0.05f);
+			G.Events.clear();
 		}
-		MaxChainSeen = std::max(MaxChainSeen, G.MaxChain);
-		Hist[G.Phase == ETPPhase::Win ? 9 : G.Round + 1]++;
+		Hist[G.Phase == EPDPhase::Win ? 16 : G.Wave]++;
+		LivesSum += G.Lives;
 	}
-	std::printf("\n봇 %d판 도달 라운드 (9 = 전부 통과):", Runs);
-	for (auto& [K, V] : Hist) std::printf("  %d:%d", K, V);
-	std::printf("\n라운드별 통과 평균 점수:");
-	for (auto& [K, V] : PerRound) { long S = 0; for (int X : V) S += X; std::printf("  %d:%ld", K, S / (long)V.size()); }
-	std::printf("\n최대 연쇄: %d\n", MaxChainSeen);
-	// 웹 봇 40판: 6라운드 이상이 대부분. 크게 어긋나면 규칙 이식이 틀린 것
-	int Reached6 = 0;
-	for (auto& [K, V] : Hist) if (K >= 6) Reached6 += V;
-	Expect(Reached6 * 10 >= Runs * 8, "봇 80% 이상이 6라운드 도달 (웹 프로토타입과 같은 수준)");
+	std::printf("\n%s 봇 %d판 도달 웨이브 (16 = 전부 통과):", bDumb ? "족보 무시" : "족보 생각", Runs);
+	for (auto& KV : Hist) std::printf("  %d:%d", KV.first, KV.second);
+	std::printf("   남은 목숨 평균 %.1f\n", (double)LivesSum / Runs);
 }
 
 int main(int Argc, char** Argv)
 {
-	std::printf("[족보·낙하 단위 시험]\n");
-	HandTests();
-	BotTest(Argc > 1 ? std::atoi(Argv[1]) : 40);
+	std::printf("[규칙 단위 시험]\n");
+	UnitTests();
+	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
+	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;
 }
