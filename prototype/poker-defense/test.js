@@ -1,5 +1,5 @@
 // 실행: node prototype/poker-defense/test.js "$(pwd)/prototype/poker-defense/index.html" [봇 판 수]
-// 족보 판정, 줄 시너지(가로·세로 겹침, 큰 족보 우선), 설치·교체, 봇 시험
+// 족보 판정, 붙은 모양 시너지(ㄴ자), 연쇄, 큰 족보 우선, 설치·교체, 무작위 길, 봇 시험
 // 봇: 손패를 전부, 길을 많이 덮고 시너지가 커지는 자리에 하나씩 놓는다 (아끼지 않음)
 // 4번째 인자 dumb: 족보를 생각하지 않고 길 근처 빈칸에 아무렇게나 놓는 봇 (비교용)
 const { chromium } = require('playwright');
@@ -26,11 +26,20 @@ const { chromium } = require('playwright');
     t('포카드', [c(5), c(5, '♥'), c(5, '♦'), c(5, '♣')], 'four');
     t('풀하우스', [c(5), c(9, '♥'), c(5, '♦'), c(9), c(5, '♣')], 'fullHouse');
     t('스트레이트 플러시', [c(5), c(6), c(7), c(8), c(9)], 'flush,straight,straightFlush');
-    // 줄 시너지: 가로 페어 + 세로 플러시가 한 타워에서 겹친다
-    const tw = new Map(); const put = (x, y, card) => tw.set(x + ',' + y, { card, x, y });
-    put(0, 0, c(7, '♥')); put(1, 0, c(7, '♠')); put(0, 1, c(2, '♥')); put(0, 2, c(11, '♥'));
-    const syn = A.applyEffects(tw); const corner = tw.get('0,0');
-    const crossOk = syn.length === 2 && corner.eff.hands.sort().join() === 'flush,pair' && corner.eff.dmg === 1.5 && corner.eff.splash === 1.25;
+    // ㄴ자 플러시: 하트 3장이 꺾여 붙어도 플러시
+    const tw = new Map(); const put = (m, x, y, card) => m.set(x + ',' + y, { card, x, y });
+    put(tw, 0, 0, c(7, '♥')); put(tw, 0, 1, c(2, '♥')); put(tw, 1, 1, c(11, '♥'));
+    const lOk = A.applyEffects(tw).map(s => s.key + s.n).join() === 'flush3';
+    // 연쇄: 스트레이트(7 8)와 트리플(5 5 5)이 맞닿으면 둘 다 연쇄 2 → 공격력 ×1.25 추가
+    // (7 7 5 5 5 였다면 풀하우스 하나가 더 크므로 그것을 고른다)
+    const tc = new Map(); put(tc, 0, 3, c(7)); put(tc, 1, 3, c(8, '♥')); put(tc, 2, 3, c(5)); put(tc, 3, 3, c(5, '♥')); put(tc, 4, 3, c(5, '♦'));
+    const syn2 = A.applyEffects(tc);
+    const fh = new Map(); put(fh, 0, 3, c(7)); put(fh, 1, 3, c(7, '♥')); put(fh, 2, 3, c(5)); put(fh, 3, 3, c(5, '♥')); put(fh, 4, 3, c(5, '♦'));
+    const crossOk = syn2.length === 2 && syn2.every(s => s.chain === 2) && tc.get('0,3').eff.dmg === 1.25 && tc.get('4,3').eff.dmg === 2 * 1.25
+      && A.applyEffects(fh).map(s => s.key).join() === 'fullHouse';
+    // 떨어져 있으면 연쇄 아님
+    const td = new Map(); put(td, 0, 6, c(7)); put(td, 1, 6, c(7, '♥')); put(td, 3, 6, c(5)); put(td, 4, 6, c(5, '♥'));
+    const noChainOk = A.applyEffects(td).every(s => s.chain === 1);
     // 큰 족보 우선: 7 7 7 이 한 줄이면 페어가 아니라 트리플
     const tw2 = new Map(); [0, 1, 2].forEach(x => tw2.set(x + ',5', { card: c(7, ['♠', '♥', '♦'][x]), x, y: 5 }));
     const tripleOk = A.applyEffects(tw2).map(s => s.key).join() === 'triple';
@@ -58,7 +67,11 @@ const { chromium } = require('playwright');
         }
         while (gg.hand.length) {
           let best = null;
-          for (let i = 0; i < gg.hand.length; i++) for (const [x, y] of cells) { if (gg.towers.has(x + ',' + y)) continue;
+          const free = cells.filter(([x, y]) => !gg.towers.has(x + ',' + y));
+          const nearT = free.filter(([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => gg.towers.has((x + dx) + ',' + (y + dy))));
+          const topCov = free.slice().sort((a, b) => coverage(b[0], b[1], 2.4) - coverage(a[0], a[1], 2.4)).slice(0, 14);
+          const cand = [...new Set([...nearT, ...topCov])];
+          for (let i = 0; i < gg.hand.length; i++) for (const [x, y] of cand) {
             const tw3 = new Map([...gg.towers].map(([k, v]) => [k, { ...v }])); tw3.set(x + ',' + y, { card: gg.hand[i], x, y }); const v = power(tw3); if (!best || v > best.v) best = { v, i, x, y }; }
           if (!best) break; A.place(best.i, best.x, best.y);
         }
@@ -67,7 +80,7 @@ const { chromium } = require('playwright');
       res.push({ wave: gg.phase === 'win' ? 16 : gg.wave, lives: gg.lives, towers: gg.towers.size, hands: gg.syn.map(s => s.key) });
     }
     const hist = {}; res.forEach(x => hist[x.wave] = (hist[x.wave] || 0) + 1);
-    return { cases, allOk: cases.every(x => x.ok), pathOk, crossOk, tripleOk, placeOk, replaceOk, bot: { reachedWave: hist, avgLives: Math.round(res.reduce((a, x) => a + x.lives, 0) / res.length * 10) / 10, sampleHands: res[0].hands } };
+    return { cases, allOk: cases.every(x => x.ok), pathOk, lOk, crossOk, noChainOk, tripleOk, placeOk, replaceOk, bot: { reachedWave: hist, avgLives: Math.round(res.reduce((a, x) => a + x.lives, 0) / res.length * 10) / 10, sampleHands: res[0].hands } };
   }, [+(process.argv[3] || 10), process.argv[4] === 'dumb']);
   console.log(JSON.stringify({ ...out, cases: out.cases.filter(x => !x.ok) }, null, 1)); console.log('errors:', errors.length ? errors : 'none'); await b.close();
 })();

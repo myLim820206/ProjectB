@@ -20,7 +20,8 @@
 // 포커 디펜스 (가칭) 프로토타입 v1: 핵심 루프만
 //  웨이브 사이에 카드를 뽑는다 → 카드를 맵에 놓아 타워로 세우거나 손에 아껴 둔다 → 웨이브를 막는다
 //  - 카드 한 장 = 타워 하나. 무늬 = 공격 방식, 숫자 = 공격력
-//  - 가로나 세로로 한 줄로 붙은 타워들이 족보가 되면 시너지 (가로·세로 둘 다 걸리면 둘 다 받음)
+//  - 상하좌우로 붙은 타워들이 족보가 되면 시너지 (ㄴ·ㄱ·T 등 모양 상관없음, 타워 하나는 족보 하나에만)
+//  - 족보끼리 맞닿으면 연쇄: 연쇄에 든 족보 수만큼 공격력 +25%씩
 //  - 족보마다 효과가 다르다: 페어 공격력, 스트레이트 연사, 플러시 범위, 풀하우스 범위+연사, 포카드 한 방
 // =====================================================================
 const cv = document.getElementById('c'), g = cv.getContext('2d');
@@ -72,22 +73,48 @@ function windowHands(cards) {
 }
 // 같은 족보라도 장수가 많으면 더 크게 친다 (플러시·스트레이트)
 const handValue = (key, n) => HANDS[key].val + (key === 'flush' || key === 'straight' ? (n - 3) * 22 : 0);
-// 줄(가로·세로)마다 연속된 타워 덩어리 안에서 겹치지 않게 큰 족보부터 고른다
-function synergies(towers) {
-  const lines = [];
-  for (let y = 0; y < ROWS; y++) { let run = []; for (let x = 0; x <= COLS; x++) { const t = towers.get(x + ',' + y); if (t) run.push(t); else { if (run.length >= 2) lines.push(run); run = []; } } }
-  for (let x = 0; x < COLS; x++) { let run = []; for (let y = 0; y <= ROWS; y++) { const t = towers.get(x + ',' + y); if (t) run.push(t); else { if (run.length >= 2) lines.push(run); run = []; } } }
-  const picked = [];
-  for (const run of lines) {
-    const cands = [];
-    for (let i = 0; i < run.length; i++) for (let n = 2; n <= 5 && i + n <= run.length; n++) {
-      const win = run.slice(i, i + n);
-      for (const key of windowHands(win.map(t => t.card))) cands.push({ key, i, n, val: handValue(key, n), towers: win });
+// 상하좌우로 붙은 타워 덩어리 안에서, 서로 붙어 있는 2~5장 묶음(모양 상관없음)을 전부 따져
+// 큰 족보부터 겹치지 않게 고른다. 타워 하나는 족보 하나에만 들어간다.
+const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const CHAIN_STEP = 0.25; // 연쇄: 맞닿은 족보 하나마다 공격력 +25%
+function connectedSubsets(list, kmax) {
+  // ESU 방식: 각 묶음을 한 번씩만 만든다 (시작점보다 번호가 큰 칸으로만 넓힘)
+  const idx = new Map(list.map((t, i) => [t.x + ',' + t.y, i]));
+  const nb = list.map(t => N4.map(([dx, dy]) => idx.get((t.x + dx) + ',' + (t.y + dy))).filter(v => v !== undefined));
+  const out = [];
+  function extend(sub, subSet, ext, v) {
+    if (sub.length >= 2) out.push(sub.slice());
+    if (sub.length === kmax) return;
+    const e = ext.slice();
+    while (e.length) {
+      const w = e.pop(); const nsub = sub.concat(w), nset = new Set(subSet); nset.add(w);
+      const near = new Set(); sub.forEach(u => nb[u].forEach(z => near.add(z)));
+      const next = e.concat(nb[w].filter(u => u > v && !nset.has(u) && !near.has(u) && !e.includes(u)));
+      extend(nsub, nset, next, v);
     }
+  }
+  for (let v = 0; v < list.length; v++) extend([v], new Set([v]), nb[v].filter(u => u > v), v);
+  return out.map(sub => sub.map(i => list[i]));
+}
+function synergies(towers) {
+  const seen = new Set(), picked = [];
+  for (const t0 of towers.values()) {
+    if (seen.has(t0)) continue;
+    const comp = [], st = [t0]; seen.add(t0);
+    while (st.length) { const t = st.pop(); comp.push(t); for (const [dx, dy] of N4) { const n = towers.get((t.x + dx) + ',' + (t.y + dy)); if (n && !seen.has(n)) { seen.add(n); st.push(n); } } }
+    if (comp.length < 2) continue;
+    const cands = [];
+    for (const grp of connectedSubsets(comp, 5)) for (const key of windowHands(grp.map(t => t.card))) cands.push({ key, n: grp.length, val: handValue(key, grp.length), towers: grp });
     cands.sort((a, b) => b.val - a.val || b.n - a.n);
     const used = new Set();
     for (const c of cands) { if (c.towers.some(t => used.has(t))) continue; c.towers.forEach(t => used.add(t)); picked.push(c); }
   }
+  // 연쇄: 족보끼리 맞닿아 있으면 하나의 연쇄 (가로세로 퍼즐처럼)
+  const owner = new Map(); picked.forEach((s, i) => s.towers.forEach(t => owner.set(t.x + ',' + t.y, i)));
+  const adj = picked.map(() => new Set()); picked.forEach((s, i) => s.towers.forEach(t => N4.forEach(([dx, dy]) => { const j = owner.get((t.x + dx) + ',' + (t.y + dy)); if (j !== undefined && j !== i) adj[i].add(j); })));
+  const chainOf = picked.map(() => -1); let cid = 0;
+  picked.forEach((_, i) => { if (chainOf[i] >= 0) return; const st = [i], mem = []; chainOf[i] = cid; while (st.length) { const k = st.pop(); mem.push(k); adj[k].forEach(j => { if (chainOf[j] < 0) { chainOf[j] = cid; st.push(j); } }); } mem.forEach(k => { picked[k].chain = mem.length; picked[k].chainId = cid; }); cid++; });
+  picked.forEach((s, i) => s.links = [...adj[i]].filter(j => j > i).map(j => picked[j]));
   return picked;
 }
 function applyEffects(towers) {
@@ -105,6 +132,7 @@ function applyEffects(towers) {
       case 'four': e.dmg *= 3.5; break;
       case 'straightFlush': e.dmg *= 2; e.rate *= 2; e.splash = Math.max(e.splash, 2); break;
     }
+    if (s.chain >= 2) { e.dmg *= 1 + CHAIN_STEP * (s.chain - 1); e.chain = s.chain; }
   }
   return syn;
 }
@@ -157,7 +185,7 @@ function newGame(start = false) {
 }
 function draw(n) { let got = 0; while (got < n && S.hand.length < HAND_MAX && S.deck.length) { S.hand.push(S.deck.pop()); got++; } return got; }
 function waveSpec(w) {
-  const list = [], hp = 26 * Math.pow(1.35, w - 1), n = 8 + w * 2;
+  const list = [], hp = 26 * Math.pow(1.39, w - 1), n = 8 + w * 2;
   for (let i = 0; i < n; i++) {
     let type = 'normal';
     if (w >= 3 && i % 4 === 3) type = 'fast';
@@ -182,7 +210,7 @@ function place(handIdx, x, y) {
   const key = x + ',' + y, old = S.towers.get(key), card = S.hand.splice(handIdx, 1)[0];
   if (old) { S.discarded++; popText(`${RANK_TXT(old.card.r)}${old.card.s} 교체`, ...center(x, y), '#8a94a6'); }
   const before = new Set(S.syn.map(s => s.key + s.towers.map(t => t.x + ',' + t.y).join()));
-  S.towers.set(key, { card, x, y, cd: 0, eff: null });
+  S.towers.set(key, { card, x, y, cd: 0, eff: null }); S.version = (S.version || 0) + 1;
   S.syn = applyEffects(S.towers);
   const fresh = S.syn.filter(s => !before.has(s.key + s.towers.map(t => t.x + ',' + t.y).join()) && s.towers.some(t => t.x === x && t.y === y));
   if (fresh.length) { const best = fresh.sort((a, b) => b.val - a.val)[0]; const [cx, cy] = midOf(best); popText(`${HANDS[best.key].name}${best.key === 'flush' || best.key === 'straight' ? ' ' + best.n : ''}!`, cx, cy - 18, HANDS[best.key].col, true);
@@ -245,20 +273,30 @@ function cardShape(card, cx, cy, r, o = {}) {
   text(RANK_TXT(card.r), cx, cy + (s.shape === 'tri' ? r * .38 : r * .3), s.col, Math.round(r * (card.r === 10 ? .62 : .78)), 'center', 'bold');
   g.globalAlpha = 1;
 }
-// 족보에 든 연속 칸들을 둥근 테두리 하나로 감싼다 (도형 안 숫자를 가리지 않게)
+// 족보에 든 칸들을 모양대로 감싼다: 바깥쪽 변에만 선 (도형 안 숫자를 가리지 않게)
 function drawSynLine(s, alpha = 1) {
-  const h = HANDS[s.key], xs = s.towers.map(t => t.x), ys = s.towers.map(t => t.y);
-  const x0 = FX + Math.min(...xs) * CS + 3, y0 = FY + Math.min(...ys) * CS + 3, w = (Math.max(...xs) - Math.min(...xs) + 1) * CS - 6, hh = (Math.max(...ys) - Math.min(...ys) + 1) * CS - 6;
-  g.globalAlpha = alpha; g.beginPath(); if (g.roundRect) g.roundRect(x0, y0, w, hh, CS * .42); else g.rect(x0, y0, w, hh);
-  g.shadowBlur = 0; g.fillStyle = h.col; g.globalAlpha = alpha * .07; g.fill();
-  g.globalAlpha = alpha; g.lineWidth = 2; glow(h.col, 10); g.stroke();
+  const h = HANDS[s.key], has = new Set(s.towers.map(t => t.x + ',' + t.y)), m = 4;
+  g.globalAlpha = alpha; g.lineWidth = 2; glow(h.col, 10); g.beginPath();
+  for (const t of s.towers) {
+    const L = !has.has((t.x - 1) + ',' + t.y), R = !has.has((t.x + 1) + ',' + t.y), U = !has.has(t.x + ',' + (t.y - 1)), D = !has.has(t.x + ',' + (t.y + 1));
+    const x0 = FX + t.x * CS + (L ? m : 0), x1 = FX + (t.x + 1) * CS - (R ? m : 0), y0 = FY + t.y * CS + (U ? m : 0), y1 = FY + (t.y + 1) * CS - (D ? m : 0);
+    g.save(); g.shadowBlur = 0; g.globalAlpha = alpha * .07; g.fillStyle = h.col; g.fillRect(x0, y0, x1 - x0, y1 - y0); g.restore();
+    if (U) { g.moveTo(x0, y0); g.lineTo(x1, y0); } if (D) { g.moveTo(x0, y1); g.lineTo(x1, y1); }
+    if (L) { g.moveTo(x0, y0); g.lineTo(x0, y1); } if (R) { g.moveTo(x1, y0); g.lineTo(x1, y1); }
+  }
+  g.stroke();
+  // 연쇄 연결 표시: 맞닿은 족보 사이 경계에 흰 고리
+  for (const o of s.links || []) for (const t of s.towers) for (const u of o.towers) if (Math.abs(t.x - u.x) + Math.abs(t.y - u.y) === 1) {
+    const [ax, ay] = center(t.x, t.y), [bx, by] = center(u.x, u.y), mx = (ax + bx) / 2, my = (ay + by) / 2;
+    g.lineWidth = 2; glow('#ffffff', 12); g.beginPath(); g.arc(mx, my, 5, 0, Math.PI * 2); g.stroke();
+  }
   g.globalAlpha = 1;
 }
 // 족보 이름표: 칸 가장자리에 어두운 바탕으로 (타워 위에 그려 읽기 쉽게)
 function drawSynBadge(s, alpha = 1) {
   // 테두리 위쪽 가장자리 가운데에 붙인다 (옆 줄을 가리지 않게)
-  const h = HANDS[s.key], mx = midOf(s)[0], top = FY + Math.min(...s.towers.map(t => t.y)) * CS + 3;
-  const label = `${h.name}${s.key === 'flush' || s.key === 'straight' ? s.n : ''}`;
+  const topT = s.towers.reduce((a, t) => t.y < a.y || (t.y === a.y && t.x < a.x) ? t : a), mx = center(topT.x, topT.y)[0], top = FY + topT.y * CS + 4, h = HANDS[s.key];
+  const label = `${h.name}${s.key === 'flush' || s.key === 'straight' ? s.n : ''}${s.chain >= 2 ? ` 연쇄×${1 + CHAIN_STEP * (s.chain - 1)}` : ''}`;
   g.font = 'bold 11px "DejaVu Sans Mono", "Noto Sans KR", monospace'; const w = g.measureText(label).width + 10, hh = 16;
   const bx = mx - w / 2, by = top - hh / 2;
   g.globalAlpha = alpha; g.shadowBlur = 0; g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(bx, by, w, hh); g.strokeStyle = h.col; g.lineWidth = 1; g.strokeRect(bx + .5, by + .5, w - 1, hh - 1);
@@ -275,8 +313,14 @@ function render() {
   // 미리보기: 고른 카드를 마우스 칸에 놓으면
   let pvSyn = null, pvTower = null;
   if (S.sel >= 0 && S.hover && buildable(S.hover.x, S.hover.y) && S.phase !== 'title') {
-    const tw = new Map(S.towers); pvTower = { card: S.hand[S.sel], x: S.hover.x, y: S.hover.y }; tw.set(S.hover.x + ',' + S.hover.y, pvTower);
-    pvSyn = applyEffects(new Map([...tw].map(([k, t]) => [k, { ...t }]))).filter(s => s.towers.some(t => t.x === S.hover.x && t.y === S.hover.y));
+    pvTower = { card: S.hand[S.sel], x: S.hover.x, y: S.hover.y };
+    const key = `${S.version}|${S.sel}|${S.hand.length}|${S.hover.x},${S.hover.y}`;
+    if (S.pvKey !== key) { // 마우스가 칸을 옮길 때만 다시 계산
+      const tw = new Map([...S.towers].map(([k, t]) => [k, { ...t }])); tw.set(S.hover.x + ',' + S.hover.y, { ...pvTower });
+      const all = applyEffects(tw), mine = all.filter(s => s.towers.some(t => t.x === S.hover.x && t.y === S.hover.y));
+      const chainIds = new Set(mine.map(s => s.chainId)); S.pvKey = key; S.pvSyn = all.filter(s => chainIds.has(s.chainId));
+    }
+    pvSyn = S.pvSyn;
   }
   // 시너지 선
   S.syn.forEach(s => drawSynLine(s, pvSyn && pvSyn.length ? .35 : 1));
@@ -321,16 +365,17 @@ function render() {
   text(`처치 ${S.kills} · 놓친 적 ${S.leaks}`, RX + 16, FY + 80, '#8a94a6', 11);
   if (S.phase === 'build') { const bx = RX + 16, by = FY + 96, on = (S.now * 2 | 0) % 2; g.lineWidth = 1.6; glow('#9cffb0', on ? 14 : 6); g.strokeRect(bx, by, 200, 38); text(`웨이브 ${S.wave + 1} 시작 (Space)`, bx + 100, by + 25, '#9cffb0', 13, 'center', 'bold'); }
   else if (S.phase === 'wave') text(`남은 적 ${S.enemies.length + S.spawn.length}   속도 ×${S.speed} (F)`, RX + 16, FY + 118, '#ffd96a', 12);
-  panel(RX, FY + 166, W - RX - 20, 300); text('족보 시너지 (가로·세로 한 줄)', RX + 16, FY + 190, '#7fd6ff', 12);
+  panel(RX, FY + 166, W - RX - 20, 300); text('족보 시너지 (붙어 있으면 모양 상관없이)', RX + 16, FY + 190, '#7fd6ff', 12);
   const pvKeys = new Set((pvSyn || []).map(s => s.key));
-  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = FY + 216 + i * 31, on = pvKeys.has(k);
-    text(h.name + (k === 'flush' ? ' (3~5장)' : k === 'straight' ? ' (2~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 14, on ? '#ffd96a' : '#5f6878', 10); });
+  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = FY + 214 + i * 28, on = pvKeys.has(k);
+    text(h.name + (k === 'flush' ? ' (3~5장)' : k === 'straight' ? ' (2~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 13, on ? '#ffd96a' : '#5f6878', 10); });
+  text(`연쇄: 족보끼리 맞닿으면 하나에 +${CHAIN_STEP * 100}%씩 공격력`, RX + 16, FY + 452, '#ffffff', 11, 'left', 'bold');
   panel(RX, FY + 482, W - RX - 20, 132); text('무늬 = 공격 방식, 숫자 = 공격력', RX + 16, FY + 506, '#7fd6ff', 12);
   SUITS.forEach((s, i) => { const y = FY + 530 + i * 22; cardShape({ r: 0, s }, RX + 26, y - 4, 8); text(`${SUIT[s].name}: ${SUIT[s].desc}`, RX + 42, y, SUIT[s].col, 11); });
   text('카드 클릭(1~7) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소', W / 2, H - 8, '#5f6878', 11, 'center');
 
   const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
-  if (S.phase === 'title') overlay('POKER DEFENSE', '#7fd6ff', ['카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력', '가로나 세로로 한 줄로 붙은 타워들이 포커 족보가 되면 시너지가 생긴다', `웨이브를 막을 때마다 카드 ${DRAW_PER_WAVE}장. 지금 놓을지, 아껴서 큰 족보를 노릴지!`], 'Enter 키 또는 화면을 눌러 시작');
+  if (S.phase === 'title') overlay('POKER DEFENSE', '#7fd6ff', ['카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력', '붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이). 족보끼리 맞닿으면 연쇄 보너스', `웨이브를 막을 때마다 카드 ${DRAW_PER_WAVE}장. 지금 놓을지, 아껴서 큰 족보를 노릴지!`], 'Enter 키 또는 화면을 눌러 시작');
   else if (S.phase === 'over') overlay('GAME OVER', '#ff6a6a', [`웨이브 ${S.wave}에서 무너졌다 · 처치 ${S.kills}`], 'R 키 또는 화면을 눌러 다시');
   else if (S.phase === 'win') overlay('ALL CLEAR', '#ffd96a', [`${WAVES} 웨이브를 모두 막았다 · 남은 목숨 ${S.lives} · 처치 ${S.kills}`], 'R 키 또는 화면을 눌러 다시');
 }
