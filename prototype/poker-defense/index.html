@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker Defense</title>
+<style>
+  :root { --bg:#06060b; --fg:#cfd8e6; }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}
+  canvas{display:block;width:100%;max-width:1280px;max-height:100%;object-fit:contain;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script src="../tetris-poker/sounds.js"></script>
+<script>
+'use strict';
+// =====================================================================
+// 포커 디펜스 (가칭) 프로토타입 v1: 핵심 루프만
+//  웨이브 사이에 카드를 뽑는다 → 카드를 맵에 놓아 타워로 세우거나 손에 아껴 둔다 → 웨이브를 막는다
+//  - 카드 한 장 = 타워 하나. 무늬 = 공격 방식, 숫자 = 공격력
+//  - 가로나 세로로 한 줄로 붙은 타워들이 족보가 되면 시너지 (가로·세로 둘 다 걸리면 둘 다 받음)
+//  - 족보마다 효과가 다르다: 페어 공격력, 스트레이트 연사, 플러시 범위, 풀하우스 범위+연사, 포카드 한 방
+// =====================================================================
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const W = 1280, H = 720;
+const COLS = 16, ROWS = 10, CS = 54, FX = 24, FY = 24;
+const HAND_Y = FY + ROWS * CS + 22, CARD_W = 66, CARD_H = 92, HAND_MAX = 7;
+const RX = FX + COLS * CS + 26;
+const WAVES = 15, START_LIVES = 20, START_HAND = 5, DRAW_PER_WAVE = 3;
+// 무늬 = 공격 방식 (도형과 색)
+const SUIT = {
+  '♠': { name: '저격', desc: '사거리 길고 한 방이 셈', col: '#7fb8ff', shape: 'tri',     dmg: 1.6,  rate: 0.8, range: 3.0 },
+  '♥': { name: '폭발', desc: '맞은 자리 주변도 피해', col: '#ff6a8a', shape: 'circle',  dmg: 0.9,  rate: 0.9, range: 2.2, splash: 0.8 },
+  '♦': { name: '연사', desc: '약하지만 아주 빠름',   col: '#ffd96a', shape: 'diamond', dmg: 0.45, rate: 2.6, range: 2.2 },
+  '♣': { name: '둔화', desc: '맞은 적이 느려짐',     col: '#8affc4', shape: 'square',  dmg: 0.7,  rate: 1.0, range: 2.4, slow: 0.4 },
+};
+const SUITS = ['♠', '♥', '♦', '♣'];
+const RANK_TXT = r => ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[r] || String(r);
+// 족보 = 시너지 효과
+const HANDS = {
+  straightFlush: { name: '스트레이트 플러시', n: [5],       val: 100, col: '#ff9ad5', eff: '공격력 ×2 · 연사 ×2 · 범위' },
+  four:          { name: '포카드',            n: [4],       val: 90,  col: '#ff6a6a', eff: '공격력 ×3.5' },
+  fullHouse:     { name: '풀하우스',          n: [5],       val: 80,  col: '#ffa86a', eff: '공격력 ×1.5 · 연사 ×1.5 · 범위' },
+  flush:         { name: '플러시',            n: [3, 4, 5], val: 30,  col: '#ff9ad5', eff: '범위 공격 (장수만큼 넓게)' },
+  straight:      { name: '스트레이트',        n: [3, 4, 5], val: 28,  col: '#7fd6ff', eff: '연사 ×1.5 / ×1.75 / ×2' },
+  triple:        { name: '트리플',            n: [3],       val: 60,  col: '#ffd96a', eff: '공격력 ×2' },
+  twoPair:       { name: '투 페어',           n: [4],       val: 45,  col: '#cfe4ff', eff: '공격력 ×1.5 · 사거리 ×1.25' },
+  pair:          { name: '원 페어',           n: [2],       val: 20,  col: '#cfd8e6', eff: '공격력 ×1.5' },
+};
+const HAND_ORDER = ['straightFlush', 'four', 'fullHouse', 'flush', 'straight', 'triple', 'twoPair', 'pair'];
+// 길 (격자 좌표, 화면 밖에서 들어와 밖으로 나간다)
+const PATH = [[-1, 1], [3, 1], [3, 7], [7, 7], [7, 2], [11, 2], [11, 8], [14, 8], [14, 4], [16, 4]];
+
+// ---------------------------------------------------------------- 족보 판정 (줄 안의 연속 2~5장, 순서 상관없음)
+function windowHands(cards) {
+  const n = cards.length, ranks = cards.map(c => c.r), cnt = {};
+  ranks.forEach(r => cnt[r] = (cnt[r] || 0) + 1);
+  const vals = Object.values(cnt).sort((a, b) => b - a), sameSuit = cards.every(c => c.s === cards[0].s);
+  const distinct = vals.length === n, sorted = ranks.slice().sort((a, b) => a - b);
+  const consec = arr => arr.every((r, i) => !i || r === arr[i - 1] + 1);
+  const straight = distinct && (consec(sorted) || consec(sorted.map(r => r === 14 ? 1 : r).sort((a, b) => a - b)));
+  const out = [];
+  if (n === 2 && vals[0] === 2) out.push('pair');
+  if (n === 3 && vals[0] === 3) out.push('triple');
+  if (n === 4 && vals[0] === 4) out.push('four');
+  if (n === 4 && vals[0] === 2 && vals[1] === 2) out.push('twoPair');
+  if (n === 5 && vals[0] === 3 && vals[1] === 2) out.push('fullHouse');
+  if (n >= 3 && sameSuit && straight && n === 5) out.push('straightFlush');
+  if (n >= 3 && sameSuit) out.push('flush');
+  if (n >= 3 && straight) out.push('straight');
+  return out;
+}
+// 같은 족보라도 장수가 많으면 더 크게 친다 (플러시·스트레이트)
+const handValue = (key, n) => HANDS[key].val + (key === 'flush' || key === 'straight' ? (n - 3) * 22 : 0);
+// 줄(가로·세로)마다 연속된 타워 덩어리 안에서 겹치지 않게 큰 족보부터 고른다
+function synergies(towers) {
+  const lines = [];
+  for (let y = 0; y < ROWS; y++) { let run = []; for (let x = 0; x <= COLS; x++) { const t = towers.get(x + ',' + y); if (t) run.push(t); else { if (run.length >= 2) lines.push(run); run = []; } } }
+  for (let x = 0; x < COLS; x++) { let run = []; for (let y = 0; y <= ROWS; y++) { const t = towers.get(x + ',' + y); if (t) run.push(t); else { if (run.length >= 2) lines.push(run); run = []; } } }
+  const picked = [];
+  for (const run of lines) {
+    const cands = [];
+    for (let i = 0; i < run.length; i++) for (let n = 2; n <= 5 && i + n <= run.length; n++) {
+      const win = run.slice(i, i + n);
+      for (const key of windowHands(win.map(t => t.card))) cands.push({ key, i, n, val: handValue(key, n), towers: win });
+    }
+    cands.sort((a, b) => b.val - a.val || b.n - a.n);
+    const used = new Set();
+    for (const c of cands) { if (c.towers.some(t => used.has(t))) continue; c.towers.forEach(t => used.add(t)); picked.push(c); }
+  }
+  return picked;
+}
+function applyEffects(towers) {
+  const syn = synergies(towers);
+  for (const t of towers.values()) t.eff = { dmg: 1, rate: 1, range: 1, splash: 0, hands: [] };
+  for (const s of syn) for (const t of s.towers) {
+    const e = t.eff; e.hands.push(s.key);
+    switch (s.key) {
+      case 'pair': e.dmg *= 1.5; break;
+      case 'twoPair': e.dmg *= 1.5; e.range *= 1.25; break;
+      case 'triple': e.dmg *= 2; break;
+      case 'straight': e.rate *= 1 + 0.25 * (s.n - 1); break;
+      case 'flush': e.splash = Math.max(e.splash, 0.5 + 0.25 * s.n); break;
+      case 'fullHouse': e.dmg *= 1.5; e.rate *= 1.5; e.splash = Math.max(e.splash, 1.5); break;
+      case 'four': e.dmg *= 3.5; break;
+      case 'straightFlush': e.dmg *= 2; e.rate *= 2; e.splash = Math.max(e.splash, 2); break;
+    }
+  }
+  return syn;
+}
+function towerStats(t) {
+  const s = SUIT[t.card.s], e = t.eff || { dmg: 1, rate: 1, range: 1, splash: 0 };
+  return { dmg: (3 + t.card.r) * s.dmg * e.dmg, rate: s.rate * e.rate, range: s.range * e.range, splash: Math.max(s.splash || 0, e.splash), slow: s.slow || 0 };
+}
+
+// ---------------------------------------------------------------- 길
+const center = (x, y) => [FX + x * CS + CS / 2, FY + y * CS + CS / 2];
+const PATH_PX = PATH.map(([x, y]) => center(x, y));
+const SEG = []; let PATH_LEN = 0;
+for (let i = 1; i < PATH_PX.length; i++) { const [ax, ay] = PATH_PX[i - 1], [bx, by] = PATH_PX[i], l = Math.hypot(bx - ax, by - ay); SEG.push({ ax, ay, bx, by, l, d0: PATH_LEN }); PATH_LEN += l; }
+const PATH_CELLS = new Set();
+for (let i = 1; i < PATH.length; i++) { const [ax, ay] = PATH[i - 1], [bx, by] = PATH[i], dx = Math.sign(bx - ax), dy = Math.sign(by - ay); let x = ax, y = ay; while (true) { if (x >= 0 && x < COLS) PATH_CELLS.add(x + ',' + y); if (x === bx && y === by) break; x += dx; y += dy; } }
+function posAt(d) { for (const s of SEG) if (d <= s.d0 + s.l) { const u = (d - s.d0) / s.l; return [s.ax + (s.bx - s.ax) * u, s.ay + (s.by - s.ay) * u]; } const s = SEG[SEG.length - 1]; return [s.bx, s.by]; }
+const buildable = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && !PATH_CELLS.has(x + ',' + y);
+
+// ---------------------------------------------------------------- 상태
+let S;
+function newGame(start = false) {
+  S = { phase: start ? 'build' : 'title', wave: 0, lives: START_LIVES, deck: [], hand: [], towers: new Map(), syn: [], enemies: [], spawn: [], spawnT: 0,
+    sel: -1, hover: null, fx: [], texts: [], speed: 1, now: 0, kills: 0, leaks: 0, discarded: 0 };
+  for (const s of SUITS) for (let r = 2; r <= 14; r++) S.deck.push({ r, s });
+  for (let i = S.deck.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.deck[i], S.deck[j]] = [S.deck[j], S.deck[i]]; }
+  draw(START_HAND);
+}
+function draw(n) { let got = 0; while (got < n && S.hand.length < HAND_MAX && S.deck.length) { S.hand.push(S.deck.pop()); got++; } return got; }
+function waveSpec(w) {
+  const list = [], hp = 26 * Math.pow(1.37, w - 1), n = 8 + w * 2;
+  for (let i = 0; i < n; i++) {
+    let type = 'normal';
+    if (w >= 3 && i % 4 === 3) type = 'fast';
+    if (w >= 5 && i % 6 === 5) type = 'tank';
+    list.push(type);
+  }
+  if (w % 5 === 0) list.push('boss');
+  return list.map(type => ({ type, hp: hp * ({ normal: 1, fast: 0.6, tank: 2.6, boss: 14 })[type], speed: ({ normal: 1.1, fast: 1.9, tank: 0.7, boss: 0.55 })[type] }));
+}
+function startWave() {
+  if (S.phase !== 'build') return;
+  S.wave++; S.phase = 'wave'; S.spawn = waveSpec(S.wave); S.spawnT = 0; S.sel = -1; sfx('Start');
+}
+function endWave() {
+  if (S.wave >= WAVES) { S.phase = 'win'; sfx('Win'); return; }
+  const got = draw(DRAW_PER_WAVE); S.phase = 'build';
+  popText(`웨이브 ${S.wave} 막음! 카드 +${got}${got < DRAW_PER_WAVE ? ' (손패 가득)' : ''}`, FX + COLS * CS / 2, FY + 60, '#9cffb0', true); sfx('Clear');
+}
+function place(handIdx, x, y) {
+  if (S.phase === 'title' || S.phase === 'over' || S.phase === 'win') return false;
+  if (handIdx < 0 || handIdx >= S.hand.length || !buildable(x, y)) return false;
+  const key = x + ',' + y, old = S.towers.get(key), card = S.hand.splice(handIdx, 1)[0];
+  if (old) { S.discarded++; popText(`${RANK_TXT(old.card.r)}${old.card.s} 교체`, ...center(x, y), '#8a94a6'); }
+  const before = new Set(S.syn.map(s => s.key + s.towers.map(t => t.x + ',' + t.y).join()));
+  S.towers.set(key, { card, x, y, cd: 0, eff: null });
+  S.syn = applyEffects(S.towers);
+  const fresh = S.syn.filter(s => !before.has(s.key + s.towers.map(t => t.x + ',' + t.y).join()) && s.towers.some(t => t.x === x && t.y === y));
+  if (fresh.length) { const best = fresh.sort((a, b) => b.val - a.val)[0]; const [cx, cy] = midOf(best); popText(`${HANDS[best.key].name}${best.key === 'flush' || best.key === 'straight' ? ' ' + best.n : ''}!`, cx, cy - 18, HANDS[best.key].col, true);
+    sfx('Burst', Math.min(8, Math.round(best.val / 15)), best.val >= 80 ? 2 : best.val >= 50 ? 1 : 0); if (best.key === 'flush' || best.key === 'straightFlush') sfx('Flush'); }
+  else sfx('Lock');
+  S.sel = -1; return true;
+}
+function discardCard(i) { if (i < 0 || i >= S.hand.length) return; S.hand.splice(i, 1); S.discarded++; if (S.sel === i) S.sel = -1; else if (S.sel > i) S.sel--; sfx('HardDrop'); }
+const midOf = s => { const ps = s.towers.map(t => center(t.x, t.y)); return [ps.reduce((a, p) => a + p[0], 0) / ps.length, ps.reduce((a, p) => a + p[1], 0) / ps.length]; };
+function popText(s, x, y, col, big = false) { S.texts.push({ s, x, y, col, t: 1.3, big }); }
+
+// ---------------------------------------------------------------- 진행
+function update(dt) {
+  S.now += dt;
+  if (S.phase !== 'wave') return;
+  // 적 등장
+  S.spawnT -= dt;
+  if (S.spawn.length && S.spawnT <= 0) { const e = S.spawn.shift(); S.enemies.push({ ...e, maxHp: e.hp, d: 0, slowT: 0 }); S.spawnT = e.type === 'boss' ? 1.2 : 0.65; }
+  // 이동
+  for (const e of S.enemies) {
+    e.slowT = Math.max(0, e.slowT - dt);
+    e.d += e.speed * CS * (e.slowT > 0 ? 1 - e.slowAmt : 1) * dt;
+    if (e.d >= PATH_LEN) { e.dead = true; e.leaked = true; const loss = e.type === 'boss' ? 5 : 1; S.lives -= loss; S.leaks++; popText(`-${loss}`, RX - 30, FY + 4 * CS, '#ff6a6a', true); sfx('Denied'); }
+  }
+  // 타워 공격
+  for (const t of S.towers.values()) {
+    t.cd -= dt; if (t.cd > 0) continue;
+    const st = towerStats(t), [tx, ty] = center(t.x, t.y), r = st.range * CS;
+    let target = null;
+    for (const e of S.enemies) { if (e.dead) continue; const [ex, ey] = posAt(e.d); if (Math.hypot(ex - tx, ey - ty) <= r && (!target || e.d > target.d)) target = e; }
+    if (!target) continue;
+    t.cd = 1 / st.rate;
+    const [ex, ey] = posAt(target.d);
+    hit(target, st.dmg, st.slow);
+    if (st.splash > 0) { const rr = st.splash * CS; for (const o of S.enemies) { if (o === target || o.dead) continue; const [ox, oy] = posAt(o.d); if (Math.hypot(ox - ex, oy - ey) <= rr) hit(o, st.dmg * 0.6, st.slow); } S.fx.push({ kind: 'ring', x: ex, y: ey, r: rr, col: SUIT[t.card.s].col, t: .25 }); }
+    S.fx.push({ kind: 'shot', x1: tx, y1: ty, x2: ex, y2: ey, col: SUIT[t.card.s].col, t: .12 });
+  }
+  S.enemies = S.enemies.filter(e => !e.dead);
+  if (S.lives <= 0) { S.lives = 0; S.phase = 'over'; sfx('GameOver'); return; }
+  if (!S.spawn.length && !S.enemies.length) endWave();
+}
+function hit(e, dmg, slow) { e.hp -= dmg; if (slow) { e.slowT = 1.2; e.slowAmt = Math.max(e.slowAmt || 0, slow); } if (e.hp <= 0 && !e.dead) { e.dead = true; S.kills++; const [x, y] = posAt(e.d); S.fx.push({ kind: 'pop', x, y, t: .3, col: '#ffffff' }); } }
+
+// ---------------------------------------------------------------- 그리기
+const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = b; };
+function text(s, x, y, col = '#cfd8e6', size = 13, align = 'left', weight = '') { g.shadowBlur = 0; g.fillStyle = col; g.font = `${weight} ${size}px "DejaVu Sans Mono", "Noto Sans KR", monospace`; g.textAlign = align; g.fillText(s, x, y); g.textAlign = 'left'; }
+function panel(x, y, w, h) { g.shadowBlur = 0; g.strokeStyle = 'rgba(127,214,255,.3)'; g.lineWidth = 1; g.strokeRect(x, y, w, h); }
+function shapePath(shape, cx, cy, r) {
+  g.beginPath();
+  if (shape === 'tri') { g.moveTo(cx, cy - r); g.lineTo(cx + r * .9, cy + r * .72); g.lineTo(cx - r * .9, cy + r * .72); g.closePath(); }
+  else if (shape === 'circle') g.arc(cx, cy, r * .86, 0, Math.PI * 2);
+  else if (shape === 'diamond') { g.moveTo(cx, cy - r); g.lineTo(cx + r * .8, cy); g.lineTo(cx, cy + r); g.lineTo(cx - r * .8, cy); g.closePath(); }
+  else g.rect(cx - r * .76, cy - r * .76, r * 1.52, r * 1.52);
+}
+// 카드(=타워) 도형: 무늬 모양과 색, 안에 숫자
+function cardShape(card, cx, cy, r, o = {}) {
+  const s = SUIT[card.s]; g.globalAlpha = o.alpha ?? 1;
+  g.lineWidth = o.strong ? 2.6 : 1.8; glow(s.col, o.strong ? 18 : 9); shapePath(s.shape, cx, cy, r); g.stroke();
+  if (o.strong) { g.globalAlpha *= .12; g.fill(); g.globalAlpha = o.alpha ?? 1; }
+  text(RANK_TXT(card.r), cx, cy + (s.shape === 'tri' ? r * .38 : r * .3), s.col, Math.round(r * (card.r === 10 ? .62 : .78)), 'center', 'bold');
+  g.globalAlpha = 1;
+}
+function drawSynLine(s, alpha = 1) {
+  const h = HANDS[s.key], ps = s.towers.map(t => center(t.x, t.y));
+  g.globalAlpha = alpha; g.lineWidth = 3; glow(h.col, 10); g.beginPath(); g.moveTo(...ps[0]); g.lineTo(...ps[ps.length - 1]); g.stroke();
+  g.globalAlpha = 1;
+}
+// 족보 이름표: 칸 가장자리에 어두운 바탕으로 (타워 위에 그려 읽기 쉽게)
+function drawSynBadge(s, alpha = 1) {
+  const h = HANDS[s.key], ps = s.towers.map(t => center(t.x, t.y)), [mx, my] = midOf(s), horiz = ps[0][1] === ps[ps.length - 1][1];
+  const label = `${h.name}${s.key === 'flush' || s.key === 'straight' ? s.n : ''}`;
+  g.font = 'bold 11px "DejaVu Sans Mono", "Noto Sans KR", monospace'; const w = g.measureText(label).width + 10, hh = 16;
+  const bx = horiz ? mx - w / 2 : mx + CS * .5 - 4, by = horiz ? my - CS * .5 - hh / 2 : my - hh / 2;
+  g.globalAlpha = alpha; g.shadowBlur = 0; g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(bx, by, w, hh); g.strokeStyle = h.col; g.lineWidth = 1; g.strokeRect(bx + .5, by + .5, w - 1, hh - 1);
+  text(label, bx + w / 2, by + 12, h.col, 11, 'center', 'bold'); g.globalAlpha = 1;
+}
+function render() {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.shadowBlur = 0; g.fillStyle = '#06060b'; g.fillRect(0, 0, W, H);
+  // 격자와 길
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const px = FX + x * CS, py = FY + y * CS;
+    if (PATH_CELLS.has(x + ',' + y)) { g.fillStyle = 'rgba(127,214,255,.05)'; g.fillRect(px, py, CS, CS); }
+    else { g.strokeStyle = 'rgba(120,140,180,.08)'; g.lineWidth = 1; g.strokeRect(px + .5, py + .5, CS - 1, CS - 1); } }
+  g.lineWidth = 2; glow('rgba(127,214,255,.35)', 8); g.setLineDash([6, 6]); g.beginPath(); PATH_PX.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.setLineDash([]);
+  g.lineWidth = 1.5; glow('rgba(127,214,255,.5)', 6); g.strokeRect(FX, FY, COLS * CS, ROWS * CS);
+  // 미리보기: 고른 카드를 마우스 칸에 놓으면
+  let pvSyn = null, pvTower = null;
+  if (S.sel >= 0 && S.hover && buildable(S.hover.x, S.hover.y) && S.phase !== 'title') {
+    const tw = new Map(S.towers); pvTower = { card: S.hand[S.sel], x: S.hover.x, y: S.hover.y }; tw.set(S.hover.x + ',' + S.hover.y, pvTower);
+    pvSyn = applyEffects(new Map([...tw].map(([k, t]) => [k, { ...t }]))).filter(s => s.towers.some(t => t.x === S.hover.x && t.y === S.hover.y));
+  }
+  // 시너지 선
+  S.syn.forEach(s => drawSynLine(s, pvSyn && pvSyn.length ? .35 : 1));
+  if (pvSyn) pvSyn.forEach(s => drawSynLine(s, (S.now * 3 | 0) % 2 ? 1 : .6));
+  // 타워
+  for (const t of S.towers.values()) { if (pvTower && t.x === pvTower.x && t.y === pvTower.y) continue; const [cx, cy] = center(t.x, t.y); cardShape(t.card, cx, cy, CS * .4, { strong: t.eff && t.eff.hands.length > 0 }); }
+  if (pvTower) { const [cx, cy] = center(pvTower.x, pvTower.y); const st = towerStats({ ...pvTower, eff: null });
+    g.lineWidth = 1; glow('rgba(127,214,255,.4)', 0); g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, st.range * CS, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+    cardShape(pvTower.card, cx, cy, CS * .4, { alpha: .75, strong: pvSyn.length > 0 }); }
+  S.syn.forEach(s => drawSynBadge(s, pvSyn && pvSyn.length ? .35 : 1));
+  if (pvSyn) pvSyn.forEach(s => drawSynBadge(s));
+  else if (S.hover && S.towers.get(S.hover.x + ',' + S.hover.y) && S.sel < 0) { const t = S.towers.get(S.hover.x + ',' + S.hover.y), [cx, cy] = center(t.x, t.y), st = towerStats(t);
+    g.lineWidth = 1; glow('rgba(127,214,255,.4)', 0); g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, st.range * CS, 0, Math.PI * 2); g.stroke(); g.setLineDash([]); }
+  // 적
+  for (const e of S.enemies) { const [x, y] = posAt(e.d), slow = e.slowT > 0;
+    const col = e.type === 'boss' ? '#ff6a6a' : e.type === 'tank' ? '#c49aff' : e.type === 'fast' ? '#ffa86a' : '#e8f0ff';
+    g.lineWidth = 2; glow(slow ? '#8affc4' : col, 8); g.beginPath();
+    if (e.type === 'fast') { g.moveTo(x + 10, y); g.lineTo(x - 7, y - 8); g.lineTo(x - 7, y + 8); g.closePath(); }
+    else if (e.type === 'tank') { for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * 14, y + Math.sin(a) * 14); } g.closePath(); }
+    else if (e.type === 'boss') { g.arc(x, y, 20, 0, Math.PI * 2); g.moveTo(x + 12, y); g.arc(x, y, 12, 0, Math.PI * 2); }
+    else g.arc(x, y, 9, 0, Math.PI * 2);
+    g.stroke();
+    const w = e.type === 'boss' ? 40 : 24; g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(x - w / 2, y - 22 - (e.type === 'boss' ? 6 : 0), w, 3); g.fillStyle = col; g.fillRect(x - w / 2, y - 22 - (e.type === 'boss' ? 6 : 0), w * Math.max(0, e.hp / e.maxHp), 3); }
+  // 연출
+  S.fx.forEach(f => { const a = Math.min(1, f.t / (f.kind === 'shot' ? .12 : f.kind === 'ring' ? .25 : .3)); g.globalAlpha = a;
+    if (f.kind === 'shot') { g.lineWidth = 1.6; glow(f.col, 8); g.beginPath(); g.moveTo(f.x1, f.y1); g.lineTo(f.x2, f.y2); g.stroke(); }
+    else if (f.kind === 'ring') { g.lineWidth = 1.5; glow(f.col, 8); g.beginPath(); g.arc(f.x, f.y, f.r * (1.2 - a * .2), 0, Math.PI * 2); g.stroke(); }
+    else { g.lineWidth = 1.5; glow(f.col, 8); for (let k = 0; k < 6; k++) { const an = k * 1.05, r = (1 - a) * 18; g.fillRect(f.x + Math.cos(an) * r, f.y + Math.sin(an) * r, 2, 2); } }
+    g.globalAlpha = 1; });
+  S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, t.x, t.y - (1.3 - t.t) * 26, t.col, t.big ? 18 : 13, 'center', 'bold'); g.globalAlpha = 1; });
+
+  // 손패
+  text(`손패 ${S.hand.length}/${HAND_MAX}`, FX, HAND_Y + 12, '#7fd6ff', 12);
+  text(`덱 ${S.deck.length}장`, FX, HAND_Y + 30, '#5f6878', 11);
+  S.hand.forEach((c, i) => { const x = FX + 96 + i * (CARD_W + 10), y = HAND_Y - (i === S.sel ? 10 : 0), sc = SUIT[c.s];
+    g.lineWidth = i === S.sel ? 2.4 : 1.4; glow(i === S.sel ? '#ffffff' : sc.col, i === S.sel ? 16 : 6); g.beginPath(); if (g.roundRect) g.roundRect(x, y, CARD_W, CARD_H, 8); else g.rect(x, y, CARD_W, CARD_H); g.stroke();
+    cardShape(c, x + CARD_W / 2, y + CARD_H / 2 - 6, 22); text(sc.name, x + CARD_W / 2, y + CARD_H - 8, sc.col, 10, 'center'); text(String(i + 1), x + 6, y + 13, '#5f6878', 10); });
+  // 오른쪽 패널
+  panel(RX, FY, W - RX - 20, 150);
+  text(S.phase === 'title' ? 'WAVE -' : `WAVE ${S.wave} / ${WAVES}`, RX + 16, FY + 30, '#e8f0ff', 20, 'left', 'bold');
+  text(`목숨 ${S.lives}`, RX + 16, FY + 58, S.lives <= 5 ? '#ff6a6a' : '#9cffb0', 15, 'left', 'bold');
+  text(`처치 ${S.kills} · 놓친 적 ${S.leaks}`, RX + 16, FY + 80, '#8a94a6', 11);
+  if (S.phase === 'build') { const bx = RX + 16, by = FY + 96, on = (S.now * 2 | 0) % 2; g.lineWidth = 1.6; glow('#9cffb0', on ? 14 : 6); g.strokeRect(bx, by, 200, 38); text(`웨이브 ${S.wave + 1} 시작 (Space)`, bx + 100, by + 25, '#9cffb0', 13, 'center', 'bold'); }
+  else if (S.phase === 'wave') text(`남은 적 ${S.enemies.length + S.spawn.length}   속도 ×${S.speed} (F)`, RX + 16, FY + 118, '#ffd96a', 12);
+  panel(RX, FY + 166, W - RX - 20, 300); text('족보 시너지 (가로·세로 한 줄)', RX + 16, FY + 190, '#7fd6ff', 12);
+  const pvKeys = new Set((pvSyn || []).map(s => s.key));
+  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = FY + 216 + i * 31, on = pvKeys.has(k);
+    text(h.name + (k === 'flush' || k === 'straight' ? ' (3~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 14, on ? '#ffd96a' : '#5f6878', 10); });
+  panel(RX, FY + 482, W - RX - 20, 132); text('무늬 = 공격 방식, 숫자 = 공격력', RX + 16, FY + 506, '#7fd6ff', 12);
+  SUITS.forEach((s, i) => { const y = FY + 530 + i * 22; cardShape({ r: 0, s }, RX + 26, y - 4, 8); text(`${SUIT[s].name}: ${SUIT[s].desc}`, RX + 42, y, SUIT[s].col, 11); });
+  text('카드 클릭(1~7) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소', W / 2, H - 8, '#5f6878', 11, 'center');
+
+  const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
+  if (S.phase === 'title') overlay('POKER DEFENSE', '#7fd6ff', ['카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력', '가로나 세로로 한 줄로 붙은 타워들이 포커 족보가 되면 시너지가 생긴다', `웨이브를 막을 때마다 카드 ${DRAW_PER_WAVE}장. 지금 놓을지, 아껴서 큰 족보를 노릴지!`], 'Enter 키 또는 화면을 눌러 시작');
+  else if (S.phase === 'over') overlay('GAME OVER', '#ff6a6a', [`웨이브 ${S.wave}에서 무너졌다 · 처치 ${S.kills}`], 'R 키 또는 화면을 눌러 다시');
+  else if (S.phase === 'win') overlay('ALL CLEAR', '#ffd96a', [`${WAVES} 웨이브를 모두 막았다 · 남은 목숨 ${S.lives} · 처치 ${S.kills}`], 'R 키 또는 화면을 눌러 다시');
+}
+
+// ---------------------------------------------------------------- 소리 (테트리스 포커와 같은 합성 효과음)
+let muted = false, actx = null; const sfxBuf = {};
+function audioCtx() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
+function sfx(name, a = 0, b = 0) {
+  if (muted || !window.TP_SOUNDS) return; const ctx = audioCtx(); if (!ctx) return;
+  if (name === 'Burst') a = Math.min(8, Math.max(1, a)); if (name === 'Straight') a = Math.min(7, Math.max(3, a));
+  const key = `${name}_${a}_${b}`, src = window.TP_SOUNDS[key]; if (!src) return;
+  const play = buf => { const sn = ctx.createBufferSource(); sn.buffer = buf; const gn = ctx.createGain(); gn.gain.value = .7; sn.connect(gn).connect(ctx.destination); sn.start(); };
+  const c = sfxBuf[key]; if (c instanceof AudioBuffer) { play(c); return; } if (c) return;
+  sfxBuf[key] = 'loading';
+  const bin = atob(src.split(',')[1]), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  ctx.decodeAudioData(arr.buffer).then(buf => { sfxBuf[key] = buf; play(buf); }).catch(() => { sfxBuf[key] = null; });
+}
+
+// ---------------------------------------------------------------- 입력과 루프
+function toCanvas(ev) { const r = cv.getBoundingClientRect(), s = Math.min(r.width / W, r.height / H); return [(ev.clientX - r.left - (r.width - W * s) / 2) / s, (ev.clientY - r.top - (r.height - H * s) / 2) / s]; }
+const cellAt = (x, y) => { const cx = Math.floor((x - FX) / CS), cy = Math.floor((y - FY) / CS); return cx >= 0 && cy >= 0 && cx < COLS && cy < ROWS ? { x: cx, y: cy } : null; };
+const handAt = (x, y) => { for (let i = 0; i < S.hand.length; i++) { const hx = FX + 96 + i * (CARD_W + 10); if (x >= hx && x <= hx + CARD_W && y >= HAND_Y - 12 && y <= HAND_Y + CARD_H) return i; } return -1; };
+cv.addEventListener('contextmenu', ev => ev.preventDefault());
+cv.addEventListener('pointermove', ev => { const [x, y] = toCanvas(ev); S.hover = cellAt(x, y); });
+cv.addEventListener('pointerdown', ev => {
+  if (S.phase === 'title') { S.phase = 'build'; sfx('Start'); return; }
+  if (S.phase === 'over' || S.phase === 'win') { newGame(true); return; }
+  const [x, y] = toCanvas(ev), hi = handAt(x, y), cell = cellAt(x, y);
+  if (ev.button === 2) { if (hi >= 0) discardCard(hi); else S.sel = -1; return; }
+  if (hi >= 0) { S.sel = S.sel === hi ? -1 : hi; sfx('Move'); return; }
+  if (cell && S.sel >= 0) { if (!place(S.sel, cell.x, cell.y)) sfx('Denied'); return; }
+  if (S.phase === 'build' && x >= RX + 16 && x <= RX + 216 && y >= FY + 96 && y <= FY + 134) startWave();
+});
+addEventListener('keydown', e => {
+  if (e.key === ' ') e.preventDefault();
+  if (S.phase === 'title') { if (e.key === 'Enter' || e.key === ' ') { S.phase = 'build'; sfx('Start'); } return; }
+  if (S.phase === 'over' || S.phase === 'win') { if (e.key === 'r' || e.key === 'R' || e.key === 'Enter') newGame(true); return; }
+  if (e.key >= '1' && e.key <= '7') { const i = +e.key - 1; if (i < S.hand.length) { S.sel = S.sel === i ? -1 : i; sfx('Move'); } }
+  else if (e.key === ' ' || e.key === 'Enter') startWave();
+  else if (e.key === 'Escape') S.sel = -1;
+  else if (e.key === 'f' || e.key === 'F') S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1;
+  else if (e.key === 'm' || e.key === 'M') muted = !muted;
+});
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  try { for (let k = 0; k < S.speed; k++) update(dt); S.texts.forEach(t => t.t -= dt); S.texts = S.texts.filter(t => t.t > 0); S.fx.forEach(f => f.t -= dt); S.fx = S.fx.filter(f => f.t > 0); render(); } catch (err) { console.error(err); }
+  requestAnimationFrame(frame);
+}
+newGame();
+window.__pd = () => S;
+window.__api = { windowHands, synergies, applyEffects, towerStats, place, startWave, update, render, newGame, buildable, center, discardCard, setMuted: v => { muted = v; }, PATH_CELLS, COLS, ROWS, CS, WAVES, posAt, PATH_LEN };
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
