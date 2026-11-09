@@ -27,7 +27,7 @@
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 1280, H = 720;
 const COLS = 16, ROWS = 10, CS = 54, FX = 24, FY = 24;
-const HAND_Y = FY + ROWS * CS + 22, CARD_W = 66, CARD_H = 92, HAND_MAX = 7;
+const HAND_Y = FY + ROWS * CS + 22, CARD_W = 66, CARD_H = 92, HAND_MAX = 7, JOKER_MAX = 5;
 const RX = FX + COLS * CS + 26;
 const WAVES = 15, START_LIVES = 20, START_HAND = 5, DRAW_PER_WAVE = 3;
 // 무늬 = 공격 방식 (도형과 색)
@@ -36,9 +36,10 @@ const SUIT = {
   '♥': { name: '폭발', desc: '맞은 자리 주변도 피해', col: '#ff6a8a', shape: 'circle',  dmg: 0.9,  rate: 0.9, range: 2.2, splash: 0.8 },
   '♦': { name: '연사', desc: '약하지만 아주 빠름',   col: '#ffd96a', shape: 'diamond', dmg: 0.45, rate: 2.6, range: 2.2 },
   '♣': { name: '둔화', desc: '맞은 적이 느려짐',     col: '#8affc4', shape: 'square',  dmg: 0.7,  rate: 1.0, range: 2.4, slow: 0.4 },
+  '★': { name: '와일드', desc: '아무 숫자·무늬로 친다', col: '#ffffff', shape: 'star',  dmg: 1.0,  rate: 1.2, range: 2.6 },
 };
 const SUITS = ['♠', '♥', '♦', '♣'];
-const RANK_TXT = r => ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[r] || String(r);
+const RANK_TXT = r => ({ 0: 'W', 11: 'J', 12: 'Q', 13: 'K', 14: 'A' })[r] || String(r);
 // 족보 = 시너지 효과
 const HANDS = {
   straightFlush: { name: '스트레이트 플러시', n: [5],       val: 100, col: '#ff9ad5', eff: '공격력 ×2 · 연사 ×2 · 범위' },
@@ -52,8 +53,65 @@ const HANDS = {
 };
 const HAND_ORDER = ['straightFlush', 'four', 'fullHouse', 'flush', 'straight', 'triple', 'twoPair', 'pair'];
 
+// ---------------------------------------------------------------- 조커 (웨이브 보상, 최대 5칸, 판 끝까지 규칙을 바꾼다)
+const JOKERS = {
+  heartLover:  { name: '하트 애호가',   desc: '♥ 타워 공격력 +40%' },
+  spadeLover:  { name: '스페이드 애호가', desc: '♠ 타워 공격력 +40%' },
+  diaLover:    { name: '다이아 애호가',  desc: '♦ 타워 공격력 +40%' },
+  clubLover:   { name: '클로버 애호가',  desc: '♣ 타워 공격력 +40%' },
+  chainLink:   { name: '연결고리',      desc: '연쇄 보너스 +25% → +45%' },
+  twins:       { name: '쌍둥이',        desc: '원 페어·투 페어 공격력 ×1.5 → ×2' },
+  lineLover:   { name: '일직선',        desc: '스트레이트 연사 한 장마다 +0.25 더' },
+  wideFlush:   { name: '넓은 물결',     desc: '플러시 범위 +0.75칸' },
+  faceCards:   { name: '그림 카드',     desc: 'J·Q·K 타워 공격력 +60%' },
+  smallNums:   { name: '작은 수',       desc: '2~6 타워 연사 +60%' },
+  lucky7:      { name: '행운의 7',      desc: '숫자 7 타워 공격력 ×2.5' },
+  bigHand:     { name: '큰 손',         desc: '손패 최대 +2' },
+  supply:      { name: '보급',          desc: '웨이브마다 카드 +1' },
+  recycle:     { name: '재활용',        desc: '카드를 버리면 1장 뽑기' },
+  scope:       { name: '조준경',        desc: '모든 타워 사거리 +15%' },
+  frost:       { name: '서리',          desc: '둔화 더 강하게, ♣ 주변도 둔화' },
+  chainBlast:  { name: '연쇄 폭발',     desc: '적 처치 시 주변 적에게 최대 체력 15% 피해' },
+  pierce:      { name: '관통탄',        desc: '적의 방패를 무시' },
+};
+// 즉시 보상 (조커 칸을 쓰지 않음)
+const INSTANTS = {
+  wild:   { name: '와일드 카드', desc: '아무 숫자·무늬로 치는 카드 1장' },
+  draw2:  { name: '보충',       desc: '카드 2장 뽑기' },
+  repair: { name: '수리',       desc: '목숨 +3' },
+};
+const has = id => !!(S && S.jokers && S.jokers.includes(id));
+const chainStep = () => has('chainLink') ? 0.45 : CHAIN_STEP;
+const handMax = () => HAND_MAX + (has('bigHand') ? 2 : 0);
+function rollRewards() {
+  const pool = Object.keys(JOKERS).filter(id => !S.jokers.includes(id)), out = [];
+  const pick = arr => arr.splice(Math.random() * arr.length | 0, 1)[0];
+  if (S.jokers.length < JOKER_MAX) { out.push({ kind: 'joker', id: pick(pool) }); out.push({ kind: 'joker', id: pick(pool) }); }
+  const inst = Object.keys(INSTANTS); while (out.length < 3) out.push({ kind: 'instant', id: pick(inst) });
+  return out;
+}
+function takeReward(i) {
+  if (S.phase !== 'reward') return;
+  const r = S.rewards[i];
+  if (r) {
+    if (r.kind === 'joker') S.jokers.push(r.id);
+    else if (r.id === 'wild') { const w = { r: 0, s: '★', wild: true }; if (S.hand.length < handMax()) S.hand.push(w); else S.deck.push(w); }
+    else if (r.id === 'draw2') draw(2);
+    else if (r.id === 'repair') S.lives += 3;
+    popText(`${(r.kind === 'joker' ? JOKERS : INSTANTS)[r.id].name}!`, FX + COLS * CS / 2, FY + 80, '#ffd96a', true);
+    S.syn = applyEffects(S.towers); S.version = (S.version || 0) + 1; sfx('Burst', 4, 1);
+  }
+  S.rewards = []; S.phase = 'build';
+}
+
 // ---------------------------------------------------------------- 족보 판정 (줄 안의 연속 2~5장, 순서 상관없음)
 function windowHands(cards) {
+  const wi = cards.findIndex(c => c.wild);
+  if (wi >= 0) {
+    const out = new Set(), suits = [...new Set(cards.filter(c => !c.wild).map(c => c.s))]; if (!suits.length) suits.push('♠');
+    for (let r = 2; r <= 14; r++) for (const su of suits) { const cs = cards.slice(); cs[wi] = { r, s: su }; windowHands(cs).forEach(h => out.add(h)); }
+    return [...out];
+  }
   const n = cards.length, ranks = cards.map(c => c.r), cnt = {};
   ranks.forEach(r => cnt[r] = (cnt[r] || 0) + 1);
   const vals = Object.values(cnt).sort((a, b) => b - a), sameSuit = cards.every(c => c.s === cards[0].s);
@@ -76,7 +134,7 @@ const handValue = (key, n) => HANDS[key].val + (key === 'flush' || key === 'stra
 // 상하좌우로 붙은 타워 덩어리 안에서, 서로 붙어 있는 2~5장 묶음(모양 상관없음)을 전부 따져
 // 큰 족보부터 겹치지 않게 고른다. 타워 하나는 족보 하나에만 들어간다.
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const CHAIN_STEP = 0.25; // 연쇄: 맞닿은 족보 하나마다 공격력 +25%
+const CHAIN_STEP = 0.25; // 연쇄: 맞닿은 족보 하나마다 공격력 +25% (연결고리 조커면 +45%)
 function connectedSubsets(list, kmax) {
   // ESU 방식: 각 묶음을 한 번씩만 만든다 (시작점보다 번호가 큰 칸으로만 넓힘)
   const idx = new Map(list.map((t, i) => [t.x + ',' + t.y, i]));
@@ -123,22 +181,30 @@ function applyEffects(towers) {
   for (const s of syn) for (const t of s.towers) {
     const e = t.eff; e.hands.push(s.key);
     switch (s.key) {
-      case 'pair': e.dmg *= 1.5; break;
-      case 'twoPair': e.dmg *= 1.5; e.range *= 1.25; break;
+      case 'pair': e.dmg *= has('twins') ? 2 : 1.5; break;
+      case 'twoPair': e.dmg *= has('twins') ? 2 : 1.5; e.range *= 1.25; break;
       case 'triple': e.dmg *= 2; break;
-      case 'straight': e.rate *= 1 + 0.25 * (s.n - 1); break;
-      case 'flush': e.splash = Math.max(e.splash, 0.5 + 0.25 * s.n); break;
+      case 'straight': e.rate *= 1 + (has('lineLover') ? 0.5 : 0.25) * (s.n - 1); break;
+      case 'flush': e.splash = Math.max(e.splash, 0.5 + 0.25 * s.n + (has('wideFlush') ? 0.75 : 0)); break;
       case 'fullHouse': e.dmg *= 1.5; e.rate *= 1.5; e.splash = Math.max(e.splash, 1.5); break;
       case 'four': e.dmg *= 3.5; break;
       case 'straightFlush': e.dmg *= 2; e.rate *= 2; e.splash = Math.max(e.splash, 2); break;
     }
-    if (s.chain >= 2) { e.dmg *= 1 + CHAIN_STEP * (s.chain - 1); e.chain = s.chain; }
+    if (s.chain >= 2) { e.dmg *= 1 + chainStep() * (s.chain - 1); e.chain = s.chain; }
   }
   return syn;
 }
 function towerStats(t) {
-  const s = SUIT[t.card.s], e = t.eff || { dmg: 1, rate: 1, range: 1, splash: 0 };
-  return { dmg: (3 + t.card.r) * s.dmg * e.dmg, rate: s.rate * e.rate, range: s.range * e.range, splash: Math.max(s.splash || 0, e.splash), slow: s.slow || 0 };
+  const s = SUIT[t.card.s], e = t.eff || { dmg: 1, rate: 1, range: 1, splash: 0 }, c = t.card, r = c.wild ? 10 : c.r;
+  let dmg = (3 + r) * s.dmg * e.dmg, rate = s.rate * e.rate, range = s.range * e.range, splash = Math.max(s.splash || 0, e.splash), slow = s.slow || 0;
+  // 조커
+  const suitJ = { '♥': 'heartLover', '♠': 'spadeLover', '♦': 'diaLover', '♣': 'clubLover' }[c.s]; if (suitJ && has(suitJ)) dmg *= 1.4;
+  if (has('faceCards') && r >= 11 && r <= 13) dmg *= 1.6;
+  if (has('smallNums') && !c.wild && r <= 6) rate *= 1.6;
+  if (has('lucky7') && r === 7) dmg *= 2.5;
+  if (has('scope')) range *= 1.15;
+  if (has('frost') && c.s === '♣') { slow = Math.min(0.75, slow + 0.2); splash = Math.max(splash, 0.6); }
+  return { dmg, rate, range, splash, slow };
 }
 
 // ---------------------------------------------------------------- 길
@@ -178,34 +244,53 @@ let S;
 function newGame(start = false) {
   setPath(genPath());
   S = { phase: start ? 'build' : 'title', wave: 0, lives: START_LIVES, deck: [], hand: [], towers: new Map(), syn: [], enemies: [], spawn: [], spawnT: 0,
-    sel: -1, hover: null, fx: [], texts: [], speed: 1, now: 0, kills: 0, leaks: 0, discarded: 0 };
+    sel: -1, hover: null, fx: [], texts: [], speed: 1, now: 0, kills: 0, leaks: 0, discarded: 0, jokers: [], rewards: [] };
   for (const s of SUITS) for (let r = 2; r <= 14; r++) S.deck.push({ r, s });
   for (let i = S.deck.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [S.deck[i], S.deck[j]] = [S.deck[j], S.deck[i]]; }
   draw(START_HAND);
 }
-function draw(n) { let got = 0; while (got < n && S.hand.length < HAND_MAX && S.deck.length) { S.hand.push(S.deck.pop()); got++; } return got; }
+function draw(n) { let got = 0; while (got < n && S.hand.length < handMax() && S.deck.length) { S.hand.push(S.deck.pop()); got++; } return got; }
+// 적: normal 기본, fast 빠름, tank 단단함, armored 방패(한 방 피해를 깎음), splitter 죽으면 둘로, regen 체력 회복, mini 분열 조각
+const ENEMY = {
+  normal:   { hp: 1,   speed: 1.1,  col: '#e8f0ff' },
+  fast:     { hp: 0.6, speed: 1.9,  col: '#ffa86a' },
+  tank:     { hp: 2.6, speed: 0.7,  col: '#c49aff' },
+  armored:  { hp: 1.3, speed: 0.9,  col: '#9fc3e8', armor: true },
+  splitter: { hp: 1.2, speed: 1.0,  col: '#ff9ad5', split: 2 },
+  regen:    { hp: 1.4, speed: 0.9,  col: '#b6ff6a', regen: 0.03 },
+  mini:     { hp: 0.35, speed: 1.5, col: '#ff9ad5' },
+  shieldBoss: { hp: 12, speed: 0.55, col: '#9fc3e8', boss: true, armor: true, name: '방패 거인' },
+  splitBoss:  { hp: 12, speed: 0.55, col: '#ff9ad5', boss: true, split: 4, name: '분열 군주' },
+  regenBoss:  { hp: 16, speed: 0.5,  col: '#b6ff6a', boss: true, regen: 0.015, name: '재생 왕' },
+};
 function waveSpec(w) {
-  const list = [], hp = 26 * Math.pow(1.39, w - 1), n = 8 + w * 2;
+  const list = [], hp = 26 * Math.pow(1.45, w - 1), n = 8 + w * 2;
   for (let i = 0; i < n; i++) {
     let type = 'normal';
     if (w >= 3 && i % 4 === 3) type = 'fast';
+    if (w >= 4 && i % 5 === 4) type = 'armored';
     if (w >= 5 && i % 6 === 5) type = 'tank';
+    if (w >= 6 && i % 7 === 6) type = 'splitter';
+    if (w >= 8 && i % 6 === 2) type = 'regen';
     list.push(type);
   }
-  if (w % 5 === 0) list.push('boss');
-  return list.map(type => ({ type, hp: hp * ({ normal: 1, fast: 0.6, tank: 2.6, boss: 14 })[type], speed: ({ normal: 1.1, fast: 1.9, tank: 0.7, boss: 0.55 })[type] }));
+  if (w === 5) list.push('shieldBoss'); if (w === 10) list.push('splitBoss'); if (w === 15) list.push('regenBoss');
+  return list.map(type => makeEnemy(type, hp, w));
 }
+function makeEnemy(type, baseHp, w) { const d = ENEMY[type]; return { type, hp: baseHp * d.hp, speed: d.speed, armor: d.armor ? (d.boss ? 15 : 4 + w * 0.6) : 0, baseHp, w }; }
 function startWave() {
   if (S.phase !== 'build') return;
   S.wave++; S.phase = 'wave'; S.spawn = waveSpec(S.wave); S.spawnT = 0; S.sel = -1; sfx('Start');
+  const boss = S.spawn.find(e => ENEMY[e.type].boss); if (boss) popText(`보스: ${ENEMY[boss.type].name}`, FX + COLS * CS / 2, FY + 120, ENEMY[boss.type].col, true);
 }
 function endWave() {
   if (S.wave >= WAVES) { S.phase = 'win'; sfx('Win'); return; }
-  const got = draw(DRAW_PER_WAVE); S.phase = 'build';
-  popText(`웨이브 ${S.wave} 막음! 카드 +${got}${got < DRAW_PER_WAVE ? ' (손패 가득)' : ''}`, FX + COLS * CS / 2, FY + 60, '#9cffb0', true); sfx('Clear');
+  const want = DRAW_PER_WAVE + (has('supply') ? 1 : 0), got = draw(want);
+  S.phase = 'reward'; S.rewards = rollRewards();
+  popText(`웨이브 ${S.wave} 막음! 카드 +${got}${got < want ? ' (손패 가득)' : ''}`, FX + COLS * CS / 2, FY + 40, '#9cffb0', true); sfx('Clear');
 }
 function place(handIdx, x, y) {
-  if (S.phase === 'title' || S.phase === 'over' || S.phase === 'win') return false;
+  if (S.phase === 'title' || S.phase === 'over' || S.phase === 'win' || S.phase === 'reward') return false;
   if (handIdx < 0 || handIdx >= S.hand.length || !buildable(x, y)) return false;
   const key = x + ',' + y, old = S.towers.get(key), card = S.hand.splice(handIdx, 1)[0];
   if (old) { S.discarded++; popText(`${RANK_TXT(old.card.r)}${old.card.s} 교체`, ...center(x, y), '#8a94a6'); }
@@ -218,7 +303,7 @@ function place(handIdx, x, y) {
   else sfx('Lock');
   S.sel = -1; return true;
 }
-function discardCard(i) { if (i < 0 || i >= S.hand.length) return; S.hand.splice(i, 1); S.discarded++; if (S.sel === i) S.sel = -1; else if (S.sel > i) S.sel--; sfx('HardDrop'); }
+function discardCard(i) { if (i < 0 || i >= S.hand.length) return; S.hand.splice(i, 1); S.discarded++; if (S.sel === i) S.sel = -1; else if (S.sel > i) S.sel--; if (has('recycle')) draw(1); sfx('HardDrop'); }
 const midOf = s => { const ps = s.towers.map(t => center(t.x, t.y)); return [ps.reduce((a, p) => a + p[0], 0) / ps.length, ps.reduce((a, p) => a + p[1], 0) / ps.length]; };
 function popText(s, x, y, col, big = false) { S.texts.push({ s, x, y, col, t: 1.3, big }); }
 
@@ -228,12 +313,13 @@ function update(dt) {
   if (S.phase !== 'wave') return;
   // 적 등장
   S.spawnT -= dt;
-  if (S.spawn.length && S.spawnT <= 0) { const e = S.spawn.shift(); S.enemies.push({ ...e, maxHp: e.hp, d: 0, slowT: 0 }); S.spawnT = e.type === 'boss' ? 1.2 : 0.65; }
+  if (S.spawn.length && S.spawnT <= 0) { const e = S.spawn.shift(); S.enemies.push({ ...e, maxHp: e.hp, d: 0, slowT: 0 }); S.spawnT = ENEMY[e.type].boss ? 1.2 : 0.65; }
   // 이동
   for (const e of S.enemies) {
     e.slowT = Math.max(0, e.slowT - dt);
+    const rg = ENEMY[e.type].regen; if (rg && !e.dead) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * rg * dt);
     e.d += e.speed * CS * (e.slowT > 0 ? 1 - e.slowAmt : 1) * dt;
-    if (e.d >= PATH_LEN) { e.dead = true; e.leaked = true; const loss = e.type === 'boss' ? 5 : 1; S.lives -= loss; S.leaks++; popText(`-${loss}`, RX - 30, FY + 4 * CS, '#ff6a6a', true); sfx('Denied'); }
+    if (e.d >= PATH_LEN && !e.dead) { e.dead = true; e.leaked = true; const loss = ENEMY[e.type].boss ? 5 : 1; S.lives -= loss; S.leaks++; popText(`-${loss}`, RX - 30, FY + 4 * CS, '#ff6a6a', true); sfx('Denied'); }
   }
   // 타워 공격
   for (const t of S.towers.values()) {
@@ -249,10 +335,24 @@ function update(dt) {
     S.fx.push({ kind: 'shot', x1: tx, y1: ty, x2: ex, y2: ey, col: SUIT[t.card.s].col, t: .12 });
   }
   S.enemies = S.enemies.filter(e => !e.dead);
+  if (S.newEnemies && S.newEnemies.length) { S.enemies.push(...S.newEnemies); S.newEnemies = []; }
   if (S.lives <= 0) { S.lives = 0; S.phase = 'over'; sfx('GameOver'); return; }
   if (!S.spawn.length && !S.enemies.length) endWave();
 }
-function hit(e, dmg, slow) { e.hp -= dmg; if (slow) { e.slowT = 1.2; e.slowAmt = Math.max(e.slowAmt || 0, slow); } if (e.hp <= 0 && !e.dead) { e.dead = true; S.kills++; const [x, y] = posAt(e.d); S.fx.push({ kind: 'pop', x, y, t: .3, col: '#ffffff' }); } }
+function hit(e, dmg, slow) {
+  if (e.dead) return;
+  if (e.armor && !has('pierce')) dmg = Math.max(dmg * 0.25, dmg - e.armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
+  e.hp -= dmg; if (slow) { e.slowT = 1.2; e.slowAmt = Math.max(e.slowAmt || 0, slow); }
+  if (e.hp <= 0) {
+    e.dead = true; S.kills++; const [x, y] = posAt(e.d); S.fx.push({ kind: 'pop', x, y, t: .3, col: ENEMY[e.type].col });
+    const d = ENEMY[e.type];
+    if (d.split) { // 분열: 작은 적(보스는 탱크)으로 갈라진다
+      S.newEnemies = S.newEnemies || [];
+      for (let k = 0; k < d.split; k++) { const ne = makeEnemy(d.boss ? 'tank' : 'mini', e.baseHp * (d.boss ? 0.6 : 1), e.w); S.newEnemies.push({ ...ne, maxHp: ne.hp, d: Math.max(0, e.d - k * 10), slowT: 0 }); }
+    }
+    if (has('chainBlast')) for (const o of S.enemies) { if (o === e || o.dead) continue; const [ox, oy] = posAt(o.d); if (Math.hypot(ox - x, oy - y) <= 1.2 * CS) { o.hp -= e.maxHp * 0.15; if (o.hp <= 0) hit(o, 0, 0); } }
+  }
+}
 
 // ---------------------------------------------------------------- 그리기
 const glow = (col, b = 10) => { g.strokeStyle = col; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = b; };
@@ -263,6 +363,7 @@ function shapePath(shape, cx, cy, r) {
   if (shape === 'tri') { g.moveTo(cx, cy - r); g.lineTo(cx + r * .9, cy + r * .72); g.lineTo(cx - r * .9, cy + r * .72); g.closePath(); }
   else if (shape === 'circle') g.arc(cx, cy, r * .86, 0, Math.PI * 2);
   else if (shape === 'diamond') { g.moveTo(cx, cy - r); g.lineTo(cx + r * .8, cy); g.lineTo(cx, cy + r); g.lineTo(cx - r * .8, cy); g.closePath(); }
+  else if (shape === 'star') { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * .45 : r; g[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } g.closePath(); }
   else g.rect(cx - r * .76, cy - r * .76, r * 1.52, r * 1.52);
 }
 // 카드(=타워) 도형: 무늬 모양과 색, 안에 숫자
@@ -270,7 +371,7 @@ function cardShape(card, cx, cy, r, o = {}) {
   const s = SUIT[card.s]; g.globalAlpha = o.alpha ?? 1;
   g.lineWidth = o.strong ? 2.6 : 1.8; glow(s.col, o.strong ? 18 : 9); shapePath(s.shape, cx, cy, r); g.stroke();
   if (o.strong) { g.globalAlpha *= .12; g.fill(); g.globalAlpha = o.alpha ?? 1; }
-  text(RANK_TXT(card.r), cx, cy + (s.shape === 'tri' ? r * .38 : r * .3), s.col, Math.round(r * (card.r === 10 ? .62 : .78)), 'center', 'bold');
+  if (!card.wild) text(RANK_TXT(card.r), cx, cy + (s.shape === 'tri' ? r * .38 : r * .3), s.col, Math.round(r * (card.r === 10 ? .62 : .78)), 'center', 'bold');
   g.globalAlpha = 1;
 }
 // 족보에 든 칸들을 모양대로 감싼다: 바깥쪽 변에만 선 (도형 안 숫자를 가리지 않게)
@@ -336,14 +437,20 @@ function render() {
     g.lineWidth = 1; glow('rgba(127,214,255,.4)', 0); g.setLineDash([3, 5]); g.beginPath(); g.arc(cx, cy, st.range * CS, 0, Math.PI * 2); g.stroke(); g.setLineDash([]); }
   // 적
   for (const e of S.enemies) { const [x, y] = posAt(e.d), slow = e.slowT > 0;
-    const col = e.type === 'boss' ? '#ff6a6a' : e.type === 'tank' ? '#c49aff' : e.type === 'fast' ? '#ffa86a' : '#e8f0ff';
+    const def = ENEMY[e.type], col = def.col, boss = !!def.boss;
     g.lineWidth = 2; glow(slow ? '#8affc4' : col, 8); g.beginPath();
+    const poly = (n, r, rot = 0) => { for (let k = 0; k < n; k++) { const a = rot + k / n * Math.PI * 2; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); };
     if (e.type === 'fast') { g.moveTo(x + 10, y); g.lineTo(x - 7, y - 8); g.lineTo(x - 7, y + 8); g.closePath(); }
-    else if (e.type === 'tank') { for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(a) * 14, y + Math.sin(a) * 14); } g.closePath(); }
-    else if (e.type === 'boss') { g.arc(x, y, 20, 0, Math.PI * 2); g.moveTo(x + 12, y); g.arc(x, y, 12, 0, Math.PI * 2); }
+    else if (e.type === 'tank') poly(6, 14);
+    else if (e.type === 'armored') { g.arc(x, y, 10, 0, Math.PI * 2); g.moveTo(x - 13, y - 13); g.lineTo(x + 13, y - 13); }
+    else if (e.type === 'splitter') { g.arc(x - 5, y, 7, 0, Math.PI * 2); g.moveTo(x + 12, y); g.arc(x + 5, y, 7, 0, Math.PI * 2); }
+    else if (e.type === 'regen') { poly(4, 11, Math.PI / 4); g.moveTo(x - 5, y); g.lineTo(x + 5, y); g.moveTo(x, y - 5); g.lineTo(x, y + 5); }
+    else if (e.type === 'mini') g.arc(x, y, 6, 0, Math.PI * 2);
+    else if (boss) { poly(e.type === 'shieldBoss' ? 4 : e.type === 'splitBoss' ? 8 : 6, 22, S.now); g.moveTo(x + 12, y); g.arc(x, y, 12, 0, Math.PI * 2); }
     else g.arc(x, y, 9, 0, Math.PI * 2);
     g.stroke();
-    const w = e.type === 'boss' ? 40 : 24; g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(x - w / 2, y - 22 - (e.type === 'boss' ? 6 : 0), w, 3); g.fillStyle = col; g.fillRect(x - w / 2, y - 22 - (e.type === 'boss' ? 6 : 0), w * Math.max(0, e.hp / e.maxHp), 3); }
+    const w = boss ? 44 : 24, hy = y - (boss ? 32 : 22); g.shadowBlur = 0; g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(x - w / 2, hy, w, 3); g.fillStyle = col; g.fillRect(x - w / 2, hy, w * Math.max(0, e.hp / e.maxHp), 3);
+    if (e.armor && !has('pierce')) { g.fillStyle = '#9fc3e8'; g.fillRect(x - w / 2, hy - 4, w, 2); } }
   // 연출
   S.fx.forEach(f => { const a = Math.min(1, f.t / (f.kind === 'shot' ? .12 : f.kind === 'ring' ? .25 : .3)); g.globalAlpha = a;
     if (f.kind === 'shot') { g.lineWidth = 1.6; glow(f.col, 8); g.beginPath(); g.moveTo(f.x1, f.y1); g.lineTo(f.x2, f.y2); g.stroke(); }
@@ -353,11 +460,11 @@ function render() {
   S.texts.forEach(t => { g.globalAlpha = Math.min(1, t.t * 2); text(t.s, t.x, t.y - (1.3 - t.t) * 26, t.col, t.big ? 18 : 13, 'center', 'bold'); g.globalAlpha = 1; });
 
   // 손패
-  text(`손패 ${S.hand.length}/${HAND_MAX}`, FX, HAND_Y + 12, '#7fd6ff', 12);
+  text(`손패 ${S.hand.length}/${handMax()}`, FX, HAND_Y + 12, '#7fd6ff', 12);
   text(`덱 ${S.deck.length}장`, FX, HAND_Y + 30, '#5f6878', 11);
   S.hand.forEach((c, i) => { const x = FX + 96 + i * (CARD_W + 10), y = HAND_Y - (i === S.sel ? 10 : 0), sc = SUIT[c.s];
     g.lineWidth = i === S.sel ? 2.4 : 1.4; glow(i === S.sel ? '#ffffff' : sc.col, i === S.sel ? 16 : 6); g.beginPath(); if (g.roundRect) g.roundRect(x, y, CARD_W, CARD_H, 8); else g.rect(x, y, CARD_W, CARD_H); g.stroke();
-    cardShape(c, x + CARD_W / 2, y + CARD_H / 2 - 6, 22); text(sc.name, x + CARD_W / 2, y + CARD_H - 8, sc.col, 10, 'center'); text(String(i + 1), x + 6, y + 13, '#5f6878', 10); });
+    cardShape(c, x + CARD_W / 2, y + CARD_H / 2 - 6, 22); text(c.wild ? '와일드' : sc.name, x + CARD_W / 2, y + CARD_H - 8, sc.col, 10, 'center'); text(String(i + 1), x + 6, y + 13, '#5f6878', 10); });
   // 오른쪽 패널
   panel(RX, FY, W - RX - 20, 150);
   text(S.phase === 'title' ? 'WAVE -' : `WAVE ${S.wave} / ${WAVES}`, RX + 16, FY + 30, '#e8f0ff', 20, 'left', 'bold');
@@ -365,15 +472,29 @@ function render() {
   text(`처치 ${S.kills} · 놓친 적 ${S.leaks}`, RX + 16, FY + 80, '#8a94a6', 11);
   if (S.phase === 'build') { const bx = RX + 16, by = FY + 96, on = (S.now * 2 | 0) % 2; g.lineWidth = 1.6; glow('#9cffb0', on ? 14 : 6); g.strokeRect(bx, by, 200, 38); text(`웨이브 ${S.wave + 1} 시작 (Space)`, bx + 100, by + 25, '#9cffb0', 13, 'center', 'bold'); }
   else if (S.phase === 'wave') text(`남은 적 ${S.enemies.length + S.spawn.length}   속도 ×${S.speed} (F)`, RX + 16, FY + 118, '#ffd96a', 12);
-  panel(RX, FY + 166, W - RX - 20, 300); text('족보 시너지 (붙어 있으면 모양 상관없이)', RX + 16, FY + 190, '#7fd6ff', 12);
+  panel(RX, FY + 162, W - RX - 20, 272); text('족보 시너지 (붙어 있으면 모양 상관없이)', RX + 16, FY + 184, '#7fd6ff', 12);
   const pvKeys = new Set((pvSyn || []).map(s => s.key));
-  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = FY + 214 + i * 28, on = pvKeys.has(k);
-    text(h.name + (k === 'flush' ? ' (3~5장)' : k === 'straight' ? ' (2~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 13, on ? '#ffd96a' : '#5f6878', 10); });
-  text(`연쇄: 족보끼리 맞닿으면 하나에 +${CHAIN_STEP * 100}%씩 공격력`, RX + 16, FY + 452, '#ffffff', 11, 'left', 'bold');
-  panel(RX, FY + 482, W - RX - 20, 132); text('무늬 = 공격 방식, 숫자 = 공격력', RX + 16, FY + 506, '#7fd6ff', 12);
-  SUITS.forEach((s, i) => { const y = FY + 530 + i * 22; cardShape({ r: 0, s }, RX + 26, y - 4, 8); text(`${SUIT[s].name}: ${SUIT[s].desc}`, RX + 42, y, SUIT[s].col, 11); });
-  text('카드 클릭(1~7) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소', W / 2, H - 8, '#5f6878', 11, 'center');
+  HAND_ORDER.forEach((k, i) => { const h = HANDS[k], y = FY + 206 + i * 26, on = pvKeys.has(k);
+    text(h.name + (k === 'flush' ? ' (3~5장)' : k === 'straight' ? ' (2~5장)' : ''), RX + 16, y, on ? '#ffd96a' : h.col, 12, 'left', 'bold'); text(h.eff, RX + 16, y + 12, on ? '#ffd96a' : '#5f6878', 10); });
+  text(`연쇄: 족보끼리 맞닿으면 하나에 +${Math.round(chainStep() * 100)}%씩`, RX + 16, FY + 424, '#ffffff', 11, 'left', 'bold');
+  panel(RX, FY + 444, W - RX - 20, 118); text(`조커 ${S.jokers.length}/${JOKER_MAX}`, RX + 16, FY + 466, '#ffd96a', 12, 'left', 'bold');
+  if (!S.jokers.length) text('웨이브를 막으면 보상으로 고른다', RX + 16, FY + 488, '#5f6878', 11);
+  S.jokers.forEach((id, i) => { text(JOKERS[id].name, RX + 16, FY + 488 + i * 17, '#ffd96a', 11, 'left', 'bold'); text(JOKERS[id].desc, RX + 110, FY + 488 + i * 17, '#8a94a6', 10); });
+  panel(RX, FY + 572, W - RX - 20, 42);
+  SUITS.forEach((su, i) => { const x = RX + 18 + i * 82; cardShape({ r: 0, s: su, wild: true }, x + 6, FY + 593, 7); text(SUIT[su].name, x + 18, FY + 597, SUIT[su].col, 11); });
+  text('카드 클릭(숫자키) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소', W / 2, H - 8, '#5f6878', 11, 'center');
 
+  if (S.phase === 'reward') {
+    g.shadowBlur = 0; g.fillStyle = 'rgba(6,6,11,.9)'; g.fillRect(FX, FY, COLS * CS, ROWS * CS);
+    text(`웨이브 ${S.wave} 보상 — 하나를 고른다`, FX + COLS * CS / 2, FY + 120, '#ffd96a', 22, 'center', 'bold');
+    S.rewards.forEach((r, i) => { const x = FX + COLS * CS / 2 - 360 + i * 250, y = FY + 160, d = (r.kind === 'joker' ? JOKERS : INSTANTS)[r.id], col = r.kind === 'joker' ? '#ffd96a' : '#7fd6ff', hov = S.rewardHover === i;
+      g.beginPath(); if (g.roundRect) g.roundRect(x, y, 220, 170, 12); else g.rect(x, y, 220, 170); g.shadowBlur = 0; g.fillStyle = '#0a0b14'; g.fill();
+      g.lineWidth = hov ? 2.6 : 1.6; glow(col, hov ? 20 : 8); g.stroke();
+      text(r.kind === 'joker' ? '조커' : '즉시', x + 16, y + 26, col, 11); text(String(i + 1), x + 204, y + 26, '#5f6878', 11, 'right');
+      text(d.name, x + 110, y + 80, col, 20, 'center', 'bold'); text(d.desc, x + 110, y + 112, '#cfd8e6', 11, 'center'); });
+    text('1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기', FX + COLS * CS / 2, FY + 380, '#8a94a6', 12, 'center');
+    if (S.jokers.length >= JOKER_MAX) text('조커 칸이 가득 찼다 (5/5)', FX + COLS * CS / 2, FY + 404, '#5f6878', 11, 'center');
+  }
   const overlay = (title, col, lines, foot) => { g.fillStyle = 'rgba(6,6,11,.88)'; g.fillRect(0, 0, W, H); text(title, W / 2, 240, col, 34, 'center', 'bold'); lines.forEach((l, i) => text(l, W / 2, 290 + i * 26, '#cfd8e6', 14, 'center')); text(foot, W / 2, 300 + lines.length * 26 + 50, '#ffd96a', 18, 'center'); };
   if (S.phase === 'title') overlay('POKER DEFENSE', '#7fd6ff', ['카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력', '붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이). 족보끼리 맞닿으면 연쇄 보너스', `웨이브를 막을 때마다 카드 ${DRAW_PER_WAVE}장. 지금 놓을지, 아껴서 큰 족보를 노릴지!`], 'Enter 키 또는 화면을 눌러 시작');
   else if (S.phase === 'over') overlay('GAME OVER', '#ff6a6a', [`웨이브 ${S.wave}에서 무너졌다 · 처치 ${S.kills}`], 'R 키 또는 화면을 눌러 다시');
@@ -399,11 +520,13 @@ function toCanvas(ev) { const r = cv.getBoundingClientRect(), s = Math.min(r.wid
 const cellAt = (x, y) => { const cx = Math.floor((x - FX) / CS), cy = Math.floor((y - FY) / CS); return cx >= 0 && cy >= 0 && cx < COLS && cy < ROWS ? { x: cx, y: cy } : null; };
 const handAt = (x, y) => { for (let i = 0; i < S.hand.length; i++) { const hx = FX + 96 + i * (CARD_W + 10); if (x >= hx && x <= hx + CARD_W && y >= HAND_Y - 12 && y <= HAND_Y + CARD_H) return i; } return -1; };
 cv.addEventListener('contextmenu', ev => ev.preventDefault());
-cv.addEventListener('pointermove', ev => { const [x, y] = toCanvas(ev); S.hover = cellAt(x, y); });
+const rewardAt = (x, y) => { for (let i = 0; i < 3; i++) { const rx = FX + COLS * CS / 2 - 360 + i * 250, ry = FY + 160; if (x >= rx && x <= rx + 220 && y >= ry && y <= ry + 170) return i; } return -1; };
+cv.addEventListener('pointermove', ev => { const [x, y] = toCanvas(ev); S.hover = cellAt(x, y); S.rewardHover = S.phase === 'reward' ? rewardAt(x, y) : -1; });
 cv.addEventListener('pointerdown', ev => {
   if (S.phase === 'title') { S.phase = 'build'; sfx('Start'); return; }
   if (S.phase === 'over' || S.phase === 'win') { newGame(true); return; }
   const [x, y] = toCanvas(ev), hi = handAt(x, y), cell = cellAt(x, y);
+  if (S.phase === 'reward') { const ri = rewardAt(x, y); if (ri >= 0) takeReward(ri); return; }
   if (ev.button === 2) { if (hi >= 0) discardCard(hi); else S.sel = -1; return; }
   if (hi >= 0) { S.sel = S.sel === hi ? -1 : hi; sfx('Move'); return; }
   if (cell && S.sel >= 0) { if (!place(S.sel, cell.x, cell.y)) sfx('Denied'); return; }
@@ -413,7 +536,8 @@ addEventListener('keydown', e => {
   if (e.key === ' ') e.preventDefault();
   if (S.phase === 'title') { if (e.key === 'Enter' || e.key === ' ') { S.phase = 'build'; sfx('Start'); } return; }
   if (S.phase === 'over' || S.phase === 'win') { if (e.key === 'r' || e.key === 'R' || e.key === 'Enter') newGame(true); return; }
-  if (e.key >= '1' && e.key <= '7') { const i = +e.key - 1; if (i < S.hand.length) { S.sel = S.sel === i ? -1 : i; sfx('Move'); } }
+  if (S.phase === 'reward') { if (e.key >= '1' && e.key <= '3') takeReward(+e.key - 1); else if (e.key === 's' || e.key === 'S') takeReward(-1); return; }
+  if (e.key >= '1' && e.key <= '9') { const i = +e.key - 1; if (i < S.hand.length) { S.sel = S.sel === i ? -1 : i; sfx('Move'); } }
   else if (e.key === ' ' || e.key === 'Enter') startWave();
   else if (e.key === 'Escape') S.sel = -1;
   else if (e.key === 'f' || e.key === 'F') S.speed = S.speed === 1 ? 2 : S.speed === 2 ? 3 : 1;
@@ -427,7 +551,7 @@ function frame(now) {
 }
 newGame();
 window.__pd = () => S;
-window.__api = { windowHands, synergies, applyEffects, towerStats, place, startWave, update, render, newGame, buildable, center, discardCard, setPath, genPath, pathLen: () => PATH_LEN, pathCells: () => PATH_CELLS, setMuted: v => { muted = v; }, COLS, ROWS, CS, WAVES, posAt };
+window.__api = { takeReward, rollRewards, JOKERS, INSTANTS, ENEMY, makeEnemy, waveSpec, hit, windowHands, synergies, applyEffects, towerStats, place, startWave, update, render, newGame, buildable, center, discardCard, setPath, genPath, pathLen: () => PATH_LEN, pathCells: () => PATH_CELLS, setMuted: v => { muted = v; }, COLS, ROWS, CS, WAVES, posAt };
 requestAnimationFrame(frame);
 </script>
 </body>
