@@ -142,9 +142,36 @@ const TCHAR* JokerAbility(int K)
 		TEXT("사거리 무한: 가장 앞선 적 저격"), TEXT("8초마다 종: 사거리 안 적 1.5초 멈춤"), TEXT("판 전체 레이저: 모든 적에게 피해")};
 	return N[K];
 }
+// 조커 조합법. 대장 순위는 코어(MatchJokerRecipe)와 같이 족보 기본값(HandBaseValue)으로 매긴다
+// (트리플·투 페어가 플러시·스트레이트보다 높다)
+EPDHand NextLowerHand(EPDHand H) // H 바로 아래 족보, 없으면 H
+{
+	int Best = -1;
+	for (int I = 0; I < (int)EPDHand::Count; ++I)
+		if (HandBaseValue((EPDHand)I) < HandBaseValue(H) && (Best < 0 || HandBaseValue((EPDHand)I) > HandBaseValue((EPDHand)Best))) Best = I;
+	return Best < 0 ? H : (EPDHand)Best;
+}
+const TCHAR* HandShort(EPDHand H) { return H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H); } // 도감 칸이 좁아서
 FString JokerRecipe(int K)
 {
-	return FString::Printf(TEXT("%s 대장: 재료 중 가장 높은 족보가 %s"), HandName(CaptainHand((EPDJoker)K)), HandName(CaptainHand((EPDJoker)K)));
+	const EPDHand H = CaptainHand((EPDJoker)K);
+	if (NextLowerHand(H) == H) return FString::Printf(TEXT("%s 3개"), HandShort(H));
+	return FString::Printf(TEXT("%s + 같거나 낮은 족보 2개"), HandShort(H));
+}
+FString JokerRecipeExample(int K)
+{
+	const EPDHand H = CaptainHand((EPDJoker)K), Low = NextLowerHand(H);
+	if (Low == H) return TEXT("가장 낮은 족보라 셋 다 원 페어");
+	return FString::Printf(TEXT("예) %s + %s + 원 페어"), HandShort(H), HandShort(Low));
+}
+FString JokerRankText() // 대장 순위 한 줄
+{
+	TArray<int32> Order;
+	for (int32 I = 0; I < (int32)EPDHand::Count; ++I) Order.Add(I);
+	Order.Sort([](int32 A, int32 B) { return HandBaseValue((EPDHand)A) > HandBaseValue((EPDHand)B); });
+	FString Out = TEXT("대장 순위: ");
+	for (int32 I = 0; I < Order.Num(); ++I) Out += (I ? TEXT(" > ") : TEXT("")) + FString(HandName((EPDHand)Order[I]));
+	return Out;
 }
 FString JokerCommand(int K) { return FString::Printf(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
@@ -1663,10 +1690,11 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	{
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.94f));
 		C.TextCentered(FString::Printf(TEXT("조커 도감  %d / 10"), FMath::CountBits(G.Discovered)), DesignW / 2.f, 48.f, JokerPink, 24.f, true);
-		C.TextCentered(TEXT("연쇄로 이어진 족보 3개 (합성 타워도 기억한 족보로 침)를 합치면, 그중 가장 높은 족보의 대장 조커가 된다"), DesignW / 2.f, 78.f, Grey, 12.f, false);
+		C.TextCentered(TEXT("연쇄로 이어진 족보 3개 (합성 타워도 기억한 족보로 침)를 합치면, 그중 가장 높은 족보의 대장 조커가 된다"), DesignW / 2.f, 74.f, Grey, 12.f, false);
+		C.TextCentered(JokerRankText(), DesignW / 2.f, 94.f, Gold, 11.f, false);
 		for (int32 K = 0; K < (int32)EPDJoker::Count; ++K)
 		{
-			const float X = 72.f + (K % 5) * 236.f, Y = 110.f + (K / 5) * 290.f;
+			const float X = 72.f + (K % 5) * 236.f, Y = 112.f + (K / 5) * 290.f;
 			const bool bKnown = (G.Discovered >> K) & 1u;
 			C.Glow(FCanvas::RoundRectPoints(X, Y, 214.f, 268.f, 12.f), WithAlpha(JokerPink, bKnown ? 1.f : 0.35f), 1.4f, bKnown ? 0.9f : 0.3f);
 			if (bKnown) C.JokerTower(K, X + 107.f, Y + 78.f, 46.f, 1.f, Pulse);
@@ -1677,9 +1705,11 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			}
 			C.TextCentered(bKnown ? JokerName(K) : TEXT("???"), X + 107.f, Y + 150.f, WithAlpha(JokerPink, bKnown ? 1.f : 0.6f), 16.f, true);
 			C.TextCentered(FString::Printf(TEXT("%s 대장"), HandName(CaptainHand((EPDJoker)K))), X + 107.f, Y + 176.f, HandColor(CaptainHand((EPDJoker)K)), 11.f, true);
-			C.TextCentered(TEXT("재료 중 가장 높은 족보가 이것"), X + 107.f, Y + 194.f, Dim, 9.f, false);
-			C.TextCentered(bKnown ? FString(JokerAbility(K)) : FString(TEXT("만들어 보면 능력이 열린다")), X + 107.f, Y + 220.f, bKnown ? Gold : Dim, 10.f, false);
-			if (bKnown) C.TextCentered(JokerCommand(K), X + 107.f, Y + 240.f, Fg, 10.f, false);
+			// 조합법은 만들기 전에도 보인다 (이름·능력만 숨김)
+			C.TextCentered(JokerRecipe(K), X + 107.f, Y + 194.f, Fg, 10.f, true);
+			C.TextCentered(JokerRecipeExample(K), X + 107.f, Y + 210.f, Dim, 9.f, false);
+			C.TextCentered(bKnown ? FString(JokerAbility(K)) : FString(TEXT("만들어 보면 능력이 열린다")), X + 107.f, Y + 232.f, bKnown ? Gold : Dim, 10.f, false);
+			if (bKnown) C.TextCentered(JokerCommand(K), X + 107.f, Y + 250.f, Fg, 10.f, false);
 		}
 		C.TextCentered(TEXT("J 또는 Esc 또는 클릭으로 닫기"), DesignW / 2.f, DesignH - 20.f, Dim, 11.f, false);
 	}
