@@ -7,6 +7,8 @@
 #include "Rendering/SlateRenderer.h"
 #include "Styling/CoreStyle.h"
 
+#include <algorithm>
+
 #include "PDTreeText.inl" // 생성됨: 특급 노드 이름 (tools/tree/gen_tree.py)
 
 using namespace PD;
@@ -1031,15 +1033,60 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
 	UpdatePreview();
 	JGroups = Game.JokerGroups();
+	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
+	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
 	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
-void SPDBoardWidget::DoFuse(int32 SynergyIdx)
+void SPDBoardWidget::DoFuse(int32 SynergyIdx, int32 Cell)
 {
 	if (!Game.CanFuse(SynergyIdx)) return;
 	PendingFuseCells.Reset();
 	for (int K : Game.Synergies[SynergyIdx].Cells) PendingFuseCells.Add(CellCenter(K));
-	Game.Fuse(SynergyIdx);
+	if (!Game.Fuse(SynergyIdx, Cell)) PendingFuseCells.Reset();
+}
+
+namespace
+{
+bool SameCells(std::vector<int> A, std::vector<int> B)
+{
+	std::sort(A.begin(), A.end());
+	std::sort(B.begin(), B.end());
+	return A == B;
+}
+}
+
+int32 SPDBoardWidget::FindPickIndex() const
+{
+	if (PickCells.empty()) return -1;
+	if (bPickJoker)
+	{
+		for (int32 I = 0; I < (int32)JGroups.size(); ++I) if (SameCells(JGroups[I].Cells, PickCells)) return I;
+		return -1;
+	}
+	for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
+		if (Game.CanFuse(I) && SameCells(Game.Synergies[I].Cells, PickCells)) return I;
+	return -1;
+}
+
+void SPDBoardWidget::StartPick(const std::vector<int>& Cells, bool bJoker)
+{
+	PickCells = Cells;
+	bPickJoker = bJoker;
+	Sel = -1;
+	if (!Game.bMuted) Game.Sounds.push_back({EPDSound::Move, 0, 0, 1.f});
+}
+
+void SPDBoardWidget::FinishPick(int32 Cell)
+{
+	const int32 Idx = FindPickIndex();
+	const bool bJoker = bPickJoker;
+	PickCells.clear();
+	if (Idx < 0) return;
+	if (!bJoker) { DoFuse(Idx, Cell); return; }
+	PendingFuseCells.Reset();
+	for (int K : JGroups[Idx].Cells) PendingFuseCells.Add(CellCenter(K));
+	if (!Game.JokerFuse(Idx, Cell)) PendingFuseCells.Reset();
 }
 
 int32 SPDBoardWidget::TreeHoverAt(FVector2f P) const
@@ -1122,6 +1169,19 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		if (Id >= 0 && !Game.BuyNode(Id)) Sound(EPDSound::Denied);
 		return;
 	}
+	// 합성 위치 고르는 중: 재료 칸 클릭 = 그 칸으로, 같은 버튼 다시 = 기본 칸, 그 밖(오른쪽 클릭 포함) = 취소
+	if (!PickCells.empty())
+	{
+		const int32 PX = FMath::FloorToInt((P.X - FX) / CS), PY = FMath::FloorToInt((P.Y - FY) / CS);
+		const int32 Key = PX >= 0 && PY >= 0 && PX < Cols && PY < Rows ? CellKey(PX, PY) : -1;
+		bool bSameBtn = false;
+		if (bPickJoker) { FPDJokerGroup Tmp; Tmp.Cells = PickCells; const FVector2f B = JokerButtonCenter(Tmp); bSameBtn = FMath::Abs(P.X - B.X) <= JokerBtnW / 2.f && FMath::Abs(P.Y - B.Y) <= JokerBtnH / 2.f; }
+		else { FPDSynergy Tmp; Tmp.Cells = PickCells; const FVector2f B = FuseButtonCenter(Tmp); bSameBtn = FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f; }
+		if (!bRight && bSameBtn) FinishPick(-1);
+		else if (!bRight && Key >= 0 && std::find(PickCells.begin(), PickCells.end(), Key) != PickCells.end()) FinishPick(Key);
+		else PickCells.clear();
+		return;
+	}
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; }
 	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
@@ -1130,13 +1190,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		for (int32 I = 0; I < (int32)JGroups.size(); ++I)
 		{
 			const FVector2f B = JokerButtonCenter(JGroups[I]);
-			if (FMath::Abs(P.X - B.X) <= JokerBtnW / 2.f && FMath::Abs(P.Y - B.Y) <= JokerBtnH / 2.f)
-			{
-				PendingFuseCells.Reset();
-				for (int K : JGroups[I].Cells) PendingFuseCells.Add(CellCenter(K));
-				Game.JokerFuse(I);
-				return;
-			}
+			if (FMath::Abs(P.X - B.X) <= JokerBtnW / 2.f && FMath::Abs(P.Y - B.Y) <= JokerBtnH / 2.f) { StartPick(JGroups[I].Cells, true); return; }
 		}
 	// 합성 버튼
 	if (!bRight)
@@ -1144,7 +1198,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		{
 			if (!Game.CanFuse(I)) continue;
 			const FVector2f B = FuseButtonCenter(Game.Synergies[I]);
-			if (FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f) { DoFuse(I); return; }
+			if (FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f) { StartPick(Game.Synergies[I].Cells, false); return; }
 		}
 	int32 HandHit = -1;
 	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
@@ -1174,6 +1228,7 @@ void SPDBoardWidget::RestartRun()
 	Game.NewGame(true);
 	Sel = -1;
 	bTree = bUpg = bCodex = bMenu = false;
+	PickCells.clear();
 	Particles.Empty();
 	if (!Game.bMuted) Game.Sounds.push_back({EPDSound::Start, 0, 0, 1.f});
 }
@@ -1241,6 +1296,11 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bCodex) { if (K == EKeys::J || K == EKeys::Escape) bCodex = false; return FReply::Handled(); }
 	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) Game.bMuted = !Game.bMuted; return FReply::Handled(); }
 	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) Game.bMuted = !Game.bMuted; return FReply::Handled(); }
+	if (!PickCells.empty())
+	{
+		if (K == EKeys::Escape) { PickCells.clear(); return FReply::Handled(); }
+		if (K == EKeys::G || K == EKeys::Enter) { FinishPick(-1); return FReply::Handled(); }
+	}
 	if (Game.Phase == EPDPhase::Reward)
 	{
 		for (int32 I = 0; I < 3; ++I) if (K == Nums[I]) { Game.TakeReward(I); return FReply::Handled(); }
@@ -1529,6 +1589,28 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	};
 	DrawBadges(G.Synergies, bPv ? 0.35f : 1.f);
 	if (bPv) DrawBadges(Preview, 1.f);
+	// 합성 위치 고르는 중: 재료 칸을 깜빡이고, 마우스가 올라간 칸·기본 칸을 표시
+	if (!PickCells.empty())
+	{
+		const FLinearColor PickCol = bPickJoker ? JokerPink : Gold;
+		const int32 Def = DefaultFuseCell(PickCells);
+		const int32 HoverKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		const bool bHoverIn = std::find(PickCells.begin(), PickCells.end(), HoverKey) != PickCells.end();
+		for (int K : PickCells)
+		{
+			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+			const bool bTarget = bHoverIn ? K == HoverKey : K == Def; // 지금 클릭하면 모일 칸
+			F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(PickCol, bTarget ? 0.16f : 0.05f + 0.05f * Pulse));
+			F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 6.f), PickCol, bTarget ? 2.f : 1.f, bTarget ? 1.2f + 0.5f * Pulse : 0.4f);
+			if (K == Def) F.TextCentered(TEXT("기본"), C0.X + CS / 2.f, C0.Y + CS - 8.f, WithAlpha(PickCol, 0.8f), 9.f, true);
+		}
+		// 다른 칸에서 고른 칸으로 빨려 드는 선
+		const int32 Target = bHoverIn ? HoverKey : Def;
+		for (int K : PickCells)
+			if (K != Target) F.Dashed({CellCenter(K), CellCenter(Target)}, WithAlpha(PickCol, 0.5f), 1.2f, 4.f, 5.f);
+		F.Badge(bPickJoker ? TEXT("조커가 놓일 칸을 클릭 · 버튼 다시/G: 기본 칸 · Esc/오른쪽 클릭: 취소") : TEXT("합성 타워가 놓일 칸을 클릭 · 버튼 다시/G: 기본 칸 · Esc/오른쪽 클릭: 취소"),
+			FX + Cols * CS / 2.f, FY + 12.f, PickCol, 1.f);
+	}
 	// 합성 버튼
 	if (!bPv && G.Phase != EPDPhase::Reward)
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)

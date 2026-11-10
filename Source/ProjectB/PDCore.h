@@ -187,6 +187,8 @@ constexpr int MaxLevel = 4;
 constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5
 constexpr float LevelRange = 0.1f;     // 레벨마다 사거리 +10%
 inline int CellKey(int X, int Y) { return Y * Cols + X; }
+// 합성 결과가 놓일 기본 칸: 재료 칸들 가운데에 가장 가까운 칸 (같으면 먼저 나온 칸)
+int DefaultFuseCell(const std::vector<int>& Cells);
 using FPDTowerMap = std::map<int, FPDTower>;
 
 struct FPDSynergy
@@ -300,9 +302,10 @@ public:
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;
-	bool Fuse(int SynergyIdx);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
+	// 합성: 결과 타워가 놓일 칸을 재료 칸 중에서 고를 수 있다 (-1 = 기본 칸). 재료 밖 칸이면 실패
+	bool Fuse(int SynergyIdx, int TargetCell = -1);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
 	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
-	bool JokerFuse(int GroupIdx);                    // 묶음을 조커 포탑으로
+	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;

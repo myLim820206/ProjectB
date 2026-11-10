@@ -43,6 +43,12 @@ private:
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
 	void RestartRun();                     // 새 판 시작 (게임 오버·메뉴 공통)
+	// 합성 위치 고르기: [합성]·[조커] 버튼을 누르면 재료 칸 중 하나를 클릭해 결과가 놓일 칸을 고른다
+	std::vector<int> PickCells;            // 고르는 중인 재료 칸 (비어 있으면 고르는 중 아님)
+	bool bPickJoker = false;               // 조커 합성을 고르는 중
+	void StartPick(const std::vector<int>& Cells, bool bJoker);
+	void FinishPick(int32 Cell);           // 고른 칸으로 합성 (-1 = 기본 칸)
+	int32 FindPickIndex() const;           // 고르는 재료와 같은 족보·조커 묶음 번호 (-1 = 사라짐)
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
 	int32 MenuSel = 0;                     // 키보드로 고른 메뉴 항목
 	void HandleEvents();
@@ -50,7 +56,7 @@ private:
 	void UpdatePreview();
 	FVector2f ToDesign(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
 	void Click(FVector2f P, bool bRight);
-	void DoFuse(int32 SynergyIdx);     // 합성 + 빨려 들어가는 연출 준비
+	void DoFuse(int32 SynergyIdx, int32 Cell = -1); // 합성 + 빨려 들어가는 연출 준비 (Cell = 결과 칸, -1 = 기본)
 	int32 HoveredSynergy() const;      // 마우스가 올라간 타워의 족보 번호
 	int32 TreeHoverAt(FVector2f P) const; // 트리 창에서 이 위치의 노드 (-1 = 없음)
 	TArray<FVector2f> PendingFuseCells; // 합성 직전 족보 칸 위치 (연출용)

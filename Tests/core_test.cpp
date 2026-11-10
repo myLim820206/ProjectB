@@ -340,6 +340,26 @@ static void UnitTests()
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		G.Fuse(0);
 		Expect(G.Towers.size() == 1 && G.Towers.begin()->second.FuseHand == (int)EPDHand::Pair, "합성 타워가 원 페어를 기억");
+		// 합성 위치 고르기: 재료 칸 중 고른 칸으로, 재료 밖 칸이면 실패하고 판은 그대로
+		G.Towers.clear();
+		PutT(0, Row, C(4)); PutT(1, Row, C(4, He)); PutT(2, Row, C(4, Di));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const bool bBad = G.Fuse(0, CellKey(5, Row));
+		const size_t AfterBad = G.Towers.size();
+		const bool bPicked = G.Fuse(0, CellKey(2, Row));
+		Expect(!bBad && AfterBad == 3 && bPicked && G.Towers.size() == 1 && G.Towers.count(CellKey(2, Row)) == 1 && G.Towers.at(CellKey(2, Row)).X == 2,
+			"합성 위치: 트리플을 오른쪽 끝 칸에 모음, 재료 밖 칸은 거절");
+		G.Towers.clear();
+		PutT(0, Row, C(4)); PutT(1, Row, C(4, He)); PutT(2, Row, C(4, Di));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		Expect(DefaultFuseCell(G.Synergies[0].Cells) == CellKey(1, Row) && G.Fuse(0) && G.Towers.count(CellKey(1, Row)) == 1, "합성 위치를 안 고르면 가운데 칸 (예전과 같음)");
+		// 조커도 고른 칸에 (페어 + 스트레이트 + 페어 → 지휘봉을 맨 왼쪽에)
+		G.Towers.clear();
+		PutT(0, Row, C(2)); PutT(1, Row, C(2, He)); PutT(2, Row, C(7)); PutT(3, Row, C(8, He)); PutT(4, Row, C(5)); PutT(5, Row, C(5, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const bool bJBad = G.JokerFuse(0, CellKey(6, Row));
+		const bool bJOk = G.JokerFuse(0, CellKey(0, Row));
+		Expect(!bJBad && bJOk && G.Towers.size() == 1 && G.Towers.count(CellKey(0, Row)) == 1 && G.Towers.at(CellKey(0, Row)).IsJoker(), "조커 합성 위치: 고른 재료 칸에, 재료 밖은 거절");
 		// 대장 지휘: 자기 족보 타워 +30%, 겹친다
 		G.Towers.clear();
 		PutT(3, Row, C(9)); PutT(4, Row, C(9, He));

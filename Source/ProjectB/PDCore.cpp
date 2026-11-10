@@ -1007,22 +1007,36 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 	return Out;
 }
 
-bool FPDGame::JokerFuse(int GroupIdx)
+int DefaultFuseCell(const std::vector<int>& Cells)
 {
-	const std::vector<FPDJokerGroup> Groups = JokerGroups();
-	if (GroupIdx < 0 || GroupIdx >= (int)Groups.size()) return false;
-	const FPDJokerGroup& G = Groups[GroupIdx];
+	if (Cells.empty()) return -1;
 	float CX = 0.f, CY = 0.f;
-	for (int K : G.Cells) { CX += K % Cols; CY += K / Cols; }
-	CX /= G.Cells.size();
-	CY /= G.Cells.size();
-	int Target = G.Cells[0];
+	for (int K : Cells) { CX += K % Cols; CY += K / Cols; }
+	CX /= Cells.size();
+	CY /= Cells.size();
+	int Target = Cells[0];
 	float BestD = 1e9f;
-	for (int K : G.Cells)
+	for (int K : Cells)
 	{
 		const float D = std::hypot(K % Cols - CX, K / Cols - CY);
 		if (D < BestD - 1e-4f) { BestD = D; Target = K; }
 	}
+	return Target;
+}
+// 고른 칸이 재료 칸 안이면 그 칸, -1 이면 기본 칸, 그 밖이면 -1 (실패)
+static int PDFuseTarget(const std::vector<int>& Cells, int Wanted)
+{
+	if (Wanted < 0) return DefaultFuseCell(Cells);
+	return std::find(Cells.begin(), Cells.end(), Wanted) != Cells.end() ? Wanted : -1;
+}
+
+bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
+{
+	const std::vector<FPDJokerGroup> Groups = JokerGroups();
+	if (GroupIdx < 0 || GroupIdx >= (int)Groups.size()) return false;
+	const FPDJokerGroup& G = Groups[GroupIdx];
+	const int Target = PDFuseTarget(G.Cells, TargetCell);
+	if (Target < 0) return false;
 	FPDTower J;
 	J.X = Target % Cols;
 	J.Y = Target / Cols;
@@ -1060,22 +1074,13 @@ bool FPDGame::JokerFuse(int GroupIdx)
 	return true;
 }
 
-bool FPDGame::Fuse(int SynergyIdx)
+bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 {
 	if (!CanFuse(SynergyIdx)) return false;
 	const FPDSynergy S = Synergies[SynergyIdx];
-	// 합쳐질 칸: 족보 가운데에 가장 가까운 칸
-	float CX = 0.f, CY = 0.f;
-	for (int K : S.Cells) { CX += K % Cols; CY += K / Cols; }
-	CX /= S.Cells.size();
-	CY /= S.Cells.size();
-	int Target = S.Cells[0];
-	float BestD = 1e9f;
-	for (int K : S.Cells)
-	{
-		const float D = std::hypot(K % Cols - CX, K / Cols - CY);
-		if (D < BestD - 1e-4f) { BestD = D; Target = K; }
-	}
+	// 합쳐질 칸: 고른 칸 (재료 칸 중 하나), 안 골랐으면 족보 가운데에 가장 가까운 칸
+	const int Target = PDFuseTarget(S.Cells, TargetCell);
+	if (Target < 0) return false;
 	// 대표 카드: 가장 많은 숫자(같으면 높은 쪽) + 가장 많은 무늬. 와일드는 표를 던지지 않는다
 	std::map<int, int> RankCnt;
 	std::map<int, int> SuitCnt;
