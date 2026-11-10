@@ -7,12 +7,26 @@
 namespace PD
 {
 // ---------------------------------------------------------------- 표
-static const FPDSuitDef GPDSuits[4] = {
+static const FPDSuitDef GPDSuits[5] = {
 	{1.6f, 0.8f, 3.0f, 0.f, 0.f},  // ♠ 저격
 	{0.9f, 0.9f, 2.2f, 0.8f, 0.f}, // ♥ 폭발
 	{0.45f, 2.6f, 2.2f, 0.f, 0.f}, // ♦ 연사
 	{0.7f, 1.0f, 2.4f, 0.f, 0.4f}, // ♣ 둔화
+	{1.0f, 1.2f, 2.6f, 0.f, 0.f},  // ★ 와일드
 };
+static const FPDEnemyDef GPDEnemies[(int)EPDEnemy::Count] = {
+	{1.f, 1.1f, 0.f, 0, false, false},     // 보통
+	{0.6f, 1.9f, 0.f, 0, false, false},    // 빠름
+	{2.6f, 0.7f, 0.f, 0, false, false},    // 탱크
+	{1.3f, 0.9f, 0.f, 0, true, false},     // 방패병
+	{1.2f, 1.0f, 0.f, 2, false, false},    // 분열체
+	{1.4f, 0.9f, 0.03f, 0, false, false},  // 재생자 (초당 최대 체력 3%)
+	{0.35f, 1.5f, 0.f, 0, false, false},   // 분열 조각
+	{12.f, 0.55f, 0.f, 0, true, true},     // 보스: 방패 거인
+	{12.f, 0.55f, 0.f, 4, false, true},    // 보스: 분열 군주 (탱크 넷으로)
+	{16.f, 0.5f, 0.015f, 0, false, true},  // 보스: 재생 왕
+};
+const FPDEnemyDef& EnemyDef(EPDEnemy T) { return GPDEnemies[(int)T]; }
 const FPDSuitDef& SuitDef(EPDSuit S) { return GPDSuits[(int)S]; }
 
 static const int GPDHandVal[(int)EPDHand::Count] = {100, 90, 80, 30, 28, 60, 45, 20};
@@ -21,6 +35,23 @@ int HandValue(EPDHand H, int N) { return GPDHandVal[(int)H] + ((H == EPDHand::Fl
 
 std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 {
+	// 와일드 카드: 가능한 숫자·무늬를 다 넣어 보고 나오는 족보를 모두 모은다
+	for (size_t W = 0; W < Cards.size(); ++W)
+	{
+		if (!Cards[W].IsWild()) continue;
+		std::vector<EPDSuit> Suits;
+		for (const FPDCard& C : Cards) if (!C.IsWild() && std::find(Suits.begin(), Suits.end(), C.Suit) == Suits.end()) Suits.push_back(C.Suit);
+		if (Suits.empty()) Suits.push_back(EPDSuit::Spade);
+		std::set<EPDHand> All;
+		std::vector<FPDCard> Try = Cards;
+		for (int R = 2; R <= 14; ++R)
+			for (EPDSuit Su : Suits)
+			{
+				Try[W] = {R, Su};
+				for (EPDHand H : ClassifyHand(Try)) All.insert(H);
+			}
+		return std::vector<EPDHand>(All.begin(), All.end());
+	}
 	const int N = (int)Cards.size();
 	std::map<int, int> Cnt;
 	for (const FPDCard& C : Cards) Cnt[C.Rank]++;
@@ -184,9 +215,11 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 	return Picked;
 }
 
-std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers)
+std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Jokers)
 {
 	std::vector<FPDSynergy> Syn = ComputeSynergies(Towers);
+	const float Step = HasJoker(Jokers, EPDJoker::ChainLink) ? 0.45f : ChainStep;
+	const float PairK = HasJoker(Jokers, EPDJoker::Twins) ? 2.f : 1.5f;
 	for (auto& KV : Towers) KV.second.Eff = FPDEffects{};
 	for (int I = 0; I < (int)Syn.size(); ++I)
 		for (int K : Syn[I].Cells)
@@ -196,25 +229,34 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers)
 			const int N = Syn[I].N;
 			switch (Syn[I].Kind)
 			{
-			case EPDHand::Pair: E.Dmg *= 1.5f; break;
-			case EPDHand::TwoPair: E.Dmg *= 1.5f; E.Range *= 1.25f; break;
+			case EPDHand::Pair: E.Dmg *= PairK; break;
+			case EPDHand::TwoPair: E.Dmg *= PairK; E.Range *= 1.25f; break;
 			case EPDHand::Triple: E.Dmg *= 2.f; break;
-			case EPDHand::Straight: E.Rate *= 1.f + 0.25f * (N - 1); break;
-			case EPDHand::Flush: E.Splash = std::max(E.Splash, 0.5f + 0.25f * N); break;
+			case EPDHand::Straight: E.Rate *= 1.f + (HasJoker(Jokers, EPDJoker::LineLover) ? 0.5f : 0.25f) * (N - 1); break;
+			case EPDHand::Flush: E.Splash = std::max(E.Splash, 0.5f + 0.25f * N + (HasJoker(Jokers, EPDJoker::WideFlush) ? 0.75f : 0.f)); break;
 			case EPDHand::FullHouse: E.Dmg *= 1.5f; E.Rate *= 1.5f; E.Splash = std::max(E.Splash, 1.5f); break;
 			case EPDHand::Four: E.Dmg *= 3.5f; break;
 			case EPDHand::StraightFlush: E.Dmg *= 2.f; E.Rate *= 2.f; E.Splash = std::max(E.Splash, 2.f); break;
 			default: break;
 			}
-			if (Syn[I].Chain >= 2) { E.Dmg *= 1.f + ChainStep * (Syn[I].Chain - 1); E.Chain = Syn[I].Chain; }
+			if (Syn[I].Chain >= 2) { E.Dmg *= 1.f + Step * (Syn[I].Chain - 1); E.Chain = Syn[I].Chain; }
 		}
 	return Syn;
 }
 
-FPDTowerStats TowerStats(const FPDTower& T)
+FPDTowerStats TowerStats(const FPDTower& T, uint32_t Jokers)
 {
 	const FPDSuitDef& S = SuitDef(T.Card.Suit);
-	return {(3.f + T.Card.Rank) * S.Dmg * T.Eff.Dmg, S.Rate * T.Eff.Rate, S.Range * T.Eff.Range, std::max(S.Splash, T.Eff.Splash), S.Slow};
+	const int R = T.Card.Power();
+	FPDTowerStats St{(3.f + R) * S.Dmg * T.Eff.Dmg, S.Rate * T.Eff.Rate, S.Range * T.Eff.Range, std::max(S.Splash, T.Eff.Splash), S.Slow};
+	static const EPDJoker SuitJ[4] = {EPDJoker::SpadeLover, EPDJoker::HeartLover, EPDJoker::DiaLover, EPDJoker::ClubLover};
+	if (!T.Card.IsWild() && HasJoker(Jokers, SuitJ[(int)T.Card.Suit])) St.Dmg *= 1.4f;
+	if (HasJoker(Jokers, EPDJoker::FaceCards) && R >= 11 && R <= 13) St.Dmg *= 1.6f;
+	if (HasJoker(Jokers, EPDJoker::SmallNums) && !T.Card.IsWild() && R <= 6) St.Rate *= 1.6f;
+	if (HasJoker(Jokers, EPDJoker::Lucky7) && R == 7) St.Dmg *= 2.5f;
+	if (HasJoker(Jokers, EPDJoker::Scope)) St.Range *= 1.15f;
+	if (HasJoker(Jokers, EPDJoker::Frost) && T.Card.Suit == EPDSuit::Club) { St.Slow = std::min(0.75f, St.Slow + 0.2f); St.Splash = std::max(St.Splash, 0.6f); }
+	return St;
 }
 
 // ---------------------------------------------------------------- 길
@@ -306,43 +348,66 @@ void FPDGame::NewGame(bool bStart)
 	Synergies.clear();
 	Enemies.clear();
 	Pending.clear();
+	Born.clear();
 	Hand.clear();
 	Deck.clear();
 	Events.clear();
+	Jokers.clear();
+	Rewards.clear();
 	for (int S = 0; S < 4; ++S) for (int R = 2; R <= 14; ++R) Deck.push_back({R, (EPDSuit)S});
 	std::shuffle(Deck.begin(), Deck.end(), Rng);
 	Path.Build(GeneratePath(Rng));
 	Draw(StartHand);
 }
 
+uint32_t FPDGame::JokerMask() const
+{
+	uint32_t M = 0;
+	for (EPDJoker J : Jokers) M |= 1u << (int)J;
+	return M;
+}
+
 void FPDGame::Draw(int N, int* OutGot)
 {
 	int Got = 0;
-	while (Got < N && (int)Hand.size() < HandMax && !Deck.empty()) { Hand.push_back(Deck.back()); Deck.pop_back(); Got++; }
+	while (Got < N && (int)Hand.size() < HandMax() && !Deck.empty()) { Hand.push_back(Deck.back()); Deck.pop_back(); Got++; }
 	if (OutGot) *OutGot = Got;
 }
 
 bool FPDGame::Buildable(int X, int Y) const { return X >= 0 && Y >= 0 && X < Cols && Y < Rows && !Path.IsPath(X, Y); }
 
-std::vector<FPDGame::FSpawn> FPDGame::WaveSpec(int W) const
+FPDEnemy FPDGame::MakeEnemy(EPDEnemy T, float BaseHp, int W)
 {
-	std::vector<FSpawn> List;
-	const float Hp = 26.f * std::pow(1.39f, (float)(W - 1));
+	const FPDEnemyDef& D = EnemyDef(T);
+	FPDEnemy E;
+	E.Type = T;
+	E.Hp = E.MaxHp = BaseHp * D.Hp;
+	E.Speed = D.Speed;
+	E.Armor = D.bArmor ? (D.bBoss ? 15.f : 4.f + W * 0.6f) : 0.f;
+	E.BaseHp = BaseHp;
+	E.Wave = W;
+	E.Id = NextId++;
+	return E;
+}
+
+std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
+{
+	std::vector<FPDEnemy> List;
+	const float Hp = 26.f * std::pow(1.45f, (float)(W - 1));
 	const int N = 8 + W * 2;
 	for (int I = 0; I < N; ++I)
 	{
 		EPDEnemy T = EPDEnemy::Normal;
 		if (W >= 3 && I % 4 == 3) T = EPDEnemy::Fast;
+		if (W >= 4 && I % 5 == 4) T = EPDEnemy::Armored;
 		if (W >= 5 && I % 6 == 5) T = EPDEnemy::Tank;
-		List.push_back({T, 0.f, 0.f});
+		if (W >= 6 && I % 7 == 6) T = EPDEnemy::Splitter;
+		if (W >= 8 && I % 6 == 2) T = EPDEnemy::Regen;
+		List.push_back(MakeEnemy(T, Hp, W));
 	}
-	if (W % 5 == 0) List.push_back({EPDEnemy::Boss, 0.f, 0.f});
-	for (FSpawn& S : List)
-	{
-		static const float HpK[4] = {1.f, 0.6f, 2.6f, 14.f}, Sp[4] = {1.1f, 1.9f, 0.7f, 0.55f};
-		S.Hp = Hp * HpK[(int)S.Type];
-		S.Speed = Sp[(int)S.Type];
-	}
+	if (W == 5) List.push_back(MakeEnemy(EPDEnemy::ShieldBoss, Hp, W));
+	if (W == 10) List.push_back(MakeEnemy(EPDEnemy::SplitBoss, Hp, W));
+	if (W == 15) List.push_back(MakeEnemy(EPDEnemy::RegenBoss, Hp, W));
 	return List;
 }
 
@@ -356,7 +421,7 @@ void FPDGame::StartWave()
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::WaveStart;
 	E.A = Wave;
-	E.B = Wave % 5 == 0;
+	for (const FPDEnemy& P : Pending) if (EnemyDef(P.Type).bBoss) { E.B = 1; E.Enemy = P.Type; }
 	Ev(E);
 	Sfx(EPDSound::Start);
 }
@@ -365,13 +430,55 @@ void FPDGame::EndWave()
 {
 	if (Wave >= NumWaves) { Phase = EPDPhase::Win; FPDEvent E; E.Kind = FPDEvent::EKind::Win; Ev(E); Sfx(EPDSound::Win); return; }
 	int Got = 0;
-	Draw(DrawPerWave, &Got);
-	Phase = EPDPhase::Build;
+	Draw(DrawPerWave + (Has(EPDJoker::Supply) ? 1 : 0), &Got);
+	Phase = EPDPhase::Reward;
+	Rewards = RollRewards();
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::WaveClear;
 	E.A = Got;
 	Ev(E);
 	Sfx(EPDSound::Clear);
+}
+
+// 보상 후보: 조커 2개(가진 것 제외) + 즉시 보상 1개. 조커 칸이 가득이면 즉시 보상만
+std::vector<FPDReward> FPDGame::RollRewards()
+{
+	std::vector<FPDReward> Out;
+	std::vector<int> Pool;
+	for (int J = 0; J < (int)EPDJoker::Count; ++J) if (std::find(Jokers.begin(), Jokers.end(), (EPDJoker)J) == Jokers.end()) Pool.push_back(J);
+	std::shuffle(Pool.begin(), Pool.end(), Rng);
+	if ((int)Jokers.size() < JokerMax) for (int I = 0; I < 2 && I < (int)Pool.size(); ++I) Out.push_back({true, Pool[I]});
+	std::vector<int> Inst{(int)EPDInstant::Wild, (int)EPDInstant::Draw2, (int)EPDInstant::Repair};
+	std::shuffle(Inst.begin(), Inst.end(), Rng);
+	for (int I = 0; Out.size() < 3 && I < (int)Inst.size(); ++I) Out.push_back({false, Inst[I]});
+	return Out;
+}
+
+void FPDGame::TakeReward(int Index)
+{
+	if (Phase != EPDPhase::Reward) return;
+	if (Index >= 0 && Index < (int)Rewards.size())
+	{
+		const FPDReward R = Rewards[Index];
+		if (R.bJoker) { if ((int)Jokers.size() < JokerMax) Jokers.push_back((EPDJoker)R.Id); }
+		else if (R.Id == (int)EPDInstant::Wild)
+		{
+			const FPDCard W{0, EPDSuit::Wild};
+			if ((int)Hand.size() < HandMax()) Hand.push_back(W);
+			else Deck.push_back(W);
+		}
+		else if (R.Id == (int)EPDInstant::Draw2) Draw(2);
+		else if (R.Id == (int)EPDInstant::Repair) Lives += 3;
+		Synergies = ApplyEffects(Towers, JokerMask());
+		FPDEvent E;
+		E.Kind = FPDEvent::EKind::Reward;
+		E.A = R.bJoker;
+		E.B = R.Id;
+		Ev(E);
+		Sfx(EPDSound::Burst, 4, 1);
+	}
+	Rewards.clear();
+	Phase = EPDPhase::Build;
 }
 
 std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers) const
@@ -384,7 +491,7 @@ std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPD
 	T.X = X;
 	T.Y = Y;
 	Copy[CellKey(X, Y)] = T;
-	std::vector<FPDSynergy> All = ApplyEffects(Copy);
+	std::vector<FPDSynergy> All = ApplyEffects(Copy, JokerMask());
 	std::set<int> Chains;
 	for (const FPDSynergy& S : All) if (std::find(S.Cells.begin(), S.Cells.end(), CellKey(X, Y)) != S.Cells.end()) Chains.insert(S.ChainId);
 	for (const FPDSynergy& S : All) if (Chains.count(S.ChainId)) Out.push_back(S);
@@ -394,7 +501,7 @@ std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPD
 
 bool FPDGame::Place(int HandIdx, int X, int Y)
 {
-	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win) return false;
+	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return false;
 	if (HandIdx < 0 || HandIdx >= (int)Hand.size() || !Buildable(X, Y)) return false;
 	const int Key = CellKey(X, Y);
 	auto Sig = [](const FPDSynergy& S) { std::vector<int> V = S.Cells; std::sort(V.begin(), V.end()); V.push_back((int)S.Kind); return V; };
@@ -407,7 +514,7 @@ bool FPDGame::Place(int HandIdx, int X, int Y)
 	T.Y = Y;
 	Hand.erase(Hand.begin() + HandIdx);
 	Towers[Key] = T;
-	Synergies = ApplyEffects(Towers);
+	Synergies = ApplyEffects(Towers, JokerMask());
 	FPDEvent P;
 	P.Kind = FPDEvent::EKind::Place;
 	P.X = X + 0.5f;
@@ -444,6 +551,7 @@ void FPDGame::Discard(int HandIdx)
 	if (HandIdx < 0 || HandIdx >= (int)Hand.size()) return;
 	Hand.erase(Hand.begin() + HandIdx);
 	Discarded++;
+	if (Has(EPDJoker::Recycle)) Draw(1);
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::Discard;
 	Ev(E);
@@ -452,21 +560,36 @@ void FPDGame::Discard(int HandIdx)
 
 void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 {
+	if (E.bDead) return;
+	if (E.Armor > 0.f && !Has(EPDJoker::Pierce)) Dmg = std::max(Dmg * 0.25f, Dmg - E.Armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
 	E.Hp -= Dmg;
 	if (Slow > 0.f) { E.SlowT = 1.2f; E.SlowAmt = std::max(E.SlowAmt, Slow); }
-	if (E.Hp <= 0.f && !E.bDead)
+	if (E.Hp > 0.f) return;
+	E.bDead = true;
+	Kills++;
+	const FPDPoint P = Path.At(E.D);
+	FPDEvent K;
+	K.Kind = FPDEvent::EKind::Kill;
+	K.X = P.X;
+	K.Y = P.Y;
+	K.Enemy = E.Type;
+	Ev(K);
+	const FPDEnemyDef& D = EnemyDef(E.Type);
+	if (KillSfxT <= 0.f || D.bBoss) { Sfx(D.bBoss ? EPDSound::Clear : EPDSound::Rotate); KillSfxT = 0.08f; }
+	// 분열: 작은 적(보스는 탱크)으로 갈라진다
+	for (int I = 0; I < D.Split; ++I)
 	{
-		E.bDead = true;
-		Kills++;
-		const FPDPoint P = Path.At(E.D);
-		FPDEvent K;
-		K.Kind = FPDEvent::EKind::Kill;
-		K.X = P.X;
-		K.Y = P.Y;
-		K.Enemy = E.Type;
-		Ev(K);
-		if (KillSfxT <= 0.f || E.Type == EPDEnemy::Boss) { Sfx(E.Type == EPDEnemy::Boss ? EPDSound::Clear : EPDSound::Rotate); KillSfxT = 0.08f; }
+		FPDEnemy Child = MakeEnemy(D.bBoss ? EPDEnemy::Tank : EPDEnemy::Mini, E.BaseHp * (D.bBoss ? 0.6f : 1.f), E.Wave);
+		Child.D = std::max(0.f, E.D - I * 0.2f);
+		Born.push_back(Child);
 	}
+	if (Has(EPDJoker::ChainBlast))
+		for (FPDEnemy& O : Enemies)
+		{
+			if (&O == &E || O.bDead) continue;
+			const FPDPoint Q = Path.At(O.D);
+			if (std::hypot(Q.X - P.X, Q.Y - P.Y) <= 1.2f) { O.Hp -= E.MaxHp * 0.15f; if (O.Hp <= 0.f) Hit(O, 0.f, 0.f); }
+		}
 }
 
 void FPDGame::Update(float Dt)
@@ -478,24 +601,21 @@ void FPDGame::Update(float Dt)
 	SpawnT -= Dt;
 	if (!Pending.empty() && SpawnT <= 0.f)
 	{
-		const FSpawn S = Pending.front();
+		const FPDEnemy E = Pending.front();
 		Pending.erase(Pending.begin());
-		FPDEnemy E;
-		E.Type = S.Type;
-		E.Hp = E.MaxHp = S.Hp;
-		E.Speed = S.Speed;
-		E.Id = NextId++;
 		Enemies.push_back(E);
-		SpawnT = S.Type == EPDEnemy::Boss ? 1.2f : 0.65f;
+		SpawnT = EnemyDef(E.Type).bBoss ? 1.2f : 0.65f;
 	}
 	for (FPDEnemy& E : Enemies)
 	{
 		E.SlowT = std::max(0.f, E.SlowT - Dt);
+		const float Rg = EnemyDef(E.Type).Regen;
+		if (Rg > 0.f && !E.bDead) E.Hp = std::min(E.MaxHp, E.Hp + E.MaxHp * Rg * Dt);
 		E.D += E.Speed * (E.SlowT > 0.f ? 1.f - E.SlowAmt : 1.f) * Dt;
 		if (E.D >= Path.Length && !E.bDead)
 		{
 			E.bDead = true;
-			const int Loss = E.Type == EPDEnemy::Boss ? 5 : 1;
+			const int Loss = EnemyDef(E.Type).bBoss ? 5 : 1;
 			Lives -= Loss;
 			Leaks++;
 			FPDEvent L;
@@ -505,12 +625,13 @@ void FPDGame::Update(float Dt)
 			Sfx(EPDSound::Denied);
 		}
 	}
+	const uint32_t Mask = JokerMask();
 	for (auto& KV : Towers)
 	{
 		FPDTower& T = KV.second;
 		T.Cd -= Dt;
 		if (T.Cd > 0.f) continue;
-		const FPDTowerStats St = TowerStats(T);
+		const FPDTowerStats St = TowerStats(T, Mask);
 		const float TX = T.X + 0.5f, TY = T.Y + 0.5f;
 		FPDEnemy* Target = nullptr;
 		for (FPDEnemy& E : Enemies)
@@ -550,6 +671,8 @@ void FPDGame::Update(float Dt)
 		}
 	}
 	Enemies.erase(std::remove_if(Enemies.begin(), Enemies.end(), [](const FPDEnemy& E) { return E.bDead; }), Enemies.end());
+	Enemies.insert(Enemies.end(), Born.begin(), Born.end());
+	Born.clear();
 	if (Lives <= 0)
 	{
 		Lives = 0;

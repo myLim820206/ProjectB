@@ -17,18 +17,21 @@ namespace PD
 {
 constexpr int Cols = 16;
 constexpr int Rows = 10;
-constexpr int HandMax = 7;
+constexpr int HandMaxBase = 7;
+constexpr int JokerMax = 5;
 constexpr int NumWaves = 15;
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
 constexpr int DrawPerWave = 3;
-constexpr float ChainStep = 0.25f; // 연쇄: 맞닿은 족보 하나마다 공격력 +25%
+constexpr float ChainStep = 0.25f; // 연쇄: 맞닿은 족보 하나마다 공격력 +25% (연결고리 조커면 +45%)
 
-enum class EPDSuit : uint8_t { Spade, Heart, Diamond, Club };
+enum class EPDSuit : uint8_t { Spade, Heart, Diamond, Club, Wild }; // Wild = 와일드 카드 (아무 숫자·무늬)
 struct FPDCard
 {
 	int Rank = 2; // 2~14 (J Q K A = 11 12 13 14)
 	EPDSuit Suit = EPDSuit::Spade;
+	bool IsWild() const { return Suit == EPDSuit::Wild; }
+	int Power() const { return IsWild() ? 10 : Rank; } // 공격력 계산용 숫자
 	bool operator==(const FPDCard& O) const { return Rank == O.Rank && Suit == O.Suit; }
 };
 
@@ -38,6 +41,35 @@ struct FPDSuitDef
 	float Dmg, Rate, Range, Splash, Slow;
 };
 const FPDSuitDef& SuitDef(EPDSuit S);
+
+// 조커: 웨이브 보상, 최대 5칸, 판 끝까지 규칙을 바꾼다. 비트 묶음(uint32)으로 넘긴다
+enum class EPDJoker : uint8_t
+{
+	HeartLover, SpadeLover, DiaLover, ClubLover, // 그 무늬 타워 공격력 +40%
+	ChainLink,  // 연쇄 +25% → +45%
+	Twins,      // 원 페어·투 페어 ×1.5 → ×2
+	LineLover,  // 스트레이트 연사 한 장마다 +0.25 더
+	WideFlush,  // 플러시 범위 +0.75
+	FaceCards,  // J·Q·K 공격력 +60%
+	SmallNums,  // 2~6 연사 +60%
+	Lucky7,     // 7 공격력 ×2.5
+	BigHand,    // 손패 최대 +2
+	Supply,     // 웨이브마다 카드 +1
+	Recycle,    // 버리면 1장 뽑기
+	Scope,      // 사거리 +15%
+	Frost,      // 둔화 강화, ♣ 주변도 둔화
+	ChainBlast, // 처치 시 주변 적에게 최대 체력 15% 피해
+	Pierce,     // 방패 무시
+	Count
+};
+inline bool HasJoker(uint32_t Mask, EPDJoker J) { return (Mask >> (int)J) & 1u; }
+// 즉시 보상 (조커 칸을 쓰지 않음)
+enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Count };
+struct FPDReward
+{
+	bool bJoker = true;
+	int Id = 0; // EPDJoker 또는 EPDInstant
+};
 
 // 족보 = 시너지
 enum class EPDHand : uint8_t { StraightFlush, Four, FullHouse, Flush, Straight, Triple, TwoPair, Pair, Count };
@@ -77,13 +109,13 @@ struct FPDSynergy
 // 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 겹치지 않게 고르고, 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
-std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers);
+std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Jokers = 0);
 
 struct FPDTowerStats
 {
 	float Dmg, Rate, Range, Splash, Slow;
 };
-FPDTowerStats TowerStats(const FPDTower& T);
+FPDTowerStats TowerStats(const FPDTower& T, uint32_t Jokers = 0);
 
 // ---------------------------------------------------------------- 길
 struct FPDPoint
@@ -106,11 +138,20 @@ constexpr int PathMin = 34, PathMax = 46;
 std::vector<std::array<int, 2>> GeneratePath(std::mt19937& Rng);
 
 // ---------------------------------------------------------------- 적
-enum class EPDEnemy : uint8_t { Normal, Fast, Tank, Boss };
+// 보통, 빠름, 탱크, 방패병(한 방 피해 감소), 분열체(죽으면 둘), 재생자(체력 회복), 분열 조각, 보스 3종
+enum class EPDEnemy : uint8_t { Normal, Fast, Tank, Armored, Splitter, Regen, Mini, ShieldBoss, SplitBoss, RegenBoss, Count };
+struct FPDEnemyDef
+{
+	float Hp, Speed, Regen;
+	int Split;      // 죽으면 갈라지는 수
+	bool bArmor, bBoss;
+};
+const FPDEnemyDef& EnemyDef(EPDEnemy T);
 struct FPDEnemy
 {
 	EPDEnemy Type = EPDEnemy::Normal;
-	float D = 0.f, Hp = 1.f, MaxHp = 1.f, Speed = 1.f, SlowT = 0.f, SlowAmt = 0.f;
+	float D = 0.f, Hp = 1.f, MaxHp = 1.f, Speed = 1.f, SlowT = 0.f, SlowAmt = 0.f, Armor = 0.f, BaseHp = 1.f;
+	int Wave = 1;
 	bool bDead = false;
 	int Id = 0;
 };
@@ -118,25 +159,32 @@ struct FPDEnemy
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호
 };
 
-enum class EPDPhase : uint8_t { Title, Build, Wave, Over, Win };
+enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
 
 class FPDGame
 {
 public:
 	explicit FPDGame(uint32_t Seed = 0);
+	FPDEnemy SpawnTestEnemy(EPDEnemy T, float BaseHp, int W) { return MakeEnemy(T, BaseHp, W); } // 시험용
+	void HitTest(FPDEnemy& E, float Dmg) { Hit(E, Dmg, 0.f); } // 시험용
 	void NewGame(bool bStart);
 	void Tick(float Dt);                     // 0.05초로 잘라 Speed 배만큼 진행
 	bool Place(int HandIdx, int X, int Y);   // 카드 설치 (타워 위면 교체)
 	void Discard(int HandIdx);
 	void StartWave();
+	void TakeReward(int Index); // -1 = 건너뛰기
+	std::vector<FPDReward> RollRewards();
+	uint32_t JokerMask() const;
+	bool Has(EPDJoker J) const { return HasJoker(JokerMask(), J); }
+	int HandMax() const { return HandMaxBase + (Has(EPDJoker::BigHand) ? 2 : 0); }
 	bool Buildable(int X, int Y) const;
 	// 고른 카드를 이 칸에 놓으면 생길 족보 (놓은 칸이 든 연쇄 전체)
 	std::vector<FPDSynergy> PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers = nullptr) const;
@@ -147,6 +195,8 @@ public:
 	int Speed = 1;
 	float Time = 0.f;
 	std::vector<FPDCard> Deck, Hand;
+	std::vector<EPDJoker> Jokers;
+	std::vector<FPDReward> Rewards;
 	FPDTowerMap Towers;
 	std::vector<FPDSynergy> Synergies;
 	std::vector<FPDEnemy> Enemies;
@@ -156,12 +206,8 @@ public:
 	bool bMuted = false;
 
 private:
-	struct FSpawn
-	{
-		EPDEnemy Type;
-		float Hp, Speed;
-	};
-	std::vector<FSpawn> WaveSpec(int W) const;
+	FPDEnemy MakeEnemy(EPDEnemy T, float BaseHp, int W);
+	std::vector<FPDEnemy> WaveSpec(int W);
 	void Draw(int N, int* OutGot = nullptr);
 	void EndWave();
 	void Hit(FPDEnemy& E, float Dmg, float Slow);
@@ -169,7 +215,8 @@ private:
 	void Sfx(EPDSound S, int A = 0, int B = 0) { if (!bMuted) Sounds.push_back({S, A, B, 1.f}); }
 
 	std::mt19937 Rng;
-	std::vector<FSpawn> Pending;
+	std::vector<FPDEnemy> Pending;
+	std::vector<FPDEnemy> Born; // 분열로 새로 생긴 적 (갱신 끝에 합친다)
 	float SpawnT = 0.f;
 	int NextId = 1;
 	float KillSfxT = 0.f;

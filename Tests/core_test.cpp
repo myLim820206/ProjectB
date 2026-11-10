@@ -1,6 +1,6 @@
 // 포커 디펜스 규칙 코어 시험 (언리얼 없이 실행)
 //   ./Tests/run.sh [봇 판 수]
-// 웹 프로토타입(prototype/poker-defense/test.js)과 같은 경우를 확인한다.
+// 족보·연쇄·길·설치에 더해 콘텐츠 1차(와일드 카드, 방패·분열·재생, 조커, 보상)를 확인하고, 봇으로 밸런스를 본다.
 #include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
@@ -108,6 +108,64 @@ static void UnitTests()
 		G.Place(0, 1, 0);
 		Expect(G.Towers[CellKey(1, 0)].Card.Rank == 4 && G.Synergies.empty() && G.Discarded == 1, "타워 위에 놓으면 교체");
 	}
+	{ // 와일드 카드
+		const FPDCard W{0, EPDSuit::Wild};
+		auto HasH = [](std::vector<EPDHand> V, EPDHand H) { return std::find(V.begin(), V.end(), H) != V.end(); };
+		Expect(HasH(ClassifyHand({C(7), W}), EPDHand::Pair) && HasH(ClassifyHand({C(2, He), C(9, He), W}), EPDHand::Flush) && HasH(ClassifyHand({C(4), C(5, Di), W}), EPDHand::Straight),
+			"와일드 카드: 페어·플러시·스트레이트를 이어 줌");
+	}
+	{ // 적: 방패, 관통탄, 분열, 재생, 보스
+		FPDGame G(4);
+		G.NewGame(true);
+		G.bMuted = true;
+		FPDEnemy A = G.SpawnTestEnemy(EPDEnemy::Armored, 100.f, 10); // 방패 4 + 10*0.6 = 10
+		G.HitTest(A, 20.f);
+		const float AfterArmor = 130.f - A.Hp;
+		G.Jokers = {EPDJoker::Pierce};
+		G.HitTest(A, 20.f);
+		Expect(std::fabs(AfterArmor - 10.f) < 1e-4f && std::fabs(130.f - A.Hp - AfterArmor - 20.f) < 1e-4f, "방패는 한 방 피해를 깎고, 관통탄은 무시");
+		G.Jokers.clear();
+		G.Phase = EPDPhase::Wave;
+		G.Enemies = {G.SpawnTestEnemy(EPDEnemy::Splitter, 50.f, 6)};
+		G.Enemies[0].D = 3.f;
+		G.HitTest(G.Enemies[0], 9999.f);
+		G.Update(0.f);
+		int Minis = 0;
+		for (auto& E : G.Enemies) Minis += E.Type == EPDEnemy::Mini;
+		Expect(Minis == 2, "분열체는 죽으면 작은 적 둘");
+		FPDEnemy R = G.SpawnTestEnemy(EPDEnemy::Regen, 100.f, 8);
+		R.Hp = 50.f;
+		R.Speed = 0.f;
+		G.Enemies = {R};
+		G.Update(1.f);
+		Expect(!G.Enemies.empty() && G.Enemies[0].Hp > 50.f && G.Enemies[0].Hp < 60.f, "재생자는 체력이 찬다");
+	}
+	{ // 조커와 보상
+		FPDGame G(6);
+		G.NewGame(true);
+		G.bMuted = true;
+		FPDTower T;
+		T.Card = C(9, He);
+		const float Base = TowerStats(T, G.JokerMask()).Dmg;
+		G.Phase = EPDPhase::Reward;
+		G.Rewards = {{true, (int)EPDJoker::HeartLover}};
+		G.TakeReward(0);
+		Expect(std::fabs(TowerStats(T, G.JokerMask()).Dmg - Base * 1.4f) < 1e-3f && G.Phase == EPDPhase::Build && G.Jokers.size() == 1, "하트 애호가 조커: ♥ 공격력 ×1.4");
+		auto R1 = G.RollRewards();
+		int J1 = 0;
+		for (auto& R : R1) J1 += R.bJoker;
+		G.Jokers = {EPDJoker::Twins, EPDJoker::Scope, EPDJoker::Supply, EPDJoker::Lucky7, EPDJoker::Frost};
+		auto R2 = G.RollRewards();
+		bool bAllInst = true;
+		for (auto& R : R2) bAllInst = bAllInst && !R.bJoker;
+		Expect(R1.size() == 3 && J1 == 2 && bAllInst && R2.size() == 3, "보상 후보: 조커 2 + 즉시 1, 조커 칸이 차면 즉시만");
+		G.Jokers = {EPDJoker::BigHand};
+		Expect(G.HandMax() == 9, "큰 손: 손패 최대 9");
+		G.Phase = EPDPhase::Reward;
+		G.Rewards = {{false, (int)EPDInstant::Wild}};
+		G.TakeReward(0);
+		Expect(!G.Hand.empty() && G.Hand.back().IsWild(), "와일드 카드 보상");
+	}
 	{ // 덱: 52장, 중복 없음
 		FPDGame G(9);
 		G.NewGame(true);
@@ -127,12 +185,13 @@ static int Coverage(const FPDGame& G, int X, int Y, float Range)
 }
 static double Power(FPDGame& G, FPDTowerMap& Tw)
 {
-	ApplyEffects(Tw);
+	const uint32_t M = G.JokerMask();
+	ApplyEffects(Tw, M);
 	double Sum = 0;
-	for (auto& KV : Tw) { const FPDTowerStats S = TowerStats(KV.second); Sum += S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, KV.second.X, KV.second.Y, S.Range); }
+	for (auto& KV : Tw) { const FPDTowerStats S = TowerStats(KV.second, M); Sum += S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, KV.second.X, KV.second.Y, S.Range); }
 	return Sum;
 }
-static void BotTest(int Runs, bool bDumb)
+static void BotTest(int Runs, bool bDumb, bool bNoReward = false)
 {
 	std::map<int, int> Hist;
 	int LivesSum = 0;
@@ -190,12 +249,19 @@ static void BotTest(int Runs, bool bDumb)
 			}
 			G.StartWave();
 			for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K) G.Update(0.05f);
+			if (G.Phase == EPDPhase::Reward) // 보상: 조커 먼저, 없으면 수리 (bNoReward면 건너뛰기)
+			{
+				int Pick = -1;
+				for (int I = 0; I < (int)G.Rewards.size() && !bNoReward; ++I) if (G.Rewards[I].bJoker) { Pick = I; break; }
+				for (int I = 0; I < (int)G.Rewards.size() && Pick < 0 && !bNoReward; ++I) if (!G.Rewards[I].bJoker && G.Rewards[I].Id == (int)EPDInstant::Repair) Pick = I;
+				G.TakeReward(Pick);
+			}
 			G.Events.clear();
 		}
 		Hist[G.Phase == EPDPhase::Win ? 16 : G.Wave]++;
 		LivesSum += G.Lives;
 	}
-	std::printf("\n%s 봇 %d판 도달 웨이브 (16 = 전부 통과):", bDumb ? "족보 무시" : "족보 생각", Runs);
+	std::printf("\n%s%s 봇 %d판 도달 웨이브 (16 = 전부 통과):", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 조커 먼저", Runs);
 	for (auto& KV : Hist) std::printf("  %d:%d", KV.first, KV.second);
 	std::printf("   남은 목숨 평균 %.1f\n", (double)LivesSum / Runs);
 }
@@ -205,7 +271,7 @@ int main(int Argc, char** Argv)
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
-	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, true); }
+	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;
 }
