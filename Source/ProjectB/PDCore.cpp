@@ -624,6 +624,7 @@ void FPDGame::NewGame(bool bStart)
 {
 	Phase = bStart ? EPDPhase::Build : EPDPhase::Title;
 	Wave = 0;
+	AutoStartT = -1.f;
 	Lives = StartLives;
 	Kills = Leaks = Discarded = DeckRefills = 0;
 	Gold = Points = GoldEarned = 0;
@@ -826,6 +827,7 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 void FPDGame::StartWave()
 {
 	if (Phase != EPDPhase::Build) return;
+	AutoStartT = -1.f;
 	Wave++;
 	Phase = EPDPhase::Wave;
 	Pending = WaveSpec(Wave);
@@ -899,6 +901,7 @@ void FPDGame::TakeReward(int Index)
 	}
 	Rewards.clear();
 	Phase = EPDPhase::Build;
+	AutoStartT = AutoStartDelay; // 보상을 고르면 5초 뒤 다음 웨이브
 }
 
 std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers) const
@@ -1486,6 +1489,12 @@ void FPDGame::Update(float Dt)
 void FPDGame::Tick(float Dt)
 {
 	Dt = std::min(Dt, 0.05f);
+	// 자동 시작: 실제 시간으로 센다 (속도 ×2·×3 과 상관없이 5초)
+	if (Phase == EPDPhase::Build && AutoStartT >= 0.f)
+	{
+		AutoStartT -= Dt;
+		if (AutoStartT <= 0.f) StartWave();
+	}
 	for (int I = 0; I < Speed; ++I) Update(Dt);
 }
 } // namespace PD

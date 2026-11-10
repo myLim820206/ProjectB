@@ -223,6 +223,20 @@ static void UnitTests()
 		Expect(!bNowB && FlyB == 1 && bLaterB, "♦ 탄환: 날아가서 맞음");
 		Expect(ShotKind(G.Towers.begin()->second) == EPDShot::Bullet && ShotSpeed(EPDShot::Bullet) > ShotSpeed(EPDShot::Missile), "탄환이 미사일보다 빠름");
 	}
+	{ // 자동 시작: 보상을 고르면 5초(실제 시간, 속도와 상관없이) 뒤 다음 웨이브, 첫 웨이브는 직접
+		FPDGame G(5);
+		G.NewGame(true);
+		G.bMuted = true;
+		for (int K = 0; K < 200; ++K) G.Tick(0.05f);
+		const bool bFirstWaits = G.Phase == EPDPhase::Build && G.Wave == 0;
+		G.Phase = EPDPhase::Reward;
+		G.TakeReward(-1);
+		G.Speed = 3;
+		for (int K = 0; K < 98; ++K) G.Tick(0.05f); // 4.9초
+		const bool bNotYet = G.Phase == EPDPhase::Build;
+		for (int K = 0; K < 4; ++K) G.Tick(0.05f);   // 5.1초
+		Expect(bFirstWaits && bNotYet && G.Phase == EPDPhase::Wave && G.Wave == 1 && G.AutoStartT < 0.f, "자동 시작: 첫 웨이브는 기다림, 보상 뒤 5초(속도 ×3 이어도)에 다음 웨이브");
+	}
 	{ // 발사체 고르기: 조커 → 족보(스트레이트 이상) → 무늬
 		FPDTower T;
 		T.Card = C(9, He);

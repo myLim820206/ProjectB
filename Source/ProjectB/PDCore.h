@@ -24,6 +24,7 @@ constexpr int NumWaves = 15; // 1회차 기준 (보스 3종이 한 바퀴). 진�
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
 constexpr int DrawPerWave = 3;
+constexpr float AutoStartDelay = 5.f; // 웨이브를 막고 보상을 고르면 이 시간(실제 초) 뒤 다음 웨이브가 저절로 시작 (첫 웨이브는 직접)
 constexpr float ChainStep = 0.25f; // 연쇄: 맞닿은 족보 하나마다 공격력 +25% (연결고리 부적이면 +45%)
 
 enum class EPDSuit : uint8_t { Spade, Heart, Diamond, Club, Wild }; // Wild = 와일드 카드 (아무 숫자·무늬)
@@ -345,6 +346,7 @@ public:
 
 	EPDPhase Phase = EPDPhase::Title;
 	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
+	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
 	int Gold = 0, Points = 0, GoldEarned = 0; // 골드, 산 포인트 수, 판에서 번 골드 합
 	float GoldCarry = 0.f;                    // 골드 덤의 소수 부분
