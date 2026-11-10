@@ -256,14 +256,56 @@ struct SPDBoardWidget::FCanvas
 	void Panel(float X, float Y, float W, float H) { Lines(RectPoints(X, Y, W, H), Hex(TEXT("7fd6ff"), 0.3f), 1.f); }
 
 	// 무늬 도형: ♠ 삼각형, ♥ 원, ♦ 마름모, ♣ 사각형
+	// 하트 곡선 (Flip -1 이면 뒤집어서 스페이드 몸통)
+	static TArray<FVector2f> HeartPoints(float CX, float CY, float R, float Flip, float OffY)
+	{
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= 48; ++I)
+		{
+			const float T = I / 48.f * TwoPi, St = FMath::Sin(T);
+			const float HX = 16.f * St * St * St;
+			const float HY = -(13.f * FMath::Cos(T) - 5.f * FMath::Cos(2.f * T) - 2.f * FMath::Cos(3.f * T) - FMath::Cos(4.f * T));
+			P.Add(FVector2f(CX + HX / 17.f * R, CY + (HY / 17.f - 0.15f) * R * Flip + OffY));
+		}
+		return P;
+	}
+	// 클로버 잎 세 개의 바깥 테두리 하나 (가운데 숫자 위로 원 선이 지나가지 않게)
+	static TArray<FVector2f> ClubPoints(float CX, float CY, float R)
+	{
+		const FVector2f O(CX, CY - 0.06f * R);
+		const FVector2f Cs[3] = {FVector2f(CX, CY - 0.44f * R), FVector2f(CX - 0.46f * R, CY + 0.1f * R), FVector2f(CX + 0.46f * R, CY + 0.1f * R)};
+		const float Rad = 0.4f * R;
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= 72; ++I)
+		{
+			const float A = I / 72.f * TwoPi;
+			const FVector2f U(FMath::Cos(A), FMath::Sin(A));
+			float Far = 0.f;
+			for (const FVector2f& C0 : Cs)
+			{
+				const FVector2f D = C0 - O;
+				const float B = D.X * U.X + D.Y * U.Y, Disc = B * B - (D.X * D.X + D.Y * D.Y - Rad * Rad);
+				if (Disc >= 0.f) Far = FMath::Max(Far, B + FMath::Sqrt(Disc));
+			}
+			P.Add(O + U * Far);
+		}
+		return P;
+	}
+	// 무늬 도형: 실제 무늬 모양 (♠ ♥ ♦ ♣), 와일드는 별
 	void Shape(EPDSuit S, float CX, float CY, float R, const FLinearColor& Col, float Thick, float GlowK)
 	{
 		switch (S)
 		{
-		case EPDSuit::Spade: Glow({{CX, CY - R}, {CX + R * 0.9f, CY + R * 0.72f}, {CX - R * 0.9f, CY + R * 0.72f}, {CX, CY - R}}, Col, Thick, GlowK); break;
-		case EPDSuit::Heart: Glow(CirclePoints(FVector2f(CX, CY), R * 0.86f), Col, Thick, GlowK); break;
-		case EPDSuit::Diamond: Glow({{CX, CY - R}, {CX + R * 0.8f, CY}, {CX, CY + R}, {CX - R * 0.8f, CY}, {CX, CY - R}}, Col, Thick, GlowK); break;
-		case EPDSuit::Club: Glow(RectPoints(CX - R * 0.76f, CY - R * 0.76f, R * 1.52f, R * 1.52f), Col, Thick, GlowK); break;
+		case EPDSuit::Spade:
+			Glow(HeartPoints(CX, CY, R, -1.f, -R * 0.12f), Col, Thick, GlowK);
+			Glow({{CX, CY + R * 0.42f}, {CX + R * 0.3f, CY + R}, {CX - R * 0.3f, CY + R}, {CX, CY + R * 0.42f}}, Col, Thick, GlowK);
+			break;
+		case EPDSuit::Heart: Glow(HeartPoints(CX, CY, R, 1.f, 0.f), Col, Thick, GlowK); break;
+		case EPDSuit::Diamond: Glow({{CX, CY - R}, {CX + R * 0.72f, CY}, {CX, CY + R}, {CX - R * 0.72f, CY}, {CX, CY - R}}, Col, Thick, GlowK); break;
+		case EPDSuit::Club:
+			Glow(ClubPoints(CX, CY, R), Col, Thick, GlowK);
+			Glow({{CX, CY + R * 0.5f}, {CX + R * 0.28f, CY + R}, {CX - R * 0.28f, CY + R}, {CX, CY + R * 0.5f}}, Col, Thick, GlowK);
+			break;
 		case EPDSuit::Wild:
 		{
 			TArray<FVector2f> Star;
@@ -280,8 +322,11 @@ struct SPDBoardWidget::FCanvas
 		if (bStrong) Shape(Card.Suit, CX, CY, R * (1.12f + 0.06f * Pulse), WithAlpha(Col, 0.25f + 0.2f * Pulse), 1.f, 0.6f);
 		Shape(Card.Suit, CX, CY, R, Col, bStrong ? 2.6f : 1.8f, bStrong ? 1.6f : 0.9f);
 		if (Card.IsWild()) return;
-		const float Px = R * (Card.Rank == 10 ? 0.62f : 0.78f);
-		TextCentered(RankText(Card.Rank), CX, CY + (Card.Suit == EPDSuit::Spade ? R * 0.22f : 0.f), Col, Px, true);
+		// 무늬마다 숫자가 들어갈 자리와 크기
+		static const float OffY[4] = {-0.14f, -0.12f, 0.f, -0.16f}, Size[4] = {0.6f, 0.68f, 0.72f, 0.52f};
+		const int32 Si = (int32)Card.Suit;
+		const float Px = R * Size[Si] * (Card.Rank == 10 ? 0.8f : 1.f);
+		TextCentered(RankText(Card.Rank), CX, CY + OffY[Si] * R, Col, Px, true);
 	}
 	void Badge(const FString& S, float CX, float CY, const FLinearColor& Col, float Alpha)
 	{
