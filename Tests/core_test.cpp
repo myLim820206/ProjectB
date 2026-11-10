@@ -21,7 +21,7 @@ static void Expect(bool bOk, const std::string& Label)
 static FPDCard C(int R, EPDSuit S = EPDSuit::Spade) { return {R, S}; }
 static std::string Names(std::vector<EPDHand> V)
 {
-	static const char* N[] = {"straightFlush", "four", "fullHouse", "flush", "straight", "triple", "twoPair", "pair"};
+	static const char* N[] = {"royal", "five", "straightFlush", "four", "fullHouse", "flush", "straight", "triple", "twoPair", "pair"};
 	std::vector<std::string> S;
 	for (EPDHand H : V) S.push_back(N[(int)H]);
 	std::sort(S.begin(), S.end());
@@ -58,6 +58,9 @@ static void UnitTests()
 	Case("포카드", {C(5), C(5, He), C(5, Di), C(5, Cl)}, "four");
 	Case("풀하우스", {C(5), C(9, He), C(5, Di), C(9), C(5, Cl)}, "fullHouse");
 	Case("스트레이트 플러시", {C(5), C(6), C(7), C(8), C(9)}, "flush,straight,straightFlush");
+	Case("로열 스트레이트 플러시", {C(10), C(11), C(12), C(13), C(14)}, "flush,royal,straight,straightFlush");
+	Case("파이브 카드 (와일드)", {C(9), C(9, EPDSuit::Heart), C(9, EPDSuit::Club), C(9, EPDSuit::Diamond), {0, EPDSuit::Wild}}, "five");
+	Case("파이브 카드 (다시 채운 덱의 같은 카드)", {C(4), C(4), C(4, EPDSuit::Heart), C(4, EPDSuit::Club), C(4, EPDSuit::Diamond)}, "five");
 
 	{ // ㄴ자 플러시
 		FPDTowerMap M;
@@ -231,14 +234,16 @@ static void UnitTests()
 		G2.TakeReward(0);
 		Expect(G2.Hand.size() == 2 && G2.DeckRefills == 1 && G2.Deck.size() == 50, "덱이 비면 새 덱 한 벌");
 	}
-	{ // 조커: 레시피
+	{ // 조커: 대장 = 재료 중 가장 높은 족보
 		using H = EPDHand;
-		Expect(MatchJokerRecipe({H::Pair, H::Pair, H::Pair}, 0) == EPDJoker::Clown && MatchJokerRecipe({H::TwoPair, H::TwoPair, H::Pair}, 0) == EPDJoker::Comedy &&
-			MatchJokerRecipe({H::Straight, H::Straight, H::Straight}, 0) == EPDJoker::Baton && MatchJokerRecipe({H::Flush, H::Flush, H::Flush}, 0) == EPDJoker::Harlequin &&
-			MatchJokerRecipe({H::Triple, H::Triple, H::Pair}, 0) == EPDJoker::Jack && MatchJokerRecipe({H::FullHouse, H::FullHouse, H::Pair}, 0) == EPDJoker::Bell &&
-			MatchJokerRecipe({H::Four, H::Pair, H::Pair}, 0) == EPDJoker::Cheshire && 
-			MatchJokerRecipe({}, 3) == EPDJoker::Mask && MatchJokerRecipe({H::Pair, H::Pair}, 1, 3) == EPDJoker::Hatter && MatchJokerRecipe({H::Pair, H::Pair}, 1, 2) == EPDJoker::Clown && MatchJokerRecipe({H::StraightFlush, H::Four, H::FullHouse}, 0) == EPDJoker::Star,
-			"조커 레시피 10종");
+		bool bMap = true;
+		std::set<int> Seen;
+		for (int K = 0; K < (int)H::Count; ++K) { bMap = bMap && CaptainHand(CaptainOf((H)K)) == (H)K; Seen.insert((int)CaptainOf((H)K)); }
+		Expect(bMap && Seen.size() == 10, "족보 10개 ↔ 대장 조커 10개 (한 쌍씩)");
+		Expect(MatchJokerRecipe({H::Pair, H::Pair, H::Pair}) == EPDJoker::Comedy && MatchJokerRecipe({H::Pair, H::TwoPair, H::Pair}) == EPDJoker::Mask &&
+			MatchJokerRecipe({H::Pair, H::Four, H::Straight}) == EPDJoker::Cheshire && MatchJokerRecipe({H::RoyalFlush, H::Pair, H::Pair}) == EPDJoker::Star &&
+			MatchJokerRecipe({H::Five, H::StraightFlush, H::Pair}) == EPDJoker::Clown && MatchJokerRecipe({H::Flush, H::Straight, H::Pair}) == EPDJoker::Harlequin,
+			"재료 중 가장 높은 족보의 대장");
 	}
 	{ // 조커 합성: 연쇄된 페어 셋 → 광대, 합성 타워 + 족보 둘 → 모자 장수
 		FPDGame G(12);
@@ -252,11 +257,11 @@ static void UnitTests()
 		PutT(0, Row, C(2)); PutT(1, Row, C(2, He)); PutT(2, Row, C(7)); PutT(3, Row, C(8, He)); PutT(4, Row, C(5)); PutT(5, Row, C(5, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		auto Groups = G.JokerGroups();
-		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Clown && Groups[0].Cells.size() == 6;
+		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Baton && Groups[0].Cells.size() == 6;
 		const bool bFused = G.JokerFuse(0);
 		const FPDTower& J = G.Towers.begin()->second;
-		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Clown && std::fabs(J.Mult - 6.f * JokerBonus) < 1e-4f && (G.Discovered & 1u),
-			"연쇄된 족보 셋(페어·스트레이트·페어) → 광대 조커 (위력 6 × 조커 덤), 도감에 기록");
+		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 6.f * JokerBonus) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
+			"연쇄된 족보 셋(페어·스트레이트·페어) → 가장 높은 스트레이트의 대장 지휘봉 (위력 6 × 조커 덤), 도감에 기록");
 		// 조커는 와일드: 레벨 2 타워 옆에 붙어도 족보
 		G.Towers.clear();
 		FPDTower Jk;
@@ -268,12 +273,36 @@ static void UnitTests()
 		PutT(1, Row, C(9), 2);
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Expect(G.Synergies.size() == 1 && !G.CanFuse(0), "조커는 레벨 2 타워와도 족보 (와일드), 조커가 든 족보는 합성 불가");
-		// 합성 타워(따로 선 레벨 2) + 페어 둘 → 모자 장수
+		// 포카드를 기억하는 합성 타워(따로 선 레벨 3) + 족보 둘 → 체셔
 		G.Towers.clear();
 		PutT(0, Row, C(13), 3); PutT(1, Row, C(2)); PutT(2, Row, C(2, He)); PutT(3, Row, C(7)); PutT(4, Row, C(8, He));
+		G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::Four;
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Groups = G.JokerGroups();
-		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Hatter && Groups[0].FusedCells.size() == 1, "레벨 3 합성 타워 + 족보 둘 → 모자 장수");
+		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Cheshire && Groups[0].FusedCells.size() == 1, "포카드를 기억한 합성 타워 + 족보 둘 → 포카드 대장 체셔");
+		// 합성 타워는 족보를 기억한다
+		G.Towers.clear();
+		PutT(0, Row, C(6)); PutT(1, Row, C(6, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		G.Fuse(0);
+		Expect(G.Towers.size() == 1 && G.Towers.begin()->second.FuseHand == (int)EPDHand::Pair, "합성 타워가 원 페어를 기억");
+		// 대장 지휘: 자기 족보 타워 +30%, 겹친다
+		G.Towers.clear();
+		PutT(3, Row, C(9)); PutT(4, Row, C(9, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const float P0 = G.Towers[CellKey(3, Row)].Eff.Dmg;
+		FPDTower Cm;
+		Cm.Card = {0, EPDSuit::Wild};
+		Cm.Joker = (int)EPDJoker::Comedy;
+		Cm.X = 0; Cm.Y = Row;
+		G.Towers[CellKey(0, Row)] = Cm;
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const float P1 = G.Towers[CellKey(3, Row)].Eff.Dmg;
+		Cm.X = 6;
+		G.Towers[CellKey(6, Row)] = Cm;
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const float P2 = G.Towers[CellKey(3, Row)].Eff.Dmg;
+		Expect(std::fabs(P1 / P0 - 1.3f) < 1e-4f && std::fabs(P2 / P0 - 1.6f) < 1e-4f, "원 페어 대장 희비극: 원 페어 타워 +30%, 둘이면 +60% (겹침)");
 	}
 	{ // 조커 능력: 지휘봉 오라, 희비극 두 발, 방울 멈춤, 스타 전체 피해
 		FPDGame G(13);
@@ -328,66 +357,86 @@ static void UnitTests()
 		for (auto& Cd : G.Hand) U.insert(Cd.Rank * 4 + (int)Cd.Suit);
 		Expect(U.size() == 52 && G.Deck.size() + G.Hand.size() == 52, "덱 52장 중복 없음");
 	}
-	{ // 스킬 트리 구조: 모두 이어져 있고, 조커 강화는 막다른 끝이라 조커끼리는 안쪽으로 돌아가야 한다
+	// ---- 스킬 트리 (노드 번호는 생성기가 정하므로 찾아서 쓴다)
+	auto FindKey = [](EPDKeystone K) { for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind == EPDNode::Keystone && TreeNode(I).Fx[0].Param == (int)K) return I; return -1; };
+	auto FindJoker = [](EPDJoker J) { for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind == EPDNode::Joker && TreeNode(I).Fx[0].Param == (int)J) return I; return -1; };
+	auto FindStat = [](EPDStat S, int Param) { for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Fx[0].Stat == S && TreeNode(I).Fx[0].Param == Param && TreeNode(I).Fx[1].Stat == EPDStat::None) return I; return -1; };
+	auto PathTo = [](int Target) { // 시작점에서 Target 까지 (시작점 제외)
+		std::vector<int> Prev(TreeNodeCount(), -2), Q{0};
+		Prev[0] = -1;
+		for (size_t I = 0; I < Q.size(); ++I) for (int M : TreeLinks(Q[I])) if (Prev[M] == -2) { Prev[M] = Q[I]; Q.push_back(M); }
+		std::vector<int> P;
+		for (int C = Target; C > 0; C = Prev[C]) P.insert(P.begin(), C);
+		return P;
+	};
+	auto Bits = [](std::initializer_list<int> Ids) { FPDTreeBits B(1); for (int I : Ids) B.set(I); return B; };
+	{ // 구조: 모두 이어짐, 키스톤·조커는 막다른 끝, 고리는 4개 (이웃 큰길을 잇는 길)
 		const int N = TreeNodeCount();
-		std::vector<int> Dist(N, -1);
-		std::vector<int> Q{0};
-		Dist[0] = 0;
-		for (size_t I = 0; I < Q.size(); ++I) for (int M : TreeLinks(Q[I])) if (Dist[M] < 0) { Dist[M] = Dist[Q[I]] + 1; Q.push_back(M); }
-		bool bAll = true, bLeaf = true, bKeyLeaf = true;
-		int Jokers = 0, Keys = 0;
+		int Links = 0, Jokers = 0, Keys = 0, Notables = 0;
+		bool bLeaf = true, bKeyLeaf = true;
 		for (int I = 0; I < N; ++I)
 		{
-			bAll = bAll && Dist[I] >= 0;
+			Links += (int)TreeLinks(I).size();
 			if (TreeNode(I).Kind == EPDNode::Joker) { Jokers++; bLeaf = bLeaf && TreeLinks(I).size() == 1; }
 			if (TreeNode(I).Kind == EPDNode::Keystone) { Keys++; bKeyLeaf = bKeyLeaf && TreeLinks(I).size() == 1; }
+			Notables += TreeNode(I).Kind == EPDNode::Notable;
 		}
-		Expect(N == 61 && bAll, "트리 61노드 모두 시작점과 이어짐");
-		Expect(Jokers == 10 && bLeaf, "조커 강화 10개, 모두 막다른 끝 (끝자락끼리 안 이어짐)");
-		Expect(Keys == 8 && bKeyLeaf, "키스톤 8개 (4쌍), 모두 막다른 끝");
-		// 조커 끝에서 다른 조커 끝까지 최소 3걸음 (갈림길 → 뿌리 → 갈림길 → 조커)
+		Links /= 2;
+		std::vector<int> D(N, -1), Q{0};
+		D[0] = 0;
+		for (size_t I = 0; I < Q.size(); ++I) for (int M : TreeLinks(Q[I])) if (D[M] < 0) { D[M] = D[Q[I]] + 1; Q.push_back(M); }
+		bool bAll = true;
+		int MaxD = 0;
+		for (int I = 0; I < N; ++I) { bAll = bAll && D[I] >= 0; MaxD = std::max(MaxD, D[I]); }
+		Expect(N >= 120 && bAll, "트리 " + std::to_string(N) + "노드 (2배), 모두 시작점과 이어짐");
+		Expect(Links - N + 1 == 4, "고리는 4개뿐 (주머니는 막다른 길)");
+		Expect(Jokers == 10 && bLeaf && Keys == 8 && bKeyLeaf, "조커 강화 10·키스톤 8, 모두 막다른 끝");
+		Expect(Notables >= 24, "특급 노드 " + std::to_string(Notables) + "개");
 		int MinJJ = 99;
 		for (int A = 0; A < N; ++A)
 		{
 			if (TreeNode(A).Kind != EPDNode::Joker) continue;
-			std::vector<int> D(N, -1);
-			std::vector<int> Q2{A};
-			D[A] = 0;
-			for (size_t I = 0; I < Q2.size(); ++I) for (int M : TreeLinks(Q2[I])) if (D[M] < 0) { D[M] = D[Q2[I]] + 1; Q2.push_back(M); }
-			for (int B = 0; B < N; ++B) if (B != A && TreeNode(B).Kind == EPDNode::Joker) MinJJ = std::min(MinJJ, D[B]);
+			std::vector<int> E(N, -1), Q2{A};
+			E[A] = 0;
+			for (size_t I = 0; I < Q2.size(); ++I) for (int M : TreeLinks(Q2[I])) if (E[M] < 0) { E[M] = E[Q2[I]] + 1; Q2.push_back(M); }
+			for (int B = 0; B < N; ++B) if (B != A && TreeNode(B).Kind == EPDNode::Joker) MinJJ = std::min(MinJJ, E[B]);
 		}
 		Expect(MinJJ >= 4, "조커 강화끼리 최소 4걸음 (다시 올라와야 함): " + std::to_string(MinJJ));
-		int MaxD = 0;
-		for (int I = 0; I < N; ++I) MaxD = std::max(MaxD, Dist[I]);
-		Expect(MaxD <= 7, "가장 먼 노드도 7포인트 안: " + std::to_string(MaxD));
+		Expect(MaxD <= 9, "가장 먼 노드 " + std::to_string(MaxD) + "포인트");
+		bool bPos = true;
+		for (int I = 0; I < N; ++I) bPos = bPos && TreeNode(I).X > 20.f && TreeNode(I).X < 1260.f && TreeNode(I).Y > 90.f && TreeNode(I).Y < 700.f;
+		float MinGap = 1e9f;
+		for (int I = 0; I < N; ++I) for (int J = I + 1; J < N; ++J) MinGap = std::min(MinGap, std::hypot(TreeNode(I).X - TreeNode(J).X, TreeNode(I).Y - TreeNode(J).Y));
+		Expect(bPos && MinGap >= 24.f, "노드가 화면 안, 서로 24px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
 	}
-	{ // 포인트 구매: 값은 ×1.15, 이어진 노드만, 골드 부족
+	{ // 포인트 구매
 		FPDGame G(5);
 		G.NewGame(true);
+		const int First = TreeLinks(0)[0];
 		Expect(G.PointPrice() == PointBasePrice, "첫 포인트 값 = 기본값");
-		Expect(G.CanBuy(1) == FPDGame::EBuy::NoGold, "골드가 없으면 못 찍음");
+		Expect(G.CanBuy(First) == FPDGame::EBuy::NoGold, "골드가 없으면 못 찍음");
 		G.Gold = 1000;
-		Expect(G.CanBuy(2) == FPDGame::EBuy::NotLinked, "이어지지 않은 노드는 못 찍음");
-		Expect(G.BuyNode(1) && G.Gold == 1000 - PointBasePrice && G.Points == 1, "시작점 옆 노드 찍기");
+		Expect(G.CanBuy(PathTo(FindKey(EPDKeystone::Lone)).back()) == FPDGame::EBuy::NotLinked, "이어지지 않은 노드는 못 찍음");
+		Expect(G.BuyNode(First) && G.Gold == 1000 - PointBasePrice && G.Points == 1, "시작점 옆 노드 찍기");
 		Expect(G.PointPrice() == (int)std::lround(PointBasePrice * PointPriceGrowth), "다음 포인트 값은 성장 배율만큼");
-		Expect(G.CanBuy(1) == FPDGame::EBuy::Owned, "이미 찍은 노드");
+		Expect(G.CanBuy(First) == FPDGame::EBuy::Owned, "이미 찍은 노드");
 		G.Points = 20;
 		Expect(G.PointPrice() == (int)std::lround(PointBasePrice * std::pow(PointPriceGrowth, 20.f)), "21번째 포인트 값: " + std::to_string(G.PointPrice()));
 		G.Phase = EPDPhase::Reward;
-		Expect(G.CanBuy(2) == FPDGame::EBuy::Closed, "보상 고르는 중에는 못 찍음");
+		Expect(G.CanBuy(TreeLinks(0)[1]) == FPDGame::EBuy::Closed, "보상 고르는 중에는 못 찍음");
 	}
 	{ // 키스톤: 짝은 봉인, 판마다 3개
 		FPDGame G(6);
 		G.NewGame(true);
-		G.Gold = 100000;
-		for (int Id : {1, 2, 3, 4, 5}) G.BuyNode(Id); // ♠ 팔 끝 키스톤 고독한 저격수
+		G.Gold = 10000000;
+		for (int Id : PathTo(FindKey(EPDKeystone::Lone))) G.BuyNode(Id);
 		Expect(G.Mods.Key(EPDKeystone::Lone), "고독한 저격수 찍음");
-		for (int Id : {6, 7, 8, 9}) G.BuyNode(Id);
-		Expect(G.TreeSealed(10) && G.CanBuy(10) == FPDGame::EBuy::Sealed && !G.BuyNode(10), "짝 키스톤 군중은 봉인");
-		uint64_t All = 0;
-		for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind != EPDNode::Keystone) All |= 1ull << I;
-		G.TreeOwned |= All;
-		G.Mods = BuildTreeMods(G.TreeOwned);
+		const auto CrowdPath = PathTo(FindKey(EPDKeystone::Crowd));
+		for (size_t I = 0; I + 1 < CrowdPath.size(); ++I) G.BuyNode(CrowdPath[I]);
+		const int Crowd = FindKey(EPDKeystone::Crowd);
+		Expect(G.TreeSealed(Crowd) && G.CanBuy(Crowd) == FPDGame::EBuy::Sealed && !G.BuyNode(Crowd), "짝 키스톤 군중은 봉인");
+		for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind != EPDNode::Keystone) G.TreeOwned.set(I);
+		G.RebuildMods();
 		int Got = 1;
 		for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind == EPDNode::Keystone && G.CanBuy(I) == FPDGame::EBuy::Ok && G.BuyNode(I)) Got++;
 		bool bCap = false;
@@ -397,7 +446,7 @@ static void UnitTests()
 		for (int K = 0; K < (int)EPDKeystone::Count; K += 2) bNoPair = bNoPair && !(G.Mods.Key((EPDKeystone)K) && G.Mods.Key((EPDKeystone)(K + 1)));
 		Expect(bNoPair, "골드가 무한이어도 짝 키스톤을 둘 다 가질 수 없다");
 	}
-	{ // 골드: 처치 골드, 웨이브 덤, 골드 노드
+	{ // 골드: 처치 골드, 골드 노드
 		FPDGame G(7);
 		G.NewGame(true);
 		G.Phase = EPDPhase::Wave;
@@ -408,31 +457,34 @@ static void UnitTests()
 		G.HitTest(B, 1000.f);
 		Expect(G.Gold == 26, "보스 처치 25골드");
 		Expect(G.KillGold(EPDEnemy::Tank, 11) == 5, "탱크 11웨이브 = 3 + 2");
-		G.TreeOwned |= 1ull << 37;
-		G.Mods = BuildTreeMods(G.TreeOwned);
-		int Before = G.Gold;
+		G.TreeOwned.set(FindStat(EPDStat::GoldPct, 0));
+		G.RebuildMods();
+		const int Before = G.Gold;
 		for (int I = 0; I < 20; ++I) { FPDEnemy N2 = G.SpawnTestEnemy(EPDEnemy::Normal, 1.f, 1); G.HitTest(N2, 100.f); }
 		Expect(G.Gold - Before == 23, "골드 +15% 노드: 20마리 → 23골드");
 	}
-	{ // 트리 효과: 무늬 노드, 외골수, 고독한 저격수, 대장장이, 광대의 길, 조커 강화
+	{ // 트리 효과
 		FPDTowerMap M;
 		Put(M, 0, 0, C(9, EPDSuit::Spade));
-		FPDTreeMods Tm = BuildTreeMods(1ull | 1ull << 1);
+		FPDTreeMods Tm = BuildTreeMods(Bits({FindStat(EPDStat::SuitDmg, 0)}));
 		ApplyEffects(M, 0, &Tm);
-		const float Base = TowerStats(M.begin()->second, 0).Dmg, Up = TowerStats(M.begin()->second, 0, &Tm).Dmg;
-		Expect(std::abs(Up / Base - 1.12f) < 1e-3f, "♠ 위력 +12% 노드");
-		Tm = BuildTreeMods(1ull | 1ull << 5);
+		const float Base = TowerStats(M.begin()->second, 0).Dmg;
+		Expect(std::abs(TowerStats(M.begin()->second, 0, &Tm).Dmg / Base - 1.1f) < 1e-3f, "♠ 위력 +10% 노드");
+		Tm = BuildTreeMods(Bits({FindKey(EPDKeystone::Lone)}));
 		ApplyEffects(M, 0, &Tm);
 		Expect(std::abs(TowerStats(M.begin()->second, 0, &Tm).Dmg / Base - 1.6f) < 1e-3f, "고독한 저격수: 혼자 선 타워 ×1.6");
+		Tm = BuildTreeMods(Bits({FindStat(EPDStat::CritChance, 0), FindStat(EPDStat::AllRate, 0)}));
+		const FPDTowerStats Cs = TowerStats(M.begin()->second, 0, &Tm), C0 = TowerStats(M.begin()->second, 0);
+		Expect(Cs.Crit > C0.Crit + 0.01f && Cs.Rate > C0.Rate * 1.02f && std::abs(C0.Crit - BaseCrit) < 1e-5f, "치명타 확률·공격 속도 노드");
 		FPDTowerMap F; // 플러시 3장 + 떨어진 원 페어
 		Put(F, 0, 0, C(2, EPDSuit::Heart)); Put(F, 1, 0, C(6, EPDSuit::Heart)); Put(F, 2, 0, C(11, EPDSuit::Heart));
 		Put(F, 0, 5, C(8, EPDSuit::Club)); Put(F, 1, 5, C(8, EPDSuit::Diamond));
 		ApplyEffects(F, 0);
 		const float Fl = TowerStats(F.at(CellKey(0, 0)), 0).Dmg, Pr = TowerStats(F.at(CellKey(0, 5)), 0).Dmg;
-		Tm = BuildTreeMods(1ull | 1ull << 28); // 외골수
+		Tm = BuildTreeMods(Bits({FindKey(EPDKeystone::Purist)}));
 		ApplyEffects(F, 0, &Tm);
 		Expect(std::abs(TowerStats(F.at(CellKey(0, 0)), 0, &Tm).Dmg / Fl - 2.f) < 1e-3f && std::abs(TowerStats(F.at(CellKey(0, 5)), 0, &Tm).Dmg / Pr - 0.5f) < 1e-3f, "외골수: 플러시 ×2, 다른 족보 ×0.5");
-		Tm = BuildTreeMods(1ull | 1ull << 15); // 잡식가
+		Tm = BuildTreeMods(Bits({FindKey(EPDKeystone::Omni)}));
 		ApplyEffects(F, 0, &Tm);
 		Expect(F.at(CellKey(0, 0)).Eff.Splash == 0.f, "잡식가: 플러시 범위 효과 없음");
 		FPDGame G(8);
@@ -443,20 +495,44 @@ static void UnitTests()
 		Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(2, EPDSuit::Heart)); Put(G.Towers, 2, Row, C(7)); Put(G.Towers, 3, Row, C(8, EPDSuit::Heart)); Put(G.Towers, 4, Row, C(5)); Put(G.Towers, 5, Row, C(5, EPDSuit::Heart));
 		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
 		Expect(!G.JokerGroups().empty(), "조커 재료 있음");
-		G.TreeOwned |= 1ull << 36;
-		G.Mods = BuildTreeMods(G.TreeOwned);
+		G.TreeOwned = Bits({FindKey(EPDKeystone::Smith)});
+		G.RebuildMods();
 		Expect(G.JokerGroups().empty() && std::abs(G.FuseMult() - 2.f) < 1e-4f, "대장장이: 조커 못 만듦, 합성 배율 2.0");
-		G.TreeOwned = 1ull | 1ull << 20;
-		G.Mods = BuildTreeMods(G.TreeOwned);
+		G.TreeOwned = Bits({FindKey(EPDKeystone::ClownPath)});
 		for (auto& KV : G.Towers) KV.second.Level = 2;
-		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
+		G.RebuildMods();
 		Expect(!G.CanFuse(0) && std::abs(G.JokerMult() - 1.6f) < 1e-4f, "광대의 길: 레벨 2는 더 합성 못 함, 조커 배율 1.6");
 		FPDTower J;
 		J.Card = {0, EPDSuit::Wild};
 		J.Joker = (int)EPDJoker::Jack;
 		const float J0 = TowerStats(J, 0).Dmg;
-		Tm = BuildTreeMods(1ull | 1ull << (41 + (int)EPDJoker::Jack));
+		Tm = BuildTreeMods(Bits({FindJoker(EPDJoker::Jack)}));
 		Expect(std::abs(TowerStats(J, 0, &Tm).Dmg / J0 - 5.f / 3.f) < 1e-3f, "잭 강화: ×3 → ×5");
+		bool bNew = false;
+		for (int I = 0; I < TreeNodeCount(); ++I) for (const FPDNodeFx& Fx : TreeNode(I).Fx) bNew = bNew || (Fx.Stat == EPDStat::HandDmg && (Fx.Param & (1 << (int)EPDHand::Five)) && TreeNode(I).Kind == EPDNode::Notable);
+		Expect(bNew, "새 족보(파이브 카드)를 키우는 특급 노드가 있음");
+	}
+	{ // 골드 강화: 레벨 9999까지, 값은 10 + 2 × 레벨
+		FPDGame G(9);
+		G.NewGame(true);
+		G.Gold = 10 + 12 + 14;
+		Expect(G.Upgrade(EPDUpgrade::Attack, 100) == 3 && G.Gold == 0 && G.Upg[(int)EPDUpgrade::Attack] == 3, "공격 강화 3레벨 (10 + 12 + 14 골드)");
+		FPDTower T;
+		T.Card = C(9);
+		const float D0 = TowerStats(T, 0).Dmg;
+		Expect(std::abs(TowerStats(T, 0, &G.Mods).Dmg / D0 - 1.03f) < 1e-4f, "공격 +1%/레벨");
+		G.Upg[(int)EPDUpgrade::Attack] = UpgradeMax - 1;
+		G.Gold = 1000000;
+		Expect(G.Upgrade(EPDUpgrade::Attack, 10) == 1 && G.Upg[(int)EPDUpgrade::Attack] == UpgradeMax && G.Upgrade(EPDUpgrade::Attack, 1) == 0, "최대 9999레벨");
+		G.Upg[(int)EPDUpgrade::Crit] = 1450; // 5% + 145% = 150%
+		G.Upg[(int)EPDUpgrade::Spade] = 10;
+		G.RebuildMods();
+		const FPDTowerStats S = TowerStats(T, 0, &G.Mods);
+		Expect(std::abs(S.Crit - 1.5f) < 1e-3f && std::abs(S.CritFactor() - (1.f + 1.5f * 0.5f)) < 1e-3f, "치명타 확률 150% = 치명타 1~2번 (기대 배율 1.75)");
+		Expect(G.UpgradeBatchCost(EPDUpgrade::Heart, 3) == 36 && G.UpgradeBatchCost(EPDUpgrade::Attack, 5) == 0, "여러 레벨 값, 최대치면 0");
+		long long Total = 0;
+		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);
+		Expect(Total > 90000000LL, "9999레벨까지 약 " + std::to_string(Total / 1000000) + "백만 골드");
 	}
 }
 
@@ -476,7 +552,7 @@ static double Power(FPDGame& G, FPDTowerMap& Tw)
 	{
 		const FPDTower& T = KV.second;
 		const FPDTowerStats S = TowerStats(T, M, &G.Mods);
-		double V = S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, T.X, T.Y, S.Range);
+		double V = S.Dmg * S.Rate * S.CritFactor() * (1 + S.Splash * 0.8) * Coverage(G, T.X, T.Y, S.Range);
 		if (T.IsJoker()) // 조커 능력 어림값
 		{
 			switch ((EPDJoker)T.Joker)
@@ -485,7 +561,7 @@ static double Power(FPDGame& G, FPDTowerMap& Tw)
 			case EPDJoker::Star: V *= 4.0; break;                         // 모든 적 (한 번에 적 여럿)
 			case EPDJoker::Bell: V *= 1.3; break;                         // 멈춤
 			case EPDJoker::Mask:                                          // 옆 타워 따라 함
-				if (T.Eff.CopyKey >= 0 && Tw.count(T.Eff.CopyKey)) { const FPDTowerStats O = TowerStats(Tw.at(T.Eff.CopyKey), M, &G.Mods); V = std::max(V, O.Dmg * O.Rate * (1 + O.Splash * 0.8) * Coverage(G, T.X, T.Y, O.Range)); }
+				if (T.Eff.CopyKey >= 0 && Tw.count(T.Eff.CopyKey)) { const FPDTowerStats O = TowerStats(Tw.at(T.Eff.CopyKey), M, &G.Mods); V = std::max(V, O.Dmg * O.Rate * O.CritFactor() * (1 + O.Splash * 0.8) * Coverage(G, T.X, T.Y, O.Range)); }
 				break;
 			default: break;
 			}
@@ -496,15 +572,15 @@ static double Power(FPDGame& G, FPDTowerMap& Tw)
 }
 // 트리: 골드가 되는 만큼 찍는다. 지금 판 위력이 가장 많이 오르는 노드 (한 걸음 더 내다봄, 살림 노드는 어림값)
 static std::map<int, int> GKeysTaken;
-static double TreeGain(FPDGame& G, uint64_t Owned, double Before)
+static double TreeGain(FPDGame& G, const FPDTreeBits& Owned, double Before)
 {
 	FPDGame Copy = G;
 	Copy.TreeOwned = Owned;
-	Copy.Mods = BuildTreeMods(Owned);
+	Copy.RebuildMods();
 	FPDTowerMap Tw = Copy.Towers;
 	double V = Power(Copy, Tw) - Before;
 	for (int Id = 0; Id < TreeNodeCount(); ++Id)
-		if (((Owned >> Id) & 1ull) && !((G.TreeOwned >> Id) & 1ull))
+		if (Owned.test(Id) && !G.TreeOwned.test(Id))
 			for (const FPDNodeFx& F : TreeNode(Id).Fx)
 			{
 				if (F.Stat == EPDStat::GoldPct) V += Before * 0.04;
@@ -514,37 +590,62 @@ static double TreeGain(FPDGame& G, uint64_t Owned, double Before)
 			}
 	return V;
 }
-static void BotBuyTree(FPDGame& G)
+// 골드 쓰기: 트리 노드와 골드 강화 중 골드당 위력이 가장 많이 오르는 쪽 (bUpg 면 강화도 씀)
+static std::map<int, int> GUpgLv;
+static void BotSpend(FPDGame& G, bool bTree, bool bUpg)
 {
-	for (int Guard = 0; Guard < 30 && G.Gold >= G.PointPrice(); ++Guard)
+	for (int Guard = 0; Guard < 24; ++Guard)
 	{
 		FPDTowerMap Cur = G.Towers;
 		const double Before = std::max(1.0, Power(G, Cur));
-		int Best = -1;
-		double BestV = -1e18;
-		for (int Id = 0; Id < TreeNodeCount(); ++Id)
-		{
-			if (G.CanBuy(Id) != FPDGame::EBuy::Ok) continue;
-			const uint64_t O1 = G.TreeOwned | 1ull << Id;
-			double V = TreeGain(G, O1, Before);
-			for (int M : TreeLinks(Id)) // 한 걸음 더 (두 포인트로 나눔)
+		int BestNode = -1, BestUpg = -1, BestN = 0;
+		double BestRatio = 0.0;
+		if (bTree && G.Gold >= G.PointPrice())
+			for (int Id = 0; Id < TreeNodeCount(); ++Id)
 			{
-				if ((O1 >> M) & 1ull) continue;
-				if (TreeNode(M).Kind == EPDNode::Keystone && (G.KeystoneCount() >= KeystoneMax || G.Mods.Key((EPDKeystone)(TreeNode(M).Fx[0].Param ^ 1)))) continue;
-				V = std::max(V, TreeGain(G, O1 | 1ull << M, Before) / 2.0);
+				if (G.CanBuy(Id) != FPDGame::EBuy::Ok) continue;
+				FPDTreeBits O1 = G.TreeOwned;
+				O1.set(Id);
+				double V = TreeGain(G, O1, Before);
+				for (int M : TreeLinks(Id)) // 한 걸음 더 (두 포인트로 나눔)
+				{
+					if (O1.test(M)) continue;
+					if (TreeNode(M).Kind == EPDNode::Keystone && (G.KeystoneCount() >= KeystoneMax || G.Mods.Key((EPDKeystone)(TreeNode(M).Fx[0].Param ^ 1)))) continue;
+					FPDTreeBits O2 = O1;
+					O2.set(M);
+					V = std::max(V, TreeGain(G, O2, Before) / 2.0);
+				}
+				const double R = V / G.PointPrice();
+				if (R > BestRatio) { BestRatio = R; BestNode = Id; BestUpg = -1; }
 			}
-			if (V > BestV) { BestV = V; Best = Id; }
+		if (bUpg)
+			for (int U = 0; U < (int)EPDUpgrade::Count; ++U)
+			{
+				int N = 0, Cost = 0;
+				for (int L = G.Upg[U]; L < UpgradeMax && Cost + UpgradeCost(L) <= std::max(G.Gold / 2, UpgradeCost(G.Upg[U])) && Cost + UpgradeCost(L) <= G.Gold; ++L) { Cost += UpgradeCost(L); ++N; }
+				if (N == 0) continue;
+				FPDGame Copy = G;
+				Copy.Upg[U] += N;
+				Copy.RebuildMods();
+				FPDTowerMap Tw = Copy.Towers;
+				const double R = (Power(Copy, Tw) - Before) / Cost;
+				if (R > BestRatio) { BestRatio = R; BestUpg = U; BestN = N; BestNode = -1; }
+			}
+		if (BestNode >= 0)
+		{
+			G.BuyNode(BestNode);
+			if (TreeNode(BestNode).Kind == EPDNode::Keystone) GKeysTaken[TreeNode(BestNode).Fx[0].Param]++;
 		}
-		if (Best < 0) break;
-		G.BuyNode(Best);
-		if (TreeNode(Best).Kind == EPDNode::Keystone) GKeysTaken[TreeNode(Best).Fx[0].Param]++;
+		else if (BestUpg >= 0) G.Upgrade((EPDUpgrade)BestUpg, BestN);
+		else break;
 	}
 }
 
-static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false)
+static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
-	double PointSum = 0, GoldSum = 0;
+	double PointSum = 0, GoldSum = 0, UpgSum = 0;
 	GKeysTaken.clear();
+	GUpgLv.clear();
 	std::map<int, int> Hist;
 	int WaveSum = 0;
 	std::map<int, int> JokersMade, KindsMade;
@@ -639,7 +740,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				if (BestI < 0) break;
 				G.Fuse(BestI);
 			}
-			if (bTree) BotBuyTree(G);
+			if (bTree || bUpg) BotSpend(G, bTree, bUpg);
 			G.StartWave();
 			for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K) G.Update(0.05f);
 			if (G.Phase == EPDPhase::Reward) // 보상: 부적 먼저, 없으면 수리 (bNoReward면 건너뛰기)
@@ -655,14 +756,18 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		WaveSum += G.Wave;
 		PointSum += G.Points;
 		GoldSum += G.GoldEarned;
+		UpgSum += G.GoldUpg;
+		for (int U = 0; U < (int)EPDUpgrade::Count; ++U) GUpgLv[U] += G.Upg[U];
 	}
 	std::printf("\n%s%s%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 부적 먼저", bFuse ? " · 합성" : "", bJoker ? " · 조커" : "", bTree ? " · 트리" : "", Runs);
+	if (bUpg) std::printf(" (+ 강화)");
 	for (auto& KV : Hist) std::printf("  %d:%d", KV.first, KV.second);
 	std::printf("   평균 %.1f웨이브", (double)WaveSum / Runs);
 	if (bJoker) std::printf("   조커 판당 %.1f개 (종류:", (double)JokersMade[0] / Runs);
 	if (bJoker) { for (auto& KV : KindsMade) std::printf(" %d=%d", KV.first + 1, KV.second); std::printf(")"); }
 	std::printf("   번 골드 %.0f · 포인트 %.1f", GoldSum / Runs, PointSum / Runs);
 	if (bTree) { std::printf("   키스톤:"); for (auto& KV : GKeysTaken) std::printf(" %d=%d", KV.first, KV.second); }
+	if (bUpg) { std::printf("\n      강화에 쓴 골드 %.0f, 평균 레벨:", UpgSum / Runs); for (auto& KV : GUpgLv) std::printf(" %d=%.0f", KV.first, (double)KV.second / Runs); }
 	std::printf("\n");
 }
 
@@ -671,8 +776,8 @@ int main(int Argc, char** Argv)
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
-	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); }
-	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
+	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
+	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;
 }

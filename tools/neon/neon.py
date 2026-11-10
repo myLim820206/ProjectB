@@ -7,7 +7,7 @@
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
     python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
     python3 tools/neon/neon.py jokers 출력.png     # 조커 카드 후보 10종
-    python3 tools/neon/neon.py tree 출력.png tree.json   # 스킬 트리 화면 (tree.json 은 Tests/tree_dump.cpp 로 뽑음)
+    python3 tools/neon/neon.py tree 출력.png tools/tree/tree.json   # 스킬 트리 화면 (tree.json 은 tools/tree/gen_tree.py 가 만듦)
 
 새 그림은 아래 SHAPES 에 함수를 더하면 된다. 큰 크기 / 손패 크기 / 타워 크기 세 가지로 나란히 그린다.
 """
@@ -228,27 +228,13 @@ def joker_cards():
 
 
 # ---------------------------------------------------------------- 스킬 트리 화면 (1280 x 720, 언리얼 트리 창과 같은 배치)
-TREE_CX, TREE_CY, TREE_U, TREE_SX = 640, 392, 49, 1.55
+# tree.json 은 tools/tree/gen_tree.py 가 만든다 (노드 위치가 화면 좌표 그대로)
 SUIT_COL = ['spade', 'heart', 'diamond', 'club']
-
-
-def tree_pos(n):
-    a = math.radians(n['d'])
-    return TREE_CX + math.cos(a) * n['r'] * TREE_U * TREE_SX, TREE_CY + math.sin(a) * n['r'] * TREE_U
+THEME_COL = SUIT_COL + ['cyan', 'white', 'pink', 'white']
 
 
 def tree_color(n):
-    """무늬 팔은 무늬 색, 다리는 청록, 살림은 흰색, 키스톤 금색, 조커 분홍"""
-    k, i = n['k'], n['id']
-    if k == 3:
-        return 'gold'
-    if k == 4 or i >= 51:
-        return 'pink'
-    if 1 <= i <= 20:
-        return SUIT_COL[(i - 1) // 5]
-    if 21 <= i <= 36:
-        return 'cyan'
-    return 'white'
+    return 'gold' if n['k'] == 3 else THEME_COL[n['theme']]
 
 
 def tree_shape(n, cx, cy):
@@ -256,46 +242,64 @@ def tree_shape(n, cx, cy):
     if k == 0:
         return [circle(cx, cy, 13, 32)] + suit('wild')(cx, cy, 8)
     if k == 1:
-        return [circle(cx, cy, 7, 24)]
+        return [circle(cx, cy, 6, 24)]
     if k == 2:
-        L = [rrect(cx, cy, 15, 4)]
-        i = n['id']
-        if 1 <= i <= 20:
-            L += suit(SUIT_COL[(i - 1) // 5])(cx, cy, 8)
+        L = [rrect(cx, cy, 13, 4)]
+        if n['theme'] < 4:
+            L += suit(SUIT_COL[n['theme']])(cx, cy, 7)
         else:
-            L.append(circle(cx, cy, 4, 16))
+            L.append(circle(cx, cy, 3.5, 16))
         return L
     if k == 3:  # 키스톤: 팔각 이중 틀
         oct_ = lambda r: [(cx + math.cos(math.radians(22.5 + 45 * j)) * r, cy + math.sin(math.radians(22.5 + 45 * j)) * r) for j in range(9)]
-        return [oct_(20), oct_(13)]
-    # 조커 강화: 분홍 틀 + 광대 모자
-    return [rrect(cx, cy, 17, 5)] + jester_hat(cx, cy + 4, 13, band=False)
+        return [oct_(18), oct_(11)]
+    return [rrect(cx, cy, 15, 4)] + jester_hat(cx, cy + 4, 11, band=False)
 
 
-def render_tree(out, path, owned=(0, 1, 2, 3, 4, 5, 6, 7, 21, 23, 58, 48), sealed=(10,), S=2):
+def render_tree(out, path, owned=None, sealed=(), S=2):
     import json
-    nodes = json.load(open(path))
+    nodes = json.load(open(path, encoding='utf-8'))
+    if owned is None:  # 예시: ♠ 큰길 끝 키스톤 + 조커 하나 + ♥ 주머니 하나
+        owned = {0}
+        def walk_to(target):
+            prev = {0: None}
+            q = [0]
+            while q:
+                c = q.pop(0)
+                for m in nodes[c]['l']:
+                    if m not in prev:
+                        prev[m] = c
+                        q.append(m)
+            while target is not None:
+                owned.add(target)
+                target = prev[target]
+        keys = [n['id'] for n in nodes if n['k'] == 3]
+        jokers = [n['id'] for n in nodes if n['k'] == 4]
+        walk_to(keys[0])
+        walk_to(jokers[0])
+        hn = [n['id'] for n in nodes if n['k'] == 2 and n['theme'] == 1]
+        walk_to(hn[-1])
+        sealed = (keys[1],)
     COL.setdefault('gold', (255, 210, 110))
+    COL.setdefault('red', (255, 90, 110))
     img = Image.new('RGB', (1280 * S, 720 * S), BG)
-    jobs = []  # (선 목록, 색, 밝기)
-    seen = set()
+    jobs = []
     for n in nodes:
         for m in n['l']:
-            if (m, n['id']) in seen:
+            if m < n['id']:
                 continue
-            seen.add((n['id'], m))
             on = n['id'] in owned and m in owned
-            a, b = tree_pos(n), tree_pos(nodes[m])
-            jobs.append(([[a, b]], tree_color(nodes[m]) if on else 'cyan', 1.0 if on else 0.22, 1.2))
+            a, b = (n['x'], n['y']), (nodes[m]['x'], nodes[m]['y'])
+            col = tree_color(nodes[m] if nodes[m]['k'] != 3 else n) if on else 'cyan'
+            jobs.append(([[a, b]], col, 1.0 if on else 0.2, 1.1))
     for n in nodes:
-        cx, cy = tree_pos(n)
+        cx, cy = n['x'], n['y']
         i = n['id']
         if i in sealed:
-            jobs.append((tree_shape(n, cx, cy), 'red', 0.5, 1.4))
-            jobs.append(([[(cx - 12, cy - 12), (cx + 12, cy + 12)], [(cx + 12, cy - 12), (cx - 12, cy + 12)]], 'red', 0.8, 1.4))
+            jobs.append((tree_shape(n, cx, cy), 'red', 0.5, 1.3))
+            jobs.append(([[(cx - 11, cy - 11), (cx + 11, cy + 11)], [(cx + 11, cy - 11), (cx - 11, cy + 11)]], 'red', 0.8, 1.3))
         else:
-            jobs.append((tree_shape(n, cx, cy), tree_color(n), 1.0 if i in owned else 0.4, 1.6 if n['k'] >= 2 else 1.3))
-    COL.setdefault('red', (255, 90, 110))
+            jobs.append((tree_shape(n, cx, cy), tree_color(n), 1.0 if i in owned else 0.4, 1.5 if n['k'] >= 2 else 1.2))
     for lines, col, alpha, w in jobs:
         c = tuple(int(v * alpha) for v in COL[col])
         glow = Image.new('RGB', img.size, (0, 0, 0))
@@ -308,9 +312,8 @@ def render_tree(out, path, owned=(0, 1, 2, 3, 4, 5, 6, 7, 21, 23, 58, 48), seale
         for ln in sl:
             d.line(ln, fill=c, width=max(1, int(w * S)))
     d = ImageDraw.Draw(img)
-    d.text((640 * S, 30 * S), 'SKILL TREE   gold 132   next point 30   keystone 1/3', fill=COL['gold'], font=FONT(14 * S), anchor='mm')
+    d.text((40 * S, 40 * S), 'SKILL TREE  %d nodes' % len(nodes), fill=COL['gold'], font=FONT(14 * S), anchor='lm')
     img.resize((1280, 720), Image.LANCZOS).save(out)
-
 
 SHAPES = {
     'jokers': joker_cards(),

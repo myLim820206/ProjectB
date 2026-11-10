@@ -91,6 +91,7 @@ private:
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
 	bool bTree = false;                    // 스킬 트리 화면 (K)
+	bool bUpg = false;                     // 골드 강화 화면 (U)
 	int32 TreeBuyId = -1;                  // 방금 찍은 노드 (연출)
 	float TreeBuyT = 0.f;
 	FString PreviewKey;

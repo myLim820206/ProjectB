@@ -29,144 +29,37 @@ static const FPDEnemyDef GPDEnemies[(int)EPDEnemy::Count] = {
 const FPDEnemyDef& EnemyDef(EPDEnemy T) { return GPDEnemies[(int)T]; }
 const FPDSuitDef& SuitDef(EPDSuit S) { return GPDSuits[(int)S]; }
 
-static const int GPDHandVal[(int)EPDHand::Count] = {100, 90, 80, 30, 28, 60, 45, 20};
+static const int GPDHandVal[(int)EPDHand::Count] = {120, 110, 100, 90, 80, 30, 28, 60, 45, 20};
 int HandBaseValue(EPDHand H) { return GPDHandVal[(int)H]; }
 int HandValue(EPDHand H, int N) { return GPDHandVal[(int)H] + ((H == EPDHand::Flush || H == EPDHand::Straight) ? (N - 3) * 22 : 0); }
 
 
-// ---------------------------------------------------------------- 스킬 트리 표
-// 번호: 0 시작 / 1~20 무늬 팔 (♠ ♥ ♦ ♣ 차례로 작은 2 + 특급 + 작은(조커 길) + 키스톤) /
-// 21~36 다리 (♠♥ ♥♦ ♦♣ ♣♠ 차례로 작은 2 + 특급 + 키스톤) / 37~40 안쪽 살림 노드 / 41~50 조커 강화 (EPDJoker 순서) /
-// 51~60 조커 갈림길 (조커 순서). 조커 강화는 막다른 끝이고 서로 이어지지 않는다
+// ---------------------------------------------------------------- 스킬 트리 표 (tools/tree/gen_tree.py 가 만든 PDTreeData.inl)
+#include "PDTreeData.inl"
 namespace
 {
-constexpr int HBit(EPDHand H) { return 1 << (int)H; }
-constexpr int PairM = HBit(EPDHand::Pair) | HBit(EPDHand::TwoPair);
-constexpr int TripM = HBit(EPDHand::Triple) | HBit(EPDHand::Four);
-constexpr int SameM = PairM | TripM | HBit(EPDHand::FullHouse);
-constexpr int FlushM = HBit(EPDHand::Flush) | HBit(EPDHand::StraightFlush);
-constexpr int StrM = HBit(EPDHand::Straight) | HBit(EPDHand::StraightFlush);
-
-struct FPDTreeData
+const std::vector<std::vector<int>>& PDTreeAdj()
 {
-	std::vector<FPDTreeNode> Nodes;
-	std::vector<std::vector<int>> Links;
-	void Link(int A, int B) { Links[A].push_back(B); Links[B].push_back(A); }
-};
-FPDTreeNode Nd(EPDNode K, float R, float Deg, FPDNodeFx A, FPDNodeFx B = {})
-{
-	FPDTreeNode N;
-	N.Kind = K;
-	N.R = R;
-	N.Deg = Deg;
-	N.Fx[0] = A;
-	N.Fx[1] = B;
-	return N;
-}
-const FPDTreeData& Tree()
-{
-	static const FPDTreeData Data = [] {
-		FPDTreeData T;
-		using S = EPDStat;
-		T.Nodes.push_back(Nd(EPDNode::Start, 0.f, 0.f, {}));
-		static const float SuitDeg[4] = {-90.f, 0.f, 90.f, 180.f}; // ♠ 위, ♥ 오른쪽, ♦ 아래, ♣ 왼쪽
-		// 무늬마다: 작은1, 작은2, 특급 (둘 다 무늬 효과)
-		const FPDNodeFx Arm[4][4] = {
-			{{S::SuitDmg, 0, 0.12f}, {S::SuitRange, 0, 0.10f}, {S::SuitDmg, 0, 0.20f}, {S::SuitRange, 0, 0.10f}},  // ♠ 저격
-			{{S::SuitDmg, 1, 0.12f}, {S::SuitSplash, 1, 0.20f}, {S::SuitDmg, 1, 0.20f}, {S::SuitSplash, 1, 0.20f}}, // ♥ 폭발
-			{{S::SuitRate, 2, 0.10f}, {S::SuitDmg, 2, 0.12f}, {S::SuitRate, 2, 0.20f}, {S::SuitDmg, 2, 0.10f}},  // ♦ 연사
-			{{S::SuitDmg, 3, 0.12f}, {S::SuitSlow, 3, 0.08f}, {S::SuitSlow, 3, 0.10f}, {S::SuitRange, 3, 0.15f}}, // ♣ 둔화
-		};
-		static const EPDKeystone ArmKey[4] = {EPDKeystone::Lone, EPDKeystone::Crowd, EPDKeystone::Omni, EPDKeystone::ClownPath};
-		for (int Su = 0; Su < 4; ++Su)
-		{
-			const float A = SuitDeg[Su];
-			T.Nodes.push_back(Nd(EPDNode::Small, 1.2f, A, Arm[Su][0]));
-			T.Nodes.push_back(Nd(EPDNode::Small, 2.2f, A, Arm[Su][1]));
-			T.Nodes.push_back(Nd(EPDNode::Notable, 3.2f, A, Arm[Su][2], Arm[Su][3]));
-			T.Nodes.push_back(Nd(EPDNode::Small, 4.2f, A, {S::AllDmg, 0, 0.05f}));
-			T.Nodes.push_back(Nd(EPDNode::Keystone, 5.2f, A, {S::Keystone, (int)ArmKey[Su], 0.f}));
-		}
-		// 다리: 이웃한 두 무늬 사이. 같은 숫자 / 플러시 / 스트레이트 / 합성·연쇄
-		const FPDNodeFx Br[4][4] = {
-			{{S::HandDmg, PairM, 0.15f}, {S::HandDmg, TripM, 0.15f}, {S::HandDmg, SameM, 0.25f}, {}},
-			{{S::HandSplash, FlushM, 0.25f}, {S::HandDmg, FlushM, 0.15f}, {S::HandDmg, FlushM, 0.25f}, {S::HandSplash, FlushM, 0.25f}},
-			{{S::HandRate, StrM, 0.10f}, {S::HandDmg, StrM, 0.15f}, {S::HandRate, StrM, 0.20f}, {S::HandDmg, StrM, 0.10f}},
-			{{S::ChainAdd, 0, 0.05f}, {S::FusedDmg, 0, 0.15f}, {S::FuseAdd, 0, 0.15f}, {S::ChainAdd, 0, 0.05f}},
-		};
-		static const EPDKeystone BrKey[4] = {EPDKeystone::SmallTable, EPDKeystone::Purist, EPDKeystone::BigTable, EPDKeystone::Smith};
-		for (int B = 0; B < 4; ++B)
-		{
-			const float Dg = SuitDeg[B] + 45.f;
-			T.Nodes.push_back(Nd(EPDNode::Small, 2.9f, Dg - 20.f, Br[B][0]));
-			T.Nodes.push_back(Nd(EPDNode::Small, 2.9f, Dg + 20.f, Br[B][1]));
-			T.Nodes.push_back(Nd(EPDNode::Notable, 3.7f, Dg, Br[B][2], Br[B][3]));
-			T.Nodes.push_back(Nd(EPDNode::Keystone, 4.7f, Dg, {S::Keystone, (int)BrKey[B], 0.f}));
-		}
-		// 안쪽 살림: 골드 / 손패 / 목숨 / 카드
-		const FPDNodeFx Ut[4] = {{S::GoldPct, 0, 0.15f}, {S::HandMax, 0, 1.f}, {S::Lives, 0, 4.f}, {S::Draw, 0, 1.f}};
-		for (int U = 0; U < 4; ++U) T.Nodes.push_back(Nd(EPDNode::Small, 1.5f, SuitDeg[U] + 45.f, Ut[U]));
-		// 조커 강화: 바깥 끝자락. 서로 이어지지 않은 막다른 가지 끝이라, 다른 조커를 찍으려면 안쪽에서 다시 올라와야 한다
-		static const float JokerDeg[(int)EPDJoker::Count] = {108.f, 162.f, 234.f, 18.f, 54.f, 72.f, -72.f, -108.f, 198.f, -18.f};
-		for (int J = 0; J < (int)EPDJoker::Count; ++J) T.Nodes.push_back(Nd(EPDNode::Joker, 6.3f, JokerDeg[J], {S::Joker, J, 0.f}));
-		// 51~60: 조커로 가는 갈림길 (조커 포탑 위력). 팔 끝마다 둘, 플러시·합성 다리에 하나씩
-		for (int J = 0; J < (int)EPDJoker::Count; ++J) T.Nodes.push_back(Nd(EPDNode::Small, 5.3f, JokerDeg[J] + (J == (int)EPDJoker::Harlequin || J == (int)EPDJoker::Mask ? 0.f : (std::fmod(JokerDeg[J] + 360.f, 90.f) < 45.f ? -4.f : 4.f)), {S::JokerDmg, 0, 0.10f}));
-		// 조커가 붙은 다리의 키스톤은 옆으로 비켜 둔다
-		T.Nodes[21 + 1 * 4 + 3].Deg -= 12.f;
-		T.Nodes[21 + 3 * 4 + 3].Deg -= 12.f;
-
-		T.Links.resize(T.Nodes.size());
-		auto ArmId = [](int Su, int I) { return 1 + Su * 5 + I; };
-		for (int Su = 0; Su < 4; ++Su)
-		{
-			T.Link(0, ArmId(Su, 0));
-			for (int I = 0; I < 4; ++I) T.Link(ArmId(Su, I), ArmId(Su, I + 1));
-		}
-		for (int B = 0; B < 4; ++B)
-		{
-			const int Id = 21 + B * 4;
-			T.Link(ArmId(B, 1), Id);
-			T.Link(ArmId((B + 1) % 4, 1), Id + 1);
-			T.Link(Id, Id + 2);
-			T.Link(Id + 1, Id + 2);
-			T.Link(Id + 2, Id + 3);
-			T.Link(ArmId(B, 0), 37 + B);
-			T.Link(37 + B, ArmId((B + 1) % 4, 0));
-		}
-		// 갈림길 → 조커. 갈림길의 뿌리: 할리퀸은 플러시 다리 특급, 가면은 합성 다리 특급, 나머지는 가까운 팔 끝
-		auto Wrap = [](float D) { while (D < -90.f) D += 360.f; while (D >= 270.f) D -= 360.f; return D; };
-		static const float SuitDeg2[4] = {-90.f, 0.f, 90.f, 180.f};
-		for (int J = 0; J < (int)EPDJoker::Count; ++J)
-		{
-			const int Fork = 51 + J;
-			T.Link(Fork, 41 + J);
-			if (J == (int)EPDJoker::Harlequin) { T.Link(21 + 1 * 4 + 2, Fork); continue; }
-			if (J == (int)EPDJoker::Mask) { T.Link(21 + 3 * 4 + 2, Fork); continue; }
-			int BestSu = 0;
-			float BestD = 1e9f;
-			for (int Su = 0; Su < 4; ++Su)
-			{
-				const float D = std::abs(Wrap(JokerDeg[J]) - Wrap(SuitDeg2[Su]));
-				if (std::min(D, 360.f - D) < BestD) { BestD = std::min(D, 360.f - D); BestSu = Su; }
-			}
-			T.Link(ArmId(BestSu, 3), Fork);
-		}
-		return T;
+	static const std::vector<std::vector<int>> Adj = [] {
+		std::vector<std::vector<int>> A(sizeof(GPDTreeNodes) / sizeof(GPDTreeNodes[0]));
+		for (const auto& L : GPDTreeLinks) { A[L[0]].push_back(L[1]); A[L[1]].push_back(L[0]); }
+		return A;
 	}();
-	return Data;
+	return Adj;
 }
 } // namespace
+static_assert(sizeof(GPDTreeNodes) / sizeof(GPDTreeNodes[0]) <= TreeMaxNodes, "TreeMaxNodes 를 늘릴 것");
 
-int TreeNodeCount() { return (int)Tree().Nodes.size(); }
-const FPDTreeNode& TreeNode(int Id) { return Tree().Nodes[Id]; }
-const std::vector<int>& TreeLinks(int Id) { return Tree().Links[Id]; }
+int TreeNodeCount() { return (int)(sizeof(GPDTreeNodes) / sizeof(GPDTreeNodes[0])); }
+const FPDTreeNode& TreeNode(int Id) { return GPDTreeNodes[Id]; }
+const std::vector<int>& TreeLinks(int Id) { return PDTreeAdj()[Id]; }
 
-FPDTreeMods BuildTreeMods(uint64_t Owned)
+FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned)
 {
 	FPDTreeMods M;
 	for (int Id = 0; Id < TreeNodeCount(); ++Id)
 	{
-		if (!((Owned >> Id) & 1ull)) continue;
+		if (!Owned.test(Id)) continue;
 		for (const FPDNodeFx& F : TreeNode(Id).Fx)
 		{
 			auto Hands = [&](float* Arr) { for (int H = 0; H < (int)EPDHand::Count; ++H) if (F.Param & (1 << H)) Arr[H] += F.Value; };
@@ -185,6 +78,10 @@ FPDTreeMods BuildTreeMods(uint64_t Owned)
 			case EPDStat::FuseAdd: M.FuseAdd += F.Value; break;
 			case EPDStat::FusedDmg: M.FusedDmg += F.Value; break;
 			case EPDStat::JokerDmg: M.JokerDmg += F.Value; break;
+			case EPDStat::JokerAdd: M.JokerAdd += F.Value; break;
+			case EPDStat::AllRate: M.AllRate += F.Value; break;
+			case EPDStat::CritChance: M.CritChance += F.Value; break;
+			case EPDStat::CritMult: M.CritMult += F.Value; break;
 			case EPDStat::GoldPct: M.GoldPct += F.Value; break;
 			case EPDStat::HandMax: M.HandAdd += (int)F.Value; break;
 			case EPDStat::Draw: M.DrawAdd += (int)F.Value; break;
@@ -195,6 +92,27 @@ FPDTreeMods BuildTreeMods(uint64_t Owned)
 		}
 	}
 	return M;
+}
+
+int UpgradeCost(int Level) { return 10 + 2 * Level; } // 10, 12, 14 … 9999레벨까지 약 1억
+float UpgradeStep(EPDUpgrade U)
+{
+	switch (U)
+	{
+	case EPDUpgrade::Attack: return 0.01f;    // 공격력 +1%
+	case EPDUpgrade::Speed: return 0.01f;     // 공격 속도 +1%
+	case EPDUpgrade::Crit: return 0.001f;     // 치명타 확률 +0.1%p (100% 넘으면 한 방에 여러 번)
+	case EPDUpgrade::CritMult: return 0.01f;  // 치명타 배율 +0.01
+	default: return 0.03f;                    // 무늬 강화: 그 무늬 공격력 +3%
+	}
+}
+void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>& Lv)
+{
+	M.UpgDmg = UpgradeStep(EPDUpgrade::Attack) * Lv[(int)EPDUpgrade::Attack];
+	M.UpgRate = UpgradeStep(EPDUpgrade::Speed) * Lv[(int)EPDUpgrade::Speed];
+	M.UpgCrit = UpgradeStep(EPDUpgrade::Crit) * Lv[(int)EPDUpgrade::Crit];
+	M.UpgCritMult = UpgradeStep(EPDUpgrade::CritMult) * Lv[(int)EPDUpgrade::CritMult];
+	for (int S = 0; S < 4; ++S) M.UpgSuit[S] = UpgradeStep((EPDUpgrade)((int)EPDUpgrade::Spade + S)) * Lv[(int)EPDUpgrade::Spade + S];
 }
 
 std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
@@ -235,6 +153,13 @@ std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 		bStraight = Consec(Hi) || Consec(Lo);
 	}
 	std::vector<EPDHand> Out;
+	if (N == 5 && Vals[0] == 5) Out.push_back(EPDHand::Five);
+	if (N == 5 && bSameSuit && bStraight)
+	{
+		int Lo = 99;
+		for (const FPDCard& C : Cards) Lo = std::min(Lo, C.Rank);
+		if (Lo == 10) Out.push_back(EPDHand::RoyalFlush);
+	}
 	if (N == 2 && Vals[0] == 2) Out.push_back(EPDHand::Pair);
 	if (N == 3 && Vals[0] == 3) Out.push_back(EPDHand::Triple);
 	if (N == 4 && Vals[0] == 4) Out.push_back(EPDHand::Four);
@@ -415,11 +340,23 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 			case EPDHand::FullHouse: E.Dmg *= 1.5f; E.Rate *= 1.5f; E.Splash = std::max(E.Splash, 1.5f); break;
 			case EPDHand::Four: E.Dmg *= 3.5f; break;
 			case EPDHand::StraightFlush: E.Dmg *= 2.f; E.Rate *= 2.f; E.Splash = std::max(E.Splash, 2.f); break;
+			case EPDHand::Five: E.Dmg *= 5.f; break;
+			case EPDHand::RoyalFlush: E.Dmg *= 2.5f; E.Rate *= 2.5f; E.Splash = std::max(E.Splash, 2.5f); break;
 			default: break;
 			}
 			const bool bNoChain = bSkip || Tm.Key(EPDKeystone::Lone) || (Tm.Key(EPDKeystone::SmallTable) && N == 5); // 고독한 저격수·작은 판(5장)은 연쇄 덤 없음
 			if (Syn[I].Chain >= 2) { if (!bNoChain) E.Dmg *= 1.f + Step * (Syn[I].Chain - 1); E.Chain = Syn[I].Chain; }
 		}
+	// 대장 지휘: 판 위 자기 족보 타워(족보에 든 타워, 또는 그 족보를 기억하는 합성 타워) 위력 +30%씩, 겹친다
+	int Captains[(int)EPDHand::Count] = {};
+	for (auto& KV : Towers) if (KV.second.IsJoker()) Captains[(int)CaptainHand((EPDJoker)KV.second.Joker)]++;
+	for (auto& KV : Towers)
+	{
+		FPDTower& O = KV.second;
+		if (O.IsJoker()) continue;
+		const int K = O.Eff.Kind >= 0 ? O.Eff.Kind : O.FuseHand;
+		if (K >= 0 && Captains[K] > 0) O.Eff.Dmg *= 1.f + CaptainCommand * Captains[K];
+	}
 	// 조커 오라
 	for (auto& KV : Towers)
 	{
@@ -447,21 +384,31 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 	return Syn;
 }
 
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount, int MaxFusedLevel)
+// 대장 표: 족보 → 조커 (그림 번호는 docs/15 9절)
+static const EPDJoker GPDCaptain[(int)EPDHand::Count] = {
+	EPDJoker::Star,      // 로열 스트레이트 플러시
+	EPDJoker::Clown,     // 파이브 카드 (와일드의 상징)
+	EPDJoker::Hatter,    // 스트레이트 플러시
+	EPDJoker::Cheshire,  // 포카드
+	EPDJoker::Bell,      // 풀하우스
+	EPDJoker::Harlequin, // 플러시
+	EPDJoker::Baton,     // 스트레이트
+	EPDJoker::Jack,      // 트리플
+	EPDJoker::Mask,      // 투 페어
+	EPDJoker::Comedy,    // 원 페어
+};
+EPDJoker CaptainOf(EPDHand H) { return GPDCaptain[(int)H]; }
+EPDHand CaptainHand(EPDJoker J)
 {
-	int N[(int)EPDHand::Count] = {};
-	for (EPDHand H : Hands) N[(int)H]++;
-	auto C = [&](EPDHand H) { return N[(int)H]; };
-	if (C(EPDHand::StraightFlush) >= 1 && C(EPDHand::Four) >= 1 && C(EPDHand::FullHouse) >= 1) return EPDJoker::Star;
-	if (C(EPDHand::Four) >= 1) return EPDJoker::Cheshire;
-	if (C(EPDHand::FullHouse) >= 2) return EPDJoker::Bell;
-	if (C(EPDHand::Triple) >= 2) return EPDJoker::Jack;
-	if (C(EPDHand::Flush) >= 3) return EPDJoker::Harlequin;
-	if (C(EPDHand::Straight) >= 3) return EPDJoker::Baton;
-	if (C(EPDHand::TwoPair) >= 2) return EPDJoker::Comedy;
-	if (FusedCount >= 3) return EPDJoker::Mask;
-	if (FusedCount >= 1 && MaxFusedLevel >= 3) return EPDJoker::Hatter; // 레벨 3 이상 합성 타워
-	return EPDJoker::Clown;
+	for (int H = 0; H < (int)EPDHand::Count; ++H) if (GPDCaptain[H] == J) return (EPDHand)H;
+	return EPDHand::Pair;
+}
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
+{
+	if (Hands.empty()) return EPDJoker::Comedy;
+	EPDHand Best = Hands[0];
+	for (EPDHand H : Hands) if (HandBaseValue(H) > HandBaseValue(Best)) Best = H;
+	return CaptainOf(Best);
 }
 
 FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree)
@@ -484,7 +431,12 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	const int Si = T.Card.IsWild() ? 4 : (int)T.Card.Suit;
 	const int K = T.Eff.Kind;
 	St.Dmg *= 1.f + Tm.AllDmg + Tm.SuitDmg[Si] + (K >= 0 ? Tm.HandDmg[K] : 0.f) + (T.Level >= 2 && !T.IsJoker() ? Tm.FusedDmg : 0.f) + (T.IsJoker() ? Tm.JokerDmg : 0.f);
-	St.Rate *= 1.f + Tm.SuitRate[Si] + (K >= 0 ? Tm.HandRate[K] : 0.f);
+	St.Rate *= 1.f + Tm.AllRate + Tm.SuitRate[Si] + (K >= 0 ? Tm.HandRate[K] : 0.f);
+	St.Crit = BaseCrit + Tm.CritChance + Tm.UpgCrit;
+	St.CritMult = BaseCritMult + Tm.CritMult + Tm.UpgCritMult;
+	// 골드 강화 (따로 곱함)
+	St.Dmg *= (1.f + Tm.UpgDmg) * (1.f + (Si < 4 ? Tm.UpgSuit[Si] : 0.f));
+	St.Rate *= 1.f + Tm.UpgRate;
 	St.Range *= 1.f + Tm.SuitRange[Si];
 	if (St.Splash > 0.f) St.Splash += Tm.SuitSplash[Si] + (K >= 0 ? Tm.HandSplash[K] : 0.f);
 	if (St.Slow > 0.f) St.Slow = std::min(0.75f, St.Slow + Tm.SuitSlow[Si]);
@@ -531,6 +483,8 @@ static FPDTrait HandTrait(EPDHand H, int N)
 	case EPDHand::FullHouse: T.Dmg = 1.5f; T.Rate = 1.5f; T.Splash = 1.5f; break;
 	case EPDHand::Four: T.Dmg = 3.5f; break;
 	case EPDHand::StraightFlush: T.Dmg = 2.f; T.Rate = 2.f; T.Splash = 2.f; break;
+	case EPDHand::Five: T.Dmg = 5.f; break;
+	case EPDHand::RoyalFlush: T.Dmg = 2.5f; T.Rate = 2.5f; T.Splash = 2.5f; break;
 	default: break;
 	}
 	return T;
@@ -622,7 +576,9 @@ void FPDGame::NewGame(bool bStart)
 	Kills = Leaks = Discarded = DeckRefills = 0;
 	Gold = Points = GoldEarned = 0;
 	GoldCarry = 0.f;
-	TreeOwned = 1;
+	TreeOwned = FPDTreeBits(1);
+	Upg = {};
+	GoldUpg = 0;
 	Mods = FPDTreeMods{};
 	Time = 0.f;
 	Towers.clear();
@@ -662,7 +618,43 @@ int FPDGame::KillGold(EPDEnemy T, int W) const
 
 int FPDGame::PointPrice() const { return (int)std::lround(PointBasePrice * std::pow(PointPriceGrowth, (float)Points)); }
 float FPDGame::FuseMult() const { return FuseBonus + Mods.FuseAdd + (Mods.Key(EPDKeystone::Smith) ? 0.5f : 0.f); }
-float FPDGame::JokerMult() const { return JokerBonus + (Mods.Key(EPDKeystone::ClownPath) ? 0.4f : 0.f); }
+float FPDGame::JokerMult() const { return JokerBonus + Mods.JokerAdd + (Mods.Key(EPDKeystone::ClownPath) ? 0.4f : 0.f); }
+
+void FPDGame::RebuildMods()
+{
+	Mods = BuildTreeMods(TreeOwned);
+	ApplyUpgrades(Mods, Upg);
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+}
+
+int FPDGame::UpgradeBatchCost(EPDUpgrade U, int N) const
+{
+	const int L = Upg[(int)U];
+	const int Count = std::max(0, std::min(N, UpgradeMax - L));
+	long long Sum = 0;
+	for (int I = 0; I < Count; ++I) Sum += UpgradeCost(L + I);
+	return (int)std::min<long long>(Sum, 2000000000LL);
+}
+
+int FPDGame::Upgrade(EPDUpgrade U, int N)
+{
+	if (Phase != EPDPhase::Build && Phase != EPDPhase::Wave) return 0;
+	int Done = 0;
+	int& L = Upg[(int)U];
+	while (Done < N && L < UpgradeMax && Gold >= UpgradeCost(L))
+	{
+		Gold -= UpgradeCost(L);
+		GoldUpg += UpgradeCost(L);
+		L++;
+		Done++;
+	}
+	if (Done > 0)
+	{
+		RebuildMods();
+		Sfx(EPDSound::Rotate);
+	}
+	return Done;
+}
 
 int FPDGame::KeystoneCount() const
 {
@@ -696,10 +688,9 @@ bool FPDGame::BuyNode(int Id)
 	if (CanBuy(Id) != EBuy::Ok) return false;
 	Gold -= PointPrice();
 	Points++;
-	TreeOwned |= 1ull << Id;
-	Mods = BuildTreeMods(TreeOwned);
+	TreeOwned.set(Id);
 	for (const FPDNodeFx& F : TreeNode(Id).Fx) if (F.Stat == EPDStat::Lives) Lives += (int)F.Value;
-	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	RebuildMods();
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::TreeBuy;
 	E.A = Id;
@@ -964,12 +955,15 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 		for (int K : Mem)
 		{
 			if (Nodes[K].Syn >= 0) { G.SynergyIdx.push_back(Nodes[K].Syn); Kinds.push_back(Synergies[Nodes[K].Syn].Kind); }
-			else G.FusedCells.push_back(Nodes[K].Fused);
+			else
+			{
+				G.FusedCells.push_back(Nodes[K].Fused);
+				const int FH = Towers.at(Nodes[K].Fused).FuseHand;
+				if (FH >= 0) Kinds.push_back((EPDHand)FH);
+			}
 			G.Cells.insert(G.Cells.end(), Nodes[K].Cells.begin(), Nodes[K].Cells.end());
 		}
-		int MaxLv = 0;
-		for (int K : G.FusedCells) MaxLv = std::max(MaxLv, Towers.at(K).Level);
-		G.Result = MatchJokerRecipe(Kinds, (int)G.FusedCells.size(), MaxLv);
+		G.Result = MatchJokerRecipe(Kinds);
 		Out.push_back(G);
 	}
 	return Out;
@@ -1074,6 +1068,8 @@ bool FPDGame::Fuse(int SynergyIdx)
 	}
 	const FPDTrait H = HandTrait(S.Kind, S.N);
 	F.Level = std::min(MaxLevel, Level + 1);
+	F.FuseHand = (int)S.Kind;
+	for (int K : S.Cells) { const int FH = Towers.at(K).FuseHand; if (FH >= 0 && HandBaseValue((EPDHand)FH) > HandBaseValue((EPDHand)F.FuseHand)) F.FuseHand = FH; }
 	F.Mult = Mult * FuseMult();
 	F.TDmg = Old.Dmg * H.Dmg;
 	F.TRate = Old.Rate * H.Rate;
@@ -1196,6 +1192,12 @@ void FPDGame::Update(float Dt)
 			St.Splash = std::max(St.Splash, O.Splash);
 			St.Slow = std::max(St.Slow, O.Slow);
 		}
+		St.Dmg *= std::max(1.f, St.Rate * Dt); // 한 틱(0.05초)보다 빨리 쏘면 남는 만큼 피해로 몰아준다
+		auto RollCrit = [&]() { // 치명타 횟수: 100%를 넘은 만큼 확정 + 나머지는 확률
+			int N = (int)St.Crit;
+			if (std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < St.Crit - N) N++;
+			return N;
+		};
 		if (JK == EPDJoker::Bell) // 방울: 8초마다 사거리 안 적을 1.5초 멈춘다
 		{
 			T.Timer += Dt;
@@ -1218,7 +1220,8 @@ void FPDGame::Update(float Dt)
 		if (JK == EPDJoker::Star) // 스타: 판 전체 레이저, 모든 적에게
 		{
 			bool bAny = false;
-			for (FPDEnemy& E : Enemies) if (!E.bDead) { Hit(E, St.Dmg, 0.f); bAny = true; }
+			const float SD = St.Dmg * (1.f + RollCrit() * (St.CritMult - 1.f));
+			for (FPDEnemy& E : Enemies) if (!E.bDead) { Hit(E, SD, 0.f); bAny = true; }
 			if (bAny)
 			{
 				T.Cd = 1.f / St.Rate;
@@ -1239,6 +1242,8 @@ void FPDGame::Update(float Dt)
 		}
 		if (!Target) continue;
 		T.Cd = 1.f / St.Rate;
+		const int Crits = RollCrit();
+		St.Dmg *= 1.f + Crits * (St.CritMult - 1.f);
 		if (JK == EPDJoker::Clown) T.Cycle++;
 		FPDEnemy* Shot2[2] = {nullptr, nullptr};
 		for (int Extra = 0; JK == EPDJoker::Comedy && Extra < (bUp ? 2 : 1); ++Extra) // 희비극: 둘째 적도 함께 공격 (강화: 셋째까지)
@@ -1275,6 +1280,7 @@ void FPDGame::Update(float Dt)
 		Sh.Y2 = P.Y;
 		Sh.Suit = T.Card.Suit;
 		Sh.A = T.Eff.Hand >= 0;
+		Sh.B = Crits;
 		Ev(Sh);
 		Hit(*Target, St.Dmg, St.Slow);
 		if (St.Splash > 0.f)
