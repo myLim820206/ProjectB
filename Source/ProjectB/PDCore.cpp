@@ -1294,6 +1294,8 @@ void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 		Im.A = P.bHand;
 		Im.Lv = P.Level;
 		Im.Dmg = bHitTarget ? P.Dmg : 0.f;
+		Im.X2 = P.VX; // 날아온 방향 (화면의 튀는 효과 방향)
+		Im.Y2 = P.VY;
 		Im.Suit = P.Suit;
 		Ev(Im);
 	}

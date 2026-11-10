@@ -100,8 +100,9 @@ private:
 	struct FFlare
 	{
 		FVector2f C;
-		float T, MaxT, Size, Rot;
+		float T, MaxT, Size, Rot; // T 가 음수면 그만큼 늦게 나타난다
 		FLinearColor Col;
+		int32 Spokes = 4; // 빛살 갈래 수 (0 = 빛 덩어리만, 2 = 한 줄)
 	};
 	// 몸 조각: 돌며 날아가는 짧은 선
 	struct FShard
@@ -114,7 +115,10 @@ private:
 	TArray<FShard> Shards;
 	TMap<int32, float> HitFlash; // 적 Id → 맞은 순간 번쩍임 남은 시간
 	TMap<int32, float> HpShown;  // 적 Id → 천천히 줄어드는 체력 막대 (깎인 만큼 흰색으로 보임)
-	void HitFx(FVector2f P, FLinearColor Col, float Power, int32 Crits, float Dmg); // 맞는 순간 (모든 발사체 공통)
+	void HitFx(FVector2f P, float Power, int32 Crits, float Dmg);                  // 맞는 순간 공통: 적 번쩍임, 피해 숫자, 작은 흰 섬광
+	void ImpactFx(PD::EPDShot K, FVector2f P, FVector2f Dir, FLinearColor Col, int32 Lv, float Power); // 발사체마다 다른 타격 효과
+	void BurstCone(FVector2f P, FVector2f Dir, float Spread, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak, float Gravity = 0.f);
+	void AddShards(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float LenMin, float LenMax, float Life);
 	void DeathFx(FVector2f P, PD::EPDEnemy Type);                                   // 죽는 순간
 	void CritFx(FVector2f P, int32 N); // 치명타 흰 불꽃
 	void Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak = false, float Gravity = 0.f);
