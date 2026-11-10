@@ -800,7 +800,7 @@ void SPDBoardWidget::HandleEvents()
 		case FPDEvent::EKind::Splash:
 		{
 			const FLinearColor Col = SuitColor(E.Suit);
-			Rings.Add({P, 6.f, E.R * CS, 0.f, 0.35f, 2.f, Col});
+			Rings.Add({P, 6.f, E.R * CS, 0.f, 0.35f, 2.f, Col, EWave::Broken, 10, FMath::FRandRange(0.f, TwoPi), 2.f}); // 범위: 도는 점선 고리
 			Burst(P, 10, Col, 60.f, 200.f, 0.35f, 2.2f, true);
 			break;
 		}
@@ -1020,145 +1020,163 @@ void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColo
 	const bool bBusy = Particles.Num() > 1800; // 적이 많을 때는 가볍게
 	const float Q = bBusy ? 0.4f : 1.f;        // 파티클 수 배율
 	auto Nq = [&](float N) { return FMath::Max(1, FMath::RoundToInt(N * Q)); };
-	const FLinearColor White = FLinearColor::White, Gold = Hex(TEXT("ffd96a")), Smoke = Hex(TEXT("8a8090"), 0.45f);
+	const FLinearColor White = FLinearColor::White, Gold = Hex(TEXT("ffd96a")), Smoke = Hex(TEXT("8a8090"), 0.45f), Cyan = Hex(TEXT("7fd6ff"));
 	const FVector2f Nrm(-Dir.Y, Dir.X);
+	const float Rnd = FMath::FRandRange(0.f, TwoPi);
+	// 파동 하나 더하기: 모양, 갈래/변 수, 시작 크기 → 끝 크기, 늦음, 길이, 굵기, 색, 시작 각, 회전
+	auto Wave = [&](EWave S, int32 N, float R0, float R1, float Delay, float Life, float Th, const FLinearColor& Cl, float Rot, float Spin) {
+		Rings.Add({P, R0, R1, -Delay, Life, Th, Cl, S, N, Rot, Spin});
+	};
 	switch (K)
 	{
-	case EPDShot::Laser: // ♠ 관통: 진행 방향으로 꿰뚫는 빛줄 + 앞쪽으로 뿜는 파란 불꽃
+	case EPDShot::Laser: // ♠ 관통: 꿰뚫는 빛줄 + 퍼지는 스페이드 + 앞쪽 빛줄기
 		Flares.Add({P, 0.f, 0.14f, 16.f + 5.f * Lv, Ang, Col, 2});
 		Flares.Add({P, 0.f, 0.1f, 7.f + 2.f * Lv, Ang + PI / 2.f, White, 2});
+		Wave(EWave::Suit, (int32)EPDSuit::Spade, 4.f, 14.f + 3.f * Lv, 0.f, 0.22f, 1.5f, Col, 0.f, 0.f);
 		BurstCone(P, Dir, 0.35f, Nq(4 + 2 * Lv), Col, 200.f, 380.f, 0.2f, 1.4f, true);
-		if (Lv >= 3) for (int32 J = 0; J < 3; ++J) Rings.Add({P + Dir * (8.f * J), 2.f, 8.f + 2.f * J, -0.04f * J, 0.16f, 1.4f, Col});
-		if (Lv >= 4) Rings.Add({P, 4.f, 34.f, 0.f, 0.3f, 2.2f, Col});
+		if (Lv >= 3) Wave(EWave::Rays, 6, 10.f, 30.f, 0.03f, 0.2f, 1.2f, Col, Ang, 0.f);
+		if (Lv >= 4) Wave(EWave::Poly, 4, 6.f, 36.f, 0.05f, 0.3f, 2.f, Col, Ang + PI / 4.f, 3.f);
 		break;
 	case EPDShot::JokerLaser:
-		Flares.Add({P, 0.f, 0.16f, 18.f, FMath::FRandRange(0.f, PI), Col});
-		BurstCone(P, Dir, 0.5f, Nq(6), Col, 150.f, 300.f, 0.2f, 1.5f, true);
+		Flares.Add({P, 0.f, 0.16f, 18.f, Rnd, Col});
+		Wave(EWave::Star, 4, 4.f, 22.f, 0.f, 0.25f, 1.6f, Col, Rnd, 4.f);
 		break;
-	case EPDShot::Missile: // ♥ 불덩이: 부드러운 주황 빛 덩어리 + 불똥(떨어짐) + 올라가는 연기
+	case EPDShot::Missile: // ♥ 불덩이: 퍼지는 하트 + 끊어진 충격파 + 불똥·연기
 		Flares.Add({P, 0.f, 0.3f + 0.04f * Lv, 20.f + 7.f * Lv, 0.f, Hex(TEXT("ff8a5a")), 0});
-		Flares.Add({P, 0.f, 0.12f, 10.f + 3.f * Lv, FMath::FRandRange(0.f, PI), Gold, 6});
+		Flares.Add({P, 0.f, 0.12f, 10.f + 3.f * Lv, Rnd, Gold, 6});
+		Wave(EWave::Suit, (int32)EPDSuit::Heart, 5.f, 16.f + 5.f * Lv, 0.f, 0.32f, 2.f, Col, 0.f, 0.f);
+		Wave(EWave::Broken, 5, 8.f, 26.f + 6.f * Lv, 0.04f, 0.35f, 1.6f, Gold, Rnd, 2.5f);
 		Burst(P, Nq(10 + 4 * Lv), Col, 60.f, 180.f + 25.f * Lv, 0.5f, 2.6f, false, 90.f);
 		Burst(P, Nq(6 + 2 * Lv), Gold, 80.f, 220.f, 0.3f, 1.6f, true);
 		Burst(P, Nq(5), Smoke, 10.f, 40.f, 0.9f, 4.f, false, -50.f);
-		Rings.Add({P, 4.f, 20.f + 6.f * Lv, 0.f, 0.3f, 2.4f, Col});
-		if (Lv >= 4) { Rings.Add({P, 8.f, 54.f, 0.05f, 0.45f, 1.6f, Gold}); Shake = FMath::Max(Shake, 0.1f); }
+		if (Lv >= 4) { Wave(EWave::Poly, 8, 10.f, 56.f, 0.06f, 0.45f, 1.4f, Gold, Rnd, 1.f); Shake = FMath::Max(Shake, 0.1f); }
 		break;
-	case EPDShot::Bullet: // ♦ 도탄: 맞은 반대쪽으로 튀는 노란 불티 + 작은 섬광 + 탄피
-		Flares.Add({P, 0.f, 0.08f, 6.f + 2.f * Lv, FMath::FRandRange(0.f, PI), Col});
+	case EPDShot::Bullet: // ♦ 도탄: 작은 마름모가 튀고, 반대쪽 불티
+		Flares.Add({P, 0.f, 0.08f, 6.f + 2.f * Lv, Rnd, Col});
+		Wave(EWave::Suit, (int32)EPDSuit::Diamond, 3.f, 9.f + 2.f * Lv, 0.f, 0.14f, 1.3f, Col, 0.f, 0.f);
 		BurstCone(P, -Dir, 0.7f, Nq(3 + Lv), Col, 160.f, 320.f, 0.14f, 1.2f, true, 200.f);
 		if (Lv >= 3) BurstCone(P, Dir, 0.25f, Nq(3), White, 250.f, 400.f, 0.1f, 1.f, true);
 		if (FMath::FRand() < 0.4f) AddShards(P, 1, Hex(TEXT("b0a070")), 40.f, 90.f, 2.f, 3.f, 0.5f);
-		if (Lv >= 4) Rings.Add({P, 3.f, 16.f, 0.f, 0.14f, 1.4f, Col});
+		if (Lv >= 4) Wave(EWave::Poly, 4, 2.f, 16.f, 0.02f, 0.16f, 1.2f, White, Rnd, 8.f);
 		break;
-	case EPDShot::Orb: // ♣ 얼음: 여섯 갈래 눈꽃 + 얼음 조각 + 오래 남는 서리 고리 + 내리는 눈
-		Flares.Add({P, 0.f, 0.4f, 14.f + 4.f * Lv, FMath::FRandRange(0.f, PI), Hex(TEXT("cfffe8")), 6});
+	case EPDShot::Orb: // ♣ 얼음: 육각 서리가 천천히 돌며 퍼지고, 눈꽃·얼음 조각·눈
+		Flares.Add({P, 0.f, 0.4f, 14.f + 4.f * Lv, Rnd, Hex(TEXT("cfffe8")), 6});
+		Wave(EWave::Poly, 6, 6.f, 18.f + 4.f * Lv, 0.f, 0.6f, 1.6f, Col, Rnd, 0.8f);
+		Wave(EWave::Suit, (int32)EPDSuit::Club, 3.f, 10.f + 2.f * Lv, 0.05f, 0.35f, 1.2f, Hex(TEXT("eafff6")), 0.f, 0.f);
 		AddShards(P, Nq(4 + Lv), Col, 60.f, 150.f, 3.f, 6.f, 0.5f);
-		Rings.Add({P, 6.f, 16.f + 4.f * Lv, 0.f, 0.6f, 1.6f, Col});
 		Burst(P, Nq(6), Hex(TEXT("eafff6")), 10.f, 40.f, 0.9f, 1.6f, false, 30.f);
 		break;
-	case EPDShot::Star: // ★ 반짝임: 도는 다섯 갈래 별 + 천천히 내려앉는 반짝이
-		Flares.Add({P, 0.f, 0.3f, 12.f + 4.f * Lv, FMath::FRandRange(0.f, PI), White, 5});
+	case EPDShot::Star: // ★ 반짝임: 도는 별 테두리 + 내려앉는 반짝이
+		Flares.Add({P, 0.f, 0.3f, 12.f + 4.f * Lv, Rnd, White, 5});
+		Wave(EWave::Star, 5, 4.f, 16.f + 4.f * Lv, 0.f, 0.3f, 1.4f, White, Rnd, 5.f);
 		Burst(P, Nq(5 + 2 * Lv), White, 20.f, 80.f, 0.8f, 1.5f, false, 25.f);
 		if (Lv >= 3) for (int32 J = 0; J < Lv - 1; ++J) Flares.Add({P + Rot2(FVector2f(14.f, 0.f), J * TwoPi / (Lv - 1)), -0.05f * J, 0.2f, 6.f, 0.f, White, 4});
 		break;
-	case EPDShot::Arrow: // 스트레이트: 박히는 화살 셋 (진행 방향 빛줄) + 앞으로 튀는 불티
+	case EPDShot::Arrow: // 스트레이트: 박히는 화살 셋 + 앞으로 퍼지는 삼각형
 		for (int32 J = -1; J <= 1; ++J) Flares.Add({P + Nrm * J * 6.f, -0.03f * (J + 1), 0.14f, 12.f, Ang, Col, 2});
+		Wave(EWave::Poly, 3, 4.f, 20.f, 0.f, 0.22f, 1.5f, Col, Ang, 0.f);
 		BurstCone(P, Dir, 0.3f, Nq(8), Col, 180.f, 320.f, 0.18f, 1.3f, true);
 		break;
-	case EPDShot::Arc: // 플러시: 사방으로 갈라지는 잔번개 + 지직거리는 불티
+	case EPDShot::Arc: // 플러시: 갈라지는 잔번개 + 지직거리는 끊어진 호
 		for (int32 J = 0; J < 4; ++J) Beams.Add({P, P + Rot2(FVector2f(FMath::FRandRange(18.f, 34.f), 0.f), FMath::FRandRange(0.f, TwoPi)), 0.f, 0.16f, 1.4f, Col, 2, 1});
-		Flares.Add({P, 0.f, 0.12f, 14.f, FMath::FRandRange(0.f, PI), White, 8});
+		Flares.Add({P, 0.f, 0.12f, 14.f, Rnd, White, 8});
+		Wave(EWave::Broken, 7, 8.f, 24.f, 0.f, 0.2f, 1.3f, Col, Rnd, -9.f);
 		Burst(P, Nq(10), Col, 120.f, 300.f, 0.12f, 1.2f, true);
 		break;
-	case EPDShot::Cluster: // 풀하우스: 차례로 터지는 작은 폭발 다섯
+	case EPDShot::Cluster: // 풀하우스: 차례로 터지는 작은 폭발 다섯 (각자 도는 네모)
 		for (int32 J = 0; J < 5; ++J)
 		{
 			const FVector2f Qp = P + Rot2(FVector2f(16.f, 0.f), J * TwoPi / 5.f + FMath::FRandRange(-0.3f, 0.3f));
 			Flares.Add({Qp, -0.06f * J, 0.22f, 14.f, 0.f, Col, 0});
-			Flares.Add({Qp, -0.06f * J, 0.12f, 8.f, FMath::FRandRange(0.f, PI), Gold, 4});
-			Rings.Add({Qp, 2.f, 14.f, -0.06f * J, 0.24f, 1.8f, Col});
+			Flares.Add({Qp, -0.06f * J, 0.12f, 8.f, Rnd, Gold, 4});
+			Rings.Add({Qp, 2.f, 12.f, -0.06f * J, 0.24f, 1.6f, Col, EWave::Poly, 4, Rnd + J, 6.f});
 		}
 		Burst(P, Nq(16), Col, 80.f, 220.f, 0.5f, 2.f, false, 80.f);
 		break;
-	case EPDShot::Shell: // 포카드: 거대한 폭발 (흰 섬광, 충격파 셋, 파편, 먼지, 흔들림)
-		Flares.Add({P, 0.f, 0.18f, 46.f, FMath::FRandRange(0.f, PI), White, 4});
+	case EPDShot::Shell: // 포카드: 거대한 폭발 (흰 섬광, 팔각 충격파, 사방 빛줄기, 끊어진 호, 파편, 먼지)
+		Flares.Add({P, 0.f, 0.18f, 46.f, Rnd, White, 4});
 		Flares.Add({P, 0.f, 0.45f, 60.f, 0.f, Col, 0});
-		Rings.Add({P, 6.f, 44.f, 0.f, 0.32f, 3.2f, Col});
-		Rings.Add({P, 4.f, 70.f, 0.05f, 0.5f, 1.6f, White});
-		Rings.Add({P, 10.f, 96.f, 0.12f, 0.6f, 1.f, WithAlpha(Col, 0.6f)});
+		Wave(EWave::Poly, 8, 6.f, 46.f, 0.f, 0.32f, 3.2f, Col, Rnd, 0.5f);
+		Wave(EWave::Rays, 12, 14.f, 70.f, 0.03f, 0.3f, 1.6f, White, Rnd, 0.f);
+		Wave(EWave::Broken, 6, 12.f, 96.f, 0.1f, 0.6f, 1.2f, WithAlpha(Col, 0.7f), Rnd, 1.5f);
 		AddShards(P, Nq(10), Col, 120.f, 300.f, 5.f, 10.f, 0.7f);
 		Burst(P, Nq(18), Smoke, 20.f, 90.f, 1.1f, 4.5f, false, -30.f);
 		Burst(P, Nq(14), White, 150.f, 380.f, 0.2f, 1.5f, true);
 		Shake = FMath::Max(Shake, 0.2f);
 		break;
-	case EPDShot::Comet: // 스트레이트 플러시: 여덟 갈래 별빛 + 긴 빛살 폭발
-		Flares.Add({P, 0.f, 0.3f, 30.f, FMath::FRandRange(0.f, PI), Col, 8});
+	case EPDShot::Comet: // 스트레이트 플러시: 여덟 뿔 별이 돌며 퍼지고 긴 빛살
+		Flares.Add({P, 0.f, 0.3f, 30.f, Rnd, Col, 8});
+		Wave(EWave::Star, 8, 6.f, 34.f, 0.f, 0.32f, 1.8f, Col, Rnd, 3.f);
 		Burst(P, Nq(20), Col, 160.f, 420.f, 0.32f, 1.6f, true);
-		Rings.Add({P, 4.f, 30.f, 0.f, 0.3f, 2.2f, Col});
 		break;
-	case EPDShot::Nova: // 파이브 카드: 차례로 넓어지는 금빛 고리 다섯 + 빛 덩어리
-		for (int32 J = 0; J < 5; ++J) Rings.Add({P, 4.f + J * 4.f, 24.f + J * 14.f, -0.05f * J, 0.35f, 2.4f - J * 0.35f, Col});
-		Flares.Add({P, 0.f, 0.4f, 34.f, 0.f, Col, 0});
+	case EPDShot::Nova: // 파이브 카드: 안으로 빨려 들었다가 오각형이 차례로 터져 나감
+		Wave(EWave::Circle, 0, 34.f, 4.f, 0.f, 0.14f, 1.6f, Col, 0.f, 0.f);
+		for (int32 J = 0; J < 4; ++J) Wave(EWave::Poly, 5, 6.f + J * 4.f, 26.f + J * 14.f, 0.14f + 0.05f * J, 0.35f, 2.4f - J * 0.4f, Col, Rnd + J * 0.3f, 1.5f);
+		Flares.Add({P, -0.14f, 0.4f, 34.f, 0.f, Col, 0});
 		Burst(P, Nq(12), Gold, 40.f, 140.f, 0.7f, 1.6f, false, -20.f);
 		break;
-	case EPDShot::Crown: // 로열: 여덟 갈래 금빛 + 위로 솟았다 떨어지는 금가루 + 흰 반짝이
-		Flares.Add({P, 0.f, 0.4f, 40.f, FMath::FRandRange(0.f, PI), Col, 8});
+	case EPDShot::Crown: // 로열: 금빛 빛줄기 + 여덟 뿔 별 + 솟았다 떨어지는 금가루
+		Flares.Add({P, 0.f, 0.4f, 40.f, Rnd, Col, 8});
 		Flares.Add({P, 0.f, 0.2f, 18.f, 0.f, White, 4});
+		Wave(EWave::Rays, 16, 10.f, 50.f, 0.f, 0.4f, 1.6f, Col, Rnd, 0.6f);
+		Wave(EWave::Star, 8, 6.f, 30.f, 0.06f, 0.4f, 2.f, White, Rnd, -2.f);
 		BurstCone(P, FVector2f(0.f, -1.f), 0.9f, Nq(20), Gold, 120.f, 300.f, 0.9f, 1.8f, false, 420.f);
 		Burst(P, Nq(10), White, 30.f, 120.f, 0.7f, 1.4f, false, -40.f);
-		Rings.Add({P, 4.f, 40.f, 0.f, 0.4f, 2.6f, Col});
 		break;
-	case EPDShot::Grin: // 체셔: 보랏빛 빛 덩어리 + 흩날리는 보라 불티
+	case EPDShot::Grin: // 체셔: 보랏빛 덩어리 + 안으로 감겨 드는 끊어진 호
 		Flares.Add({P, 0.f, 0.4f, 26.f, 0.f, Col, 0});
+		Wave(EWave::Broken, 3, 28.f, 6.f, 0.f, 0.35f, 1.6f, Col, Rnd, 6.f);
 		Burst(P, Nq(10), Col, 30.f, 120.f, 0.6f, 1.6f, false, -30.f);
 		break;
-	case EPDShot::Juggle: // 광대: 네 무늬 색 색종이가 튀었다 떨어짐 + 통통 고리
+	case EPDShot::Juggle: // 광대: 네 무늬가 사방으로 퍼짐 + 색종이
+		for (int32 J = 0; J < 4; ++J) Rings.Add({P + Rot2(FVector2f(6.f, 0.f), J * PI / 2.f + Rnd), 2.f, 9.f, -0.03f * J, 0.3f, 1.3f, SuitColor((EPDSuit)J), EWave::Suit, J, 0.f, 0.f});
 		for (int32 J = 0; J < 4; ++J) BurstCone(P, FVector2f(0.f, -1.f), 1.2f, Nq(4), SuitColor((EPDSuit)J), 100.f, 240.f, 0.8f, 2.f, false, 500.f);
-		Rings.Add({P, 3.f, 18.f, 0.f, 0.22f, 1.8f, Col});
-		Rings.Add({P, 3.f, 12.f, 0.12f, 0.2f, 1.4f, Col});
 		break;
-	case EPDShot::Hat: // 모자 장수: 펑 연기 + 날리는 카드 조각 + 분홍 별빛
+	case EPDShot::Hat: // 모자 장수: 도는 네모 + 펑 연기 + 날리는 카드 조각
+		Wave(EWave::Poly, 4, 4.f, 20.f, 0.f, 0.3f, 1.5f, Col, Rnd, 7.f);
 		Burst(P, Nq(8), Smoke, 20.f, 70.f, 0.7f, 4.f, false, -40.f);
 		AddShards(P, Nq(5), White, 60.f, 140.f, 5.f, 7.f, 0.8f);
-		Flares.Add({P, 0.f, 0.2f, 16.f, FMath::FRandRange(0.f, PI), Col, 4});
+		Flares.Add({P, 0.f, 0.2f, 16.f, Rnd, Col, 4});
 		break;
-	case EPDShot::Crescent: // 웃는 가면: 남아서 웃는 초승달 + 분홍 불티
+	case EPDShot::Crescent: // 웃는 가면: 남아서 웃는 초승달 + 반쪽 호 둘
 		Beams.Add({P, P, 0.f, 0.35f, 1.6f, Col, 4, 1});
+		Wave(EWave::Broken, 2, 6.f, 22.f, 0.f, 0.28f, 1.5f, Col, Rnd, 10.f);
 		Burst(P, Nq(8), Col, 60.f, 180.f, 0.3f, 1.6f, true);
 		break;
-	case EPDShot::Twin: // 희비극: 분홍·파랑 쌍둥이 별빛과 고리
-		Flares.Add({P + Nrm * 7.f, 0.f, 0.22f, 16.f, 0.f, Col, 4});
-		Flares.Add({P - Nrm * 7.f, 0.f, 0.22f, 16.f, PI / 4.f, Hex(TEXT("7fd6ff")), 4});
-		Rings.Add({P + Nrm * 7.f, 3.f, 18.f, 0.f, 0.25f, 1.6f, Col});
-		Rings.Add({P - Nrm * 7.f, 3.f, 18.f, 0.04f, 0.25f, 1.6f, Hex(TEXT("7fd6ff"))});
+	case EPDShot::Twin: // 희비극: 분홍·파랑 삼각형이 엇갈려 육각별
+		Wave(EWave::Poly, 3, 4.f, 20.f, 0.f, 0.3f, 1.6f, Col, -PI / 2.f, 2.f);
+		Wave(EWave::Poly, 3, 4.f, 20.f, 0.f, 0.3f, 1.6f, Cyan, PI / 2.f, -2.f);
+		Flares.Add({P + Nrm * 7.f, 0.f, 0.22f, 14.f, 0.f, Col, 4});
+		Flares.Add({P - Nrm * 7.f, 0.f, 0.22f, 14.f, PI / 4.f, Cyan, 4});
 		break;
-	case EPDShot::Shards: // 할리퀸: 사방으로 깨지는 마름모 조각 + 마름모 별빛
+	case EPDShot::Shards: // 할리퀸: 마름모 셋이 차례로 퍼지고 조각이 깨져 흩어짐
+		for (int32 J = 0; J < 3; ++J) Wave(EWave::Suit, (int32)EPDSuit::Diamond, 3.f, 12.f + J * 6.f, 0.05f * J, 0.25f, 1.4f, J == 1 ? White : Col, 0.f, 0.f);
 		AddShards(P, Nq(10), Col, 100.f, 240.f, 4.f, 8.f, 0.6f);
 		AddShards(P, Nq(4), White, 100.f, 240.f, 4.f, 7.f, 0.5f);
-		Flares.Add({P, 0.f, 0.18f, 18.f, PI / 4.f, Col, 4});
 		break;
-	case EPDShot::Note: // 지휘봉: 박자 맞춰 퍼지는 고리 셋 + 떠오르는 반짝이
-		for (int32 J = 0; J < 3; ++J) Rings.Add({P, 3.f, 16.f, -0.1f * J, 0.2f, 1.6f, Col});
+	case EPDShot::Note: // 지휘봉: 박자 맞춰 퍼지는 오각형 셋 + 떠오르는 반짝이
+		for (int32 J = 0; J < 3; ++J) Wave(EWave::Poly, 5, 3.f, 16.f, 0.1f * J, 0.2f, 1.6f, Col, Rnd + J, 3.f);
 		Burst(P, Nq(10), Col, 20.f, 70.f, 0.8f, 1.8f, false, -140.f);
 		break;
-	case EPDShot::Blade: // 잭: X 자 베기 + 흰 불꽃 + 흔들림
+	case EPDShot::Blade: // 잭: X 자 베기 + 날카로운 빛줄기 + 흔들림
 		Beams.Add({P + FVector2f(-16.f, -12.f), P + FVector2f(16.f, 12.f), 0.f, 0.2f, 2.6f, Col});
 		Beams.Add({P + FVector2f(16.f, -12.f), P + FVector2f(-16.f, 12.f), 0.f, 0.2f, 2.6f, Col});
 		Flares.Add({P, 0.f, 0.14f, 20.f, PI / 4.f, White, 4});
+		Wave(EWave::Rays, 8, 8.f, 30.f, 0.02f, 0.2f, 1.4f, White, Rnd, 0.f);
 		Burst(P, Nq(14), White, 120.f, 300.f, 0.22f, 1.6f, true);
 		Shake = FMath::Max(Shake, 0.08f);
 		break;
-	case EPDShot::Wave: // 방울: 차례로 퍼지는 소리 고리 넷 (파티클 없음)
-		for (int32 J = 0; J < 4; ++J) Rings.Add({P, 4.f, 20.f + J * 9.f, -0.06f * J, 0.3f, 1.8f - J * 0.3f, Col});
+	case EPDShot::Wave: // 방울: 차례로 퍼지는 끊어진 소리 호 넷 (파티클 없음)
+		for (int32 J = 0; J < 4; ++J) Wave(EWave::Broken, 4, 4.f, 20.f + J * 9.f, 0.06f * J, 0.3f, 1.8f - J * 0.3f, Col, Ang + PI / 4.f, 0.f);
 		break;
-	case EPDShot::StarComet: // 스타: 큰 다섯 갈래 별 + 흰 별빛 + 빛살
-		Flares.Add({P, 0.f, 0.35f, 32.f, FMath::FRandRange(0.f, PI), Col, 5});
+	case EPDShot::StarComet: // 스타: 큰 다섯 뿔 별이 돌며 퍼지고 빛살
+		Flares.Add({P, 0.f, 0.35f, 32.f, Rnd, Col, 5});
 		Flares.Add({P, 0.f, 0.18f, 16.f, 0.f, White, 5});
+		Wave(EWave::Star, 5, 6.f, 36.f, 0.f, 0.35f, 2.f, Col, Rnd, 4.f);
 		Burst(P, Nq(16), Col, 120.f, 320.f, 0.35f, 1.8f, true);
 		break;
 	default:
-		Flares.Add({P, 0.f, 0.14f, 12.f, FMath::FRandRange(0.f, PI), Col});
+		Flares.Add({P, 0.f, 0.14f, 12.f, Rnd, Col});
 		break;
 	}
 	if (Pw >= 5.f) Shake = FMath::Max(Shake, 0.04f + 0.02f * (Pw - 5.f));
@@ -1198,10 +1216,22 @@ void SPDBoardWidget::DeathFx(FVector2f P, EPDEnemy Type)
 	// 빛: 흰 심 + 적 색 큰 별빛
 	Flares.Add({P, 0.f, 0.12f + 0.05f * S, 22.f * S, FMath::FRandRange(0.f, PI), White});
 	Flares.Add({P, 0.f, 0.28f + 0.08f * S, 40.f * S, FMath::FRandRange(0.f, PI), Col});
-	// 충격파 셋 (흰 → 적 색 → 옅게 크게)
-	Rings.Add({P, 2.f, 18.f * S, 0.f, 0.14f, 3.f, White});
-	Rings.Add({P, 6.f, 34.f * S, 0.f, 0.32f + 0.05f * S, 2.4f, Col});
-	Rings.Add({P, 10.f, 56.f * S, 0.f, 0.5f + 0.08f * S, 1.2f, WithAlpha(Col, 0.6f)});
+	// 충격파 셋: 적의 몸 모양 그대로 퍼진다 (빠른 적 삼각형, 탱크 육각형, 재생자 마름모, 보스 다각형, 나머지 동그라미)
+	EWave BodyShape = EWave::Circle;
+	int32 BodyN = 0;
+	switch (Type)
+	{
+	case EPDEnemy::Fast: BodyShape = EWave::Poly; BodyN = 3; break;
+	case EPDEnemy::Tank: BodyShape = EWave::Poly; BodyN = 6; break;
+	case EPDEnemy::Regen: case EPDEnemy::RegenBoss: BodyShape = EWave::Poly; BodyN = Type == EPDEnemy::RegenBoss ? 6 : 4; break;
+	case EPDEnemy::ShieldBoss: BodyShape = EWave::Poly; BodyN = 4; break;
+	case EPDEnemy::SplitBoss: BodyShape = EWave::Poly; BodyN = 8; break;
+	default: break;
+	}
+	const float Rot0 = FMath::FRandRange(0.f, TwoPi);
+	Rings.Add({P, 2.f, 18.f * S, 0.f, 0.14f, 3.f, White, EWave::Rays, bBoss ? 16 : 8, Rot0, 0.f});
+	Rings.Add({P, 6.f, 34.f * S, 0.f, 0.32f + 0.05f * S, 2.4f, Col, BodyShape, BodyN, Rot0, 2.f});
+	Rings.Add({P, 10.f, 56.f * S, -0.06f, 0.5f + 0.08f * S, 1.2f, WithAlpha(Col, 0.6f), EWave::Broken, bBoss ? 8 : 5, Rot0, -1.5f});
 	// 몸 조각: 돌며 흩어지는 선
 	const int32 NS = bBusy ? 4 : FMath::RoundToInt(8.f * FMath::Min(S, 3.f));
 	for (int32 I = 0; I < NS; ++I)
@@ -1223,7 +1253,7 @@ void SPDBoardWidget::CritFx(FVector2f P, int32 N)
 {
 	// 치명타: 흰 불꽃과 고리 (여러 번이면 더 크게)
 	Burst(P, 6 + 3 * FMath::Min(N, 4), FLinearColor::White, 80.f, 240.f, 0.3f, 2.2f, true);
-	Rings.Add({P, 4.f, 18.f + 6.f * FMath::Min(N, 4), 0.f, 0.2f, 2.f, FLinearColor::White});
+	Rings.Add({P, 4.f, 18.f + 6.f * FMath::Min(N, 4), 0.f, 0.22f, 2.f, FLinearColor::White, EWave::Star, 4, FMath::FRandRange(0.f, TwoPi), 6.f}); // 도는 네 뿔 별
 }
 
 void SPDBoardWidget::UpdateFx(float Dt)
@@ -2030,9 +2060,48 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	}
 	for (const FRing& R : Rings)
 	{
-		if (R.T < 0.f) continue; // 늦게 퍼지는 고리
+		if (R.T < 0.f) continue; // 늦게 퍼지는 파동
 		const float U = R.T / R.MaxT, Rad = R.R0 + (R.R1 - R.R0) * (1.f - (1.f - U) * (1.f - U));
-		F.Glow(FCanvas::CirclePoints(R.C, Rad, 36), WithAlpha(R.Col, 1.f - U), R.Width * (1.f - U * 0.5f), 1.f);
+		const FLinearColor RC = WithAlpha(R.Col, 1.f - U);
+		const float Th = R.Width * (1.f - U * 0.5f), A0 = R.Rot + R.Spin * R.T;
+		switch (R.Shape)
+		{
+		case EWave::Poly: // 도는 다각형
+		{
+			TArray<FVector2f> P;
+			for (int32 K = 0; K <= R.N; ++K) P.Add(R.C + Rot2(FVector2f(Rad, 0.f), A0 + K * TwoPi / FMath::Max(3, R.N)));
+			F.Glow(P, RC, Th, 1.f);
+			break;
+		}
+		case EWave::Suit: // 무늬 모양이 퍼진다
+			F.Shape((EPDSuit)FMath::Clamp(R.N, 0, 4), R.C.X, R.C.Y, Rad, RC, Th, 1.f);
+			break;
+		case EWave::Broken: // 끊어진 호 조각들이 돌며 퍼진다
+			for (int32 K = 0; K < FMath::Max(2, R.N); ++K)
+			{
+				const float Mid = A0 + K * TwoPi / FMath::Max(2, R.N);
+				F.Glow(ArcPts(R.C, Rad, Mid, PI / FMath::Max(2, R.N) * 0.55f, 6), RC, Th, 1.f);
+			}
+			break;
+		case EWave::Star: // 뾰족한 별 테두리
+		{
+			TArray<FVector2f> P;
+			const int32 Nn = FMath::Max(3, R.N);
+			for (int32 K = 0; K <= Nn * 2; ++K) P.Add(R.C + Rot2(FVector2f(K % 2 ? Rad * 0.45f : Rad, 0.f), A0 + K * PI / Nn));
+			F.Glow(P, RC, Th, 1.f);
+			break;
+		}
+		case EWave::Rays: // 사방으로 뻗어 나가는 빛줄기 (안쪽 끝도 따라 나간다)
+			for (int32 K = 0; K < FMath::Max(2, R.N); ++K)
+			{
+				const FVector2f D = Rot2(FVector2f(1.f, 0.f), A0 + K * TwoPi / FMath::Max(2, R.N));
+				F.Glow({R.C + D * Rad * (0.35f + 0.5f * U), R.C + D * Rad}, RC, Th, 1.f);
+			}
+			break;
+		default:
+			F.Glow(FCanvas::CirclePoints(R.C, Rad, 36), RC, Th, 1.f);
+			break;
+		}
 	}
 	{
 		const int32 L1 = F.NextLayer(), L2 = F.NextLayer();

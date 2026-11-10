@@ -77,11 +77,17 @@ private:
 		int32 Style = 0; // 0 보통(레벨 2면 쌍줄), 1 레일건, 2 번개, 3 로열 왕관, 4 체셔 웃음
 		int32 Lv = 1;
 	};
+	// 퍼지는 파동. 모양이 여러 가지라 맞을 때마다 동그라미만 퍼지지 않는다 (R1 < R0 이면 안으로 빨려 든다, T 음수면 늦게)
+	enum class EWave : uint8_t { Circle, Poly, Suit, Broken, Star, Rays };
 	struct FRing
 	{
 		FVector2f C;
 		float R0, R1, T, MaxT, Width;
 		FLinearColor Col;
+		EWave Shape = EWave::Circle;
+		int32 N = 0;      // Poly: 변 수, Suit: 무늬 번호, Broken: 조각 수, Star: 뿔 수, Rays: 빛줄기 수
+		float Rot = 0.f;  // 시작 각
+		float Spin = 0.f; // 초당 회전
 	};
 	struct FFloatText
 	{
