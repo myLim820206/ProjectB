@@ -156,15 +156,17 @@ struct SPDBoardWidget::FCanvas
 	{
 		FSlateDrawElement::MakeLines(Out, NextLayer(), Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
 	}
-	// 네온 선: 넓고 옅은 선 두 겹 + 가늘고 밝은 선
+	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
+	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
 		if (Strength > 0.f)
 		{
-			Lines(P, WithAlpha(Col, 0.10f * Strength), Thick * 5.f);
-			Lines(P, WithAlpha(Col, 0.22f * Strength), Thick * 2.4f);
+			Lines(P, WithAlpha(Col, 0.04f * Strength), Thick * 10.f);
+			Lines(P, WithAlpha(Col, 0.07f * Strength), Thick * 6.f);
+			Lines(P, WithAlpha(Col, 0.14f * Strength), Thick * 3.2f);
 		}
-		Lines(P, Col, Thick);
+		Lines(P, Col, Thick * 0.8f);
 	}
 	void Dashed(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Dash = 6.f, float Gap = 6.f)
 	{
@@ -316,17 +318,20 @@ struct SPDBoardWidget::FCanvas
 		}
 	}
 	// 카드(=타워): 무늬 도형 안에 숫자
-	void CardShape(const FPDCard& Card, float CX, float CY, float R, float Alpha, bool bStrong, float Pulse = 0.f)
+	// 카드(=타워): 둥근 사각 틀 안에 숫자와 작은 무늬 기호 (테트리스 디펜스 포탑과 같은 방식)
+	// bFrame=false 면 틀 없이 안쪽만 (손패 카드는 카드 테두리가 틀 역할)
+	void CardShape(const FPDCard& Card, float CX, float CY, float R, float Alpha, bool bStrong, float Pulse = 0.f, bool bFrame = true)
 	{
 		const FLinearColor Col = WithAlpha(SuitColor(Card.Suit), Alpha);
-		if (bStrong) Shape(Card.Suit, CX, CY, R * (1.12f + 0.06f * Pulse), WithAlpha(Col, 0.25f + 0.2f * Pulse), 1.f, 0.6f);
-		Shape(Card.Suit, CX, CY, R, Col, bStrong ? 2.6f : 1.8f, bStrong ? 1.6f : 0.9f);
-		if (Card.IsWild()) return;
-		// 무늬마다 숫자가 들어갈 자리와 크기
-		static const float OffY[4] = {-0.14f, -0.12f, 0.f, -0.16f}, Size[4] = {0.6f, 0.68f, 0.72f, 0.52f};
-		const int32 Si = (int32)Card.Suit;
-		const float Px = R * Size[Si] * (Card.Rank == 10 ? 0.8f : 1.f);
-		TextCentered(RankText(Card.Rank), CX, CY + OffY[Si] * R, Col, Px, true);
+		if (bFrame)
+		{
+			const float H = R * 0.98f;
+			if (bStrong) Box(CX - H, CY - H, H * 2.f, H * 2.f, WithAlpha(Col, 0.08f + 0.05f * Pulse)); // 족보에 든 타워는 옅게 차오름
+			Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Col, bStrong ? 2.f : 1.5f, bStrong ? 1.3f + 0.4f * Pulse : 0.8f);
+		}
+		if (Card.IsWild()) { Shape(Card.Suit, CX, CY, R * 0.6f, Col, 1.6f, 0.9f); return; }
+		TextCentered(RankText(Card.Rank), CX, CY - R * 0.24f, Col, R * (Card.Rank == 10 ? 0.62f : 0.74f), true);
+		Shape(Card.Suit, CX, CY + R * 0.5f, R * 0.3f, Col, 1.4f, 0.8f);
 	}
 	void Badge(const FString& S, float CX, float CY, const FLinearColor& Col, float Alpha)
 	{
@@ -888,7 +893,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		const float X = FX + 96.f + I * (CardW + 10.f), Y = HandY - (bSel ? 10.f : 0.f);
 		const FLinearColor Col = SuitColor(Card.Suit);
 		C.Glow(FCanvas::RoundRectPoints(X, Y, CardW, CardH, 8.f), bSel ? FLinearColor::White : Col, bSel ? 2.4f : 1.4f, bSel ? 1.4f : 0.6f);
-		C.CardShape(Card, X + CardW / 2.f, Y + CardH / 2.f - 6.f, 22.f, 1.f, bSel, Pulse);
+		C.CardShape(Card, X + CardW / 2.f, Y + CardH / 2.f - 6.f, 28.f, 1.f, bSel, Pulse, false);
 		C.TextCentered(SuitName(Card.Suit), X + CardW / 2.f, Y + CardH - 12.f, Col, 10.f, false);
 		C.Text(FString::FromInt(I + 1), X + 6.f, Y + 13.f, Dim, 10.f);
 	}

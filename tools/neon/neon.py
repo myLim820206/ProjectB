@@ -5,15 +5,17 @@
 
     python3 tools/neon/neon.py joker 출력.png      # 조커 광대 머리
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
+    python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
 
 새 그림은 아래 SHAPES 에 함수를 더하면 된다. 큰 크기 / 손패 크기 / 타워 크기 세 가지로 나란히 그린다.
 """
 import math
 import sys
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 BG = (6, 6, 11)
+FONT = lambda px: ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', max(6, int(px * 1.33)))
 COL = {'spade': (127, 184, 255), 'heart': (255, 106, 138), 'diamond': (255, 217, 106), 'club': (138, 255, 196),
        'pink': (255, 154, 213), 'white': (255, 255, 255), 'cyan': (127, 214, 255)}
 
@@ -100,7 +102,32 @@ def joker(cx, cy, R):
     return L
 
 
+def rrect(cx, cy, h, r, n=6):
+    """둥근 사각형 (중심, 반 너비, 모서리 반지름)"""
+    P = []
+    for (ox, oy, a0) in [(h - r, -h + r, -90), (h - r, h - r, 0), (-h + r, h - r, 90), (-h + r, -h + r, 180)]:
+        for k in range(n + 1):
+            a = math.radians(a0 + k * 90 / n)
+            P.append((cx + ox + math.cos(a) * r, cy + oy + math.sin(a) * r))
+    P.append(P[0])
+    return P
+
+
+def tower(kind, rank):
+    """타워: 둥근 사각 틀 + 숫자 + 작은 무늬 기호 (언리얼 CardShape 와 같은 배치)"""
+    def f(cx, cy, R):
+        L = [rrect(cx, cy, R * 0.98, R * 0.22)]
+        if kind == 'wild':
+            L += suit('wild')(cx, cy, R * 0.6)
+            return L
+        L += suit(kind)(cx, cy + R * 0.5, R * 0.3)
+        L.append(('text', cx, cy - R * 0.24, rank, R * (0.62 if rank == '10' else 0.74)))
+        return L
+    return f
+
+
 SHAPES = {
+    'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
     'suits': [(suit('spade'), 'spade'), (suit('heart'), 'heart'), (suit('diamond'), 'diamond'), (suit('club'), 'club'), (suit('wild'), 'white')],
 }
@@ -118,15 +145,22 @@ def render(name, out, S=4):
     img = Image.new('RGB', (W * S, H * S), BG)
     for fn, col, cx, cy, R in jobs:
         c = COL[col]
-        core = max(2, round(2.0 * R / 60)) * S   # 심 굵기 (기준 화면 px × S)
+        core = max(1, round(1.4 * R / 60)) * S   # 심 굵기: 가늘고 또렷하게 (기준 화면 px × S)
         glow = Image.new('RGB', img.size, (0, 0, 0))
         gd = ImageDraw.Draw(glow)
-        for ln in fn(cx * S, cy * S, R * S):
-            gd.line(ln, fill=c, width=core * 3)
-        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(4 * S)), scale=1.4)
+        lines = fn(cx * S, cy * S, R * S)
+        for ln in lines:
+            if ln and ln[0] == 'text':
+                gd.text((ln[1], ln[2]), ln[3], fill=c, font=FONT(ln[4]), anchor='mm')
+            else:
+                gd.line(ln, fill=c, width=core * 4)
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(7 * S)), scale=1.1)  # 넓고 부드러운 번짐
         d = ImageDraw.Draw(img)
-        for ln in fn(cx * S, cy * S, R * S):
-            d.line(ln, fill=c, width=core)
+        for ln in lines:
+            if ln and ln[0] == 'text':
+                d.text((ln[1], ln[2]), ln[3], fill=c, font=FONT(ln[4]), anchor='mm')
+            else:
+                d.line(ln, fill=c, width=core)
     img.resize((W, H), Image.LANCZOS).save(out)
 
 
