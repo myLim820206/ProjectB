@@ -87,6 +87,8 @@ private:
 	int32 HoverX = -1, HoverY = -1;
 	FVector2f Mouse = FVector2f(0.f, 0.f);
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
+	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
+	bool bCodex = false;                   // 조커 도감 화면
 	FString PreviewKey;
 
 	// 이펙트 상태

@@ -18,12 +18,12 @@ namespace PD
 constexpr int Cols = 16;
 constexpr int Rows = 10;
 constexpr int HandMaxBase = 7;
-constexpr int JokerMax = 5;
+constexpr int CharmMax = 5;
 constexpr int NumWaves = 15; // 1회차 기준 (보스 3종이 한 바퀴). 진행은 무한, 목숨이 0이 되면 끝
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
 constexpr int DrawPerWave = 3;
-constexpr float ChainStep = 0.25f; // 연쇄: 맞닿은 족보 하나마다 공격력 +25% (연결고리 조커면 +45%)
+constexpr float ChainStep = 0.25f; // 연쇄: 맞닿은 족보 하나마다 공격력 +25% (연결고리 부적이면 +45%)
 
 enum class EPDSuit : uint8_t { Spade, Heart, Diamond, Club, Wild }; // Wild = 와일드 카드 (아무 숫자·무늬)
 struct FPDCard
@@ -42,8 +42,8 @@ struct FPDSuitDef
 };
 const FPDSuitDef& SuitDef(EPDSuit S);
 
-// 조커: 웨이브 보상, 최대 5칸, 판 끝까지 규칙을 바꾼다. 비트 묶음(uint32)으로 넘긴다
-enum class EPDJoker : uint8_t
+// 부적: 웨이브 보상, 최대 5칸, 판 끝까지 규칙을 바꾼다. 비트 묶음(uint32)으로 넘긴다
+enum class EPDCharm : uint8_t
 {
 	HeartLover, SpadeLover, DiaLover, ClubLover, // 그 무늬 타워 공격력 +40%
 	ChainLink,  // 연쇄 +25% → +45%
@@ -62,13 +62,13 @@ enum class EPDJoker : uint8_t
 	Pierce,     // 방패 무시
 	Count
 };
-inline bool HasJoker(uint32_t Mask, EPDJoker J) { return (Mask >> (int)J) & 1u; }
-// 즉시 보상 (조커 칸을 쓰지 않음)
+inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
+// 즉시 보상 (부적 칸을 쓰지 않음)
 enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Count };
 struct FPDReward
 {
-	bool bJoker = true;
-	int Id = 0; // EPDJoker 또는 EPDInstant
+	bool bCharm = true;
+	int Id = 0; // EPDCharm 또는 EPDInstant
 };
 
 // 족보 = 시너지
@@ -83,6 +83,7 @@ struct FPDEffects
 	float Dmg = 1.f, Rate = 1.f, Range = 1.f, Splash = 0.f;
 	int Hand = -1;   // 들어간 족보 번호 (Synergies 안), 없으면 -1
 	int Chain = 1;
+	int CopyKey = -1; // 웃는 가면 조커: 따라 할 옆 타워 칸
 };
 
 struct FPDTower
@@ -96,7 +97,26 @@ struct FPDTower
 	int Level = 1;            // 1~4. 같은 레벨끼리만 족보가 된다
 	float Mult = 1.f;         // 위력 배율 (합친 타워들 배율 합 × FuseBonus)
 	float TDmg = 1.f, TRate = 1.f, TRange = 1.f, TSplash = 0.f; // 물려받은 특성
+	// 조커 포탑 (-1 = 일반 타워). 최종형: 더 합성되지 않고, 맞닿은 족보에서는 와일드(레벨 무관)
+	int Joker = -1;
+	EPDSuit JSuit = EPDSuit::Spade; // 할리퀸: 강화할 무늬 (재료에 가장 많던 무늬)
+	float Timer = 0.f;              // 방울: 종 주기
+	int Cycle = 0;                  // 광대: 공격 무늬 순환
+	bool IsJoker() const { return Joker >= 0; }
 };
+// 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
+enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
+constexpr float JokerBonus = 2.f; // 조커 합성: 재료 위력 합 × 2
+// 조커 재료 묶음: 연쇄로 이어진 족보와 합성 타워(레벨 2+, 족보에 안 든 것)가 합쳐서 3개 이상
+struct FPDJokerGroup
+{
+	std::vector<int> SynergyIdx; // 족보 번호
+	std::vector<int> FusedCells; // 따로 선 합성 타워 칸
+	std::vector<int> Cells;      // 쓰이는 칸 전부
+	EPDJoker Result = EPDJoker::Clown;
+};
+// 레시피: 족보 종류 목록 + 합성 타워 수로 어떤 조커가 나오는지 (맞는 게 없으면 광대)
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount);
 constexpr int MaxLevel = 4;
 constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5
 constexpr float LevelRange = 0.1f;     // 레벨마다 사거리 +10%
@@ -116,13 +136,13 @@ struct FPDSynergy
 // 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 겹치지 않게 고르고, 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
-std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Jokers = 0);
+std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms = 0);
 
 struct FPDTowerStats
 {
 	float Dmg, Rate, Range, Splash, Slow;
 };
-FPDTowerStats TowerStats(const FPDTower& T, uint32_t Jokers = 0);
+FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms = 0);
 
 // ---------------------------------------------------------------- 길
 struct FPDPoint
@@ -166,12 +186,12 @@ struct FPDEnemy
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Bell, Star } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
@@ -190,10 +210,13 @@ public:
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;
 	bool Fuse(int SynergyIdx);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
+	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
+	bool JokerFuse(int GroupIdx);                    // 묶음을 조커 포탑으로
+	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	std::vector<FPDReward> RollRewards();
-	uint32_t JokerMask() const;
-	bool Has(EPDJoker J) const { return HasJoker(JokerMask(), J); }
-	int HandMax() const { return HandMaxBase + (Has(EPDJoker::BigHand) ? 2 : 0); }
+	uint32_t CharmMask() const;
+	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
+	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0); }
 	bool Buildable(int X, int Y) const;
 	// 고른 카드를 이 칸에 놓으면 생길 족보 (놓은 칸이 든 연쇄 전체)
 	std::vector<FPDSynergy> PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers = nullptr) const;
@@ -205,7 +228,7 @@ public:
 	int Speed = 1;
 	float Time = 0.f;
 	std::vector<FPDCard> Deck, Hand;
-	std::vector<EPDJoker> Jokers;
+	std::vector<EPDCharm> Charms;
 	std::vector<FPDReward> Rewards;
 	FPDTowerMap Towers;
 	std::vector<FPDSynergy> Synergies;

@@ -84,7 +84,7 @@
 
 ## 9. 저장된 그림: 조커 10종 (2026-11-10)
 
-사용자가 10종 모두 마음에 들어 함. 쓰임은 아직 미정 (후보: 조커 카드마다 무작위 얼굴, 보상 조커 아이콘).
+사용자가 10종 모두 마음에 들어 함. **조커 포탑 10종의 모양으로 사용** (docs/14 13절, 언리얼 `FCanvas::JokerArt`).
 그림 코드: `tools/neon/neon.py` 의 `joker_cards()` (j1~j10). 미리보기: `python3 tools/neon/neon.py jokers 출력.png`
 
 ![조커 10종](images/joker-candidates.png)

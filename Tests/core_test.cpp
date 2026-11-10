@@ -1,6 +1,6 @@
 // 포커 디펜스 규칙 코어 시험 (언리얼 없이 실행)
 //   ./Tests/run.sh [봇 판 수]
-// 족보·연쇄·길·설치에 더해 콘텐츠 1차(와일드 카드, 방패·분열·재생, 조커, 보상)를 확인하고, 봇으로 밸런스를 본다.
+// 족보·연쇄·길·설치에 더해 콘텐츠 1차(와일드 카드, 방패·분열·재생, 부적, 보상)를 확인하고, 봇으로 밸런스를 본다.
 #include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
@@ -121,10 +121,10 @@ static void UnitTests()
 		FPDEnemy A = G.SpawnTestEnemy(EPDEnemy::Armored, 100.f, 10); // 방패 4 + 10*0.6 = 10
 		G.HitTest(A, 20.f);
 		const float AfterArmor = 130.f - A.Hp;
-		G.Jokers = {EPDJoker::Pierce};
+		G.Charms = {EPDCharm::Pierce};
 		G.HitTest(A, 20.f);
 		Expect(std::fabs(AfterArmor - 10.f) < 1e-4f && std::fabs(130.f - A.Hp - AfterArmor - 20.f) < 1e-4f, "방패는 한 방 피해를 깎고, 관통탄은 무시");
-		G.Jokers.clear();
+		G.Charms.clear();
 		G.Phase = EPDPhase::Wave;
 		G.Enemies = {G.SpawnTestEnemy(EPDEnemy::Splitter, 50.f, 6)};
 		G.Enemies[0].D = 3.f;
@@ -140,26 +140,26 @@ static void UnitTests()
 		G.Update(1.f);
 		Expect(!G.Enemies.empty() && G.Enemies[0].Hp > 50.f && G.Enemies[0].Hp < 60.f, "재생자는 체력이 찬다");
 	}
-	{ // 조커와 보상
+	{ // 부적과 보상
 		FPDGame G(6);
 		G.NewGame(true);
 		G.bMuted = true;
 		FPDTower T;
 		T.Card = C(9, He);
-		const float Base = TowerStats(T, G.JokerMask()).Dmg;
+		const float Base = TowerStats(T, G.CharmMask()).Dmg;
 		G.Phase = EPDPhase::Reward;
-		G.Rewards = {{true, (int)EPDJoker::HeartLover}};
+		G.Rewards = {{true, (int)EPDCharm::HeartLover}};
 		G.TakeReward(0);
-		Expect(std::fabs(TowerStats(T, G.JokerMask()).Dmg - Base * 1.4f) < 1e-3f && G.Phase == EPDPhase::Build && G.Jokers.size() == 1, "하트 애호가 조커: ♥ 공격력 ×1.4");
+		Expect(std::fabs(TowerStats(T, G.CharmMask()).Dmg - Base * 1.4f) < 1e-3f && G.Phase == EPDPhase::Build && G.Charms.size() == 1, "하트 애호가 부적: ♥ 공격력 ×1.4");
 		auto R1 = G.RollRewards();
 		int J1 = 0;
-		for (auto& R : R1) J1 += R.bJoker;
-		G.Jokers = {EPDJoker::Twins, EPDJoker::Scope, EPDJoker::Supply, EPDJoker::Lucky7, EPDJoker::Frost};
+		for (auto& R : R1) J1 += R.bCharm;
+		G.Charms = {EPDCharm::Twins, EPDCharm::Scope, EPDCharm::Supply, EPDCharm::Lucky7, EPDCharm::Frost};
 		auto R2 = G.RollRewards();
 		bool bAllInst = true;
-		for (auto& R : R2) bAllInst = bAllInst && !R.bJoker;
-		Expect(R1.size() == 3 && J1 == 2 && bAllInst && R2.size() == 3, "보상 후보: 조커 2 + 즉시 1, 조커 칸이 차면 즉시만");
-		G.Jokers = {EPDJoker::BigHand};
+		for (auto& R : R2) bAllInst = bAllInst && !R.bCharm;
+		Expect(R1.size() == 3 && J1 == 2 && bAllInst && R2.size() == 3, "보상 후보: 부적 2 + 즉시 1, 부적 칸이 차면 즉시만");
+		G.Charms = {EPDCharm::BigHand};
 		Expect(G.HandMax() == 9, "큰 손: 손패 최대 9");
 		G.Phase = EPDPhase::Reward;
 		G.Rewards = {{false, (int)EPDInstant::Wild}};
@@ -231,6 +231,95 @@ static void UnitTests()
 		G2.TakeReward(0);
 		Expect(G2.Hand.size() == 2 && G2.DeckRefills == 1 && G2.Deck.size() == 50, "덱이 비면 새 덱 한 벌");
 	}
+	{ // 조커: 레시피
+		using H = EPDHand;
+		Expect(MatchJokerRecipe({H::Pair, H::Pair, H::Pair}, 0) == EPDJoker::Clown && MatchJokerRecipe({H::TwoPair, H::TwoPair, H::Pair}, 0) == EPDJoker::Comedy &&
+			MatchJokerRecipe({H::Straight, H::Straight, H::Straight}, 0) == EPDJoker::Baton && MatchJokerRecipe({H::Flush, H::Flush, H::Flush}, 0) == EPDJoker::Harlequin &&
+			MatchJokerRecipe({H::Triple, H::Triple, H::Pair}, 0) == EPDJoker::Jack && MatchJokerRecipe({H::FullHouse, H::FullHouse, H::Pair}, 0) == EPDJoker::Bell &&
+			MatchJokerRecipe({H::Four, H::Pair, H::Pair}, 0) == EPDJoker::Cheshire && MatchJokerRecipe({H::Pair, H::Pair}, 1) == EPDJoker::Hatter &&
+			MatchJokerRecipe({H::Pair}, 2) == EPDJoker::Mask && MatchJokerRecipe({H::StraightFlush, H::Four, H::FullHouse}, 0) == EPDJoker::Star,
+			"조커 레시피 10종");
+	}
+	{ // 조커 합성: 연쇄된 페어 셋 → 광대, 합성 타워 + 족보 둘 → 모자 장수
+		FPDGame G(12);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		auto PutT = [&](int X, int Y, FPDCard Cd, int Lv = 1) { FPDTower T; T.Card = Cd; T.X = X; T.Y = Y; T.Level = Lv; G.Towers[CellKey(X, Y)] = T; };
+		int Row = -1;
+		for (int Y = 0; Y < Rows && Row < 0; ++Y) { bool bFree = true; for (int X = 0; X < 7; ++X) bFree = bFree && G.Buildable(X, Y); if (bFree) Row = Y; }
+		// 페어 + 스트레이트(7 8) + 페어 (페어 둘이 바로 붙으면 투 페어 하나가 되므로 사이에 스트레이트)
+		PutT(0, Row, C(2)); PutT(1, Row, C(2, He)); PutT(2, Row, C(7)); PutT(3, Row, C(8, He)); PutT(4, Row, C(5)); PutT(5, Row, C(5, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		auto Groups = G.JokerGroups();
+		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Clown && Groups[0].Cells.size() == 6;
+		const bool bFused = G.JokerFuse(0);
+		const FPDTower& J = G.Towers.begin()->second;
+		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Clown && std::fabs(J.Mult - 12.f) < 1e-4f && (G.Discovered & 1u),
+			"연쇄된 족보 셋(페어·스트레이트·페어) → 광대 조커 (위력 6 × 2), 도감에 기록");
+		// 조커는 와일드: 레벨 2 타워 옆에 붙어도 족보
+		G.Towers.clear();
+		FPDTower Jk;
+		Jk.Card = {0, EPDSuit::Wild};
+		Jk.X = 0;
+		Jk.Y = Row;
+		Jk.Joker = (int)EPDJoker::Clown;
+		G.Towers[CellKey(0, Row)] = Jk;
+		PutT(1, Row, C(9), 2);
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		Expect(G.Synergies.size() == 1 && !G.CanFuse(0), "조커는 레벨 2 타워와도 족보 (와일드), 조커가 든 족보는 합성 불가");
+		// 합성 타워(따로 선 레벨 2) + 페어 둘 → 모자 장수
+		G.Towers.clear();
+		PutT(0, Row, C(13), 2); PutT(1, Row, C(2)); PutT(2, Row, C(2, He)); PutT(3, Row, C(7)); PutT(4, Row, C(8, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		Groups = G.JokerGroups();
+		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Hatter && Groups[0].FusedCells.size() == 1, "합성 타워 + 족보 둘 → 모자 장수");
+	}
+	{ // 조커 능력: 지휘봉 오라, 희비극 두 발, 방울 멈춤, 스타 전체 피해
+		FPDGame G(13);
+		G.NewGame(true);
+		G.bMuted = true;
+		auto MakeJ = [](int X, int Y, EPDJoker K) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = X; T.Y = Y; T.Joker = (int)K; T.Mult = 4.f; return T; };
+		FPDTowerMap M;
+		M[CellKey(5, 5)] = MakeJ(5, 5, EPDJoker::Baton);
+		FPDTower N;
+		N.Card = C(9);
+		N.X = 6;
+		N.Y = 6;
+		M[CellKey(6, 6)] = N;
+		ApplyEffects(M, 0);
+		Expect(std::fabs(M[CellKey(6, 6)].Eff.Rate - 1.4f) < 1e-4f, "지휘봉: 주변 타워 연사 +40%");
+		// 길 옆 칸에 조커 하나만 두고 적을 넣어 본다
+		int JX = -1, JY = -1;
+		for (int Y = 0; Y < Rows && JX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && ((X > 0 && G.Path.IsPath(X - 1, Y)) || (X + 1 < Cols && G.Path.IsPath(X + 1, Y)))) { JX = X; JY = Y; break; }
+		float NearD = 0.f, BestDist = 1e9f;
+		for (float D = 0.f; D < G.Path.Length; D += 0.1f) { const FPDPoint P = G.Path.At(D); const float Dist = std::hypot(P.X - JX - 0.5f, P.Y - JY - 0.5f); if (Dist < BestDist) { BestDist = Dist; NearD = D; } }
+		auto Setup = [&](EPDJoker K) {
+			G.Towers.clear();
+			G.Towers[CellKey(JX, JY)] = MakeJ(JX, JY, K);
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			G.Phase = EPDPhase::Wave;
+			G.Enemies.clear();
+			for (int I = 0; I < 3; ++I) { FPDEnemy E = G.SpawnTestEnemy(EPDEnemy::Normal, 10000.f, 1); E.Speed = 0.f; E.D = NearD + I * 0.15f; G.Enemies.push_back(E); }
+		};
+		Setup(EPDJoker::Comedy);
+		G.Update(0.01f);
+		int Hurt = 0;
+		for (auto& E : G.Enemies) Hurt += E.Hp < E.MaxHp;
+		Expect(Hurt == 2, "희비극: 두 적을 동시에 공격");
+		Setup(EPDJoker::Bell);
+		G.Towers.begin()->second.Timer = 7.99f;
+		G.Update(0.02f);
+		bool bStop = true;
+		for (auto& E : G.Enemies) bStop = bStop && E.SlowAmt == 1.f && E.SlowT > 0.f;
+		Expect(bStop, "방울: 사거리 안 적을 멈춘다");
+		Setup(EPDJoker::Star);
+		for (auto& E : G.Enemies) E.D = NearD + 5.f; // 멀리 있어도
+		G.Update(0.01f);
+		int Hurt2 = 0;
+		for (auto& E : G.Enemies) Hurt2 += E.Hp < E.MaxHp;
+		Expect(Hurt2 == 3, "스타: 판 전체 모든 적에게 피해");
+	}
 	{ // 덱: 52장, 중복 없음
 		FPDGame G(9);
 		G.NewGame(true);
@@ -250,7 +339,7 @@ static int Coverage(const FPDGame& G, int X, int Y, float Range)
 }
 static double Power(FPDGame& G, FPDTowerMap& Tw)
 {
-	const uint32_t M = G.JokerMask();
+	const uint32_t M = G.CharmMask();
 	ApplyEffects(Tw, M);
 	double Sum = 0;
 	for (auto& KV : Tw) { const FPDTowerStats S = TowerStats(KV.second, M); Sum += S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, KV.second.X, KV.second.Y, S.Range); }
@@ -259,7 +348,7 @@ static double Power(FPDGame& G, FPDTowerMap& Tw)
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false)
 {
 	std::map<int, int> Hist;
-	int LivesSum = 0, WaveSum = 0;
+	int WaveSum = 0;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
@@ -332,20 +421,19 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			}
 			G.StartWave();
 			for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K) G.Update(0.05f);
-			if (G.Phase == EPDPhase::Reward) // 보상: 조커 먼저, 없으면 수리 (bNoReward면 건너뛰기)
+			if (G.Phase == EPDPhase::Reward) // 보상: 부적 먼저, 없으면 수리 (bNoReward면 건너뛰기)
 			{
 				int Pick = -1;
-				for (int I = 0; I < (int)G.Rewards.size() && !bNoReward; ++I) if (G.Rewards[I].bJoker) { Pick = I; break; }
-				for (int I = 0; I < (int)G.Rewards.size() && Pick < 0 && !bNoReward; ++I) if (!G.Rewards[I].bJoker && G.Rewards[I].Id == (int)EPDInstant::Repair) Pick = I;
+				for (int I = 0; I < (int)G.Rewards.size() && !bNoReward; ++I) if (G.Rewards[I].bCharm) { Pick = I; break; }
+				for (int I = 0; I < (int)G.Rewards.size() && Pick < 0 && !bNoReward; ++I) if (!G.Rewards[I].bCharm && G.Rewards[I].Id == (int)EPDInstant::Repair) Pick = I;
 				G.TakeReward(Pick);
 			}
 			G.Events.clear();
 		}
 		Hist[G.Wave]++;
 		WaveSum += G.Wave;
-		LivesSum += G.Lives;
 	}
-	std::printf("\n%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 조커 먼저", bFuse ? " · 합성" : "", Runs);
+	std::printf("\n%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 부적 먼저", bFuse ? " · 합성" : "", Runs);
 	for (auto& KV : Hist) std::printf("  %d:%d", KV.first, KV.second);
 	std::printf("   평균 %.1f웨이브\n", (double)WaveSum / Runs);
 }
