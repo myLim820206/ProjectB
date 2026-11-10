@@ -42,6 +42,7 @@ private:
 	void Click(FVector2f P, bool bRight);
 	void DoFuse(int32 SynergyIdx);     // 합성 + 빨려 들어가는 연출 준비
 	int32 HoveredSynergy() const;      // 마우스가 올라간 타워의 족보 번호
+	int32 TreeHoverAt(FVector2f P) const; // 트리 창에서 이 위치의 노드 (-1 = 없음)
 	TArray<FVector2f> PendingFuseCells; // 합성 직전 족보 칸 위치 (연출용)
 
 	// ---- 이펙트
@@ -89,6 +90,9 @@ private:
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
+	bool bTree = false;                    // 스킬 트리 화면 (K)
+	int32 TreeBuyId = -1;                  // 방금 찍은 노드 (연출)
+	float TreeBuyT = 0.f;
 	FString PreviewKey;
 
 	// 이펙트 상태

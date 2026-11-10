@@ -84,7 +84,50 @@ struct FPDEffects
 	int Hand = -1;   // 들어간 족보 번호 (Synergies 안), 없으면 -1
 	int Chain = 1;
 	int CopyKey = -1; // 웃는 가면 조커: 따라 할 옆 타워 칸
+	int Kind = -1;    // 들어간 족보 종류 (EPDHand), 없으면 -1
+	int N = 0;        // 들어간 족보 장수
 };
+
+
+// ---------------------------------------------------------------- 스킬 트리 (판 안에서만, docs/16-skill-tree.md)
+// 적을 잡아 번 골드로 포인트를 사서 노드를 찍는다. 이미 찍은 노드와 이어진 노드만 살 수 있고,
+// 포인트 값은 살 때마다 ×1.15 로 올라 무한 진행에서도 트리를 다 채우지 못한다.
+// 키스톤은 둘씩 짝이라 하나를 찍으면 짝은 그 판 동안 봉인되고, 판마다 최대 3개.
+enum class EPDNode : uint8_t { Start, Small, Notable, Keystone, Joker };
+enum class EPDStat : uint8_t { None, SuitDmg, SuitRate, SuitRange, SuitSplash, SuitSlow, HandDmg, HandRate, HandSplash, AllDmg, ChainAdd, FuseAdd, FusedDmg, GoldPct, HandMax, Draw, Lives, Keystone, Joker, JokerDmg };
+// 키스톤: (외골수, 잡식가) (큰 판, 작은 판) (대장장이, 광대의 길) (고독한 저격수, 군중) 이 짝. 짝 번호 = K ^ 1
+enum class EPDKeystone : uint8_t { Purist, Omni, BigTable, SmallTable, Smith, ClownPath, Lone, Crowd, Count };
+constexpr int KeystoneMax = 3;
+constexpr int PointBasePrice = 20;
+constexpr float PointPriceGrowth = 1.22f;
+struct FPDNodeFx
+{
+	EPDStat Stat = EPDStat::None;
+	int Param = 0;   // 무늬 번호, 족보 비트 묶음(1 << EPDHand), 키스톤·조커 번호
+	float Value = 0.f;
+};
+struct FPDTreeNode
+{
+	EPDNode Kind = EPDNode::Small;
+	float R = 0.f, Deg = 0.f; // 그림 위치 (가운데에서 거리, 각도. 0도 = 오른쪽, 90도 = 아래)
+	FPDNodeFx Fx[2];
+};
+int TreeNodeCount();
+const FPDTreeNode& TreeNode(int Id);
+const std::vector<int>& TreeLinks(int Id);
+// 찍은 노드들을 모은 효과 (increased 식 덧셈, 키스톤·조커 강화만 곱)
+struct FPDTreeMods
+{
+	float SuitDmg[5] = {}, SuitRate[5] = {}, SuitRange[5] = {}, SuitSplash[5] = {}, SuitSlow[5] = {};
+	float HandDmg[8] = {}, HandRate[8] = {}, HandSplash[8] = {};
+	float AllDmg = 0.f, ChainAdd = 0.f, FuseAdd = 0.f, FusedDmg = 0.f, GoldPct = 0.f, JokerDmg = 0.f;
+	int HandAdd = 0, DrawAdd = 0;
+	uint32_t Keys = 0;    // 찍은 키스톤 (비트)
+	uint32_t JokerUp = 0; // 강화한 조커 (비트)
+	bool Key(EPDKeystone K) const { return (Keys >> (int)K) & 1u; }
+	bool Up(int Joker) const { return (JokerUp >> Joker) & 1u; }
+};
+FPDTreeMods BuildTreeMods(uint64_t Owned);
 
 struct FPDTower
 {
@@ -136,13 +179,13 @@ struct FPDSynergy
 // 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 겹치지 않게 고르고, 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
-std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms = 0);
+std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
 
 struct FPDTowerStats
 {
 	float Dmg, Rate, Range, Splash, Slow;
 };
-FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms = 0);
+FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
 
 // ---------------------------------------------------------------- 길
 struct FPDPoint
@@ -186,12 +229,12 @@ struct FPDEnemy
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Bell, Star } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Bell, Star, TreeBuy } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
@@ -216,7 +259,18 @@ public:
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
-	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0); }
+	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + Mods.HandAdd; }
+	// 스킬 트리
+	enum class EBuy : uint8_t { Ok, Owned, NotLinked, Sealed, KeyCap, NoGold, Closed };
+	int PointPrice() const;              // 다음 포인트 값
+	int KeystoneCount() const;
+	bool TreeOwnedNode(int Id) const { return (TreeOwned >> Id) & 1ull; }
+	bool TreeSealed(int Id) const;       // 짝 키스톤을 찍어서 막힌 노드
+	EBuy CanBuy(int Id) const;
+	bool BuyNode(int Id);
+	int KillGold(EPDEnemy T, int W) const; // 골드 덤 적용 전
+	float FuseMult() const;              // 합성 배율 (기본 1.5)
+	float JokerMult() const;             // 조커 배율 (기본 1.2)
 	bool Buildable(int X, int Y) const;
 	// 고른 카드를 이 칸에 놓으면 생길 족보 (놓은 칸이 든 연쇄 전체)
 	std::vector<FPDSynergy> PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers = nullptr) const;
@@ -225,6 +279,10 @@ public:
 	EPDPhase Phase = EPDPhase::Title;
 	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
+	int Gold = 0, Points = 0, GoldEarned = 0; // 골드, 산 포인트 수, 판에서 번 골드 합
+	float GoldCarry = 0.f;                    // 골드 덤의 소수 부분
+	uint64_t TreeOwned = 1;                   // 찍은 노드 (0번 시작점은 처음부터)
+	FPDTreeMods Mods;
 	int Speed = 1;
 	float Time = 0.f;
 	std::vector<FPDCard> Deck, Hand;
@@ -244,6 +302,7 @@ private:
 	void Draw(int N, int* OutGot = nullptr);
 	void EndWave();
 	void Hit(FPDEnemy& E, float Dmg, float Slow);
+	int AddGold(float Amount);
 	void Ev(const FPDEvent& E) { Events.push_back(E); }
 	void Sfx(EPDSound S, int A = 0, int B = 0) { if (!bMuted) Sounds.push_back({S, A, B, 1.f}); }
 

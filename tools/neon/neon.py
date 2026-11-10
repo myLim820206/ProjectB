@@ -7,6 +7,7 @@
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
     python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
     python3 tools/neon/neon.py jokers 출력.png     # 조커 카드 후보 10종
+    python3 tools/neon/neon.py tree 출력.png tree.json   # 스킬 트리 화면 (tree.json 은 Tests/tree_dump.cpp 로 뽑음)
 
 새 그림은 아래 SHAPES 에 함수를 더하면 된다. 큰 크기 / 손패 크기 / 타워 크기 세 가지로 나란히 그린다.
 """
@@ -226,6 +227,91 @@ def joker_cards():
     return [(frame(d), 'pink') for d in designs]
 
 
+# ---------------------------------------------------------------- 스킬 트리 화면 (1280 x 720, 언리얼 트리 창과 같은 배치)
+TREE_CX, TREE_CY, TREE_U, TREE_SX = 640, 392, 49, 1.55
+SUIT_COL = ['spade', 'heart', 'diamond', 'club']
+
+
+def tree_pos(n):
+    a = math.radians(n['d'])
+    return TREE_CX + math.cos(a) * n['r'] * TREE_U * TREE_SX, TREE_CY + math.sin(a) * n['r'] * TREE_U
+
+
+def tree_color(n):
+    """무늬 팔은 무늬 색, 다리는 청록, 살림은 흰색, 키스톤 금색, 조커 분홍"""
+    k, i = n['k'], n['id']
+    if k == 3:
+        return 'gold'
+    if k == 4 or i >= 51:
+        return 'pink'
+    if 1 <= i <= 20:
+        return SUIT_COL[(i - 1) // 5]
+    if 21 <= i <= 36:
+        return 'cyan'
+    return 'white'
+
+
+def tree_shape(n, cx, cy):
+    k = n['k']
+    if k == 0:
+        return [circle(cx, cy, 13, 32)] + suit('wild')(cx, cy, 8)
+    if k == 1:
+        return [circle(cx, cy, 7, 24)]
+    if k == 2:
+        L = [rrect(cx, cy, 15, 4)]
+        i = n['id']
+        if 1 <= i <= 20:
+            L += suit(SUIT_COL[(i - 1) // 5])(cx, cy, 8)
+        else:
+            L.append(circle(cx, cy, 4, 16))
+        return L
+    if k == 3:  # 키스톤: 팔각 이중 틀
+        oct_ = lambda r: [(cx + math.cos(math.radians(22.5 + 45 * j)) * r, cy + math.sin(math.radians(22.5 + 45 * j)) * r) for j in range(9)]
+        return [oct_(20), oct_(13)]
+    # 조커 강화: 분홍 틀 + 광대 모자
+    return [rrect(cx, cy, 17, 5)] + jester_hat(cx, cy + 4, 13, band=False)
+
+
+def render_tree(out, path, owned=(0, 1, 2, 3, 4, 5, 6, 7, 21, 23, 58, 48), sealed=(10,), S=2):
+    import json
+    nodes = json.load(open(path))
+    COL.setdefault('gold', (255, 210, 110))
+    img = Image.new('RGB', (1280 * S, 720 * S), BG)
+    jobs = []  # (선 목록, 색, 밝기)
+    seen = set()
+    for n in nodes:
+        for m in n['l']:
+            if (m, n['id']) in seen:
+                continue
+            seen.add((n['id'], m))
+            on = n['id'] in owned and m in owned
+            a, b = tree_pos(n), tree_pos(nodes[m])
+            jobs.append(([[a, b]], tree_color(nodes[m]) if on else 'cyan', 1.0 if on else 0.22, 1.2))
+    for n in nodes:
+        cx, cy = tree_pos(n)
+        i = n['id']
+        if i in sealed:
+            jobs.append((tree_shape(n, cx, cy), 'red', 0.5, 1.4))
+            jobs.append(([[(cx - 12, cy - 12), (cx + 12, cy + 12)], [(cx + 12, cy - 12), (cx - 12, cy + 12)]], 'red', 0.8, 1.4))
+        else:
+            jobs.append((tree_shape(n, cx, cy), tree_color(n), 1.0 if i in owned else 0.4, 1.6 if n['k'] >= 2 else 1.3))
+    COL.setdefault('red', (255, 90, 110))
+    for lines, col, alpha, w in jobs:
+        c = tuple(int(v * alpha) for v in COL[col])
+        glow = Image.new('RGB', img.size, (0, 0, 0))
+        gd = ImageDraw.Draw(glow)
+        sl = [[(x * S, y * S) for x, y in ln] for ln in lines]
+        for ln in sl:
+            gd.line(ln, fill=c, width=int(w * 4 * S))
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S)).point(lambda v: int(v * 0.8)))
+        d = ImageDraw.Draw(img)
+        for ln in sl:
+            d.line(ln, fill=c, width=max(1, int(w * S)))
+    d = ImageDraw.Draw(img)
+    d.text((640 * S, 30 * S), 'SKILL TREE   gold 132   next point 30   keystone 1/3', fill=COL['gold'], font=FONT(14 * S), anchor='mm')
+    img.resize((1280, 720), Image.LANCZOS).save(out)
+
+
 SHAPES = {
     'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
@@ -272,6 +358,10 @@ def render(name, out, S=4):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 4 and sys.argv[1] == 'tree':
+        render_tree(sys.argv[2], sys.argv[3])
+        print('saved', sys.argv[2])
+        sys.exit(0)
     if len(sys.argv) < 3 or sys.argv[1] not in SHAPES:
         print(__doc__)
         print('그림:', ', '.join(SHAPES))
