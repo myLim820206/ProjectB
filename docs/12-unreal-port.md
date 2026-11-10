@@ -9,7 +9,7 @@
 ## 1. 열어 보기
 
 ### Windows
-1. Visual Studio 2022에 "C++를 사용한 게임 개발" 워크로드 설치
+1. **Visual Studio 2026** 에 "C++를 사용한 게임 개발" 워크로드 설치 (UE 5.8 빌드 도구가 .NET 10 을 써서 VS 2022(최종 17.14)로는 "현재 Visual Studio 버전은 .NET 10.0 타겟팅을 지원하지 않습니다" 오류가 남)
 2. 예전 빌드 결과가 있으면 `Binaries/`, `Intermediate/` 폴더를 지운다 (테트리스 포커 클래스가 남아 있을 수 있음)
 3. `ProjectB.uproject` 더블클릭 → "모듈을 다시 빌드할까요?"에서 **예**
    - 엔진 버전을 물으면 `ProjectB.uproject` 우클릭 → Switch Unreal Engine version → 5.8 선택
