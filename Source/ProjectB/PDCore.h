@@ -240,6 +240,10 @@ struct FPDEnemyDef
 	bool bArmor, bBoss;
 };
 const FPDEnemyDef& EnemyDef(EPDEnemy T);
+// 웨이브 마리 수 (보스 빼고) = 12 + 4W. 예전 8 + 2W 와 웨이브 전체 체력·골드·길이를 맞추는 배율 = (8 + 2W) / (12 + 4W)
+int WaveCount(int W);
+float WaveScale(int W);
+constexpr float MobHpBonus = 2.5f; // 마리 수가 늘면 범위 공격·연쇄가 여러 마리를 맞혀 쉬워지므로 일반 적 체력에 곱한다 (보스는 그대로). 봇으로 맞춤: 1.6 → 21.6, 2.5 → 19.1웨이브
 struct FPDEnemy
 {
 	EPDEnemy Type = EPDEnemy::Normal;

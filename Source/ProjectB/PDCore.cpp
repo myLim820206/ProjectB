@@ -740,12 +740,16 @@ FPDEnemy FPDGame::MakeEnemy(EPDEnemy T, float BaseHp, int W)
 	return E;
 }
 
+int WaveCount(int W) { return 12 + 4 * W; }
+float WaveScale(int W) { return (8.f + 2.f * W) / (float)WaveCount(W); }
+
 std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
 	// 무한 진행: 15웨이브까지 ×1.45, 그 뒤로는 ×1.3씩
-	const float Hp = 26.f * std::pow(1.45f, (float)(std::min(W, 15) - 1)) * std::pow(1.3f, (float)std::max(0, W - 15));
-	const int N = 8 + W * 2;
+	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, 15) - 1)) * std::pow(1.3f, (float)std::max(0, W - 15));
+	const float Hp = BossHp * WaveScale(W) * MobHpBonus; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
+	const int N = WaveCount(W);
 	for (int I = 0; I < N; ++I)
 	{
 		EPDEnemy T = EPDEnemy::Normal;
@@ -760,7 +764,7 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 	if (W % 5 == 0)
 	{
 		static const EPDEnemy Bosses[3] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss};
-		List.push_back(MakeEnemy(Bosses[(W / 5 - 1) % 3], Hp, W));
+		List.push_back(MakeEnemy(Bosses[(W / 5 - 1) % 3], BossHp, W));
 	}
 	return List;
 }
@@ -1119,7 +1123,7 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	K.X = P.X;
 	K.Y = P.Y;
 	K.Enemy = E.Type;
-	K.A = AddGold((float)KillGold(E.Type, E.Wave));
+	K.A = AddGold(KillGold(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave))); // 마리 수가 늘어도 웨이브당 골드는 그대로
 	Ev(K);
 	const FPDEnemyDef& D = EnemyDef(E.Type);
 	if (KillSfxT <= 0.f || D.bBoss) { Sfx(D.bBoss ? EPDSound::Clear : EPDSound::Rotate); KillSfxT = 0.08f; }
@@ -1151,7 +1155,7 @@ void FPDGame::Update(float Dt)
 		const FPDEnemy E = Pending.front();
 		Pending.erase(Pending.begin());
 		Enemies.push_back(E);
-		SpawnT = EnemyDef(E.Type).bBoss ? 1.2f : 0.65f;
+		SpawnT = EnemyDef(E.Type).bBoss ? 1.2f : 0.65f * WaveScale(Wave); // 마리 수가 늘어도 웨이브 길이는 그대로
 	}
 	for (FPDEnemy& E : Enemies)
 	{

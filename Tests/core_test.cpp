@@ -446,22 +446,26 @@ static void UnitTests()
 		for (int K = 0; K < (int)EPDKeystone::Count; K += 2) bNoPair = bNoPair && !(G.Mods.Key((EPDKeystone)K) && G.Mods.Key((EPDKeystone)(K + 1)));
 		Expect(bNoPair, "골드가 무한이어도 짝 키스톤을 둘 다 가질 수 없다");
 	}
-	{ // 골드: 처치 골드, 골드 노드
+	{ // 골드: 처치 골드 (마리 수 배율만큼 나눔), 보스 25, 골드 노드
 		FPDGame G(7);
 		G.NewGame(true);
 		G.Phase = EPDPhase::Wave;
-		FPDEnemy E = G.SpawnTestEnemy(EPDEnemy::Normal, 1.f, 1);
-		G.HitTest(E, 100.f);
-		Expect(G.Gold == 1, "보통 적 처치 1골드");
+		for (int I = 0; I < 16; ++I) { FPDEnemy E = G.SpawnTestEnemy(EPDEnemy::Normal, 1.f, 1); G.HitTest(E, 100.f); }
+		Expect(G.Gold == 10, "1웨이브 보통 적 16마리 = 예전 10마리 몫 10골드");
 		FPDEnemy B = G.SpawnTestEnemy(EPDEnemy::ShieldBoss, 1.f, 5);
 		G.HitTest(B, 1000.f);
-		Expect(G.Gold == 26, "보스 처치 25골드");
+		Expect(G.Gold == 35, "보스 처치 25골드 (나누지 않음)");
 		Expect(G.KillGold(EPDEnemy::Tank, 11) == 5, "탱크 11웨이브 = 3 + 2");
 		G.TreeOwned.set(FindStat(EPDStat::GoldPct, 0));
 		G.RebuildMods();
 		const int Before = G.Gold;
-		for (int I = 0; I < 20; ++I) { FPDEnemy N2 = G.SpawnTestEnemy(EPDEnemy::Normal, 1.f, 1); G.HitTest(N2, 100.f); }
-		Expect(G.Gold - Before == 23, "골드 +15% 노드: 20마리 → 23골드");
+		for (int I = 0; I < 32; ++I) { FPDEnemy N2 = G.SpawnTestEnemy(EPDEnemy::Normal, 1.f, 1); G.HitTest(N2, 100.f); }
+		Expect(G.Gold - Before == 23, "골드 +15% 노드: 32마리 (예전 20마리 몫) → 23골드");
+	}
+	{ // 마리 수: 12 + 4W, 웨이브 전체 체력은 예전(8 + 2W)과 같음
+		bool bSame = true;
+		for (int W = 1; W <= 40; ++W) bSame = bSame && std::abs(WaveCount(W) * WaveScale(W) - (8.f + 2.f * W)) < 1e-3f;
+		Expect(WaveCount(1) == 16 && WaveCount(20) == 92 && bSame, "마리 수 1웨이브 16·20웨이브 92, 전체 체력은 그대로");
 	}
 	{ // 트리 효과
 		FPDTowerMap M;
@@ -776,7 +780,8 @@ int main(int Argc, char** Argv)
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
-	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
+	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "base") BotTest(Runs, false, false, true, true);
+	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;
