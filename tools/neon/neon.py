@@ -6,6 +6,7 @@
     python3 tools/neon/neon.py joker 출력.png      # 조커 광대 머리
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
     python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
+    python3 tools/neon/neon.py jokers 출력.png     # 조커 카드 후보 10종
 
 새 그림은 아래 SHAPES 에 함수를 더하면 된다. 큰 크기 / 손패 크기 / 타워 크기 세 가지로 나란히 그린다.
 """
@@ -126,7 +127,107 @@ def tower(kind, rank):
     return f
 
 
+# ---------------------------------------------------------------- 조커 카드 후보 10종 (틀 + 기호)
+def arc(cx, cy, r, a0, a1, n=16, sx=1.0):
+    return [(cx + math.cos(math.radians(a0 + (a1 - a0) * k / n)) * r * sx, cy + math.sin(math.radians(a0 + (a1 - a0) * k / n)) * r) for k in range(n + 1)]
+
+
+def scaled(fn, k, dx=0.0, dy=0.0):
+    """그림 함수를 R 배율 k, 위치 (dx, dy)·R 로 옮긴다"""
+    return lambda cx, cy, R: fn(cx + dx * R, cy + dy * R, R * k)
+
+
+def jester_hat(cx, cy, R, band=True):
+    P = lambda x, y: (cx + x * R, cy + y * R)
+    by = -0.12
+    hat = []
+    hat += bez(P(-0.5, by), P(-0.95, -0.95), P(-1.0, -0.22))
+    hat += bez(P(-1.0, -0.22), P(-0.6, -0.5), P(-0.22, by - 0.22))[1:]
+    hat += bez(P(-0.22, by - 0.22), P(-0.2, -0.75), P(0, -1.05))[1:]
+    hat += bez(P(0, -1.05), P(0.2, -0.75), P(0.22, by - 0.22))[1:]
+    hat += bez(P(0.22, by - 0.22), P(0.6, -0.5), P(1.0, -0.22))[1:]
+    hat += bez(P(1.0, -0.22), P(0.95, -0.95), P(0.5, by))[1:]
+    hat += bez(P(0.5, by), P(0, by + 0.14), P(-0.5, by))[1:]
+    L = [hat]
+    for tx, ty in [(-1.0, -0.22), (0, -1.05), (1.0, -0.22)]:
+        L.append(circle(*P(tx, ty + 0.1), 0.1 * R, 20))
+    return L
+
+
+def joker_cards():
+    def frame(inner):
+        def f(cx, cy, R):
+            return [rrect(cx, cy, R * 0.98, R * 0.22)] + inner(cx, cy, R)
+        return f
+
+    def j1(cx, cy, R):  # 광대 머리
+        return joker(cx, cy + 0.04 * R, R * 0.6)
+
+    def j2(cx, cy, R):  # 광대 모자
+        return jester_hat(cx, cy + 0.38 * R, R * 0.72)
+
+    def j3(cx, cy, R):  # 웃는 가면 (눈가리개 + 미소)
+        P = lambda x, y: (cx + x * R, cy + y * R)
+        mask = bez(P(-0.68, -0.12), P(0, -0.52), P(0.68, -0.12)) + bez(P(0.68, -0.12), P(0.35, 0.22), P(0, 0.02))[1:] + bez(P(0, 0.02), P(-0.35, 0.22), P(-0.68, -0.12))[1:]
+        eyeL = bez(P(-0.45, -0.12), P(-0.3, -0.26), P(-0.15, -0.12), 8) + bez(P(-0.15, -0.12), P(-0.3, -0.04), P(-0.45, -0.12), 8)[1:]
+        eyeR = [(2 * cx - x, y) for x, y in eyeL]
+        tails = [[P(-0.68, -0.12), P(-0.82, 0.12)], [P(-0.68, -0.12), P(-0.88, -0.02)], [P(0.68, -0.12), P(0.82, 0.12)], [P(0.68, -0.12), P(0.88, -0.02)]]
+        smile = bez(P(-0.3, 0.32), P(0, 0.6), P(0.3, 0.32), 12)
+        return [mask, eyeL, eyeR, smile] + tails
+
+    def j4(cx, cy, R):  # 희비극 가면 (웃음 + 울음)
+        P = lambda x, y: (cx + x * R, cy + y * R)
+        L = [circle(*P(-0.24, -0.1), 0.38 * R, 32), circle(*P(0.26, 0.14), 0.38 * R, 32)]
+        L += [bez(P(-0.38, -0.2), P(-0.32, -0.28), P(-0.26, -0.2), 6), bez(P(-0.18, -0.2), P(-0.12, -0.28), P(-0.06, -0.2), 6)]
+        L += [bez(P(-0.42, 0.0), P(-0.24, 0.18), P(-0.06, 0.0), 10)]                 # 웃는 입
+        L += [bez(P(0.14, 0.06), P(0.2, 0.0), P(0.26, 0.06), 6), bez(P(0.32, 0.06), P(0.38, 0.0), P(0.44, 0.06), 6)]
+        L += [bez(P(0.12, 0.34), P(0.28, 0.18), P(0.44, 0.34), 10)]                  # 우는 입
+        return L
+
+    def j5(cx, cy, R):  # 할리퀸 마름모 + 방울
+        P = lambda x, y: (cx + x * R, cy + y * R)
+        dia = lambda x, y, w, h: [P(x, y - h), P(x + w, y), P(x, y + h), P(x - w, y), P(x, y - h)]
+        L = [dia(0, 0.02, 0.24, 0.42), dia(-0.42, 0.08, 0.17, 0.3), dia(0.42, 0.08, 0.17, 0.3)]
+        L += [circle(*P(0, -0.52), 0.08 * R, 16), circle(*P(-0.42, -0.34), 0.07 * R, 14), circle(*P(0.42, -0.34), 0.07 * R, 14)]
+        return L
+
+    def j6(cx, cy, R):  # 광대 지팡이
+        P = lambda x, y: (cx + x * R, cy + y * R)
+        L = [[P(0, -0.05), P(0, 0.72)], [P(-0.12, 0.72), P(0.12, 0.72)]]
+        L += joker(cx, cy - 0.32 * R, R * 0.36)
+        return L
+
+    def j7(cx, cy, R):  # J 모노그램 + 모자
+        L = jester_hat(cx, cy - 0.22 * R, R * 0.48)
+        L.append(('text', cx, cy + 0.26 * R, 'J', R * 0.78))
+        return L
+
+    def j8(cx, cy, R):  # 체셔 미소
+        P = lambda x, y: (cx + x * R, cy + y * R)
+        grin = bez(P(-0.66, 0.0), P(0, 0.62), P(0.66, 0.0)) + bez(P(0.66, 0.0), P(0, 0.3), P(-0.66, 0.0))[1:]
+        teeth = [[P(x, 0.12 + 0.01), P(x, 0.27 - abs(x) * 0.25)] for x in (-0.34, -0.17, 0, 0.17, 0.34)]
+        eyes = [bez(P(-0.42, -0.32), P(-0.28, -0.46), P(-0.14, -0.32), 8), bez(P(0.14, -0.32), P(0.28, -0.46), P(0.42, -0.32), 8)]
+        return [grin] + teeth + eyes
+
+    def j9(cx, cy, R):  # 방울
+        P = lambda x, y: (cx + x * R, cy + y * R)
+        bell = bez(P(-0.42, 0.34), P(-0.38, -0.36), P(0, -0.36)) + bez(P(0, -0.36), P(0.38, -0.36), P(0.42, 0.34))[1:]
+        rim = bez(P(-0.52, 0.34), P(0, 0.48), P(0.52, 0.34))
+        L = [bell, rim, [P(-0.52, 0.34), P(0.52, 0.34)], circle(*P(0, 0.52), 0.08 * R, 16)]
+        L += [bez(P(0, -0.36), P(0.05, -0.62), P(0.34, -0.62), 10), circle(*P(0.42, -0.6), 0.07 * R, 14)]  # 위에 말린 모자 끝
+        return L
+
+    def j10(cx, cy, R):  # 모자 쓴 별
+        L = suit('wild')(cx, cy + 0.22 * R, R * 0.52)
+        L += jester_hat(cx, cy - 0.24 * R, R * 0.4)
+        return L
+
+    designs = [j1, j2, j3, j4, j5, j6, j7, j8, j9, j10]
+    return [(frame(d), 'pink') for d in designs]
+
+
 SHAPES = {
+    'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
     'suits': [(suit('spade'), 'spade'), (suit('heart'), 'heart'), (suit('diamond'), 'diamond'), (suit('club'), 'club'), (suit('wild'), 'white')],
@@ -139,13 +240,15 @@ def render(name, out, S=4):
     if len(items) == 1:  # 그림 하나: 큰 그림 / 손패 크기 / 타워 크기
         W, H = 900, 320
         jobs = [(items[0][0], items[0][1], x, H // 2, R) for x, R in [(200, 110), (560, 55), (800, 24)]]
-    else:                # 여러 그림: 손패 크기로 나란히
-        W, H = 180 * len(items), 220
-        jobs = [(fn, col, 90 + k * 180, H // 2, 60) for k, (fn, col) in enumerate(items)]
+    else:                # 여러 그림: 손패 크기로 5칸씩 줄 맞춰 (아래에 번호)
+        cols = min(5, len(items)); rows = (len(items) + cols - 1) // cols
+        W, H = 180 * cols, 200 * rows
+        jobs = [(fn, col, 90 + (k % cols) * 180, 90 + (k // cols) * 200, 60) for k, (fn, col) in enumerate(items)]
     img = Image.new('RGB', (W * S, H * S), BG)
     for fn, col, cx, cy, R in jobs:
         c = COL[col]
-        core = max(1, round(1.4 * R / 60)) * S   # 심 굵기: 가늘고 또렷하게 (기준 화면 px × S)
+        core = max(1.5, 1.6 * R / 60) * S   # 심 굵기: 가늘고 또렷하게 (기준 화면 px × S)
+        core = int(round(core))
         glow = Image.new('RGB', img.size, (0, 0, 0))
         gd = ImageDraw.Draw(glow)
         lines = fn(cx * S, cy * S, R * S)
@@ -154,13 +257,17 @@ def render(name, out, S=4):
                 gd.text((ln[1], ln[2]), ln[3], fill=c, font=FONT(ln[4]), anchor='mm')
             else:
                 gd.line(ln, fill=c, width=core * 4)
-        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(7 * S)), scale=1.1)  # 넓고 부드러운 번짐
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(7 * S)).point(lambda v: int(v * 0.9)))  # 넓고 부드러운 번짐 (기존 그림은 어둡게 하지 않음)
         d = ImageDraw.Draw(img)
         for ln in lines:
             if ln and ln[0] == 'text':
                 d.text((ln[1], ln[2]), ln[3], fill=c, font=FONT(ln[4]), anchor='mm')
             else:
                 d.line(ln, fill=c, width=core)
+    if len(items) > 5:
+        d = ImageDraw.Draw(img)
+        for k in range(len(items)):
+            d.text(((90 + (k % 5) * 180) * S, (90 + (k // 5) * 200 + 82) * S), str(k + 1), fill=(138, 148, 166), font=FONT(13 * S), anchor='mm')
     img.resize((W, H), Image.LANCZOS).save(out)
 
 
