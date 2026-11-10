@@ -138,6 +138,14 @@ FVector2f RewardPos(int I) { return FVector2f(FX + Cols * CS / 2.f - 360.f + I *
 constexpr float RewardW = 220.f, RewardH = 170.f;
 FVector2f CellPx(float X, float Y) { return FVector2f(FX + X * CS, FY + Y * CS); } // 칸 좌표(실수) → 화면
 FVector2f CellCenter(int Key) { return CellPx(Key % Cols + 0.5f, Key / Cols + 0.5f); }
+// 합성 버튼: 족보 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
+constexpr float FuseW = 46.f, FuseH = 16.f;
+FVector2f FuseButtonCenter(const FPDSynergy& S)
+{
+	int Bottom = S.Cells[0];
+	for (int K : S.Cells) if (K / Cols > Bottom / Cols || (K / Cols == Bottom / Cols && K % Cols < Bottom % Cols)) Bottom = K;
+	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f);
+}
 } // namespace PDDraw
 
 using namespace PDDraw;
@@ -466,7 +474,7 @@ void SPDBoardWidget::HandleEvents()
 		}
 		case FPDEvent::EKind::WaveStart:
 			BannerText = E.B ? FString::Printf(TEXT("BOSS WAVE %d"), E.A) : FString::Printf(TEXT("WAVE %d"), E.A);
-			BannerSub = E.B ? FString::Printf(TEXT("보스: %s"), BossName(E.Enemy)) : FString::Printf(TEXT("%d / %d"), E.A, NumWaves);
+			BannerSub = E.B ? FString::Printf(TEXT("보스: %s"), BossName(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(TEXT("최고 기록 갱신 중!")) : FString::Printf(TEXT("최고 %d웨이브"), Game.BestWave));
 			BannerCol = E.B ? Hex(TEXT("ff6a6a")) : Hex(TEXT("7fd6ff"));
 			BannerT = BannerMax = 1.6f;
 			if (E.B) { FlashT = 0.25f; FlashCol = BannerCol; }
@@ -488,6 +496,34 @@ void SPDBoardWidget::HandleEvents()
 			FlashCol = Hex(TEXT("ffd96a"));
 			break;
 		case FPDEvent::EKind::Discard: break;
+		case FPDEvent::EKind::Fuse:
+		{
+			const FLinearColor Col = SuitColor(E.Suit), HC = HandColor(E.Hand);
+			// 족보 칸들에서 합쳐질 칸으로 빨려 들어가는 입자
+			for (const FVector2f& From : PendingFuseCells)
+				for (int I = 0; I < 14; ++I)
+				{
+					FParticle Pa;
+					Pa.P = From + FVector2f(FMath::FRandRange(-18.f, 18.f), FMath::FRandRange(-18.f, 18.f));
+					Pa.V = (P - Pa.P) / 0.35f;
+					Pa.MaxLife = Pa.Life = 0.35f;
+					Pa.Size = FMath::FRandRange(1.6f, 3.f);
+					Pa.Drag = 0.f;
+					Pa.Gravity = 0.f;
+					Pa.Col = I % 2 ? Col : HC;
+					Pa.bStreak = true;
+					Particles.Add(Pa);
+				}
+			PendingFuseCells.Reset();
+			Rings.Add({P, 70.f, 6.f, 0.f, 0.35f, 2.4f, HC});   // 안으로 모이는 고리
+			Rings.Add({P, 8.f, 90.f, 0.15f, 0.75f, 3.f, Col}); // 터져 나가는 고리
+			Burst(P, 50, Col, 80.f, 300.f, 0.8f, 2.8f, true);
+			Floats.Add({FString::Printf(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.5f, 28.f, Hex(TEXT("ffd96a"))});
+			FlashT = FMath::Max(FlashT, 0.2f);
+			FlashCol = Col;
+			Shake = FMath::Max(Shake, 0.25f + 0.08f * E.A);
+			break;
+		}
 		case FPDEvent::EKind::Reward:
 		{
 			const FString Name = E.A ? JokerName(E.B) : InstantName(E.B);
@@ -557,6 +593,23 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
+void SPDBoardWidget::DoFuse(int32 SynergyIdx)
+{
+	if (!Game.CanFuse(SynergyIdx)) return;
+	PendingFuseCells.Reset();
+	for (int K : Game.Synergies[SynergyIdx].Cells) PendingFuseCells.Add(CellCenter(K));
+	Game.Fuse(SynergyIdx);
+}
+
+int32 SPDBoardWidget::HoveredSynergy() const
+{
+	if (HoverX < 0) return -1;
+	const int Key = CellKey(HoverX, HoverY);
+	for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
+		for (int K : Game.Synergies[I].Cells) if (K == Key) return I;
+	return -1;
+}
+
 FVector2f SPDBoardWidget::ToDesign(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
 {
 	const auto Local = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
@@ -587,6 +640,14 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		}
 		return;
 	}
+	// 합성 버튼
+	if (!bRight)
+		for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
+		{
+			if (!Game.CanFuse(I)) continue;
+			const FVector2f B = FuseButtonCenter(Game.Synergies[I]);
+			if (FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f) { DoFuse(I); return; }
+		}
 	int32 HandHit = -1;
 	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
 	{
@@ -646,6 +707,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		}
 	if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave();
 	else if (K == EKeys::Escape) Sel = -1;
+	else if (K == EKeys::G) DoFuse(HoveredSynergy());
 	else if (K == EKeys::F) Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1;
 	else if (K == EKeys::M) Game.bMuted = !Game.bMuted;
 	else return FReply::Unhandled();
@@ -763,6 +825,14 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		const FVector2f P = CellCenter(KV.first);
 		const float Pop = T.Age < 0.3f ? 1.f + 0.5f * (1.f - T.Age / 0.3f) : 1.f; // 놓는 순간 커졌다 줄어듦
 		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
+		// 레벨: 틀을 한 겹씩 더 (안쪽으로), 위쪽에 레벨 점
+		for (int L = 2; L <= T.Level; ++L)
+		{
+			const float H = CS * 0.4f * Pop * 0.98f + (L - 1) * 3.5f;
+			F.Glow(FCanvas::RoundRectPoints(P.X - H, P.Y - H, H * 2.f, H * 2.f, 6.f + L), WithAlpha(SuitColor(T.Card.Suit), 0.75f), 1.2f, 0.6f);
+		}
+		if (T.Level >= 2)
+			for (int L = 0; L < T.Level; ++L) F.Box(P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, Hex(TEXT("ffd96a")));
 	}
 	// 미리보기: 고른 카드를 마우스 칸에
 	if (Sel >= 0 && Sel < (int32)G.Hand.size() && HoverX >= 0 && G.Buildable(HoverX, HoverY))
@@ -866,6 +936,35 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	};
 	DrawBadges(G.Synergies, bPv ? 0.35f : 1.f);
 	if (bPv) DrawBadges(Preview, 1.f);
+	// 합성 버튼
+	if (!bPv && G.Phase != EPDPhase::Reward)
+		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
+		{
+			if (!G.CanFuse(I)) continue;
+			const FVector2f B = FuseButtonCenter(G.Synergies[I]);
+			const bool bHov = FMath::Abs(Mouse.X - B.X) <= FuseW / 2.f && FMath::Abs(Mouse.Y - B.Y) <= FuseH / 2.f;
+			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
+			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
+			F.TextCentered(TEXT("합성"), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.8f), 10.f, true);
+		}
+	// 타워 정보 (마우스를 올리면)
+	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward)
+	{
+		auto It = G.Towers.find(CellKey(HoverX, HoverY));
+		if (It != G.Towers.end())
+		{
+			const FPDTower& T = It->second;
+			const FPDTowerStats St = TowerStats(T, G.JokerMask());
+			const FVector2f P = CellCenter(It->first) + FVector2f(CS * 0.6f, -CS * 0.6f);
+			const float BX = FMath::Min(P.X, FX + Cols * CS - 170.f), BYp = FMath::Max(P.Y - 66.f, FY + 4.f);
+			F.Box(BX, BYp, 166.f, 70.f, Hex(TEXT("06060b"), 0.92f));
+			F.Lines(FCanvas::RectPoints(BX, BYp, 166.f, 70.f), WithAlpha(SuitColor(T.Card.Suit), 0.7f), 1.f);
+			F.Text(FString::Printf(TEXT("%s %s · 레벨 %d"), T.Card.IsWild() ? TEXT("와일드") : *RankText(T.Card.Rank), SuitName(T.Card.Suit), T.Level), BX + 8.f, BYp + 18.f, SuitColor(T.Card.Suit), 12.f, 0, true);
+			F.Text(FString::Printf(TEXT("공격력 %.0f · 초당 %.1f발"), St.Dmg, St.Rate), BX + 8.f, BYp + 36.f, Fg, 11.f);
+			F.Text(FString::Printf(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *FString::Printf(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? TEXT(" · 둔화") : TEXT("")), BX + 8.f, BYp + 52.f, Grey, 11.f);
+			if (T.Level >= 2) F.Text(FString::Printf(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 8.f, BYp + 66.f, Gold, 10.f);
+		}
+	}
 	for (const FFloatText& Ft : Floats)
 	{
 		const float U = Ft.T / Ft.MaxT, A = FMath::Min(1.f, (1.f - U) * 3.f), Pop = U < 0.12f ? 1.f + (0.12f - U) * 4.f : 1.f;
@@ -901,9 +1000,9 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	// ---- 오른쪽 패널
 	const float PW = DesignW - RX - 20.f;
 	C.Panel(RX, FY, PW, 150.f);
-	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : FString::Printf(TEXT("WAVE %d / %d"), G.Wave, NumWaves), RX + 16.f, FY + 30.f, Hex(TEXT("e8f0ff")), 20.f, 0, true);
+	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : FString::Printf(TEXT("WAVE %d"), G.Wave), RX + 16.f, FY + 30.f, Hex(TEXT("e8f0ff")), 20.f, 0, true);
 	C.Text(FString::Printf(TEXT("목숨 %d"), G.Lives), RX + 16.f, FY + 58.f, G.Lives <= 5 ? Red : Green, 15.f, 0, true);
-	C.Text(FString::Printf(TEXT("처치 %d · 놓친 적 %d"), G.Kills, G.Leaks), RX + 16.f, FY + 80.f, Grey, 11.f);
+	C.Text(FString::Printf(TEXT("처치 %d · 놓친 적 %d · 최고 %d웨이브"), G.Kills, G.Leaks, FMath::Max(G.BestWave, G.Wave)), RX + 16.f, FY + 80.f, Grey, 11.f);
 	if (G.Phase == EPDPhase::Build)
 	{
 		C.Glow(FCanvas::RectPoints(RX + 16.f, FY + 96.f, 200.f, 38.f), Green, 1.6f, 0.6f + 0.8f * Pulse);
@@ -945,7 +1044,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Shape(S, X + 6.f, FY + 593.f, 7.f, SuitColor(S), 1.4f, 0.6f);
 		C.Text(SuitName(S), X + 18.f, FY + 597.f, SuitColor(S), 11.f);
 	}
-	C.Text(TEXT("카드 클릭(숫자키) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소 · F 속도 · M 소리"), DesignW / 2.f, DesignH - 8.f, Dim, 11.f, 1);
+	C.Text(TEXT("족보 아래 [합성] 또는 G: 타워 하나로 합쳐 레벨 업 · 카드 클릭(숫자키) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소 · F 속도 · M 소리"), DesignW / 2.f, DesignH - 8.f, Dim, 11.f, 1);
 
 	// ---- 보상 화면
 	if (G.Phase == EPDPhase::Reward)
@@ -974,10 +1073,10 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	if (G.Phase == EPDPhase::Title)
 		C.Overlay(TEXT("POKER DEFENSE"), Cyan,
 			{TEXT("카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력"), TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이). 족보끼리 맞닿으면 연쇄 보너스"),
-				FString::Printf(TEXT("웨이브를 막을 때마다 카드 %d장. 지금 놓을지, 아껴서 큰 족보를 노릴지!"), DrawPerWave)},
+				FString::Printf(TEXT("웨이브를 막을 때마다 카드 %d장. 족보는 합성해서 레벨을 올린다. 끝없이 몰려오는 적을 얼마나 버틸까!"), DrawPerWave)},
 			TEXT("Enter 키 또는 화면을 눌러 시작"));
 	else if (G.Phase == EPDPhase::Over)
-		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills)}, TEXT("R 키 또는 화면을 눌러 다시"));
+		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), FString::Printf(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? TEXT("  (갱신!)") : TEXT(""))}, TEXT("R 키 또는 화면을 눌러 다시"));
 	else if (G.Phase == EPDPhase::Win)
 		C.Overlay(TEXT("ALL CLEAR"), Gold, {FString::Printf(TEXT("%d 웨이브를 모두 막았다 · 남은 목숨 %d · 처치 %d"), NumWaves, G.Lives, G.Kills)}, TEXT("R 키 또는 화면을 눌러 다시"));
 }

@@ -40,6 +40,9 @@ private:
 	void UpdatePreview();
 	FVector2f ToDesign(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
 	void Click(FVector2f P, bool bRight);
+	void DoFuse(int32 SynergyIdx);     // 합성 + 빨려 들어가는 연출 준비
+	int32 HoveredSynergy() const;      // 마우스가 올라간 타워의 족보 번호
+	TArray<FVector2f> PendingFuseCells; // 합성 직전 족보 칸 위치 (연출용)
 
 	// ---- 이펙트
 	struct FParticle

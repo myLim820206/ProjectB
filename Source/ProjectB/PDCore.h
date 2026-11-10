@@ -19,7 +19,7 @@ constexpr int Cols = 16;
 constexpr int Rows = 10;
 constexpr int HandMaxBase = 7;
 constexpr int JokerMax = 5;
-constexpr int NumWaves = 15;
+constexpr int NumWaves = 15; // 1회차 기준 (보스 3종이 한 바퀴). 진행은 무한, 목숨이 0이 되면 끝
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
 constexpr int DrawPerWave = 3;
@@ -92,7 +92,14 @@ struct FPDTower
 	float Cd = 0.f;
 	float Age = 0.f; // 설치 후 시간 (연출용)
 	FPDEffects Eff;
+	// 합성: 족보를 합치면 레벨이 오르고, 합친 타워들의 위력과 족보 효과(특성)를 물려받는다
+	int Level = 1;            // 1~4. 같은 레벨끼리만 족보가 된다
+	float Mult = 1.f;         // 위력 배율 (합친 타워들 배율 합 × FuseBonus)
+	float TDmg = 1.f, TRate = 1.f, TRange = 1.f, TSplash = 0.f; // 물려받은 특성
 };
+constexpr int MaxLevel = 4;
+constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5
+constexpr float LevelRange = 0.1f;     // 레벨마다 사거리 +10%
 inline int CellKey(int X, int Y) { return Y * Cols + X; }
 using FPDTowerMap = std::map<int, FPDTower>;
 
@@ -159,12 +166,12 @@ struct FPDEnemy
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
@@ -181,6 +188,8 @@ public:
 	void Discard(int HandIdx);
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
+	bool CanFuse(int SynergyIdx) const;
+	bool Fuse(int SynergyIdx);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
 	std::vector<FPDReward> RollRewards();
 	uint32_t JokerMask() const;
 	bool Has(EPDJoker J) const { return HasJoker(JokerMask(), J); }
@@ -191,7 +200,8 @@ public:
 	void Update(float Dt);
 
 	EPDPhase Phase = EPDPhase::Title;
-	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0;
+	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
+	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
 	int Speed = 1;
 	float Time = 0.f;
 	std::vector<FPDCard> Deck, Hand;

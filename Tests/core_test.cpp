@@ -166,6 +166,71 @@ static void UnitTests()
 		G.TakeReward(0);
 		Expect(!G.Hand.empty() && G.Hand.back().IsWild(), "와일드 카드 보상");
 	}
+	{ // 합성: 페어 → 레벨 2 타워 하나, 같은 레벨끼리만 족보, 레벨 2 페어 → 레벨 3
+		FPDGame G(8);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		auto PutT = [&](int X, int Y, FPDCard Cd) { FPDTower T; T.Card = Cd; T.X = X; T.Y = Y; G.Towers[CellKey(X, Y)] = T; };
+		int Row = -1;
+		for (int Y = 0; Y < Rows && Row < 0; ++Y) { bool bFree = true; for (int X = 0; X < 6; ++X) bFree = bFree && G.Buildable(X, Y); if (bFree) Row = Y; }
+		PutT(0, Row, C(9)); PutT(1, Row, C(9, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const bool bFused = G.Fuse(0);
+		const FPDTower& F = G.Towers.begin()->second;
+		Expect(bFused && G.Towers.size() == 1 && F.Level == 2 && std::fabs(F.Mult - 2.f * FuseBonus) < 1e-4f && F.TDmg == 1.5f && F.Card.Rank == 9 && G.Synergies.empty(),
+			"합성: 9 페어 → 레벨 2 타워 하나 (위력 3배, 공격력 특성 ×1.5)");
+		// 레벨 2 옆에 레벨 1 같은 숫자 → 족보 아님
+		const int FX0 = F.X;
+		PutT(FX0 + 1, Row, C(9, Di));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		Expect(G.Synergies.empty(), "레벨이 다르면 족보가 안 됨");
+		// 레벨 1 두 장을 또 합쳐 레벨 2 를 만들고, 레벨 2 둘이 붙으면 페어 → 레벨 3
+		PutT(FX0 + 2, Row, C(9, Di));
+		PutT(FX0 + 1, Row, C(9, Cl));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		int Lv1Pair = -1;
+		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Towers[G.Synergies[I].Cells[0]].Level == 1) Lv1Pair = I;
+		G.Fuse(Lv1Pair);
+		int Lv2 = 0;
+		for (auto& KV : G.Towers) Lv2 += KV.second.Level == 2;
+		bool bAdj = false;
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		for (auto& S2 : G.Synergies) bAdj = bAdj || (G.Towers[S2.Cells[0]].Level == 2 && S2.Kind == EPDHand::Pair);
+		const bool bFused3 = bAdj && G.Fuse(0);
+		int Lv3 = 0;
+		for (auto& KV : G.Towers) Lv3 += KV.second.Level == 3;
+		Expect(Lv2 == 2 && bFused3 && Lv3 == 1 && G.Towers.size() == 1, "레벨 2 페어를 합성하면 레벨 3");
+	}
+	{ // 무한 진행: 15웨이브 뒤에도 계속, 보스가 돌아오고, 덱이 비면 새 덱
+		FPDGame G(10);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Wave = 15;
+		G.Phase = EPDPhase::Wave;
+		G.Enemies.clear();
+		G.Update(0.f); // 적이 없으니 웨이브 끝 → 보상
+		const bool bNoWin = G.Phase == EPDPhase::Reward;
+		G.Deck.clear();
+		G.Hand.clear();
+		G.TakeReward(-1);
+		G.Phase = EPDPhase::Build;
+		G.StartWave();
+		bool bBoss20 = false;
+		G.Wave = 19;
+		G.Phase = EPDPhase::Build;
+		G.StartWave();
+		for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.A == 20) bBoss20 = Ev.B == 1 && Ev.Enemy == EPDEnemy::ShieldBoss;
+		Expect(bNoWin && bBoss20, "15웨이브 뒤에도 계속, 20웨이브에 방패 거인이 다시");
+		FPDGame G2(11);
+		G2.NewGame(true);
+		G2.Deck.clear();
+		G2.Hand.clear();
+		G2.Phase = EPDPhase::Reward;
+		G2.Rewards = {{false, (int)EPDInstant::Draw2}};
+		G2.TakeReward(0);
+		Expect(G2.Hand.size() == 2 && G2.DeckRefills == 1 && G2.Deck.size() == 50, "덱이 비면 새 덱 한 벌");
+	}
 	{ // 덱: 52장, 중복 없음
 		FPDGame G(9);
 		G.NewGame(true);
@@ -191,17 +256,17 @@ static double Power(FPDGame& G, FPDTowerMap& Tw)
 	for (auto& KV : Tw) { const FPDTowerStats S = TowerStats(KV.second, M); Sum += S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, KV.second.X, KV.second.Y, S.Range); }
 	return Sum;
 }
-static void BotTest(int Runs, bool bDumb, bool bNoReward = false)
+static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false)
 {
 	std::map<int, int> Hist;
-	int LivesSum = 0;
+	int LivesSum = 0, WaveSum = 0;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
 		G.NewGame(true);
 		G.bMuted = true;
 		std::mt19937 R(77 + Run);
-		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Win; ++Guard)
+		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over; ++Guard)
 		{
 			std::vector<std::array<int, 2>> Free;
 			for (int Y = 0; Y < Rows; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && !G.Towers.count(CellKey(X, Y))) Free.push_back({X, Y});
@@ -247,6 +312,24 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false)
 				if (BI < 0) break;
 				G.Place(BI, BX, BY);
 			}
+			for (int Tries = 0; bFuse && Tries < 20; ++Tries)
+			{
+				FPDTowerMap Cur = G.Towers;
+				const double Before = Power(G, Cur);
+				int BestI = -1;
+				double BestGain = 0.0;
+				for (int I = 0; I < (int)G.Synergies.size(); ++I)
+				{
+					if (!G.CanFuse(I)) continue;
+					FPDGame Copy = G;
+					Copy.Fuse(I);
+					FPDTowerMap After = Copy.Towers;
+					const double Gain = Power(Copy, After) - Before;
+					if (Gain > BestGain) { BestGain = Gain; BestI = I; }
+				}
+				if (BestI < 0) break;
+				G.Fuse(BestI);
+			}
 			G.StartWave();
 			for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K) G.Update(0.05f);
 			if (G.Phase == EPDPhase::Reward) // 보상: 조커 먼저, 없으면 수리 (bNoReward면 건너뛰기)
@@ -258,12 +341,13 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false)
 			}
 			G.Events.clear();
 		}
-		Hist[G.Phase == EPDPhase::Win ? 16 : G.Wave]++;
+		Hist[G.Wave]++;
+		WaveSum += G.Wave;
 		LivesSum += G.Lives;
 	}
-	std::printf("\n%s%s 봇 %d판 도달 웨이브 (16 = 전부 통과):", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 조커 먼저", Runs);
+	std::printf("\n%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 조커 먼저", bFuse ? " · 합성" : "", Runs);
 	for (auto& KV : Hist) std::printf("  %d:%d", KV.first, KV.second);
-	std::printf("   남은 목숨 평균 %.1f\n", (double)LivesSum / Runs);
+	std::printf("   평균 %.1f웨이브\n", (double)WaveSum / Runs);
 }
 
 int main(int Argc, char** Argv)
@@ -271,7 +355,7 @@ int main(int Argc, char** Argv)
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
-	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, true); BotTest(Runs, true); }
+	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;
 }
