@@ -278,7 +278,7 @@ FString UpgradeEffect(int U, int Level)
 	case EPDUpgrade::Speed: return FString::Printf(TEXT("모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
 	case EPDUpgrade::Crit: return FString::Printf(TEXT("치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)"), (BaseCrit + V) * 100.f);
 	case EPDUpgrade::CritMult: return FString::Printf(TEXT("치명타 배율 ×%.2f  (레벨당 +0.01)"), BaseCritMult + V);
-	default: return FString::Printf(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +3%%)"), V * 100.f);
+	default: return FString::Printf(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)"), V * 100.f);
 	}
 }
 FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? SuitColor((EPDSuit)(U - (int)EPDUpgrade::Spade)) : U >= (int)EPDUpgrade::Crit ? Hex(TEXT("ff9a6a")) : Hex(TEXT("ffd96a")); }

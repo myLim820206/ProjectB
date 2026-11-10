@@ -103,7 +103,7 @@ float UpgradeStep(EPDUpgrade U)
 	case EPDUpgrade::Speed: return 0.01f;     // 공격 속도 +1%
 	case EPDUpgrade::Crit: return 0.001f;     // 치명타 확률 +0.1%p (100% 넘으면 한 방에 여러 번)
 	case EPDUpgrade::CritMult: return 0.01f;  // 치명타 배율 +0.01
-	default: return 0.03f;                    // 무늬 강화: 그 무늬 공격력 +3%
+	default: return 0.02f;                    // 무늬 강화: 그 무늬 공격력 +2%
 	}
 }
 void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>& Lv)
