@@ -236,8 +236,8 @@ static void UnitTests()
 		Expect(MatchJokerRecipe({H::Pair, H::Pair, H::Pair}, 0) == EPDJoker::Clown && MatchJokerRecipe({H::TwoPair, H::TwoPair, H::Pair}, 0) == EPDJoker::Comedy &&
 			MatchJokerRecipe({H::Straight, H::Straight, H::Straight}, 0) == EPDJoker::Baton && MatchJokerRecipe({H::Flush, H::Flush, H::Flush}, 0) == EPDJoker::Harlequin &&
 			MatchJokerRecipe({H::Triple, H::Triple, H::Pair}, 0) == EPDJoker::Jack && MatchJokerRecipe({H::FullHouse, H::FullHouse, H::Pair}, 0) == EPDJoker::Bell &&
-			MatchJokerRecipe({H::Four, H::Pair, H::Pair}, 0) == EPDJoker::Cheshire && MatchJokerRecipe({H::Pair, H::Pair}, 1) == EPDJoker::Hatter &&
-			MatchJokerRecipe({H::Pair}, 2) == EPDJoker::Mask && MatchJokerRecipe({H::StraightFlush, H::Four, H::FullHouse}, 0) == EPDJoker::Star,
+			MatchJokerRecipe({H::Four, H::Pair, H::Pair}, 0) == EPDJoker::Cheshire && 
+			MatchJokerRecipe({}, 3) == EPDJoker::Mask && MatchJokerRecipe({H::Pair, H::Pair}, 1, 3) == EPDJoker::Hatter && MatchJokerRecipe({H::Pair, H::Pair}, 1, 2) == EPDJoker::Clown && MatchJokerRecipe({H::StraightFlush, H::Four, H::FullHouse}, 0) == EPDJoker::Star,
 			"조커 레시피 10종");
 	}
 	{ // 조커 합성: 연쇄된 페어 셋 → 광대, 합성 타워 + 족보 둘 → 모자 장수
@@ -255,8 +255,8 @@ static void UnitTests()
 		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Clown && Groups[0].Cells.size() == 6;
 		const bool bFused = G.JokerFuse(0);
 		const FPDTower& J = G.Towers.begin()->second;
-		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Clown && std::fabs(J.Mult - 12.f) < 1e-4f && (G.Discovered & 1u),
-			"연쇄된 족보 셋(페어·스트레이트·페어) → 광대 조커 (위력 6 × 2), 도감에 기록");
+		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Clown && std::fabs(J.Mult - 6.f * JokerBonus) < 1e-4f && (G.Discovered & 1u),
+			"연쇄된 족보 셋(페어·스트레이트·페어) → 광대 조커 (위력 6 × 조커 덤), 도감에 기록");
 		// 조커는 와일드: 레벨 2 타워 옆에 붙어도 족보
 		G.Towers.clear();
 		FPDTower Jk;
@@ -270,10 +270,10 @@ static void UnitTests()
 		Expect(G.Synergies.size() == 1 && !G.CanFuse(0), "조커는 레벨 2 타워와도 족보 (와일드), 조커가 든 족보는 합성 불가");
 		// 합성 타워(따로 선 레벨 2) + 페어 둘 → 모자 장수
 		G.Towers.clear();
-		PutT(0, Row, C(13), 2); PutT(1, Row, C(2)); PutT(2, Row, C(2, He)); PutT(3, Row, C(7)); PutT(4, Row, C(8, He));
+		PutT(0, Row, C(13), 3); PutT(1, Row, C(2)); PutT(2, Row, C(2, He)); PutT(3, Row, C(7)); PutT(4, Row, C(8, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Groups = G.JokerGroups();
-		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Hatter && Groups[0].FusedCells.size() == 1, "합성 타워 + 족보 둘 → 모자 장수");
+		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Hatter && Groups[0].FusedCells.size() == 1, "레벨 3 합성 타워 + 족보 둘 → 모자 장수");
 	}
 	{ // 조커 능력: 지휘봉 오라, 희비극 두 발, 방울 멈춤, 스타 전체 피해
 		FPDGame G(13);
@@ -342,13 +342,33 @@ static double Power(FPDGame& G, FPDTowerMap& Tw)
 	const uint32_t M = G.CharmMask();
 	ApplyEffects(Tw, M);
 	double Sum = 0;
-	for (auto& KV : Tw) { const FPDTowerStats S = TowerStats(KV.second, M); Sum += S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, KV.second.X, KV.second.Y, S.Range); }
+	for (auto& KV : Tw)
+	{
+		const FPDTower& T = KV.second;
+		const FPDTowerStats S = TowerStats(T, M);
+		double V = S.Dmg * S.Rate * (1 + S.Splash * 0.8) * Coverage(G, T.X, T.Y, S.Range);
+		if (T.IsJoker()) // 조커 능력 어림값
+		{
+			switch ((EPDJoker)T.Joker)
+			{
+			case EPDJoker::Comedy: V *= 1.8; break;                       // 두 발
+			case EPDJoker::Star: V *= 4.0; break;                         // 모든 적 (한 번에 적 여럿)
+			case EPDJoker::Bell: V *= 1.3; break;                         // 멈춤
+			case EPDJoker::Mask:                                          // 옆 타워 따라 함
+				if (T.Eff.CopyKey >= 0 && Tw.count(T.Eff.CopyKey)) { const FPDTowerStats O = TowerStats(Tw.at(T.Eff.CopyKey), M); V = std::max(V, O.Dmg * O.Rate * (1 + O.Splash * 0.8) * Coverage(G, T.X, T.Y, O.Range)); }
+				break;
+			default: break;
+			}
+		}
+		Sum += V;
+	}
 	return Sum;
 }
-static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false)
+static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false)
 {
 	std::map<int, int> Hist;
 	int WaveSum = 0;
+	std::map<int, int> JokersMade, KindsMade;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
@@ -401,6 +421,27 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				if (BI < 0) break;
 				G.Place(BI, BX, BY);
 			}
+			// 조커: 만들면 전체 위력이 오르는 묶음을 만든다
+			for (int Tries = 0; bJoker && Tries < 5; ++Tries)
+			{
+				FPDTowerMap Cur = G.Towers;
+				const double Before = Power(G, Cur);
+				const auto Groups = G.JokerGroups();
+				int BestI = -1;
+				double BestGain = 0.0;
+				for (int I = 0; I < (int)Groups.size(); ++I)
+				{
+					FPDGame Copy = G;
+					Copy.JokerFuse(I);
+					FPDTowerMap After = Copy.Towers;
+					const double Gain = Power(Copy, After) - Before;
+					if (Gain > BestGain) { BestGain = Gain; BestI = I; }
+				}
+				if (BestI < 0) break;
+				G.JokerFuse(BestI);
+				JokersMade[0]++;
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f) KindsMade[KV2.second.Joker]++;
+			}
 			for (int Tries = 0; bFuse && Tries < 20; ++Tries)
 			{
 				FPDTowerMap Cur = G.Towers;
@@ -433,9 +474,12 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		Hist[G.Wave]++;
 		WaveSum += G.Wave;
 	}
-	std::printf("\n%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 부적 먼저", bFuse ? " · 합성" : "", Runs);
+	std::printf("\n%s%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 부적 먼저", bFuse ? " · 합성" : "", bJoker ? " · 조커" : "", Runs);
 	for (auto& KV : Hist) std::printf("  %d:%d", KV.first, KV.second);
-	std::printf("   평균 %.1f웨이브\n", (double)WaveSum / Runs);
+	std::printf("   평균 %.1f웨이브", (double)WaveSum / Runs);
+	if (bJoker) std::printf("   조커 판당 %.1f개 (종류:", (double)JokersMade[0] / Runs);
+	if (bJoker) { for (auto& KV : KindsMade) std::printf(" %d=%d", KV.first + 1, KV.second); std::printf(")"); }
+	std::printf("\n");
 }
 
 int main(int Argc, char** Argv)
@@ -443,7 +487,7 @@ int main(int Argc, char** Argv)
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
-	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, true); BotTest(Runs, true); }
+	if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;
 }

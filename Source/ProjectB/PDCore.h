@@ -106,7 +106,7 @@ struct FPDTower
 };
 // 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
-constexpr float JokerBonus = 2.f; // 조커 합성: 재료 위력 합 × 2
+constexpr float JokerBonus = 1.2f; // 조커 합성: 재료 위력 합 × 1.2
 // 조커 재료 묶음: 연쇄로 이어진 족보와 합성 타워(레벨 2+, 족보에 안 든 것)가 합쳐서 3개 이상
 struct FPDJokerGroup
 {
@@ -116,7 +116,7 @@ struct FPDJokerGroup
 	EPDJoker Result = EPDJoker::Clown;
 };
 // 레시피: 족보 종류 목록 + 합성 타워 수로 어떤 조커가 나오는지 (맞는 게 없으면 광대)
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount);
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount, int MaxFusedLevel = 2);
 constexpr int MaxLevel = 4;
 constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5
 constexpr float LevelRange = 0.1f;     // 레벨마다 사거리 +10%

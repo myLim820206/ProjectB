@@ -137,7 +137,7 @@ const TCHAR* JokerAbility(int K)
 }
 const TCHAR* JokerRecipe(int K)
 {
-	static const TCHAR* N[] = {TEXT("레시피 없는 아무 족보 3개"), TEXT("합성 타워 + 아무 족보 2"), TEXT("합성 타워 2 + 아무 족보"), TEXT("투 페어 + 투 페어 + 아무거나"),
+	static const TCHAR* N[] = {TEXT("레시피 없는 아무 족보 3개"), TEXT("레벨 3+ 합성 타워 + 아무 족보 2"), TEXT("합성 타워 3개"), TEXT("투 페어 + 투 페어 + 아무거나"),
 		TEXT("플러시 × 3"), TEXT("스트레이트 × 3"), TEXT("트리플 + 트리플 + 아무거나"), TEXT("포카드 + 아무거나 2"), TEXT("풀하우스 + 풀하우스 + 아무거나"),
 		TEXT("스트레이트 플러시 + 포카드 + 풀하우스")};
 	return N[K];

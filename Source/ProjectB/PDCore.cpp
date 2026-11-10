@@ -275,7 +275,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms)
 	return Syn;
 }
 
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount)
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount, int MaxFusedLevel)
 {
 	int N[(int)EPDHand::Count] = {};
 	for (EPDHand H : Hands) N[(int)H]++;
@@ -287,8 +287,8 @@ EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands, int FusedCount)
 	if (C(EPDHand::Flush) >= 3) return EPDJoker::Harlequin;
 	if (C(EPDHand::Straight) >= 3) return EPDJoker::Baton;
 	if (C(EPDHand::TwoPair) >= 2) return EPDJoker::Comedy;
-	if (FusedCount >= 2) return EPDJoker::Mask;
-	if (FusedCount >= 1) return EPDJoker::Hatter;
+	if (FusedCount >= 3) return EPDJoker::Mask;
+	if (FusedCount >= 1 && MaxFusedLevel >= 3) return EPDJoker::Hatter; // 레벨 3 이상 합성 타워
 	return EPDJoker::Clown;
 }
 
@@ -701,7 +701,9 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 			else G.FusedCells.push_back(Nodes[K].Fused);
 			G.Cells.insert(G.Cells.end(), Nodes[K].Cells.begin(), Nodes[K].Cells.end());
 		}
-		G.Result = MatchJokerRecipe(Kinds, (int)G.FusedCells.size());
+		int MaxLv = 0;
+		for (int K : G.FusedCells) MaxLv = std::max(MaxLv, Towers.at(K).Level);
+		G.Result = MatchJokerRecipe(Kinds, (int)G.FusedCells.size(), MaxLv);
 		Out.push_back(G);
 	}
 	return Out;
