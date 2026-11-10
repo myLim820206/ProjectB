@@ -78,6 +78,7 @@ private:
 		float T;
 		FLinearColor Col;
 	};
+	void CritFx(FVector2f P, int32 N); // 치명타 흰 불꽃
 	void Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak = false, float Gravity = 0.f);
 
 	PD::FPDGame Game;

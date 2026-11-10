@@ -411,6 +411,30 @@ EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 	return CaptainOf(Best);
 }
 
+EPDShot ShotKind(const FPDTower& T)
+{
+	if (T.IsJoker()) return EPDShot::JokerLaser;
+	switch (T.Card.Suit)
+	{
+	case EPDSuit::Spade: return EPDShot::Laser;
+	case EPDSuit::Heart: return EPDShot::Missile;
+	case EPDSuit::Diamond: return EPDShot::Bullet;
+	case EPDSuit::Club: return EPDShot::Orb;
+	default: return EPDShot::Star;
+	}
+}
+float ShotSpeed(EPDShot K)
+{
+	switch (K)
+	{
+	case EPDShot::Missile: return 9.f;
+	case EPDShot::Bullet: return 22.f;
+	case EPDShot::Orb: return 10.f;
+	case EPDShot::Star: return 15.f;
+	default: return 0.f; // 레이저는 즉시
+	}
+}
+
 FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree)
 {
 	static const FPDTreeMods NoTree;
@@ -591,6 +615,8 @@ void FPDGame::NewGame(bool bStart)
 	Events.clear();
 	Charms.clear();
 	Rewards.clear();
+	Projectiles.clear();
+	LastWildWave = -99;
 	for (int S = 0; S < 4; ++S) for (int R = 2; R <= 14; ++R) Deck.push_back({R, (EPDSuit)S});
 	std::shuffle(Deck.begin(), Deck.end(), Rng);
 	Path.Build(GeneratePath(Rng));
@@ -786,6 +812,7 @@ void FPDGame::StartWave()
 
 void FPDGame::EndWave()
 {
+	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + Mods.DrawAdd, &Got);
 	AddGold(5.f + Wave); // 웨이브 통과 덤
@@ -799,6 +826,7 @@ void FPDGame::EndWave()
 }
 
 // 보상 후보: 부적 2개(가진 것 제외) + 즉시 보상 1개. 부적 칸이 가득이면 즉시 보상만
+// 와일드 카드는 드물게: 20% 확률이고 3웨이브에 한 번까지. 빈자리는 보충·수리·골드로
 std::vector<FPDReward> FPDGame::RollRewards()
 {
 	std::vector<FPDReward> Out;
@@ -806,8 +834,13 @@ std::vector<FPDReward> FPDGame::RollRewards()
 	for (int J = 0; J < (int)EPDCharm::Count; ++J) if (std::find(Charms.begin(), Charms.end(), (EPDCharm)J) == Charms.end()) Pool.push_back(J);
 	std::shuffle(Pool.begin(), Pool.end(), Rng);
 	if ((int)Charms.size() < CharmMax) for (int I = 0; I < 2 && I < (int)Pool.size(); ++I) Out.push_back({true, Pool[I]});
-	std::vector<int> Inst{(int)EPDInstant::Wild, (int)EPDInstant::Draw2, (int)EPDInstant::Repair};
+	std::vector<int> Inst{(int)EPDInstant::Draw2, (int)EPDInstant::Repair, (int)EPDInstant::Gold};
 	std::shuffle(Inst.begin(), Inst.end(), Rng);
+	if (Wave - LastWildWave >= WildCooldown && std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < WildChance)
+	{
+		Inst.insert(Inst.begin(), (int)EPDInstant::Wild);
+		LastWildWave = Wave;
+	}
 	for (int I = 0; Out.size() < 3 && I < (int)Inst.size(); ++I) Out.push_back({false, Inst[I]});
 	return Out;
 }
@@ -827,6 +860,7 @@ void FPDGame::TakeReward(int Index)
 		}
 		else if (R.Id == (int)EPDInstant::Draw2) Draw(2);
 		else if (R.Id == (int)EPDInstant::Repair) Lives += 3;
+		else if (R.Id == (int)EPDInstant::Gold) { Gold += 10 + Wave * 4; GoldEarned += 10 + Wave * 4; }
 		Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 		FPDEvent E;
 		E.Kind = FPDEvent::EKind::Reward;
@@ -1143,6 +1177,126 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 		}
 }
 
+// 쏘기: 레이저는 바로 맞히고, 나머지는 발사체를 띄운다
+void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits, bool bMain)
+{
+	const float TX = T.X + 0.5f, TY = T.Y + 0.5f;
+	const FPDPoint P = Path.At(Target.D);
+	FPDProjectile Pr;
+	Pr.Kind = ShotKind(T);
+	Pr.X = TX;
+	Pr.Y = TY;
+	Pr.TX = P.X;
+	Pr.TY = P.Y;
+	Pr.Target = Target.Id;
+	Pr.Dmg = Dmg;
+	Pr.Splash = Splash;
+	Pr.Slow = Slow;
+	Pr.Crits = Crits;
+	Pr.Level = T.Level;
+	Pr.bHand = T.Eff.Hand >= 0 || T.IsJoker();
+	Pr.Suit = T.IsJoker() ? EPDSuit::Wild : T.Card.Suit;
+	FPDEvent Sh;
+	Sh.Kind = FPDEvent::EKind::Shot;
+	Sh.X = TX;
+	Sh.Y = TY;
+	Sh.X2 = P.X;
+	Sh.Y2 = P.Y;
+	Sh.Suit = Pr.Suit;
+	Sh.A = Pr.bHand;
+	Sh.B = Crits;
+	Sh.R = (float)(int)Pr.Kind;
+	Ev(Sh);
+	const float Spd = ShotSpeed(Pr.Kind);
+	if (Spd <= 0.f) { Explode(Pr, &Target); return; }
+	const float DX = P.X - TX, DY = P.Y - TY, Len = std::max(0.01f, std::hypot(DX, DY));
+	if (Pr.Kind == EPDShot::Missile) // 미사일: 옆으로 튀어 나갔다가 휘어 들어간다
+	{
+		const float Side = std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < 0.5f ? -1.f : 1.f;
+		Pr.VX = (DX / Len * 0.3f - DY / Len * Side) * Spd * 0.7f;
+		Pr.VY = (DY / Len * 0.3f + DX / Len * Side) * Spd * 0.7f;
+	}
+	else
+	{
+		Pr.VX = DX / Len * Spd;
+		Pr.VY = DY / Len * Spd;
+	}
+	Target.Incoming += Dmg;
+	Projectiles.push_back(Pr);
+	(void)bMain;
+}
+
+// 닿음: 목표(살아 있으면)에 피해, 범위 공격은 닿은 자리 둘레에
+void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
+{
+	FPDPoint At{P.TX, P.TY};
+	if (Target && !Target->bDead) { At = Path.At(Target->D); Hit(*Target, P.Dmg, P.Slow); }
+	if (P.Splash > 0.f)
+	{
+		for (FPDEnemy& O : Enemies)
+		{
+			if (&O == Target || O.bDead) continue;
+			const FPDPoint Q = Path.At(O.D);
+			if (std::hypot(Q.X - At.X, Q.Y - At.Y) <= P.Splash) Hit(O, P.Dmg * 0.6f, P.Slow);
+		}
+		FPDEvent Sp;
+		Sp.Kind = FPDEvent::EKind::Splash;
+		Sp.X = At.X;
+		Sp.Y = At.Y;
+		Sp.R = P.Splash;
+		Sp.Suit = P.Suit;
+		Ev(Sp);
+	}
+	if (ShotSpeed(P.Kind) > 0.f)
+	{
+		FPDEvent Im;
+		Im.Kind = FPDEvent::EKind::Impact;
+		Im.X = At.X;
+		Im.Y = At.Y;
+		Im.R = (float)(int)P.Kind;
+		Im.B = P.Crits;
+		Im.A = P.bHand;
+		Im.Suit = P.Suit;
+		Ev(Im);
+	}
+}
+
+void FPDGame::UpdateProjectiles(float Dt)
+{
+	for (FPDProjectile& P : Projectiles)
+	{
+		FPDEnemy* T = nullptr;
+		for (FPDEnemy& E : Enemies) if (E.Id == P.Target && !E.bDead) { T = &E; break; }
+		if (T) { const FPDPoint Q = Path.At(T->D); P.TX = Q.X; P.TY = Q.Y; }
+		const float DX = P.TX - P.X, DY = P.TY - P.Y, Dist = std::hypot(DX, DY);
+		const float Spd = ShotSpeed(P.Kind);
+		P.Life += Dt;
+		if (Dist <= Spd * Dt + 0.12f || P.Life > 3.f)
+		{
+			if (T) T->Incoming = std::max(0.f, T->Incoming - P.Dmg);
+			P.X = P.TX;
+			P.Y = P.TY;
+			Explode(P, T);
+			P.Life = -1.f; // 지움 표시
+			continue;
+		}
+		if (P.Kind == EPDShot::Missile) // 유도: 속도를 목표 쪽으로 돌린다 (갈수록 세게)
+		{
+			const float K = std::min(1.f, (3.f + P.Life * 12.f) * Dt);
+			P.VX += (DX / Dist * Spd - P.VX) * K;
+			P.VY += (DY / Dist * Spd - P.VY) * K;
+		}
+		else
+		{
+			P.VX = DX / Dist * Spd;
+			P.VY = DY / Dist * Spd;
+		}
+		P.X += P.VX * Dt;
+		P.Y += P.VY * Dt;
+	}
+	Projectiles.erase(std::remove_if(Projectiles.begin(), Projectiles.end(), [](const FPDProjectile& P) { return P.Life < 0.f; }), Projectiles.end());
+}
+
 void FPDGame::Update(float Dt)
 {
 	Time += Dt;
@@ -1237,12 +1391,16 @@ void FPDGame::Update(float Dt)
 			}
 			continue;
 		}
+		// 가장 앞선 적. 날아가는 발사체로 이미 죽을 적은 뒤로 미룬다 (겹쳐 쏘지 않게)
 		FPDEnemy* Target = nullptr;
+		bool bTargetDoomed = true;
 		for (FPDEnemy& E : Enemies)
 		{
 			if (E.bDead) continue;
 			const FPDPoint P = Path.At(E.D);
-			if (std::hypot(P.X - TX, P.Y - TY) <= St.Range && (!Target || E.D > Target->D)) Target = &E;
+			if (std::hypot(P.X - TX, P.Y - TY) > St.Range) continue;
+			const bool bDoomed = E.Incoming >= E.Hp;
+			if (!Target || (bTargetDoomed && !bDoomed) || (bDoomed == bTargetDoomed && E.D > Target->D)) { Target = &E; bTargetDoomed = bDoomed; }
 		}
 		if (!Target) continue;
 		T.Cd = 1.f / St.Rate;
@@ -1261,49 +1419,13 @@ void FPDGame::Update(float Dt)
 			}
 			if (Second)
 			{
-				const FPDPoint P2 = Path.At(Second->D);
-				FPDEvent Sh2;
-				Sh2.Kind = FPDEvent::EKind::Shot;
-				Sh2.X = TX;
-				Sh2.Y = TY;
-				Sh2.X2 = P2.X;
-				Sh2.Y2 = P2.Y;
-				Sh2.Suit = EPDSuit::Wild;
-				Sh2.A = 1;
-				Ev(Sh2);
 				Shot2[Extra] = Second;
-				Hit(*Second, St.Dmg, St.Slow);
+				Fire(T, *Second, St.Dmg, 0.f, St.Slow, Crits, false);
 			}
 		}
-		const FPDPoint P = Path.At(Target->D);
-		FPDEvent Sh;
-		Sh.Kind = FPDEvent::EKind::Shot;
-		Sh.X = TX;
-		Sh.Y = TY;
-		Sh.X2 = P.X;
-		Sh.Y2 = P.Y;
-		Sh.Suit = T.Card.Suit;
-		Sh.A = T.Eff.Hand >= 0;
-		Sh.B = Crits;
-		Ev(Sh);
-		Hit(*Target, St.Dmg, St.Slow);
-		if (St.Splash > 0.f)
-		{
-			for (FPDEnemy& O : Enemies)
-			{
-				if (&O == Target || O.bDead) continue;
-				const FPDPoint Q = Path.At(O.D);
-				if (std::hypot(Q.X - P.X, Q.Y - P.Y) <= St.Splash) Hit(O, St.Dmg * 0.6f, St.Slow);
-			}
-			FPDEvent Sp;
-			Sp.Kind = FPDEvent::EKind::Splash;
-			Sp.X = P.X;
-			Sp.Y = P.Y;
-			Sp.R = St.Splash;
-			Sp.Suit = T.Card.Suit;
-			Ev(Sp);
-		}
+		Fire(T, *Target, St.Dmg, St.Splash, St.Slow, Crits, true);
 	}
+	UpdateProjectiles(Dt);
 	Enemies.erase(std::remove_if(Enemies.begin(), Enemies.end(), [](const FPDEnemy& E) { return E.bDead; }), Enemies.end());
 	Enemies.insert(Enemies.end(), Born.begin(), Born.end());
 	Born.clear();

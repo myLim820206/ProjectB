@@ -65,7 +65,9 @@ enum class EPDCharm : uint8_t
 };
 inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 즉시 보상 (부적 칸을 쓰지 않음)
-enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Count };
+enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Gold, Count }; // 와일드는 드물게 (WildChance, 3웨이브에 한 번까지), 골드 = 10 + 웨이브 × 4
+constexpr float WildChance = 0.2f;
+constexpr int WildCooldown = 3;
 struct FPDReward
 {
 	bool bCharm = true;
@@ -251,17 +253,36 @@ struct FPDEnemy
 	int Wave = 1;
 	bool bDead = false;
 	int Id = 0;
+	float Incoming = 0.f; // 날아가는 중인 발사체 피해 합 (겹쳐 쏘지 않게)
+};
+
+// ---------------------------------------------------------------- 발사체 (무늬마다 다름)
+// ♠ 레이저 (즉시), ♥ 미사일 (휘어 날아가는 유도탄), ♦ 탄환 (빠름), ♣ 서리 구체 (느림), ★ 별 조각, 조커 = 분홍 레이저 (즉시)
+// 레이저가 아니면 날아가서 닿을 때 피해를 준다 (범위 피해도 닿은 자리에서)
+enum class EPDShot : uint8_t { Laser, Missile, Bullet, Orb, Star, JokerLaser };
+EPDShot ShotKind(const FPDTower& T);
+float ShotSpeed(EPDShot K); // 칸 / 초
+struct FPDProjectile
+{
+	EPDShot Kind = EPDShot::Bullet;
+	float X = 0.f, Y = 0.f, VX = 0.f, VY = 0.f; // 칸 단위 위치와 속도
+	float TX = 0.f, TY = 0.f;                   // 마지막으로 본 목표 위치
+	int Target = 0;                             // 목표 적 Id (죽으면 마지막 위치로 날아가 터짐)
+	float Dmg = 0.f, Splash = 0.f, Slow = 0.f, Life = 0.f;
+	int Crits = 0, Level = 1;
+	bool bHand = false;
+	EPDSuit Suit = EPDSuit::Spade;
 };
 
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Bell, Star, TreeBuy } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Bell, Star, TreeBuy, Impact } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
@@ -323,6 +344,8 @@ public:
 	FPDTowerMap Towers;
 	std::vector<FPDSynergy> Synergies;
 	std::vector<FPDEnemy> Enemies;
+	std::vector<FPDProjectile> Projectiles;
+	int LastWildWave = -99; // 마지막으로 와일드 보상이 나온 웨이브
 	FPDPath Path;
 	std::vector<FPDEvent> Events;
 	std::vector<FPDSoundEvent> Sounds;
@@ -335,6 +358,9 @@ private:
 	void EndWave();
 	void Hit(FPDEnemy& E, float Dmg, float Slow);
 	int AddGold(float Amount);
+	void Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits, bool bMain);
+	void Explode(const FPDProjectile& P, FPDEnemy* Target);
+	void UpdateProjectiles(float Dt);
 	void Ev(const FPDEvent& E) { Events.push_back(E); }
 	void Sfx(EPDSound S, int A = 0, int B = 0) { if (!bMuted) Sounds.push_back({S, A, B, 1.f}); }
 

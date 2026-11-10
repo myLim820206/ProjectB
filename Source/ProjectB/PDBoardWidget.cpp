@@ -145,12 +145,12 @@ FString JokerCommand(int K) { return FString::Printf(TEXT("지휘: %s 타워 위
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
 const TCHAR* InstantName(int I)
 {
-	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리")};
+	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("골드")};
 	return N[I];
 }
 const TCHAR* InstantDesc(int I)
 {
-	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3")};
+	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("골드 +(10 + 웨이브 × 4)")};
 	return N[I];
 }
 // 보상 카드 위치 (판 가운데 3장)
@@ -681,15 +681,40 @@ void SPDBoardWidget::HandleEvents()
 		{
 		case FPDEvent::EKind::Shot:
 		{
-			const FLinearColor Col = SuitColor(E.Suit);
-			Beams.Add({CellPx(E.X, E.Y), CellPx(E.X2, E.Y2), 0.f, 0.12f, (E.A ? 2.6f : 1.6f) + (E.B > 0 ? 1.4f : 0.f), Col});
-			Rings.Add({P, 4.f, 14.f, 0.f, 0.15f, 1.5f, Col});
-			Burst(CellPx(E.X2, E.Y2), E.A ? 5 : 3, Col, 40.f, 140.f, 0.25f, 2.f, true);
-			if (E.B > 0) // 치명타: 흰 불꽃과 고리 (여러 번이면 더 크게)
+			const EPDShot K = (EPDShot)(int)E.R;
+			const FLinearColor Col = K == EPDShot::JokerLaser ? JokerPink : SuitColor(E.Suit);
+			Rings.Add({P, 4.f, 14.f, 0.f, 0.15f, 1.5f, Col}); // 총구 고리
+			if (K == EPDShot::Laser || K == EPDShot::JokerLaser) // 레이저: 즉시 맞는 빛줄기
 			{
-				Burst(CellPx(E.X2, E.Y2), 6 + 3 * FMath::Min(E.B, 4), FLinearColor::White, 80.f, 240.f, 0.3f, 2.2f, true);
-				Rings.Add({CellPx(E.X2, E.Y2), 4.f, 18.f + 6.f * FMath::Min(E.B, 4), 0.f, 0.2f, 2.f, FLinearColor::White});
+				Beams.Add({CellPx(E.X, E.Y), CellPx(E.X2, E.Y2), 0.f, 0.12f, (E.A ? 2.6f : 1.6f) + (E.B > 0 ? 1.4f : 0.f) + (K == EPDShot::JokerLaser ? 1.f : 0.f), Col});
+				Burst(CellPx(E.X2, E.Y2), E.A ? 5 : 3, Col, 40.f, 140.f, 0.25f, 2.f, true);
+				if (E.B > 0) CritFx(CellPx(E.X2, E.Y2), E.B);
 			}
+			else Burst(P, 2, Col, 30.f, 90.f, 0.15f, 1.6f, true); // 발사 불꽃
+			break;
+		}
+		case FPDEvent::EKind::Impact: // 발사체가 닿음
+		{
+			const EPDShot K = (EPDShot)(int)E.R;
+			const FLinearColor Col = SuitColor(E.Suit);
+			switch (K)
+			{
+			case EPDShot::Missile: // 폭발: 고리 + 불덩이 + 흰 섬광
+				Rings.Add({P, 4.f, 26.f, 0.f, 0.3f, 2.4f, Col});
+				Burst(P, 16, Col, 60.f, 220.f, 0.45f, 2.6f, false, 60.f);
+				Burst(P, 6, Hex(TEXT("ffd96a")), 40.f, 160.f, 0.3f, 2.f, true);
+				break;
+			case EPDShot::Bullet: Burst(P, 3, Col, 50.f, 160.f, 0.18f, 1.8f, true); break; // 탄 튐
+			case EPDShot::Orb: // 서리: 옅은 고리 + 눈송이
+				Rings.Add({P, 4.f, 20.f, 0.f, 0.35f, 1.6f, Col});
+				Burst(P, 8, Hex(TEXT("cfffe8")), 20.f, 90.f, 0.5f, 1.8f, false, -20.f);
+				break;
+			default: // 별: 반짝임
+				Rings.Add({P, 3.f, 16.f, 0.f, 0.2f, 1.6f, FLinearColor::White});
+				Burst(P, 6, FLinearColor::White, 40.f, 150.f, 0.3f, 1.8f, true);
+				break;
+			}
+			if (E.B > 0) CritFx(P, E.B);
 			break;
 		}
 		case FPDEvent::EKind::Splash:
@@ -881,8 +906,25 @@ void SPDBoardWidget::HandleEvents()
 	Game.Events.clear();
 }
 
+void SPDBoardWidget::CritFx(FVector2f P, int32 N)
+{
+	// 치명타: 흰 불꽃과 고리 (여러 번이면 더 크게)
+	Burst(P, 6 + 3 * FMath::Min(N, 4), FLinearColor::White, 80.f, 240.f, 0.3f, 2.2f, true);
+	Rings.Add({P, 4.f, 18.f + 6.f * FMath::Min(N, 4), 0.f, 0.2f, 2.f, FLinearColor::White});
+}
+
 void SPDBoardWidget::UpdateFx(float Dt)
 {
+	// 발사체 꼬리: 미사일은 연기, 서리 구체는 옅은 서리 (게임이 멈춰 있으면 안 남김)
+	if (!bTree && !bUpg)
+		for (const FPDProjectile& Pr : Game.Projectiles)
+		{
+			if ((Pr.Kind != EPDShot::Missile && Pr.Kind != EPDShot::Orb) || Particles.Num() >= 2600) continue;
+			const FVector2f At = CellPx(Pr.X, Pr.Y);
+			const bool bM = Pr.Kind == EPDShot::Missile;
+			Particles.Add({At, FVector2f(FMath::FRandRange(-12.f, 12.f), FMath::FRandRange(-12.f, 12.f)), bM ? 0.35f : 0.3f, bM ? 0.35f : 0.3f, bM ? 2.4f : 1.8f, 2.f, 0.f,
+				bM ? Hex(TEXT("ff9a8a"), 0.6f) : Hex(TEXT("bfffe0"), 0.5f), false});
+		}
 	for (FParticle& Pa : Particles)
 	{
 		Pa.P += Pa.V * Dt;
@@ -1294,6 +1336,46 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		F.Box(P.X - W / 2.f, BY, W, 3.f, Hex(TEXT("ffffff"), 0.15f));
 		F.Box(P.X - W / 2.f, BY, W * FMath::Max(0.f, E.Hp / E.MaxHp), 3.f, Col);
 		if (E.Armor > 0.f && !G.Has(EPDCharm::Pierce)) F.Box(P.X - W / 2.f, BY - 4.f, W, 2.f, Hex(TEXT("9fc3e8")));
+	}
+
+	// ---- 발사체 (무늬마다 다름: docs/12 3-1절, 미리보기 tools/neon/neon.py shots)
+	for (const FPDProjectile& Pr : G.Projectiles)
+	{
+		const FVector2f At = CellPx(Pr.X, Pr.Y);
+		const float VL = FMath::Max(0.001f, FMath::Sqrt(Pr.VX * Pr.VX + Pr.VY * Pr.VY));
+		const FVector2f Dir(Pr.VX / VL, Pr.VY / VL), Nrm(-Dir.Y, Dir.X);
+		const float K = 1.f + 0.2f * (Pr.Level - 1) + (Pr.bHand ? 0.15f : 0.f);
+		const FLinearColor Col = SuitColor(Pr.Suit);
+		switch (Pr.Kind)
+		{
+		case EPDShot::Missile: // 몸통 + 날개 + 흰 머리
+		{
+			const FVector2f Tail = At - Dir * 10.f * K;
+			F.Glow({Tail, At}, Col, 2.2f * K, 1.2f);
+			F.Lines({Tail, Tail - Dir * 4.f * K + Nrm * 4.f * K}, Col, 1.4f);
+			F.Lines({Tail, Tail - Dir * 4.f * K - Nrm * 4.f * K}, Col, 1.4f);
+			F.Box(At.X - 1.5f, At.Y - 1.5f, 3.f, 3.f, FLinearColor::White);
+			break;
+		}
+		case EPDShot::Bullet: // 짧고 빠른 줄
+			F.Glow({At - Dir * 9.f * K, At}, Col, 1.5f * K, 1.f);
+			break;
+		case EPDShot::Orb: // 서리 구체 + 도는 눈꽃
+		{
+			F.Glow(FCanvas::CirclePoints(At, 5.f * K, 16), Col, 1.4f, 1.2f);
+			for (int32 J = 0; J < 3; ++J)
+			{
+				const float A = Clock * 6.f + J * TwoPi / 6.f;
+				const FVector2f D(FMath::Cos(A) * 3.5f * K, FMath::Sin(A) * 3.5f * K);
+				F.Lines({At - D, At + D}, WithAlpha(FLinearColor::White, 0.8f), 1.f);
+			}
+			break;
+		}
+		default: // 별 조각
+			F.Shape(EPDSuit::Wild, At.X, At.Y, 6.f * K, FLinearColor::White, 1.3f, 1.f);
+			F.Lines({At - Dir * 12.f * K, At - Dir * 5.f * K}, WithAlpha(FLinearColor::White, 0.5f), 1.f);
+			break;
+		}
 	}
 
 	// ---- 이펙트: 레이저, 충격파, 파티클

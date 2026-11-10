@@ -7,6 +7,7 @@
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
     python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
     python3 tools/neon/neon.py jokers 출력.png     # 조커 카드 후보 10종
+    python3 tools/neon/neon.py shots 출력.png      # 발사체 5종 (♠ 레이저, ♥ 미사일, ♦ 탄환, ♣ 서리 구체, ★ 별)
     python3 tools/neon/neon.py tree 출력.png tools/tree/tree.json   # 스킬 트리 화면 (tree.json 은 tools/tree/gen_tree.py 가 만듦)
 
 새 그림은 아래 SHAPES 에 함수를 더하면 된다. 큰 크기 / 손패 크기 / 타워 크기 세 가지로 나란히 그린다.
@@ -315,10 +316,44 @@ def render_tree(out, path, owned=None, sealed=(), S=2):
     d.text((40 * S, 40 * S), 'SKILL TREE  %d nodes' % len(nodes), fill=COL['gold'], font=FONT(14 * S), anchor='lm')
     img.resize((1280, 720), Image.LANCZOS).save(out)
 
+# ---------------------------------------------------------------- 발사체 (무늬마다 다름): 왼쪽 → 오른쪽으로 날아가는 모습
+def shot_laser(cx, cy, R):          # ♠ 저격: 즉시 레이저 (한 줄 + 총구 고리)
+    return [[(cx - R, cy), (cx + R, cy)], circle(cx - R, cy, R * 0.12, 16), circle(cx + R, cy, R * 0.18, 16)]
+
+
+def shot_missile(cx, cy, R):        # ♥ 폭발: 휘어 날아가는 미사일 (몸통 + 날개 + 연기 꼬리)
+    L = [[(cx - R * .1, cy - R * .08), (cx + R * .35, cy - R * .08), (cx + R * .5, cy), (cx + R * .35, cy + R * .08), (cx - R * .1, cy + R * .08), (cx - R * .1, cy - R * .08)],
+         [(cx - R * .1, cy - R * .08), (cx - R * .25, cy - R * .22), (cx - R * .05, cy - R * .08)],
+         [(cx - R * .1, cy + R * .08), (cx - R * .25, cy + R * .22), (cx - R * .05, cy + R * .08)]]
+    L += [circle(cx - R * (.35 + .17 * k), cy + math.sin(k * 1.3) * R * .06, R * (.05 + .02 * k), 12) for k in range(4)]
+    return L
+
+
+def shot_bullet(cx, cy, R):         # ♦ 연사: 짧은 탄환 셋 (빠른 줄무늬)
+    return [[(cx - R * .9 + k * R * .6, cy + (k - 1) * R * .05), (cx - R * .6 + k * R * .6, cy + (k - 1) * R * .05)] for k in range(3)]
+
+
+def shot_orb(cx, cy, R):            # ♣ 둔화: 서리 구체 (동그라미 + 눈꽃 + 옅은 꼬리)
+    L = [circle(cx + R * .3, cy, R * .22, 24)]
+    for k in range(3):
+        a = math.radians(k * 60)
+        L.append([(cx + R * .3 - math.cos(a) * R * .14, cy - math.sin(a) * R * .14), (cx + R * .3 + math.cos(a) * R * .14, cy + math.sin(a) * R * .14)])
+    L += [circle(cx - R * (.1 + .25 * k), cy, R * (.08 - .02 * k), 12) for k in range(3)]
+    return L
+
+
+def shot_star(cx, cy, R):           # ★ 와일드: 도는 별 조각
+    return suit('wild')(cx + R * .3, cy, R * .28) + [[(cx - R * .6, cy), (cx - R * .05, cy)]]
+
+
+SHOTS = [(shot_laser, 'spade'), (shot_missile, 'heart'), (shot_bullet, 'diamond'), (shot_orb, 'club'), (shot_star, 'white')]
+
+
 SHAPES = {
     'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
+    'shots': SHOTS,
     'suits': [(suit('spade'), 'spade'), (suit('heart'), 'heart'), (suit('diamond'), 'diamond'), (suit('club'), 'club'), (suit('wild'), 'white')],
 }
 

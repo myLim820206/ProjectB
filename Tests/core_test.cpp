@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <set>
 #include <string>
+#include <tuple>
 
 using namespace PD;
 
@@ -168,6 +169,59 @@ static void UnitTests()
 		G.Rewards = {{false, (int)EPDInstant::Wild}};
 		G.TakeReward(0);
 		Expect(!G.Hand.empty() && G.Hand.back().IsWild(), "와일드 카드 보상");
+	}
+	{ // 와일드 카드 보상은 드물게: 20% 쯤, 3웨이브에 한 번까지
+		FPDGame G(31);
+		G.NewGame(true);
+		for (int K = 0; K < (int)EPDCharm::Count && (int)G.Charms.size() < CharmMax; ++K) G.Charms.push_back((EPDCharm)K); // 부적 칸 가득 (즉시 보상만 나옴)
+		int Wild = 0, Last = -99, MinGap = 99;
+		for (int W = 1; W <= 300; ++W)
+		{
+			G.Wave = W;
+			bool bW = false;
+			for (const FPDReward& R : G.RollRewards()) bW = bW || (!R.bCharm && R.Id == (int)EPDInstant::Wild);
+			if (bW) { Wild++; MinGap = std::min(MinGap, W - Last); Last = W; }
+		}
+		Expect(Wild >= 20 && Wild <= 70 && MinGap >= WildCooldown, "와일드 보상 300웨이브에 " + std::to_string(Wild) + "번, 간격 최소 " + std::to_string(MinGap));
+		G.Phase = EPDPhase::Reward;
+		G.Rewards = {{false, (int)EPDInstant::Gold}};
+		G.Wave = 10;
+		const int G0 = G.Gold;
+		G.TakeReward(0);
+		Expect(G.Gold - G0 == 50, "골드 보상 10 + 웨이브 × 4");
+	}
+	{ // 발사체: ♥ 미사일은 날아가서 닿을 때 피해, ♠ 레이저는 즉시
+		FPDGame G(32);
+		G.NewGame(true);
+		G.bMuted = true;
+		int JX = -1, JY = -1;
+		for (int Y = 0; Y < Rows && JX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && ((X > 0 && G.Path.IsPath(X - 1, Y)) || (X + 1 < Cols && G.Path.IsPath(X + 1, Y)))) { JX = X; JY = Y; break; }
+		float NearD = 0.f, BestDist = 1e9f;
+		for (float D = 0.f; D < G.Path.Length; D += 0.1f) { const FPDPoint P = G.Path.At(D); const float Dist = std::hypot(P.X - JX - 0.5f, P.Y - JY - 0.5f); if (Dist < BestDist) { BestDist = Dist; NearD = D; } }
+		auto Try = [&](EPDSuit Su) {
+			G.Towers.clear();
+			G.Projectiles.clear();
+			Put(G.Towers, JX, JY, C(9, Su));
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			G.Phase = EPDPhase::Wave;
+			G.Enemies.clear();
+			FPDEnemy E = G.SpawnTestEnemy(EPDEnemy::Normal, 10000.f, 1);
+			E.Speed = 0.f;
+			E.D = NearD + 0.5f;
+			G.Enemies.push_back(E);
+			G.Update(0.01f);
+			const bool bNow = G.Enemies[0].Hp < G.Enemies[0].MaxHp;
+			const int Flying = (int)G.Projectiles.size();
+			for (int K = 0; K < 60; ++K) G.Update(0.01f);
+			return std::make_tuple(bNow, Flying, G.Enemies[0].Hp < G.Enemies[0].MaxHp);
+		};
+		auto [bNowL, FlyL, bLaterL] = Try(EPDSuit::Spade);
+		auto [bNowM, FlyM, bLaterM] = Try(EPDSuit::Heart);
+		auto [bNowB, FlyB, bLaterB] = Try(EPDSuit::Diamond);
+		Expect(bNowL && FlyL == 0, "♠ 레이저: 즉시 맞음");
+		Expect(!bNowM && FlyM == 1 && bLaterM, "♥ 미사일: 날아가서 맞음");
+		Expect(!bNowB && FlyB == 1 && bLaterB, "♦ 탄환: 날아가서 맞음");
+		Expect(ShotKind(G.Towers.begin()->second) == EPDShot::Bullet && ShotSpeed(EPDShot::Bullet) > ShotSpeed(EPDShot::Missile), "탄환이 미사일보다 빠름");
 	}
 	{ // 합성: 페어 → 레벨 2 타워 하나, 같은 레벨끼리만 족보, 레벨 2 페어 → 레벨 3
 		FPDGame G(8);
