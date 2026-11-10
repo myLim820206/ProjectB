@@ -18,7 +18,16 @@ import sys
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 BG = (6, 6, 11)
-FONT = lambda px: ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', max(6, int(px * 1.33)))
+def _font_path():
+    import os
+    for p in ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 'C:/Windows/Fonts/malgunbd.ttf', 'C:/Windows/Fonts/arialbd.ttf']:
+        if os.path.exists(p):
+            return p
+    return None
+
+
+_FP = _font_path()
+FONT = lambda px: ImageFont.truetype(_FP, max(6, int(px * 1.33))) if _FP else ImageFont.load_default()
 COL = {'spade': (127, 184, 255), 'heart': (255, 106, 138), 'diamond': (255, 217, 106), 'club': (138, 255, 196),
        'pink': (255, 154, 213), 'white': (255, 255, 255), 'cyan': (127, 214, 255)}
 
@@ -349,11 +358,179 @@ def shot_star(cx, cy, R):           # ★ 와일드: 도는 별 조각
 SHOTS = [(shot_laser, 'spade'), (shot_missile, 'heart'), (shot_bullet, 'diamond'), (shot_orb, 'club'), (shot_star, 'white')]
 
 
+# ---------------------------------------------------------------- 레벨 진화 (합성 레벨 1~4): 같은 무늬가 레벨마다 굵고 화려해진다
+def level_shot(kind, lv):
+    def f(cx, cy, R):
+        L = []
+        if kind == 'spade':      # 레이저 → 쌍줄 → 레일건(나선 고리) → 레일건 + 충격 고리
+            n = 1 if lv == 1 else 2
+            for k in range(n):
+                o = (k - (n - 1) / 2) * R * .12
+                L.append([(cx - R, cy + o), (cx + R, cy + o)])
+            if lv >= 3:
+                for k in range(6):
+                    x = cx - R * .8 + k * R * .32
+                    L.append(circle(x, cy, R * .14, 16, sx=.35))
+            if lv >= 4:
+                L += [circle(cx + R, cy, R * .3, 24), circle(cx + R, cy, R * .45, 24)]
+            L.append(circle(cx + R, cy, R * (.12 + .04 * lv), 16))
+        elif kind == 'heart':    # 미사일 → 큰 미사일 → 세 발 떼 → 어뢰
+            if lv == 3:
+                for k, dy in enumerate([-.32, 0, .32]):
+                    L += scaled(shot_missile, .6, .15 if k == 1 else -.1, dy)(cx, cy, R)
+            else:
+                L += scaled(shot_missile, .9 + .25 * (lv == 2) + .5 * (lv == 4))(cx, cy, R)
+                if lv == 4:
+                    L.append(circle(cx + R * .55, cy, R * .12, 12))
+        elif kind == 'diamond':  # 탄환 → 쌍탄 → 세 줄 → 레이저 탄 (긴 줄 + 마름모 머리)
+            rows = {1: [0], 2: [-.1, .1], 3: [-.18, 0, .18], 4: [0]}[lv]
+            for dy in rows:
+                for k in range(3 if lv < 4 else 1):
+                    x0 = cx - R * .9 + k * R * .6 if lv < 4 else cx - R * .9
+                    x1 = x0 + (R * .3 if lv < 4 else R * 1.5)
+                    L.append([(x0, cy + dy * R), (x1, cy + dy * R)])
+            if lv == 4:
+                h = R * .16
+                L.append([(cx + R * .6, cy), (cx + R * .6 + h, cy - h), (cx + R * .6 + 2 * h, cy), (cx + R * .6 + h, cy + h), (cx + R * .6, cy)])
+        elif kind == 'club':     # 서리 구체 → 큰 구체 → 눈꽃 결정 → 얼음 혜성
+            L += scaled(shot_orb, 1 + .2 * (lv - 1))(cx, cy, R)
+            if lv >= 3:
+                for k in range(6):
+                    a = k * math.pi / 3
+                    L.append([(cx + R * .3 + math.cos(a) * R * .3, cy + math.sin(a) * R * .3), (cx + R * .3 + math.cos(a) * R * .42, cy + math.sin(a) * R * .42)])
+            if lv >= 4:
+                L += [[(cx - R, cy - R * .15), (cx, cy - R * .05)], [(cx - R, cy + R * .15), (cx, cy + R * .05)]]
+        else:                    # 별 → 별 둘 → 별 셋 → 큰 별 + 고리
+            n = min(lv, 3)
+            for k in range(n):
+                L += suit('wild')(cx + R * (.3 - .32 * k), cy + (k % 2) * R * .12, R * (.28 - .05 * k))
+            if lv >= 4:
+                L.append(circle(cx + R * .3, cy, R * .42, 24))
+        return L
+    return f
+
+
+# ---------------------------------------------------------------- 족보 발사체 (스트레이트 이상, 족보 색)
+def hand_arrows(cx, cy, R):         # 스트레이트: 화살촉 셋이 줄지어
+    return [[(cx + R * (k * .4 - .55), cy - R * .18), (cx + R * (k * .4 - .35), cy), (cx + R * (k * .4 - .55), cy + R * .18)] for k in range(3)] + [[(cx - R * .9, cy), (cx + R * .45, cy)]]
+
+
+def hand_arc(cx, cy, R):            # 플러시: 꺾이는 번개 (즉시) + 옆으로 튀는 잔번개
+    P = [(cx - R, cy), (cx - R * .5, cy - R * .2), (cx - R * .1, cy + R * .15), (cx + R * .35, cy - R * .15), (cx + R * .8, cy)]
+    return [P, [(cx + R * .35, cy - R * .15), (cx + R * .55, cy - R * .45)], [(cx - R * .1, cy + R * .15), (cx + R * .1, cy + R * .45)], circle(cx + R * .8, cy, R * .1, 12)]
+
+
+def hand_cluster(cx, cy, R):        # 풀하우스: 분열탄 (껍데기 + 안의 작은 알 다섯)
+    L = [circle(cx + R * .2, cy, R * .3, 24), [(cx - R * .8, cy), (cx - R * .1, cy)]]
+    for k in range(5):
+        a = k * 2 * math.pi / 5
+        L.append(circle(cx + R * .2 + math.cos(a) * R * .15, cy + math.sin(a) * R * .15, R * .05, 10))
+    return L
+
+
+def hand_shell(cx, cy, R):          # 포카드: 무거운 포탄 (큰 원 + 굵은 꼬리 둘)
+    return [circle(cx + R * .25, cy, R * .38, 28), circle(cx + R * .25, cy, R * .2, 20),
+            [(cx - R, cy - R * .2), (cx - R * .15, cy - R * .25)], [(cx - R, cy + R * .2), (cx - R * .15, cy + R * .25)]]
+
+
+def hand_comet(cx, cy, R):          # 스트레이트 플러시: 혜성 (빛나는 머리 + 긴 꼬리 셋)
+    L = [circle(cx + R * .5, cy, R * .18, 20), circle(cx + R * .5, cy, R * .32, 24, sx=1.2)]
+    L += [[(cx + R * .35, cy + d * R * .12), (cx - R, cy + d * R * .3)] for d in (-1, 0, 1)]
+    return L
+
+
+def hand_nova(cx, cy, R):           # 파이브 카드: 퍼져 나가는 파동 (반원 셋)
+    return [arc(cx - R * .4 + k * R * .35, cy, R * (.3 + k * .12), -70, 70, 16) for k in range(3)] + [circle(cx - R * .55, cy, R * .08, 10)]
+
+
+def hand_crown(cx, cy, R):          # 로열: 금빛 굵은 광선 + 왕관
+    c = (cx + R * .55, cy - R * .02)
+    crown = [(c[0] - R * .3, c[1] + R * .15), (c[0] - R * .3, c[1] - R * .15), (c[0] - R * .15, c[1]), (c[0], c[1] - R * .22), (c[0] + R * .15, c[1]), (c[0] + R * .3, c[1] - R * .15), (c[0] + R * .3, c[1] + R * .15), (c[0] - R * .3, c[1] + R * .15)]
+    return [[(cx - R, cy - R * .06), (cx + R * .2, cy - R * .06)], [(cx - R, cy + R * .06), (cx + R * .2, cy + R * .06)], crown]
+
+
+# ---------------------------------------------------------------- 조커 발사체 (분홍, 조커마다 다름)
+def jk_juggle(cx, cy, R):           # 광대: 포물선으로 던지는 공 (점선 궤적 + 공)
+    L = [circle(cx + R * .6, cy + R * .1, R * .16, 20)]
+    for k in range(6):
+        t = k / 6
+        x = cx - R + t * R * 1.5
+        y = cy + R * .2 - math.sin(t * math.pi * .9) * R * .6
+        L.append(circle(x, y, R * .03, 8))
+    return L
+
+
+def jk_hat(cx, cy, R):              # 모자 장수: 도는 모자 (부메랑처럼)
+    hx, hy, s = cx + R * .25, cy, R * .3   # 실크해트: 챙 + 높은 몸통 + 띠, 기울어져 돈다
+    rot = lambda x, y: (hx + (x * .94 - y * .34) * s, hy + (x * .34 + y * .94) * s)
+    brim = [rot(-1.1, .55), rot(1.1, .55)]
+    body = [rot(-.65, .55), rot(-.6, -.9), rot(.6, -.9), rot(.65, .55)]
+    band = [rot(-.63, .2), rot(.63, .2)]
+    return [brim, body, band, arc(hx, hy, R * .5, 150, 260, 12), arc(hx, hy, R * .5, -30, 80, 12)]
+
+
+def jk_crescent(cx, cy, R):         # 웃는 가면: 도는 웃음 초승달
+    return [arc(cx + R * .2, cy - R * .1, R * .4, 20, 160, 18), arc(cx + R * .2, cy - R * .25, R * .4, 35, 145, 18), circle(cx + R * .05, cy - R * .25, R * .05, 8), circle(cx + R * .35, cy - R * .25, R * .05, 8)]
+
+
+def jk_twin(cx, cy, R):             # 희비극: 서로 감기며 나는 두 구슬
+    L = [circle(cx + R * .5, cy - R * .15, R * .12, 14), circle(cx + R * .5, cy + R * .15, R * .12, 14)]
+    L.append([(cx - R + k * R * .1, cy + math.sin(k * .7) * R * .15) for k in range(15)])
+    L.append([(cx - R + k * R * .1, cy - math.sin(k * .7) * R * .15) for k in range(15)])
+    return L
+
+
+def jk_shards(cx, cy, R):           # 할리퀸: 부채꼴로 날아가는 마름모 셋
+    L = []
+    for k, a in enumerate([-.5, 0, .5]):
+        x, y, h = cx + R * (.15 + .35 * math.cos(a)), cy + R * .8 * math.sin(a), R * .13
+        L.append([(x - h * 1.6, y), (x, y - h), (x + h * 1.6, y), (x, y + h), (x - h * 1.6, y)])
+        L.append([(cx - R * .7, cy), (x - h * 1.6, y)])
+    return L
+
+
+def jk_note(cx, cy, R):             # 지휘봉: 물결치며 나는 음표
+    nx, ny = cx + R * .4, cy + R * .1
+    L = [circle(nx, ny, R * .12, 16, sx=1.3), [(nx + R * .15, ny), (nx + R * .15, ny - R * .45), (nx + R * .35, ny - R * .3)]]
+    L.append([(cx - R + k * R * .1, cy + math.sin(k * .9) * R * .12) for k in range(12)])
+    return L
+
+
+def jk_blade(cx, cy, R):            # 잭: 크게 휘두른 칼날 (초승달 베기, 느림)
+    return [arc(cx, cy, R * .6, -70, 70, 20), arc(cx - R * .12, cy, R * .5, -60, 60, 18), [(cx + R * .21, cy - R * .56), (cx + R * .6, cy)], [(cx + R * .21, cy + R * .56), (cx + R * .6, cy)]]
+
+
+def jk_grin(cx, cy, R):             # 체셔: 즉시 꽂히는 보랏빛 광선 + 목표에 웃는 입
+    m = (cx + R * .7, cy)
+    return [[(cx - R, cy), m], arc(m[0], m[1] - R * .1, R * .25, 20, 160, 14), circle(m[0] - R * .1, m[1] - R * .2, R * .04, 8), circle(m[0] + R * .1, m[1] - R * .2, R * .04, 8)]
+
+
+def jk_wave(cx, cy, R):             # 방울: 퍼지는 소리 고리 + 작은 종
+    L = [arc(cx - R * .2 + k * R * .25, cy, R * (.25 + k * .1), -55, 55, 14) for k in range(4)]
+    b = (cx - R * .6, cy)
+    L += [[(b[0] - R * .15, b[1] + R * .12), (b[0] - R * .1, b[1] - R * .12), (b[0] + R * .1, b[1] - R * .12), (b[0] + R * .15, b[1] + R * .12), (b[0] - R * .15, b[1] + R * .12)], circle(b[0], b[1] + R * .18, R * .04, 8)]
+    return L
+
+
+def jk_star(cx, cy, R):             # 스타: 큰 별 혜성
+    return suit('wild')(cx + R * .4, cy, R * .3) + [[(cx + R * .15, cy + d * R * .1), (cx - R, cy + d * R * .25)] for d in (-1, 0, 1)]
+
+
+SHOTS_LEVEL = [(level_shot(k, lv), k if k != 'wild' else 'white') for k in ['spade', 'heart', 'diamond', 'club', 'wild'] for lv in range(1, 5)]
+SHOTS_LEVEL = [SHOTS_LEVEL[k * 4 + lv] for lv in range(4) for k in range(5)]  # 줄 = 레벨, 칸 = 무늬
+SHOTS_HAND = [(hand_arrows, 'cyan'), (hand_arc, 'pink'), (hand_cluster, 'orange'), (hand_shell, 'red'), (hand_comet, 'pink'), (hand_nova, 'gold'), (hand_crown, 'white')]
+SHOTS_JOKER = [(jk_juggle, 'pink'), (jk_hat, 'pink'), (jk_crescent, 'pink'), (jk_twin, 'pink'), (jk_shards, 'pink'), (jk_note, 'pink'), (jk_blade, 'pink'), (jk_grin, 'pink'), (jk_wave, 'pink'), (jk_star, 'pink')]
+COL.update({'orange': (255, 168, 106), 'red': (255, 106, 106), 'gold': (255, 210, 110)})
+
+
 SHAPES = {
     'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
     'shots': SHOTS,
+    'shots_level': SHOTS_LEVEL,   # 줄 = 레벨 1~4, 칸 = ♠ ♥ ♦ ♣ ★
+    'shots_hand': SHOTS_HAND,     # 스트레이트, 플러시, 풀하우스, 포카드, 스트레이트 플러시, 파이브 카드, 로열
+    'shots_joker': SHOTS_JOKER,   # 조커 1~10
     'suits': [(suit('spade'), 'spade'), (suit('heart'), 'heart'), (suit('diamond'), 'diamond'), (suit('club'), 'club'), (suit('wild'), 'white')],
 }
 

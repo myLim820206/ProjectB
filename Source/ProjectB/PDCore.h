@@ -258,12 +258,23 @@ struct FPDEnemy
 	float Incoming = 0.f; // 날아가는 중인 발사체 피해 합 (겹쳐 쏘지 않게)
 };
 
-// ---------------------------------------------------------------- 발사체 (무늬마다 다름)
-// ♠ 레이저 (즉시), ♥ 미사일 (휘어 날아가는 유도탄), ♦ 탄환 (빠름), ♣ 서리 구체 (느림), ★ 별 조각, 조커 = 분홍 레이저 (즉시)
-// 레이저가 아니면 날아가서 닿을 때 피해를 준다 (범위 피해도 닿은 자리에서)
-enum class EPDShot : uint8_t { Laser, Missile, Bullet, Orb, Star, JokerLaser };
+// ---------------------------------------------------------------- 발사체 (미리보기: tools/neon/neon.py shots / shots_level / shots_hand / shots_joker)
+// 고르는 순서: 조커 포탑 → 족보 타워(스트레이트 이상) → 무늬 기본형. 레벨(합성)은 그림만 진화시킨다 (위젯)
+// 무늬: ♠ 레이저 (즉시), ♥ 미사일 (휘어 날아가는 유도탄), ♦ 탄환 (빠름), ♣ 서리 구체 (느림), ★ 별 조각
+// 족보: 스트레이트 화살, 플러시 번개 (즉시), 풀하우스 분열탄, 포카드 포탄, 스트레이트 플러시 혜성, 파이브 카드 파동, 로열 금빛 광선 (즉시)
+// 조커: 광대 공, 모자 장수 실크해트, 웃는 가면 초승달, 희비극 두 구슬, 할리퀸 마름모, 지휘봉 음표, 잭 칼날, 체셔 웃음 광선 (즉시), 방울 소리 고리, 스타 별 혜성
+// 즉시가 아니면 날아가서 닿을 때 피해를 준다 (범위 피해도 닿은 자리에서). 피해 계산은 종류와 상관없다
+enum class EPDShot : uint8_t
+{
+	Laser, Missile, Bullet, Orb, Star, JokerLaser,
+	Arrow, Arc, Cluster, Shell, Comet, Nova, Crown,                          // 족보
+	Juggle, Hat, Crescent, Twin, Shards, Note, Blade, Grin, Wave, StarComet, // 조커 (EPDJoker 순서)
+	Count
+};
 EPDShot ShotKind(const FPDTower& T);
-float ShotSpeed(EPDShot K); // 칸 / 초
+float ShotSpeed(EPDShot K); // 칸 / 초, 0 = 즉시
+inline bool IsJokerShot(EPDShot K) { return K == EPDShot::JokerLaser || K >= EPDShot::Juggle; }
+inline bool IsHandShot(EPDShot K) { return K >= EPDShot::Arrow && K <= EPDShot::Crown; }
 struct FPDProjectile
 {
 	EPDShot Kind = EPDShot::Bullet;
@@ -284,6 +295,8 @@ struct FPDEvent
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
+	int Lv = 1;       // Shot·Impact: 쏜 타워 레벨 (그림 진화)
+	float Dmg = 0.f;  // Shot(즉시 발사체)·Impact: 목표에 준 피해 (화면의 피해 숫자)
 	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수
 };
 

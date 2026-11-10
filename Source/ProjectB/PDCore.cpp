@@ -413,7 +413,21 @@ EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 
 EPDShot ShotKind(const FPDTower& T)
 {
-	if (T.IsJoker()) return EPDShot::JokerLaser;
+	if (T.IsJoker()) return T.Joker >= 0 && T.Joker < (int)EPDJoker::Count ? (EPDShot)((int)EPDShot::Juggle + T.Joker) : EPDShot::JokerLaser;
+	if (T.Eff.Kind >= 0) // 족보 타워: 스트레이트 이상은 족보 발사체 (원 페어·투 페어·트리플은 무늬 그대로)
+	{
+		switch ((EPDHand)T.Eff.Kind)
+		{
+		case EPDHand::Straight: return EPDShot::Arrow;
+		case EPDHand::Flush: return EPDShot::Arc;
+		case EPDHand::FullHouse: return EPDShot::Cluster;
+		case EPDHand::Four: return EPDShot::Shell;
+		case EPDHand::StraightFlush: return EPDShot::Comet;
+		case EPDHand::Five: return EPDShot::Nova;
+		case EPDHand::RoyalFlush: return EPDShot::Crown;
+		default: break;
+		}
+	}
 	switch (T.Card.Suit)
 	{
 	case EPDSuit::Spade: return EPDShot::Laser;
@@ -431,7 +445,21 @@ float ShotSpeed(EPDShot K)
 	case EPDShot::Bullet: return 22.f;
 	case EPDShot::Orb: return 10.f;
 	case EPDShot::Star: return 15.f;
-	default: return 0.f; // 레이저는 즉시
+	case EPDShot::Arrow: return 20.f;
+	case EPDShot::Cluster: return 11.f;
+	case EPDShot::Shell: return 8.f;
+	case EPDShot::Comet: return 15.f;
+	case EPDShot::Nova: return 12.f;
+	case EPDShot::Juggle: return 10.f;
+	case EPDShot::Hat: return 11.f;
+	case EPDShot::Crescent: return 13.f;
+	case EPDShot::Twin: return 12.f;
+	case EPDShot::Shards: return 17.f;
+	case EPDShot::Note: return 10.f;
+	case EPDShot::Blade: return 9.f;
+	case EPDShot::Wave: return 12.f;
+	case EPDShot::StarComet: return 15.f;
+	default: return 0.f; // 레이저, 번개, 로열 광선, 체셔 광선은 즉시
 	}
 }
 
@@ -1210,6 +1238,8 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	Sh.Suit = Pr.Suit;
 	Sh.A = Pr.bHand;
 	Sh.B = Crits;
+	Sh.Lv = T.Level;
+	Sh.Dmg = ShotSpeed(Pr.Kind) <= 0.f ? Dmg : 0.f;
 	Sh.R = (float)(int)Pr.Kind;
 	Ev(Sh);
 	const float Spd = ShotSpeed(Pr.Kind);
@@ -1235,7 +1265,8 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 {
 	FPDPoint At{P.TX, P.TY};
-	if (Target && !Target->bDead) { At = Path.At(Target->D); Hit(*Target, P.Dmg, P.Slow); }
+	const bool bHitTarget = Target && !Target->bDead;
+	if (bHitTarget) { At = Path.At(Target->D); Hit(*Target, P.Dmg, P.Slow); }
 	if (P.Splash > 0.f)
 	{
 		for (FPDEnemy& O : Enemies)
@@ -1261,6 +1292,8 @@ void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 		Im.R = (float)(int)P.Kind;
 		Im.B = P.Crits;
 		Im.A = P.bHand;
+		Im.Lv = P.Level;
+		Im.Dmg = bHitTarget ? P.Dmg : 0.f;
 		Im.Suit = P.Suit;
 		Ev(Im);
 	}

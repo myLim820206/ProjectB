@@ -223,6 +223,31 @@ static void UnitTests()
 		Expect(!bNowB && FlyB == 1 && bLaterB, "♦ 탄환: 날아가서 맞음");
 		Expect(ShotKind(G.Towers.begin()->second) == EPDShot::Bullet && ShotSpeed(EPDShot::Bullet) > ShotSpeed(EPDShot::Missile), "탄환이 미사일보다 빠름");
 	}
+	{ // 발사체 고르기: 조커 → 족보(스트레이트 이상) → 무늬
+		FPDTower T;
+		T.Card = C(9, He);
+		const EPDShot Base = ShotKind(T);
+		T.Eff.Kind = (int)EPDHand::Pair;
+		const EPDShot PairShot = ShotKind(T);
+		T.Eff.Kind = (int)EPDHand::Flush;
+		const EPDShot FlushShot = ShotKind(T);
+		T.Eff.Kind = (int)EPDHand::RoyalFlush;
+		const EPDShot RoyalShot = ShotKind(T);
+		T.Joker = (int)EPDJoker::Jack;
+		const EPDShot JackShot = ShotKind(T);
+		T.Joker = (int)EPDJoker::Star;
+		const EPDShot StarShot = ShotKind(T);
+		Expect(Base == EPDShot::Missile && PairShot == EPDShot::Missile && FlushShot == EPDShot::Arc && RoyalShot == EPDShot::Crown && JackShot == EPDShot::Blade && StarShot == EPDShot::StarComet,
+			"발사체: ♥ 기본 미사일, 원 페어는 그대로, 플러시 번개, 로열 광선, 잭 칼날, 스타 별 혜성");
+		bool bAllOk = true;
+		for (int K = 0; K < (int)EPDShot::Count; ++K)
+		{
+			const EPDShot S = (EPDShot)K;
+			const bool bInstant = S == EPDShot::Laser || S == EPDShot::JokerLaser || S == EPDShot::Arc || S == EPDShot::Crown || S == EPDShot::Grin;
+			bAllOk = bAllOk && (bInstant ? ShotSpeed(S) == 0.f : ShotSpeed(S) >= 8.f);
+		}
+		Expect(bAllOk, "즉시 발사체(레이저·번개·로열·체셔)만 속도 0, 나머지는 8칸/초 이상");
+	}
 	{ // 합성: 페어 → 레벨 2 타워 하나, 같은 레벨끼리만 족보, 레벨 2 페어 → 레벨 3
 		FPDGame G(8);
 		G.NewGame(true);
@@ -406,7 +431,7 @@ static void UnitTests()
 			for (int I = 0; I < 3; ++I) { FPDEnemy E = G.SpawnTestEnemy(EPDEnemy::Normal, 10000.f, 1); E.Speed = 0.f; E.D = NearD + I * 0.15f; G.Enemies.push_back(E); }
 		};
 		Setup(EPDJoker::Comedy);
-		G.Update(0.01f);
+		for (int K = 0; K < 30; ++K) G.Update(0.01f); // 희비극 구슬은 날아가서 맞는다
 		int Hurt = 0;
 		for (auto& E : G.Enemies) Hurt += E.Hp < E.MaxHp;
 		Expect(Hurt == 2, "희비극: 두 적을 동시에 공격");

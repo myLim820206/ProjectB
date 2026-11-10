@@ -74,6 +74,8 @@ private:
 		FVector2f A, B;
 		float T, MaxT, Width;
 		FLinearColor Col;
+		int32 Style = 0; // 0 보통(레벨 2면 쌍줄), 1 레일건, 2 번개, 3 로열 왕관, 4 체셔 웃음
+		int32 Lv = 1;
 	};
 	struct FRing
 	{
@@ -94,6 +96,26 @@ private:
 		float T;
 		FLinearColor Col;
 	};
+	// 번쩍이는 별빛 (네 갈래 빛살 + 부드러운 빛 덩어리)
+	struct FFlare
+	{
+		FVector2f C;
+		float T, MaxT, Size, Rot;
+		FLinearColor Col;
+	};
+	// 몸 조각: 돌며 날아가는 짧은 선
+	struct FShard
+	{
+		FVector2f P, V;
+		float A, AV, Len, Life, MaxLife;
+		FLinearColor Col;
+	};
+	TArray<FFlare> Flares;
+	TArray<FShard> Shards;
+	TMap<int32, float> HitFlash; // 적 Id → 맞은 순간 번쩍임 남은 시간
+	TMap<int32, float> HpShown;  // 적 Id → 천천히 줄어드는 체력 막대 (깎인 만큼 흰색으로 보임)
+	void HitFx(FVector2f P, FLinearColor Col, float Power, int32 Crits, float Dmg); // 맞는 순간 (모든 발사체 공통)
+	void DeathFx(FVector2f P, PD::EPDEnemy Type);                                   // 죽는 순간
 	void CritFx(FVector2f P, int32 N); // 치명타 흰 불꽃
 	void Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak = false, float Gravity = 0.f);
 
