@@ -6,6 +6,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "PDBoardWidget.h"
 
@@ -83,6 +84,16 @@ void APDGameMode::BeginPlay()
 	if (!GEngine || !GEngine->GameViewport) return;
 
 	SAssignNew(BoardWidget, SPDBoardWidget);
+	// 메뉴의 [게임 종료]: 패키지 게임은 꺼지고, 에디터(PIE)에서는 플레이만 멈춘다
+	TWeakObjectPtr<APDGameMode> WeakThis(this);
+	BoardWidget->OnQuit = [WeakThis]()
+	{
+		APDGameMode* Self = WeakThis.Get();
+		UWorld* World = Self ? Self->GetWorld() : nullptr;
+		APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+		if (Self) UKismetSystemLibrary::QuitGame(Self, PC, EQuitPreference::Quit, false);
+		else FPlatformMisc::RequestExit(false);
+	};
 	GEngine->GameViewport->AddViewportWidgetContent(BoardWidget.ToSharedRef(), 10);
 
 	if (APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)

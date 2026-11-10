@@ -32,9 +32,19 @@ public:
 		return Out;
 	}
 
+	// 메뉴의 [게임 종료]. 게임 모드가 채운다 (월드가 있어야 PIE·패키지 모두 바르게 끝낼 수 있어서)
+	TFunction<void()> OnQuit;
+
 private:
 	struct FCanvas; // 그리기 도우미 (cpp 안에 정의)
 	void PaintAll(FCanvas& C, FCanvas& F) const;
+	void PaintHandGuide(FCanvas& C) const; // 왼쪽 족보 패널
+	void PaintMenu(FCanvas& C) const;      // Esc 메뉴 창
+	void MenuSelect(int32 Item);           // 메뉴 항목 실행
+	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
+	void RestartRun();                     // 새 판 시작 (게임 오버·메뉴 공통)
+	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
+	int32 MenuSel = 0;                     // 키보드로 고른 메뉴 항목
 	void HandleEvents();
 	void UpdateFx(float Dt);
 	void UpdatePreview();

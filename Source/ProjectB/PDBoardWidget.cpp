@@ -15,12 +15,17 @@ namespace PDDraw
 {
 constexpr float DesignW = 1280.f;
 constexpr float DesignH = 720.f;
-constexpr float CS = 54.f;          // 칸 크기
-constexpr float FX = 24.f;          // 판 왼쪽 위
+// 화면 세 칸: 왼쪽 족보 패널 | 가운데 판과 손패 | 오른쪽 상태 패널
+constexpr float LX = 16.f, LW = 232.f; // 왼쪽 족보 패널
+constexpr float CS = 48.f;          // 칸 크기
+constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
 constexpr float FY = 24.f;
-constexpr float HandY = FY + Rows * CS + 22.f;
+constexpr float HandY = FY + Rows * CS + 26.f;
 constexpr float CardW = 66.f, CardH = 92.f;
-constexpr float RX = FX + Cols * CS + 26.f; // 오른쪽 패널
+constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
+constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
+constexpr float RBtnX = RX + 12.f, RBtnW = PW - 24.f; // 오른쪽 패널 버튼 줄
+constexpr float StartBtnY = FY + 92.f, StartBtnH = 38.f;
 constexpr float TwoPi = 6.2831853f;
 
 FLinearColor Hex(const TCHAR* InHex, float Alpha = 1.f)
@@ -286,9 +291,29 @@ constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.
 constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
 const int32 UpgSteps[4] = {1, 10, 100, UpgradeMax};
 FVector2f UpgButtonPos(int Row, int K) { return FVector2f(UpgRowX + UpgRowW - 4 * (UpgBtnW + 8.f) + K * (UpgBtnW + 8.f), UpgRowY + Row * UpgRowH + (UpgRowH - UpgBtnH) / 2.f); }
-constexpr float UpgOpenX = RX + 228.f, UpgOpenY = FY + 62.f, UpgOpenW = 90.f, UpgOpenH = 30.f;
-// 트리 버튼 (오른쪽 패널 위)
-constexpr float TreeBtnX = RX + 228.f, TreeBtnY = FY + 100.f, TreeBtnW = 90.f, TreeBtnH = 30.f;
+// 트리·강화 버튼 (오른쪽 패널, 웨이브 시작 버튼 아래 나란히), 메뉴 버튼 (그 아래)
+constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 30.f;
+constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = 30.f;
+constexpr float MenuBtnX = RBtnX, MenuBtnY = TreeBtnY + TreeBtnH + 8.f, MenuBtnW = RBtnW, MenuBtnH = 28.f;
+constexpr float RTopH = MenuBtnY + MenuBtnH + 12.f - FY; // 오른쪽 위 패널 높이
+// 메뉴 창 (Esc): 가운데 세로 버튼
+enum class EMenuItem : uint8_t { Resume, NewGame, Quit, Count };
+constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
+constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
+FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
+const TCHAR* MenuItemName(int I)
+{
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("게임 종료")};
+	return N[I];
+}
+// 손패 카드 왼쪽 X. 카드가 많으면 판 너비 안에 들어오게 간격을 좁힌다
+float HandCardX(int I, int N)
+{
+	const float Avail = Cols * CS - 96.f - CardW;
+	const float Step = N > 1 ? FMath::Min(CardW + 10.f, Avail / (N - 1)) : 0.f;
+	return FX + 96.f + I * Step;
+}
+bool InRect(FVector2f P, float X, float Y, float W, float H) { return P.X >= X && P.X <= X + W && P.Y >= Y && P.Y <= Y + H; }
 } // namespace PDDraw
 
 using namespace PDDraw;
@@ -972,7 +997,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
-	if (!bTree && !bUpg) Game.Tick(Dt); // 트리·강화 창을 여는 동안은 멈춘다
+	if (!bTree && !bUpg && !bMenu) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
 	UpdateFx(Dt);
@@ -1020,6 +1045,11 @@ FVector2f SPDBoardWidget::ToDesign(const FGeometry& MyGeometry, const FPointerEv
 FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	Mouse = ToDesign(MyGeometry, MouseEvent);
+	if (bMenu)
+	{
+		const int32 Item = MenuHoverAt(Mouse);
+		if (Item >= 0) MenuSel = Item;
+	}
 	const int32 CX = FMath::FloorToInt((Mouse.X - FX) / CS), CY = FMath::FloorToInt((Mouse.Y - FY) / CS);
 	const bool bIn = CX >= 0 && CY >= 0 && CX < Cols && CY < Rows;
 	HoverX = bIn ? CX : -1;
@@ -1030,8 +1060,15 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
 	auto Sound = [this](EPDSound S) { if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f}); };
+	if (bMenu)
+	{
+		const int32 Item = MenuHoverAt(P);
+		if (Item >= 0) MenuSelect(Item);
+		else if (!InRect(P, MenuX - 30.f, MenuItemY0 - 80.f, MenuW + 60.f, (int32)EMenuItem::Count * (MenuItemH + MenuGap) + 110.f)) bMenu = false; // 창 바깥 클릭 = 닫기
+		return;
+	}
 	if (Game.Phase == EPDPhase::Title) { Game.Phase = EPDPhase::Build; Sound(EPDSound::Start); return; }
-	if (Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Win) { Game.NewGame(true); Sel = -1; Particles.Empty(); Sound(EPDSound::Start); return; }
+	if (Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Win) { RestartRun(); return; }
 	if (Game.Phase == EPDPhase::Reward)
 	{
 		for (int32 I = 0; I < (int32)Game.Rewards.size(); ++I)
@@ -1058,8 +1095,9 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		if (Id >= 0 && !Game.BuyNode(Id)) Sound(EPDSound::Denied);
 		return;
 	}
-	if (!bRight && P.X >= TreeBtnX && P.X <= TreeBtnX + TreeBtnW && P.Y >= TreeBtnY && P.Y <= TreeBtnY + TreeBtnH) { bTree = true; Sel = -1; return; }
-	if (!bRight && P.X >= UpgOpenX && P.X <= UpgOpenX + UpgOpenW && P.Y >= UpgOpenY && P.Y <= UpgOpenY + UpgOpenH) { bUpg = true; Sel = -1; return; }
+	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
+	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; }
+	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
 	// 조커 합성 버튼
 	if (!bRight)
 		for (int32 I = 0; I < (int32)JGroups.size(); ++I)
@@ -1084,7 +1122,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	int32 HandHit = -1;
 	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
 	{
-		const float X = FX + 96.f + I * (CardW + 10.f);
+		const float X = HandCardX(I, (int32)Game.Hand.size());
 		if (P.X >= X && P.X <= X + CardW && P.Y >= HandY - 12.f && P.Y <= HandY + CardH) HandHit = I;
 	}
 	if (bRight)
@@ -1101,7 +1139,41 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else Sound(EPDSound::Denied);
 		return;
 	}
-	if (Game.Phase == EPDPhase::Build && P.X >= RX + 16.f && P.X <= RX + 216.f && P.Y >= FY + 96.f && P.Y <= FY + 134.f) Game.StartWave();
+	if (Game.Phase == EPDPhase::Build && InRect(P, RBtnX, StartBtnY, RBtnW, StartBtnH)) Game.StartWave();
+}
+
+void SPDBoardWidget::RestartRun()
+{
+	Game.NewGame(true);
+	Sel = -1;
+	bTree = bUpg = bCodex = bMenu = false;
+	Particles.Empty();
+	if (!Game.bMuted) Game.Sounds.push_back({EPDSound::Start, 0, 0, 1.f});
+}
+
+int32 SPDBoardWidget::MenuHoverAt(FVector2f P) const
+{
+	for (int32 I = 0; I < (int32)EMenuItem::Count; ++I)
+	{
+		const FVector2f B = MenuItemPos(I);
+		if (InRect(P, B.X, B.Y, MenuW, MenuItemH)) return I;
+	}
+	return -1;
+}
+
+void SPDBoardWidget::MenuSelect(int32 Item)
+{
+	switch ((EMenuItem)Item)
+	{
+	case EMenuItem::Resume: bMenu = false; break;
+	case EMenuItem::NewGame: RestartRun(); break;
+	case EMenuItem::Quit:
+		bMenu = false;
+		if (OnQuit) OnQuit();
+		else FPlatformMisc::RequestExit(false);
+		break;
+	default: break;
+	}
 }
 
 FReply SPDBoardWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -1116,14 +1188,27 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	const FKey K = InKeyEvent.GetKey();
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	auto Sound = [this](EPDSound S) { if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f}); };
+	if (bMenu)
+	{
+		const int32 N = (int32)EMenuItem::Count;
+		if (K == EKeys::Escape) bMenu = false;
+		else if (K == EKeys::Up || K == EKeys::W) MenuSel = (MenuSel + N - 1) % N;
+		else if (K == EKeys::Down || K == EKeys::S) MenuSel = (MenuSel + 1) % N;
+		else if (K == EKeys::Enter || K == EKeys::SpaceBar) MenuSelect(MenuSel);
+		return FReply::Handled();
+	}
+	// 도감·트리·강화 창이 열려 있지 않고 카드도 안 골랐으면 Esc = 메뉴
+	auto OpenMenu = [this]() { bMenu = true; MenuSel = 0; Sel = -1; };
 	if (Game.Phase == EPDPhase::Title)
 	{
 		if (K == EKeys::Enter || K == EKeys::SpaceBar) { Game.Phase = EPDPhase::Build; Sound(EPDSound::Start); return FReply::Handled(); }
+		if (K == EKeys::Escape) { OpenMenu(); return FReply::Handled(); }
 		return FReply::Unhandled();
 	}
 	if (Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Win)
 	{
-		if (K == EKeys::R || K == EKeys::Enter) { Game.NewGame(true); Sel = -1; Particles.Empty(); Sound(EPDSound::Start); return FReply::Handled(); }
+		if (K == EKeys::R || K == EKeys::Enter) { RestartRun(); return FReply::Handled(); }
+		if (K == EKeys::Escape) { OpenMenu(); return FReply::Handled(); }
 		return FReply::Unhandled();
 	}
 	if (bCodex) { if (K == EKeys::J || K == EKeys::Escape) bCodex = false; return FReply::Handled(); }
@@ -1133,6 +1218,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	{
 		for (int32 I = 0; I < 3; ++I) if (K == Nums[I]) { Game.TakeReward(I); return FReply::Handled(); }
 		if (K == EKeys::S) { Game.TakeReward(-1); return FReply::Handled(); }
+		if (K == EKeys::Escape) { OpenMenu(); return FReply::Handled(); }
 		return FReply::Unhandled();
 	}
 	for (int32 I = 0; I < 9; ++I)
@@ -1142,7 +1228,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 			return FReply::Handled();
 		}
 	if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave();
-	else if (K == EKeys::Escape) Sel = -1;
+	else if (K == EKeys::Escape) { if (Sel >= 0) Sel = -1; else OpenMenu(); }
 	else if (K == EKeys::G) DoFuse(HoveredSynergy());
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
@@ -1495,7 +1581,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	{
 		const FPDCard& Card = G.Hand[I];
 		const bool bSel = I == Sel;
-		const float X = FX + 96.f + I * (CardW + 10.f), Y = HandY - (bSel ? 10.f : 0.f);
+		const float X = HandCardX(I, (int32)G.Hand.size()), Y = HandY - (bSel ? 10.f : 0.f);
 		const FLinearColor Col = SuitColor(Card.Suit);
 		C.Glow(FCanvas::RoundRectPoints(X, Y, CardW, CardH, 8.f), bSel ? FLinearColor::White : Col, bSel ? 2.4f : 1.4f, bSel ? 1.4f : 0.6f);
 		C.CardShape(Card, X + CardW / 2.f, Y + CardH / 2.f - 6.f, 28.f, 1.f, bSel, Pulse, false);
@@ -1503,15 +1589,26 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Text(FString::FromInt(I + 1), X + 6.f, Y + 13.f, Dim, 10.f);
 	}
 
-	// ---- 오른쪽 패널
-	const float PW = DesignW - RX - 20.f;
-	C.Panel(RX, FY, PW, 150.f);
-	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : FString::Printf(TEXT("WAVE %d"), G.Wave), RX + 16.f, FY + 30.f, Hex(TEXT("e8f0ff")), 20.f, 0, true);
-	C.Text(FString::Printf(TEXT("목숨 %d"), G.Lives), RX + 16.f, FY + 58.f, G.Lives <= 5 ? Red : Green, 15.f, 0, true);
-	C.Text(FString::Printf(TEXT("처치 %d · 놓친 적 %d · 최고 %d웨이브"), G.Kills, G.Leaks, FMath::Max(G.BestWave, G.Wave)), RX + 16.f, FY + 80.f, Grey, 11.f);
-	// 골드와 스킬 트리 버튼
-	C.Text(FString::Printf(TEXT("골드 %d"), G.Gold), RX + PW - 16.f, FY + 30.f, Gold, 16.f, 2, true);
-	C.Text(FString::Printf(TEXT("다음 포인트 %d"), G.PointPrice()), RX + 216.f, FY + 30.f, G.Gold >= G.PointPrice() ? Gold : Dim, 11.f, 2);
+	// ---- 왼쪽 족보 패널
+	PaintHandGuide(C);
+
+	// ---- 오른쪽 패널: 웨이브·목숨·골드, 버튼 (웨이브 시작, 트리, 강화, 메뉴)
+	C.Panel(RX, FY, PW, RTopH);
+	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : FString::Printf(TEXT("WAVE %d"), G.Wave), RX + 12.f, FY + 28.f, Hex(TEXT("e8f0ff")), 20.f, 0, true);
+	C.Text(FString::Printf(TEXT("목숨 %d"), G.Lives), RX + PW - 12.f, FY + 28.f, G.Lives <= 5 ? Red : Green, 15.f, 2, true);
+	C.Text(FString::Printf(TEXT("골드 %d"), G.Gold), RX + 12.f, FY + 54.f, Gold, 15.f, 0, true);
+	C.Text(FString::Printf(TEXT("포인트 %d"), G.PointPrice()), RX + PW - 12.f, FY + 54.f, G.Gold >= G.PointPrice() ? Gold : Dim, 11.f, 2);
+	C.Text(FString::Printf(TEXT("처치 %d · 놓침 %d · 최고 %d"), G.Kills, G.Leaks, FMath::Max(G.BestWave, G.Wave)), RX + 12.f, FY + 76.f, Grey, 11.f);
+	if (G.Phase == EPDPhase::Build)
+	{
+		C.Glow(FCanvas::RectPoints(RBtnX, StartBtnY, RBtnW, StartBtnH), Green, 1.6f, 0.6f + 0.8f * Pulse);
+		C.TextCentered(FString::Printf(TEXT("웨이브 %d 시작 (Space)"), G.Wave + 1), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH / 2.f, Green, 13.f, true);
+	}
+	else if (G.Phase == EPDPhase::Wave)
+	{
+		C.TextCentered(FString::Printf(TEXT("남은 적 %d"), (int32)G.Enemies.size()), RBtnX + RBtnW / 2.f, StartBtnY + 11.f, Gold, 13.f, true);
+		C.TextCentered(FString::Printf(TEXT("속도 ×%d (F)"), G.Speed), RBtnX + RBtnW / 2.f, StartBtnY + 29.f, Grey, 11.f, false);
+	}
 	if (G.Phase != EPDPhase::Title)
 	{
 		const bool bCan = G.Gold >= G.PointPrice();
@@ -1520,48 +1617,24 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Glow(FCanvas::RoundRectPoints(UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH, 6.f), Hex(TEXT("ff9a6a")), 1.4f, 0.5f);
 		C.TextCentered(TEXT("강화 (U)"), UpgOpenX + UpgOpenW / 2.f, UpgOpenY + UpgOpenH / 2.f, Hex(TEXT("ff9a6a")), 12.f, true);
 	}
-	if (G.Phase == EPDPhase::Build)
 	{
-		C.Glow(FCanvas::RectPoints(RX + 16.f, FY + 96.f, 200.f, 38.f), Green, 1.6f, 0.6f + 0.8f * Pulse);
-		C.TextCentered(FString::Printf(TEXT("웨이브 %d 시작 (Space)"), G.Wave + 1), RX + 116.f, FY + 115.f, Green, 13.f, true);
+		const bool bHov = InRect(Mouse, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH);
+		C.Glow(FCanvas::RoundRectPoints(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, 6.f), Grey, 1.2f, bHov ? 0.9f : 0.35f);
+		C.TextCentered(TEXT("메뉴 (Esc)"), MenuBtnX + MenuBtnW / 2.f, MenuBtnY + MenuBtnH / 2.f, bHov ? Fg : Grey, 12.f, true);
 	}
-	else if (G.Phase == EPDPhase::Wave)
-		C.Text(FString::Printf(TEXT("남은 적 %d   속도 ×%d (F)"), (int32)G.Enemies.size(), G.Speed), RX + 16.f, FY + 118.f, Gold, 12.f);
 
-	C.Panel(RX, FY + 162.f, PW, 272.f);
-	C.Text(TEXT("족보 시너지 (붙어 있으면 모양 상관없이)"), RX + 16.f, FY + 184.f, Cyan, 12.f);
-	TSet<int32> PvKinds;
-	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
-	for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
-	{
-		const EPDHand H = (EPDHand)I;
-		const float Y = FY + 204.f + I * 21.5f;
-		const bool bOn = PvKinds.Contains(I);
-		FString Name = HandName(H);
-		if (H == EPDHand::Flush) Name += TEXT(" (3~5장)");
-		if (H == EPDHand::Straight) Name += TEXT(" (2~5장)");
-		C.Text(Name, RX + 16.f, Y, bOn ? Gold : HandColor(H), 11.f, 0, true);
-		C.Text(HandEffect(H), RX + 16.f, Y + 11.f, bOn ? Gold : Dim, 9.f);
-	}
-	C.Text(FString::Printf(TEXT("연쇄: 족보끼리 맞닿으면 하나에 +%d%%씩"), G.Has(EPDCharm::ChainLink) ? 45 : 25), RX + 16.f, FY + 424.f, FLinearColor::White, 11.f, 0, true);
-
-	C.Panel(RX, FY + 444.f, PW, 118.f);
-	C.Text(FString::Printf(TEXT("부적 %d/%d"), (int32)G.Charms.size(), CharmMax), RX + 16.f, FY + 466.f, Gold, 12.f, 0, true);
-	if (G.Charms.empty()) C.Text(TEXT("웨이브를 막으면 보상으로 고른다"), RX + 16.f, FY + 488.f, Dim, 11.f);
+	// 부적: 이름과 설명 두 줄씩
+	const float CharmY = FY + RTopH + 10.f;
+	C.Panel(RX, CharmY, PW, 40.f + CharmMax * 34.f);
+	C.Text(FString::Printf(TEXT("부적 %d/%d"), (int32)G.Charms.size(), CharmMax), RX + 12.f, CharmY + 22.f, Gold, 12.f, 0, true);
+	if (G.Charms.empty()) C.Text(TEXT("웨이브를 막으면 보상으로 고른다"), RX + 12.f, CharmY + 46.f, Dim, 11.f);
 	for (int32 I = 0; I < (int32)G.Charms.size(); ++I)
 	{
-		C.Text(CharmName((int)G.Charms[I]), RX + 16.f, FY + 488.f + I * 17.f, Gold, 11.f, 0, true);
-		C.Text(CharmDesc((int)G.Charms[I]), RX + 110.f, FY + 488.f + I * 17.f, Grey, 10.f);
+		const float Y = CharmY + 46.f + I * 34.f;
+		C.Text(CharmName((int)G.Charms[I]), RX + 12.f, Y, Gold, 11.f, 0, true);
+		C.Text(CharmDesc((int)G.Charms[I]), RX + 12.f, Y + 14.f, Grey, 10.f);
 	}
-	C.Panel(RX, FY + 572.f, PW, 42.f);
-	for (int32 I = 0; I < 4; ++I)
-	{
-		const EPDSuit S = (EPDSuit)I;
-		const float X = RX + 18.f + I * 82.f;
-		C.Shape(S, X + 6.f, FY + 593.f, 7.f, SuitColor(S), 1.4f, 0.6f);
-		C.Text(SuitName(S), X + 18.f, FY + 597.f, SuitColor(S), 11.f);
-	}
-	C.Text(TEXT("[합성]/G 레벨 업 · 족보 3개 연쇄 → [조커] · J 도감 · 카드 클릭(숫자키) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · Esc 취소 · F 속도 · M 소리"), DesignW / 2.f, DesignH - 8.f, Dim, 11.f, 1);
+	C.Text(TEXT("[합성]/G 레벨 업 · 족보 3개 연쇄 → [조커] · J 도감 · 카드 클릭(숫자키) → 칸 클릭으로 설치 · 타워 위에 놓으면 교체 · 오른쪽 클릭 버리기 · F 속도 · M 소리 · Esc 메뉴"), DesignW / 2.f, DesignH - 8.f, Dim, 11.f, 1);
 
 	// ---- 보상 화면
 	if (G.Phase == EPDPhase::Reward)
@@ -1757,4 +1830,69 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), FString::Printf(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? TEXT("  (갱신!)") : TEXT(""))}, TEXT("R 키 또는 화면을 눌러 다시"));
 	else if (G.Phase == EPDPhase::Win)
 		C.Overlay(TEXT("ALL CLEAR"), Gold, {FString::Printf(TEXT("%d 웨이브를 모두 막았다 · 남은 목숨 %d · 처치 %d"), NumWaves, G.Lives, G.Kills)}, TEXT("R 키 또는 화면을 눌러 다시"));
+	if (bMenu) PaintMenu(C);
+}
+
+void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
+{
+	const FPDGame& G = Game;
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Dim = Hex(TEXT("5f6878"));
+	// 고른 카드를 놓으면 생길 족보, 지금 판 위에 있는 족보를 밝게
+	TSet<int32> PvKinds, OnBoard;
+	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
+	for (const FPDSynergy& S : G.Synergies) OnBoard.Add((int32)S.Kind);
+	const float PH = DesignH - FY - 30.f;
+	C.Panel(LX, FY, LW, PH);
+	C.Text(TEXT("족보"), LX + 12.f, FY + 26.f, Cyan, 16.f, 0, true);
+	C.Text(TEXT("붙어 있으면 모양 상관없이"), LX + LW - 12.f, FY + 26.f, Dim, 10.f, 2);
+	constexpr float RowH = 50.f, Y0 = FY + 44.f;
+	for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
+	{
+		const EPDHand H = (EPDHand)I;
+		const float Y = Y0 + I * RowH;
+		const bool bPv = PvKinds.Contains(I), bOn = OnBoard.Contains(I);
+		if (bPv) C.Box(LX + 4.f, Y, LW - 8.f, RowH - 4.f, WithAlpha(Gold, 0.08f));
+		const FLinearColor NameCol = bPv ? Gold : HandColor(H);
+		FString Name = HandName(H);
+		if (H == EPDHand::Flush) Name += TEXT(" (3~5장)");
+		if (H == EPDHand::Straight) Name += TEXT(" (2~5장)");
+		C.Text(Name, LX + 22.f, Y + 16.f, WithAlpha(NameCol, bPv || bOn ? 1.f : 0.75f), 12.f, 0, true);
+		C.Text(HandEffect(H), LX + 22.f, Y + 32.f, bPv ? Gold : Dim, 10.f);
+		// 판 위에 이 족보가 있으면 왼쪽에 빛나는 점
+		if (bOn || bPv) C.Glow(FCanvas::CirclePoints(FVector2f(LX + 11.f, Y + 12.f), 3.f, 10), NameCol, 1.2f, bPv ? 1.2f : 0.7f);
+	}
+	const float FootY = Y0 + (int32)EPDHand::Count * RowH + 8.f;
+	C.Text(TEXT("연쇄"), LX + 12.f, FootY, FLinearColor::White, 12.f, 0, true);
+	C.Text(FString::Printf(TEXT("족보끼리 맞닿으면 하나에 +%d%%씩"), G.Has(EPDCharm::ChainLink) ? 45 : 25), LX + 12.f, FootY + 16.f, Hex(TEXT("cfd8e6")), 10.f);
+	// 무늬 = 공격 방식
+	const float SuitY = FootY + 40.f;
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const EPDSuit S = (EPDSuit)I;
+		const float X = LX + 12.f + (I % 2) * 108.f, Y = SuitY + (I / 2) * 20.f;
+		C.Shape(S, X + 6.f, Y, 6.f, SuitColor(S), 1.3f, 0.6f);
+		C.Text(SuitName(S), X + 18.f, Y + 4.f, SuitColor(S), 11.f);
+	}
+}
+
+void SPDBoardWidget::PaintMenu(FCanvas& C) const
+{
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("5f6878")), Red = Hex(TEXT("ff6a6a"));
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.8f));
+	const int32 N = (int32)EMenuItem::Count;
+	const float BoxY = MenuItemY0 - 80.f, BoxH = N * (MenuItemH + MenuGap) + 110.f;
+	C.Box(MenuX - 30.f, BoxY, MenuW + 60.f, BoxH, Hex(TEXT("06060b"), 0.9f));
+	C.Glow(FCanvas::RoundRectPoints(MenuX - 30.f, BoxY, MenuW + 60.f, BoxH, 10.f), Cyan, 1.4f, 0.7f);
+	C.TextCentered(TEXT("메뉴"), DesignW / 2.f, BoxY + 40.f, Cyan, 24.f, true);
+	for (int32 I = 0; I < N; ++I)
+	{
+		const FVector2f B = MenuItemPos(I);
+		const bool bSel = I == MenuSel;
+		const FLinearColor Col = (EMenuItem)I == EMenuItem::Quit ? Red : Cyan;
+		if (bSel) C.Box(B.X, B.Y, MenuW, MenuItemH, WithAlpha(Col, 0.08f));
+		C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, MenuW, MenuItemH, 8.f), Col, bSel ? 1.8f : 1.2f, bSel ? 1.0f + 0.5f * Pulse : 0.4f);
+		C.TextCentered(MenuItemName(I), B.X + MenuW / 2.f, B.Y + MenuItemH / 2.f, bSel ? FLinearColor::White : Fg, 16.f, true);
+	}
+	C.TextCentered(TEXT("↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, BoxY + BoxH - 18.f, Dim, 11.f, false);
 }
