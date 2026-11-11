@@ -64,7 +64,8 @@ const TCHAR* SuitDesc(EPDSuit S)
 }
 FLinearColor HandColor(EPDHand H)
 {
-	static const TCHAR* C[] = {TEXT("ffffff"), TEXT("ffd26e"), TEXT("ff9ad5"), TEXT("ff6a6a"), TEXT("ffa86a"), TEXT("ff9ad5"), TEXT("7fd6ff"), TEXT("ffd96a"), TEXT("cfe4ff"), TEXT("cfd8e6")};
+	// 족보마다 다른 색 (D-095, 장판·테두리·패널 공통). 로열은 판 위 장판에서 무지개로 돈다
+	static const TCHAR* C[] = {TEXT("fff4d6"), TEXT("ffd96a"), TEXT("ff9ad5"), TEXT("ff6a6a"), TEXT("ffa86a"), TEXT("b48cff"), TEXT("6a8cff"), TEXT("9cffb0"), TEXT("7fd6ff"), TEXT("cfd8e6")};
 	return Hex(C[(int)H]);
 }
 const TCHAR* HandName(EPDHand H)
@@ -1831,7 +1832,9 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		for (int32 Si = 0; Si < (int32)List.size(); ++Si)
 		{
 			const FPDSynergy& S = List[Si];
-			const FLinearColor Col = WithAlpha(HandColor(S.Kind), Alpha);
+			// 로열은 무지개로 천천히 돈다
+			const FLinearColor Base = S.Kind == EPDHand::RoyalFlush ? FLinearColor::MakeFromHSV8((uint8)FMath::Fmod(Clock * 40.f, 256.f), 110, 255) : HandColor(S.Kind);
+			const FLinearColor Col = WithAlpha(Base, Alpha);
 			TSet<int32> Has;
 			for (int K : S.Cells) Has.Add(K);
 			const float M = 4.f + 5.f * SynLayer(List, Si); // 카드를 나눠 쓰는 족보는 안쪽 테두리
@@ -1841,7 +1844,13 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 				const bool bL = X == 0 || !Has.Contains(K - 1), bR = X == Cols - 1 || !Has.Contains(K + 1), bU = !Has.Contains(K - Cols), bD = !Has.Contains(K + Cols);
 				const FVector2f P = CellPx((float)X, (float)Y);
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
-				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.07f));
+				// 장판 (D-095): 족보 색 옅은 채움 13% + 45도 빗금 (x + y 가 8 의 배수인 선이라 칸끼리 이어진다)
+				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.13f * Alpha));
+				for (float D = FMath::CeilToFloat((X0 + Y0) / 8.f) * 8.f; D < X1 + Y1; D += 8.f)
+				{
+					const float Ax = FMath::Max(X0, D - Y1), Bx = FMath::Min(X1, D - Y0);
+					if (Bx - Ax > 0.5f) F.Lines({{Ax, D - Ax}, {Bx, D - Bx}}, WithAlpha(Col, 0.3f * Alpha), 1.f);
+				}
 				if (bU) F.Glow({{X0, Y0}, {X1, Y0}}, Col, 2.f, 0.8f);
 				if (bD) F.Glow({{X0, Y1}, {X1, Y1}}, Col, 2.f, 0.8f);
 				if (bL) F.Glow({{X0, Y0}, {X0, Y1}}, Col, 2.f, 0.8f);
@@ -2253,7 +2262,13 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			F.Badge(HandLabel(S), P.X, P.Y + 4.f + 13.f * SynLayer(List, Si), HandColor(S.Kind), Alpha);
 		}
 	};
-	DrawBadges(G.Synergies, bPv ? 0.35f : 1.f);
+	// 이름표는 마우스가 올라간 타워의 족보만 (장판 색으로 구분, D-095). 놓기 미리보기는 그대로 보여 줌
+	{
+		std::vector<FPDSynergy> Hov;
+		const int HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		for (const FPDSynergy& S : G.Synergies) if (std::find(S.Cells.begin(), S.Cells.end(), HKey) != S.Cells.end()) Hov.push_back(S);
+		if (!bPv) DrawBadges(Hov, 1.f);
+	}
 	if (bPv) DrawBadges(Preview, 1.f);
 	// 합성 위치 고르는 중: 재료 칸을 깜빡이고, 마우스가 올라간 칸·기본 칸을 표시
 	if (!PickCells.empty())
