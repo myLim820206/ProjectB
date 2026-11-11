@@ -94,6 +94,8 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned)
 	return M;
 }
 
+bool FPDTreeMods::Up(const FPDTower& T) const { return T.IsJoker() && (Up(T.Joker) || T.JLevel >= JokerUpLevel); }
+
 int UpgradeCost(int Level) { return 10 + 2 * Level; } // 10, 12, 14 … 9999레벨까지 약 1억
 float UpgradeStep(EPDUpgrade U)
 {
@@ -375,7 +377,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 		{
 			FPDTower& O = OV.second;
 			if (&O == &J || O.IsJoker()) continue;
-			const bool bUp = Tm.Up(J.Joker); // 트리 조커 강화
+			const bool bUp = Tm.Up(J); // 트리 조커 강화 또는 조커 레벨 10+
 			const int Reach = (Kind == EPDJoker::Hatter && bUp) ? 2 : 1;
 			const bool bNear = std::abs(O.X - J.X) <= Reach && std::abs(O.Y - J.Y) <= Reach; // 주변 8칸 (강화한 모자 장수는 24칸)
 			if (Kind == EPDJoker::Baton && bNear) O.Eff.Rate *= bUp ? 1.7f : 1.4f;
@@ -512,7 +514,8 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	if (Tm.Key(EPDKeystone::Crowd) && bAlone) St.Dmg *= 0.5f;
 	if (T.IsJoker())
 	{
-		const bool bUp = Tm.Up(T.Joker);
+		St.Dmg *= 1.f + JokerLevelDmg * (T.JLevel - 1); // 조커 레벨: 레벨마다 위력 +10%
+		const bool bUp = Tm.Up(T);
 		switch ((EPDJoker)T.Joker)
 		{
 		case EPDJoker::Clown: if (bUp) St.Rate *= 1.5f; break;                                     // 강화: 연사 +50%
@@ -1116,6 +1119,68 @@ bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 	return true;
 }
 
+std::vector<FPDFeed> FPDGame::FeedTargets() const
+{
+	std::vector<FPDFeed> Out;
+	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return Out;
+	for (int I = 0; I < (int)Synergies.size(); ++I)
+	{
+		const FPDSynergy& S = Synergies[I];
+		// 먹을 조커: 족보 안에 든 조커(와일드로 든 것) 먼저, 없으면 맞닿은 조커 중 레벨이 가장 높은 것
+		int Best = -1, Inside = -1;
+		float MultSum = 0.f;
+		int Fed = 0;
+		for (int K : S.Cells)
+		{
+			const FPDTower& T = Towers.at(K);
+			if (T.IsJoker()) { if (Inside < 0 || T.JLevel > Towers.at(Inside).JLevel) Inside = K; continue; }
+			MultSum += T.Mult;
+			Fed++;
+			const int X = K % Cols, Y = K / Cols;
+			for (const auto& D : GPDN4)
+			{
+				const int NX = X + D[0], NY = Y + D[1];
+				if (NX < 0 || NY < 0 || NX >= Cols || NY >= Rows) continue;
+				auto It = Towers.find(CellKey(NX, NY));
+				if (It != Towers.end() && It->second.IsJoker() && (Best < 0 || It->second.JLevel > Towers.at(Best).JLevel)) Best = It->first;
+			}
+		}
+		if (Inside >= 0) Best = Inside;
+		if (Best < 0 || Fed == 0 || Towers.at(Best).JLevel >= JokerMaxLevel) continue;
+		// 경험치 = 족보 점수 × 먹인 타워 평균 위력 (합성 타워일수록 많이)
+		Out.push_back({I, Best, S.Value * MultSum / Fed});
+	}
+	return Out;
+}
+
+bool FPDGame::Feed(int SynergyIdx)
+{
+	const std::vector<FPDFeed> List = FeedTargets();
+	const FPDFeed* F = nullptr;
+	for (const FPDFeed& X : List) if (X.Syn == SynergyIdx) F = &X;
+	if (!F) return false;
+	const int JKey = F->Joker;
+	const float Xp = F->Xp;
+	for (int K : Synergies[SynergyIdx].Cells) if (!Towers.at(K).IsJoker()) Towers.erase(K);
+	FPDTower& J = Towers.at(JKey);
+	J.JXp += Xp;
+	const int Old = J.JLevel;
+	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
+	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	FPDEvent E;
+	E.Kind = FPDEvent::EKind::Feed;
+	E.X = J.X + 0.5f;
+	E.Y = J.Y + 0.5f;
+	E.A = J.JLevel;
+	E.B = J.JLevel - Old;
+	E.R = Xp;
+	Ev(E);
+	Sfx(EPDSound::Burst, std::min(8, 2 + E.B), E.B > 0 ? 1 : 0);
+	if (E.B > 0) Sfx(EPDSound::Clear);
+	return true;
+}
+
 bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 {
 	if (!CanFuse(SynergyIdx)) return false;
@@ -1392,7 +1457,7 @@ void FPDGame::Update(float Dt)
 		T.Cd -= Dt;
 		if (T.Cd > 0.f) continue;
 		FPDTowerStats St = TowerStats(T, Mask, Tm);
-		const bool bUp = T.IsJoker() && Mods.Up(T.Joker);
+		const bool bUp = T.IsJoker() && Mods.Up(T);
 		const float TX = T.X + 0.5f, TY = T.Y + 0.5f;
 		const EPDJoker JK = T.IsJoker() ? (EPDJoker)T.Joker : EPDJoker::Count;
 		if (JK == EPDJoker::Mask && T.Eff.CopyKey >= 0 && Towers.count(T.Eff.CopyKey)) // 웃는 가면: 옆 타워가 더 세면 그대로 따라 함

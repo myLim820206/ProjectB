@@ -126,6 +126,7 @@ int TreeNodeCount();
 const FPDTreeNode& TreeNode(int Id);
 const std::vector<int>& TreeLinks(int Id);
 // 찍은 노드들을 모은 효과 (increased 식 덧셈, 키스톤·조커 강화만 곱)
+struct FPDTower;
 struct FPDTreeMods
 {
 	float SuitDmg[5] = {}, SuitRate[5] = {}, SuitRange[5] = {}, SuitSplash[5] = {}, SuitSlow[5] = {};
@@ -139,6 +140,7 @@ struct FPDTreeMods
 	uint32_t JokerUp = 0; // 강화한 조커 (비트)
 	bool Key(EPDKeystone K) const { return (Keys >> (int)K) & 1u; }
 	bool Up(int Joker) const { return (JokerUp >> Joker) & 1u; }
+	bool Up(const FPDTower& T) const; // 트리 강화 또는 조커 레벨 10 이상
 };
 FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned);
 
@@ -167,7 +169,20 @@ struct FPDTower
 	EPDSuit JSuit = EPDSuit::Spade; // 할리퀸: 강화할 무늬 (재료에 가장 많던 무늬)
 	float Timer = 0.f;              // 방울: 종 주기
 	int Cycle = 0;                  // 광대: 공격 무늬 순환
+	int JLevel = 1;                 // 조커 레벨 (족보 먹이기 경험치로 오름, 최대 JokerMaxLevel)
+	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
 	bool IsJoker() const { return Joker >= 0; }
+};
+// 조커 레벨 (D-093): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +10%, 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
+constexpr int JokerMaxLevel = 9999;
+constexpr float JokerLevelDmg = 0.1f;
+constexpr int JokerUpLevel = 10;
+inline float JokerXpNeed(int Level) { return 20.f + 10.f * (Level - 1); }
+struct FPDFeed
+{
+	int Syn = -1;   // 먹일 족보 번호
+	int Joker = -1; // 먹을 조커 칸
+	float Xp = 0.f; // 얻는 경험치
 };
 // 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
@@ -292,14 +307,14 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Bell, Star, TreeBuy, Impact } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
 	int Lv = 1;       // Shot·Impact: 쏜 타워 레벨 (그림 진화)
 	float Dmg = 0.f;  // Shot(즉시 발사체)·Impact: 목표에 준 피해 (화면의 피해 숫자)
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: A=새 레벨, B=오른 레벨 수, R=얻은 경험치 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
@@ -321,6 +336,8 @@ public:
 	bool Fuse(int SynergyIdx, int TargetCell = -1);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
 	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
 	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
+	std::vector<FPDFeed> FeedTargets() const;        // 조커에 먹일 수 있는 족보 (족보마다 하나)
+	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치)
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;

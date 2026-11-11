@@ -377,6 +377,28 @@ static void UnitTests()
 		const FPDTower& J = G.Towers.begin()->second;
 		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 6.f * JokerBonus) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
 			"연쇄된 족보 셋(페어·스트레이트·페어) → 가장 높은 스트레이트의 대장 지휘봉 (위력 6 × 조커 덤), 도감에 기록");
+		// 족보 먹이기 (D-093): 조커 옆 족보를 먹이면 경험치(족보 점수 × 평균 위력) → 레벨 업, 먹인 칸은 사라짐
+		{
+			const int JKey = G.Towers.begin()->first, JX = JKey % Cols;
+			const float D0 = TowerStats(G.Towers.at(JKey)).Dmg; // 족보에 안 든 조커 혼자
+			PutT(JX + 1, Row, C(9)); PutT(JX + 2, Row, C(9, He)); // 조커(와일드)가 끼어 트리플
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			auto Fd = G.FeedTargets();
+			const int SV = Fd.empty() ? 0 : G.Synergies[Fd[0].Syn].Value;
+			const bool bOk = Fd.size() == 1 && Fd[0].Joker == JKey && std::fabs(Fd[0].Xp - SV) < 1e-4f && G.Feed(Fd[0].Syn);
+			int L = 1;
+			float X = (float)SV;
+			while (X >= JokerXpNeed(L)) { X -= JokerXpNeed(L); ++L; }
+			const FPDTower& Jt = G.Towers.at(JKey);
+			Expect(bOk && G.Towers.size() == 1 && L >= 2 && Jt.JLevel == L && std::fabs(Jt.JXp - X) < 1e-3f && std::fabs(TowerStats(Jt).Dmg / D0 - (1.f + JokerLevelDmg * (L - 1))) < 1e-3f,
+				"조커 옆 족보 먹이기: 경험치만큼 레벨 업 (레벨마다 위력 +10%), 먹인 칸은 사라짐");
+			G.Towers.at(JKey).JLevel = JokerUpLevel - 1;
+			G.Towers.at(JKey).JXp = JokerXpNeed(JokerUpLevel - 1) - 1.f;
+			PutT(JX + 1, Row, C(4)); PutT(JX + 2, Row, C(5, He));
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			auto Fd2 = G.FeedTargets();
+			Expect(!Fd2.empty() && G.Feed(Fd2[0].Syn) && G.Towers.at(JKey).JLevel >= JokerUpLevel && G.Mods.Up(G.Towers.at(JKey)), "레벨 10 이 되면 강화 능력");
+		}
 		// 조커는 와일드: 레벨 2 타워 옆에 붙어도 족보
 		G.Towers.clear();
 		FPDTower Jk;
@@ -788,6 +810,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	std::map<int, int> Hist;
 	int WaveSum = 0;
 	std::map<int, int> JokersMade, KindsMade;
+	long Feeds = 0, JLvSum = 0;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
@@ -796,6 +819,24 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		std::mt19937 R(77 + Run);
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over; ++Guard)
 		{
+			// 조커 먹이기: 판 위 위력을 15% 넘게 깎지 않는 족보 중 경험치가 가장 많은 것 (비운 칸은 바로 아래에서 다시 채움)
+			for (int Tries = 0; bJoker && Tries < 3 && !G.Hand.empty(); ++Tries)
+			{
+				FPDTowerMap Cur = G.Towers;
+				const double Before = Power(G, Cur);
+				int BestS = -1;
+				float BestXp = 0.f;
+				for (const FPDFeed& Fd : G.FeedTargets())
+				{
+					FPDGame Copy = G;
+					Copy.Feed(Fd.Syn);
+					FPDTowerMap After = Copy.Towers;
+					if (Power(Copy, After) >= Before * 0.85 && Fd.Xp > BestXp) { BestXp = Fd.Xp; BestS = Fd.Syn; }
+				}
+				if (BestS < 0) break;
+				G.Feed(BestS);
+				Feeds++;
+			}
 			std::vector<std::array<int, 2>> Free;
 			for (int Y = 0; Y < Rows; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && !G.Towers.count(CellKey(X, Y))) Free.push_back({X, Y});
 			if (bDumb)
@@ -891,6 +932,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			}
 			G.Events.clear();
 		}
+		{ int Mx = 0; for (auto& KV : G.Towers) if (KV.second.IsJoker()) Mx = std::max(Mx, KV.second.JLevel); JLvSum += Mx; }
 		Hist[G.Wave]++;
 		WaveSum += G.Wave;
 		PointSum += G.Points;
@@ -904,6 +946,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	std::printf("   평균 %.1f웨이브", (double)WaveSum / Runs);
 	if (bJoker) std::printf("   조커 판당 %.1f개 (종류:", (double)JokersMade[0] / Runs);
 	if (bJoker) { for (auto& KV : KindsMade) std::printf(" %d=%d", KV.first + 1, KV.second); std::printf(")"); }
+	if (bJoker) std::printf("   먹이기 판당 %.1f번 · 최고 조커 레벨 평균 %.1f", (double)Feeds / Runs, (double)JLvSum / Runs);
 	std::printf("   번 골드 %.0f · 포인트 %.1f", GoldSum / Runs, PointSum / Runs);
 	if (bTree) { std::printf("   키스톤:"); for (auto& KV : GKeysTaken) std::printf(" %d=%d", KV.first, KV.second); }
 	if (bUpg) { std::printf("\n      강화에 쓴 골드 %.0f, 평균 레벨:", UpgSum / Runs); for (auto& KV : GUpgLv) std::printf(" %d=%.0f", KV.first, (double)KV.second / Runs); }
