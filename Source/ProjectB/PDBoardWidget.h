@@ -35,6 +35,25 @@ public:
 	// 메뉴의 [게임 종료]. 게임 모드가 채운다 (월드가 있어야 PIE·패키지 모두 바르게 끝낼 수 있어서)
 	TFunction<void()> OnQuit;
 
+	// ---- 월드 이펙트 (나이아가라, D-094)
+	// 게임 모드가 정사영 카메라로 월드를 비추고, 위젯은 배경을 비워 월드가 비쳐 보이게 한다.
+	// 좌표: 월드 1 = 설계 좌표(1280 x 720) 1픽셀. 이펙트 요청은 이름(NS_PD_...)으로 보내고,
+	// 게임 모드가 /Game/FX/ 에서 그 에셋을 찾아 띄우면 true (그러면 코드 이펙트는 건너뜀), 없으면 false.
+	struct FWorldFx
+	{
+		FName Name;
+		FVector2f P;   // 설계 좌표 (판 흔들림 전)
+		FVector2f Dir; // 날아온 방향 (단위 벡터, 없으면 0)
+		FLinearColor Col;
+		float Scale = 1.f; // 세기 (레벨·치명타 등, 1~6)
+	};
+	TFunction<bool(const FWorldFx&)> OnWorldFx;
+	bool bWorldBackground = false; // true 면 판 배경을 그리지 않음 (월드가 보임)
+	bool bUseWorldFx = true;       // F9: 나이아가라 ↔ 코드 이펙트 비교
+	float GetViewScale() const { return ViewScale; }
+	FVector2f GetViewSize() const { return ViewSize; }
+	FVector2f GetFieldShake() const { return LastShake; } // 판 흔들림 (설계 좌표)
+
 private:
 	struct FCanvas; // 그리기 도우미 (cpp 안에 정의)
 	void PaintAll(FCanvas& C, FCanvas& F) const;
@@ -128,6 +147,7 @@ private:
 	void DeathFx(FVector2f P, PD::EPDEnemy Type);                                   // 죽는 순간
 	void CritFx(FVector2f P, int32 N); // 치명타 흰 불꽃
 	void Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak = false, float Gravity = 0.f);
+	bool WorldFx(const TCHAR* Name, FVector2f P, FVector2f Dir, FLinearColor Col, float Scale); // 나이아가라로 띄웠으면 true
 
 	PD::FPDGame Game;
 	FSlateColorBrush WhiteBrush = FSlateColorBrush(FLinearColor::White);
@@ -156,6 +176,7 @@ private:
 	float FlashT = 0.f;
 	FLinearColor FlashCol = FLinearColor::White;
 	float BannerT = 0.f, BannerMax = 1.f;
+	float WorldFxNoteT = 0.f; // F9 를 누르면 잠깐 "이펙트: 나이아가라/코드" 표시
 	FString BannerText, BannerSub;
 	FLinearColor BannerCol = FLinearColor::White;
 	float Clock = 0.f;
@@ -163,4 +184,7 @@ private:
 	// 그릴 때 정한 화면 배율 (마우스 좌표 변환에 씀)
 	mutable float ViewScale = 1.f;
 	mutable FVector2f ViewOffset = FVector2f(0.f, 0.f);
+	mutable FVector2f ViewSize = FVector2f(DesignWidth, DesignHeight); // 위젯 크기 (Slate 단위)
+	mutable FVector2f LastShake = FVector2f(0.f, 0.f);
+	static constexpr float DesignWidth = 1280.f, DesignHeight = 720.f;
 };

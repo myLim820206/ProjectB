@@ -770,6 +770,40 @@ void SPDBoardWidget::Construct(const FArguments& InArgs)
 	SetCanTick(true);
 }
 
+// 나이아가라 에셋 이름 (D-094). /Game/FX/<이름> 이 있으면 그 효과가 코드 이펙트를 대신한다
+namespace
+{
+const TCHAR* ShotFxName(EPDShot K)
+{
+	static const TCHAR* N[] = {
+		TEXT("NS_PD_Hit_Laser"), TEXT("NS_PD_Hit_Missile"), TEXT("NS_PD_Hit_Bullet"), TEXT("NS_PD_Hit_Orb"), TEXT("NS_PD_Hit_Star"), TEXT("NS_PD_Hit_JokerLaser"),
+		TEXT("NS_PD_Hit_Arrow"), TEXT("NS_PD_Hit_Arc"), TEXT("NS_PD_Hit_Cluster"), TEXT("NS_PD_Hit_Shell"), TEXT("NS_PD_Hit_Comet"), TEXT("NS_PD_Hit_Nova"), TEXT("NS_PD_Hit_Crown"),
+		TEXT("NS_PD_Hit_Juggle"), TEXT("NS_PD_Hit_Hat"), TEXT("NS_PD_Hit_Crescent"), TEXT("NS_PD_Hit_Twin"), TEXT("NS_PD_Hit_Shards"), TEXT("NS_PD_Hit_Note"), TEXT("NS_PD_Hit_Blade"),
+		TEXT("NS_PD_Hit_Grin"), TEXT("NS_PD_Hit_Wave"), TEXT("NS_PD_Hit_StarComet")};
+	static_assert(sizeof(N) / sizeof(N[0]) == (int)EPDShot::Count, "EPDShot 이 바뀌면 이름 표도");
+	return N[(int)K];
+}
+const TCHAR* DeathFxName(EPDEnemy T)
+{
+	static const TCHAR* N[] = {TEXT("NS_PD_Death_Normal"), TEXT("NS_PD_Death_Fast"), TEXT("NS_PD_Death_Tank"), TEXT("NS_PD_Death_Armored"), TEXT("NS_PD_Death_Splitter"),
+		TEXT("NS_PD_Death_Regen"), TEXT("NS_PD_Death_Mini"), TEXT("NS_PD_Death_ShieldBoss"), TEXT("NS_PD_Death_SplitBoss"), TEXT("NS_PD_Death_RegenBoss")};
+	static_assert(sizeof(N) / sizeof(N[0]) == (int)EPDEnemy::Count, "EPDEnemy 가 바뀌면 이름 표도");
+	return N[(int)T];
+}
+}
+
+bool SPDBoardWidget::WorldFx(const TCHAR* Name, FVector2f P, FVector2f Dir, FLinearColor Col, float Scale)
+{
+	if (!bUseWorldFx || !OnWorldFx) return false;
+	FWorldFx R;
+	R.Name = FName(Name);
+	R.P = P;
+	R.Dir = Dir;
+	R.Col = Col;
+	R.Scale = Scale;
+	return OnWorldFx(R);
+}
+
 void SPDBoardWidget::Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak, float Gravity)
 {
 	for (int I = 0; I < N && Particles.Num() < 2600; ++I)
@@ -1082,6 +1116,7 @@ void SPDBoardWidget::AddShards(FVector2f P, int N, FLinearColor Col, float Speed
 // 발사체마다 다른 타격 효과 (Power: 1 약 ~ 6 강, 레벨·족보·조커·치명타로 커진다)
 void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColor Col, int32 Lv, float Power)
 {
+	if (WorldFx(ShotFxName(K), P, Dir, Col, FMath::Clamp(Power, 1.f, 6.f))) return; // 나이아가라 에셋이 있으면 그쪽으로
 	const float Pw = FMath::Clamp(Power, 1.f, 6.f), Ang = FMath::Atan2(Dir.Y, Dir.X);
 	const bool bBusy = Particles.Num() > 1800; // 적이 많을 때는 가볍게
 	const float Q = bBusy ? 0.4f : 1.f;        // 파티클 수 배율
@@ -1275,6 +1310,7 @@ void SPDBoardWidget::HitFx(FVector2f P, float Power, int32 Crits, float Dmg)
 // 죽는 순간: 하얀 폭발 심 + 큰 별빛 + 겹겹 충격파 + 몸 조각(도는 선) + 불씨 + 흔들림. 보스는 화면이 번쩍
 void SPDBoardWidget::DeathFx(FVector2f P, EPDEnemy Type)
 {
+	if (WorldFx(DeathFxName(Type), P, FVector2f(0.f, 0.f), EnemyColor(Type), EnemyDef(Type).bBoss ? 4.f : 1.f)) { Shake = FMath::Max(Shake, EnemyDef(Type).bBoss ? 0.6f : 0.f); return; }
 	const FLinearColor Col = EnemyColor(Type), White = FLinearColor::White;
 	const bool bBoss = EnemyDef(Type).bBoss, bTank = Type == EPDEnemy::Tank || Type == EPDEnemy::Armored, bMini = Type == EPDEnemy::Mini;
 	const float S = bBoss ? 4.f : bTank ? 1.8f : bMini ? 0.7f : 1.f; // 크기
@@ -1389,6 +1425,7 @@ void SPDBoardWidget::UpdateFx(float Dt)
 	Shake = FMath::Max(0.f, Shake - Dt);
 	FlashT = FMath::Max(0.f, FlashT - Dt);
 	BannerT = FMath::Max(0.f, BannerT - Dt);
+	WorldFxNoteT = FMath::Max(0.f, WorldFxNoteT - Dt);
 	// 빠른 적과 보스 잔상
 	TSet<int32> Alive;
 	for (const FPDEnemy& E : Game.Enemies)
@@ -1728,6 +1765,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::U) { bUpg = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1;
 	else if (K == EKeys::M) Game.bMuted = !Game.bMuted;
+	else if (K == EKeys::F9) { bUseWorldFx = !bUseWorldFx; WorldFxNoteT = 1.5f; } // 나이아가라 ↔ 코드 이펙트 비교
 	else return FReply::Unhandled();
 	return FReply::Handled();
 }
@@ -1735,9 +1773,10 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
 	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), &WhiteBrush, ESlateDrawEffect::None, Hex(TEXT("06060b")));
+	if (!bWorldBackground) FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), &WhiteBrush, ESlateDrawEffect::None, Hex(TEXT("06060b"))); // 월드 배경이면 비워 둔다
 	const auto LocalSize = AllottedGeometry.GetLocalSize(); // 엔진 버전에 따라 FVector2D 또는 FVector2f
 	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
+	ViewSize = FVector2f(SizeX, SizeY);
 	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
 	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
 	ViewScale = Scale;
@@ -1746,6 +1785,7 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	// 판은 흔들림을 받고, 패널은 고정
 	const float SK = Shake * 14.f;
 	const FVector2f ShakeOff(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
+	LastShake = ShakeOff; // 월드 카메라도 같이 흔든다
 	const FGeometry Field = Design.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(ShakeOff));
 	int32 Layer = LayerId;
 	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
@@ -2321,6 +2361,9 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			}
 		}
 	}
+	if (WorldFxNoteT > 0.f)
+		C.Badge(bUseWorldFx ? (OnWorldFx ? TEXT("이펙트: 나이아가라 (에셋이 없는 효과는 코드) · F9") : TEXT("이펙트: 나이아가라 연결 없음 · F9")) : TEXT("이펙트: 코드 · F9"),
+			FX + Cols * CS / 2.f, FY + Rows * CS - 14.f, Hex(TEXT("7fd6ff")), FMath::Min(1.f, WorldFxNoteT * 2.f));
 	for (const FFloatText& Ft : Floats)
 	{
 		const float U = Ft.T / Ft.MaxT, A = FMath::Min(1.f, (1.f - U) * 3.f), Pop = U < 0.12f ? 1.f + (0.12f - U) * 4.f : 1.f;
