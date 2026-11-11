@@ -20,6 +20,15 @@
 2. `ProjectB.uproject` 더블클릭 → 빌드 확인에서 **예**
 3. Play
 
+#### 게임(.app) 빌드·패키징 (UE 5.8 + Xcode 27)
+- Xcode 를 새로 깔거나 올렸으면 먼저 `sudo xcodebuild -runFirstLaunch`.
+- UE 5.8 그대로면 게임 타깃 마지막 단계에서 `Failed to finalize the .app with Xcode` 로 실패한다 (Xcode 로그: `Failed to launch task /bin/sh: Bad file descriptor`). 빌드 가속기(UBA)가 xcodebuild 를 stdin 이 닫힌 채로 띄우기 때문. 에디터 빌드는 이 단계가 없어 상관없다.
+- `tools/mac/patch-ubt-stdin.sh` 를 한 번 실행하면 엔진 UBT 를 고쳐 다시 빌드한다 (D-080). 런처에서 엔진을 확인·업데이트하면 원래대로 돌아가니 그때 다시 실행.
+- 명령줄 빌드: `"/Users/Shared/Epic Games/UE_5.8/Engine/Build/BatchFiles/Mac/Build.sh" ProjectB Mac Development -Project="$PWD/ProjectB.uproject"`
+- 명령줄 패키징 (약 2분, 결과 `Saved/Packaged/Mac/ProjectB.app`): `"/Users/Shared/Epic Games/UE_5.8/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun -project="$PWD/ProjectB.uproject" -platform=Mac -clientconfig=Development -build -cook -stage -package -pak -archive -archivedirectory="$PWD/Saved/Packaged" -nop4`
+  - `-package` 를 빼면 데이터 없는 `Binaries/Mac/ProjectB.app` 이 복사돼 실행하자마자 `libtbb.12.dylib` 없음으로 죽는다.
+- 2026-11-11 확인: 게임 빌드, 패키징, 패키징된 앱 실행(창이 뜨고 15초 유지)까지. 화면 내용은 아직 안 봄.
+
 빌드나 실행 오류가 나면 출력 로그(Output Log)의 첫 번째 error 줄, 크래시면 호출 스택을 알려주면 된다.
 
 ## 2. 구조
