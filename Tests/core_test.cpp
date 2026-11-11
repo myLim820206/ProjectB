@@ -86,6 +86,28 @@ static void UnitTests()
 		Put(T3, 0, 5, C(7)); Put(T3, 1, 5, C(7, He)); Put(T3, 2, 5, C(7, Di));
 		Expect(ApplyEffects(T3).size() == 1 && ApplyEffects(T3)[0].Kind == EPDHand::Triple, "7 7 7 은 페어가 아니라 트리플");
 	}
+	{ // 카드 공유 (D-092): 한 장이 여러 족보에 든다
+		FPDTowerMap M;
+		Put(M, 0, 0, C(5)); Put(M, 1, 0, C(6, He)); Put(M, 2, 0, C(7, Di)); Put(M, 3, 0, C(7, Cl));
+		auto S = ApplyEffects(M);
+		const FPDEffects& E7 = M[CellKey(2, 0)].Eff;
+		Expect(S.size() == 2 && S[0].Kind == EPDHand::Straight && S[1].Kind == EPDHand::Pair && S[0].Chain == 2,
+			"5 6 7 + 7 = 스트레이트와 원 페어가 7 을 나눠 씀 (연쇄 2)");
+		Expect(E7.Kind == (int)EPDHand::Straight && E7.Kinds == ((1u << (int)EPDHand::Straight) | (1u << (int)EPDHand::Pair)) && std::fabs(E7.Dmg - 1.5f * 1.25f) < 1e-4f && std::fabs(E7.Rate - 1.5f) < 1e-4f,
+			"나눠 쓴 카드는 두 족보 효과를 다 받고 연쇄 덤은 한 번");
+		FPDTowerMap M8;
+		Put(M8, 0, 0, C(5)); Put(M8, 1, 0, C(6, He)); Put(M8, 2, 0, C(7, Di)); Put(M8, 3, 0, C(8, Cl)); Put(M8, 3, 1, C(8, He));
+		auto S8 = ApplyEffects(M8);
+		Expect(S8.size() == 2 && S8[0].Kind == EPDHand::Straight && S8[0].N == 4 && S8[1].Kind == EPDHand::Pair, "5 6 7 8 + 8 = 스트레이트4 와 원 페어");
+		FPDTowerMap MS;
+		Put(MS, 0, 0, C(5)); Put(MS, 1, 0, C(6, He)); Put(MS, 2, 0, C(7, Di)); Put(MS, 1, 1, C(7, Cl));
+		auto SS = ApplyEffects(MS);
+		Expect(SS.size() == 1, "같은 종류 족보(스트레이트 5 6 7 과 6 7)는 카드를 나눠 쓰지 않음");
+		FPDTowerMap MH;
+		Put(MH, 0, 0, C(9)); Put(MH, 1, 0, C(9, He)); Put(MH, 0, 1, C(5)); Put(MH, 1, 1, C(5, He));
+		auto SH = ApplyEffects(MH);
+		Expect(SH.size() == 1 && SH[0].Kind == EPDHand::TwoPair, "9 9 / 5 5 는 투 페어 하나 (안의 페어는 따로 안 셈)");
+	}
 	{ // 무작위 길
 		std::mt19937 R(5);
 		std::set<std::vector<std::array<int, 2>>> Uniq;

@@ -91,6 +91,7 @@ struct FPDEffects
 	int CopyKey = -1; // 웃는 가면 조커: 따라 할 옆 타워 칸
 	int Kind = -1;    // 들어간 족보 종류 (EPDHand), 없으면 -1
 	int N = 0;        // 들어간 족보 장수
+	uint32_t Kinds = 0; // 들어간 족보 종류 전부 (1 << EPDHand). 카드 한 장이 여러 족보에 들 수 있다
 };
 
 
@@ -202,7 +203,7 @@ struct FPDSynergy
 	int ChainId = -1;
 	std::vector<int> Links;   // 맞닿은 다른 족보 번호
 };
-// 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 겹치지 않게 고르고, 연쇄를 묶는다
+// 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 고르고(카드 공유 가능, 새 카드 한 장 이상, 같은 종류끼리는 공유 안 함), 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
 std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);

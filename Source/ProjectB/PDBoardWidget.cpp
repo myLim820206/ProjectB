@@ -226,11 +226,24 @@ FVector2f JokerButtonCenter(const FPDJokerGroup& G)
 }
 // 합성 버튼: 족보 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
 constexpr float FuseW = 46.f, FuseH = 16.f;
-FVector2f FuseButtonCenter(const FPDSynergy& S)
+// 겹 번호: 카드를 나눠 쓰는 앞선 족보 수 (0~2). 테두리를 안쪽으로 들이고 이름표·합성 버튼을 아래로 민다
+int SynLayer(const std::vector<FPDSynergy>& L, int I)
 {
+	int N = 0;
+	for (int J = 0; J < I && J < (int)L.size(); ++J)
+	{
+		bool bShare = false;
+		for (int A : L[I].Cells) bShare = bShare || std::find(L[J].Cells.begin(), L[J].Cells.end(), A) != L[J].Cells.end();
+		N += bShare;
+	}
+	return FMath::Min(N, 2);
+}
+FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
+{
+	const FPDSynergy& S = L[I];
 	int Bottom = S.Cells[0];
 	for (int K : S.Cells) if (K / Cols > Bottom / Cols || (K / Cols == Bottom / Cols && K % Cols < Bottom % Cols)) Bottom = K;
-	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f);
+	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f) + FVector2f(0.f, SynLayer(L, I) * (FuseH + 2.f));
 }
 
 // ---- 스킬 트리 글자와 위치 (docs/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
@@ -1520,7 +1533,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		const int32 Key = PX >= 0 && PY >= 0 && PX < Cols && PY < Rows ? CellKey(PX, PY) : -1;
 		bool bSameBtn = false;
 		if (bPickJoker) { FPDJokerGroup Tmp; Tmp.Cells = PickCells; const FVector2f B = JokerButtonCenter(Tmp); bSameBtn = FMath::Abs(P.X - B.X) <= JokerBtnW / 2.f && FMath::Abs(P.Y - B.Y) <= JokerBtnH / 2.f; }
-		else { FPDSynergy Tmp; Tmp.Cells = PickCells; const FVector2f B = FuseButtonCenter(Tmp); bSameBtn = FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f; }
+		else if (const int32 Pi = FindPickIndex(); Pi >= 0) { const FVector2f B = FuseButtonCenter(Game.Synergies, Pi); bSameBtn = FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f; }
 		if (!bRight && bSameBtn) FinishPick(-1);
 		else if (!bRight && Key >= 0 && std::find(PickCells.begin(), PickCells.end(), Key) != PickCells.end()) FinishPick(Key);
 		else PickCells.clear();
@@ -1541,7 +1554,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
 		{
 			if (!Game.CanFuse(I)) continue;
-			const FVector2f B = FuseButtonCenter(Game.Synergies[I]);
+			const FVector2f B = FuseButtonCenter(Game.Synergies, I);
 			if (FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f) { StartPick(Game.Synergies[I].Cells, false); return; }
 		}
 	int32 HandHit = -1;
@@ -1728,12 +1741,13 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	// ---- 족보 테두리 (칸 모양대로 바깥 변만) + 연쇄 번개
 	const bool bPv = !Preview.empty();
 	auto DrawSyn = [&](const std::vector<FPDSynergy>& List, float Alpha, bool bLightning) {
-		for (const FPDSynergy& S : List)
+		for (int32 Si = 0; Si < (int32)List.size(); ++Si)
 		{
+			const FPDSynergy& S = List[Si];
 			const FLinearColor Col = WithAlpha(HandColor(S.Kind), Alpha);
 			TSet<int32> Has;
 			for (int K : S.Cells) Has.Add(K);
-			const float M = 4.f;
+			const float M = 4.f + 5.f * SynLayer(List, Si); // 카드를 나눠 쓰는 족보는 안쪽 테두리
 			for (int K : S.Cells)
 			{
 				const int X = K % Cols, Y = K / Cols;
@@ -2138,12 +2152,13 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	}
 	// ---- 족보 이름표 (타워 위에)
 	auto DrawBadges = [&](const std::vector<FPDSynergy>& List, float Alpha) {
-		for (const FPDSynergy& S : List)
+		for (int32 Si = 0; Si < (int32)List.size(); ++Si)
 		{
+			const FPDSynergy& S = List[Si];
 			int Top = S.Cells[0];
 			for (int K : S.Cells) if (K / Cols < Top / Cols || (K / Cols == Top / Cols && K % Cols < Top % Cols)) Top = K;
 			const FVector2f P = CellPx(Top % Cols + 0.5f, (float)(Top / Cols));
-			F.Badge(HandLabel(S), P.X, P.Y + 4.f, HandColor(S.Kind), Alpha);
+			F.Badge(HandLabel(S), P.X, P.Y + 4.f + 13.f * SynLayer(List, Si), HandColor(S.Kind), Alpha);
 		}
 	};
 	DrawBadges(G.Synergies, bPv ? 0.35f : 1.f);
@@ -2175,7 +2190,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I)) continue;
-			const FVector2f B = FuseButtonCenter(G.Synergies[I]);
+			const FVector2f B = FuseButtonCenter(G.Synergies, I);
 			const bool bHov = FMath::Abs(Mouse.X - B.X) <= FuseW / 2.f && FMath::Abs(Mouse.Y - B.Y) <= FuseH / 2.f;
 			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);

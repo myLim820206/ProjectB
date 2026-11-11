@@ -262,13 +262,18 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			for (EPDHand H : ClassifyHand(Cards)) Cands.push_back({H, (int)Sub.size(), HandValue(H, (int)Sub.size()), Cells});
 		}
 		std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& A, const FCand& B) { return A.Value != B.Value ? A.Value > B.Value : A.N > B.N; });
+		// 카드 한 장이 여러 족보에 같이 들 수 있다 (D-092). 큰 족보부터 고르되
+		//  1) 아직 어느 족보에도 안 든 카드가 한 장 이상 있어야 한다 (트리플 안의 페어 같은 부분 족보는 따로 안 셈)
+		//  2) 같은 종류 족보끼리는 카드를 나눠 쓰지 않는다
 		std::set<int> Used;
+		std::map<int, std::set<int>> UsedBy; // 족보 종류 → 쓰인 칸
 		for (const FCand& C : Cands)
 		{
-			bool bFree = true;
-			for (int K : C.Cells) bFree = bFree && !Used.count(K);
-			if (!bFree) continue;
-			for (int K : C.Cells) Used.insert(K);
+			bool bNew = false, bClash = false;
+			std::set<int>& Same = UsedBy[(int)C.Kind];
+			for (int K : C.Cells) { bNew = bNew || !Used.count(K); bClash = bClash || Same.count(K); }
+			if (!bNew || bClash) continue;
+			for (int K : C.Cells) { Used.insert(K); Same.insert(K); }
 			FPDSynergy S;
 			S.Kind = C.Kind;
 			S.N = C.N;
@@ -277,20 +282,21 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			Picked.push_back(S);
 		}
 	}
-	// 연쇄: 족보끼리 맞닿아 있으면 하나의 연쇄
-	std::map<int, int> Owner;
-	for (int I = 0; I < (int)Picked.size(); ++I) for (int K : Picked[I].Cells) Owner[K] = I;
+	// 연쇄: 족보끼리 맞닿아 있거나 카드를 나눠 쓰면 하나의 연쇄
+	std::map<int, std::vector<int>> Owner;
+	for (int I = 0; I < (int)Picked.size(); ++I) for (int K : Picked[I].Cells) Owner[K].push_back(I);
 	std::vector<std::set<int>> Adj(Picked.size());
 	for (int I = 0; I < (int)Picked.size(); ++I)
 		for (int K : Picked[I].Cells)
 		{
+			for (int J : Owner[K]) if (J != I) Adj[I].insert(J);
 			const int X = K % Cols, Y = K / Cols;
 			for (const auto& D : GPDN4)
 			{
 				const int NX = X + D[0], NY = Y + D[1];
 				if (NX < 0 || NY < 0 || NX >= Cols || NY >= Rows) continue;
 				auto It = Owner.find(CellKey(NX, NY));
-				if (It != Owner.end() && It->second != I) Adj[I].insert(It->second);
+				if (It != Owner.end()) for (int J : It->second) if (J != I) Adj[I].insert(J);
 			}
 		}
 	int Cid = 0;
@@ -325,10 +331,9 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 		for (int K : Syn[I].Cells)
 		{
 			FPDEffects& E = Towers[K].Eff;
-			E.Hand = I;
 			const int N = Syn[I].N;
-			E.Kind = (int)Syn[I].Kind;
-			E.N = N;
+			if (E.Hand < 0) { E.Hand = I; E.Kind = (int)Syn[I].Kind; E.N = N; } // 대표 족보: 가장 큰 것 (Syn 은 큰 족보부터)
+			E.Kinds |= 1u << (int)Syn[I].Kind;
 			const bool bSkip = Tm.Key(EPDKeystone::BigTable) && N == 2; // 큰 판: 2장 족보는 효과 없음
 			if (!bSkip) switch (Syn[I].Kind)
 			{
@@ -345,7 +350,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 			default: break;
 			}
 			const bool bNoChain = bSkip || Tm.Key(EPDKeystone::Lone) || (Tm.Key(EPDKeystone::SmallTable) && N == 5); // 고독한 저격수·작은 판(5장)은 연쇄 덤 없음
-			if (Syn[I].Chain >= 2) { if (!bNoChain) E.Dmg *= 1.f + Step * (Syn[I].Chain - 1); E.Chain = Syn[I].Chain; }
+			if (Syn[I].Chain >= 2 && E.Chain < 2) { if (!bNoChain) E.Dmg *= 1.f + Step * (Syn[I].Chain - 1); E.Chain = Syn[I].Chain; } // 연쇄 덤은 타워마다 한 번 (족보를 나눠 쓰면 같은 연쇄)
 		}
 	// 대장 지휘: 판 위 자기 족보 타워(족보에 든 타워, 또는 그 족보를 기억하는 합성 타워) 위력 +30%씩, 겹친다
 	int Captains[(int)EPDHand::Count] = {};
@@ -354,8 +359,10 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 	{
 		FPDTower& O = KV.second;
 		if (O.IsJoker()) continue;
-		const int K = O.Eff.Kind >= 0 ? O.Eff.Kind : O.FuseHand;
-		if (K >= 0 && Captains[K] > 0) O.Eff.Dmg *= 1.f + CaptainCommand * Captains[K];
+		const uint32_t Bits = O.Eff.Kinds ? O.Eff.Kinds : (O.FuseHand >= 0 ? 1u << O.FuseHand : 0u);
+		int Cmd = 0;
+		for (int H = 0; H < (int)EPDHand::Count; ++H) if ((Bits >> H) & 1u) Cmd += Captains[H]; // 여러 족보에 든 타워는 대장마다 지휘를 받는다
+		if (Cmd > 0) O.Eff.Dmg *= 1.f + CaptainCommand * Cmd;
 	}
 	// 조커 오라
 	for (auto& KV : Towers)
@@ -482,15 +489,17 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	// 스킬 트리: 작은·특급 노드는 같은 종류끼리 더해서 한 번에 곱한다 (increased)
 	const int Si = T.Card.IsWild() ? 4 : (int)T.Card.Suit;
 	const int K = T.Eff.Kind;
-	St.Dmg *= 1.f + Tm.AllDmg + Tm.SuitDmg[Si] + (K >= 0 ? Tm.HandDmg[K] : 0.f) + (T.Level >= 2 && !T.IsJoker() ? Tm.FusedDmg : 0.f) + (T.IsJoker() ? Tm.JokerDmg : 0.f);
-	St.Rate *= 1.f + Tm.AllRate + Tm.SuitRate[Si] + (K >= 0 ? Tm.HandRate[K] : 0.f);
+	float HD = 0.f, HR = 0.f, HS = 0.f; // 트리 족보 노드: 타워가 든 족보마다 더한다
+	for (int H = 0; H < (int)EPDHand::Count; ++H) if ((T.Eff.Kinds >> H) & 1u) { HD += Tm.HandDmg[H]; HR += Tm.HandRate[H]; HS += Tm.HandSplash[H]; }
+	St.Dmg *= 1.f + Tm.AllDmg + Tm.SuitDmg[Si] + HD + (T.Level >= 2 && !T.IsJoker() ? Tm.FusedDmg : 0.f) + (T.IsJoker() ? Tm.JokerDmg : 0.f);
+	St.Rate *= 1.f + Tm.AllRate + Tm.SuitRate[Si] + HR;
 	St.Crit = BaseCrit + Tm.CritChance + Tm.UpgCrit;
 	St.CritMult = BaseCritMult + Tm.CritMult + Tm.UpgCritMult;
 	// 골드 강화 (따로 곱함)
 	St.Dmg *= (1.f + Tm.UpgDmg) * (1.f + (Si < 4 ? Tm.UpgSuit[Si] : 0.f));
 	St.Rate *= 1.f + Tm.UpgRate;
 	St.Range *= 1.f + Tm.SuitRange[Si];
-	if (St.Splash > 0.f) St.Splash += Tm.SuitSplash[Si] + (K >= 0 ? Tm.HandSplash[K] : 0.f);
+	if (St.Splash > 0.f) St.Splash += Tm.SuitSplash[Si] + HS;
 	if (St.Slow > 0.f) St.Slow = std::min(0.75f, St.Slow + Tm.SuitSlow[Si]);
 	// 키스톤 (more)
 	const bool bFlushK = K == (int)EPDHand::Flush || K == (int)EPDHand::StraightFlush;
@@ -1000,7 +1009,7 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 	for (const auto& KV : Towers)
 		if (KV.second.Level >= 2 && !KV.second.IsJoker() && !InSyn.count(KV.first)) Nodes.push_back({-1, KV.first, {KV.first}});
 	auto Touch = [](const FNode& A, const FNode& B) {
-		for (int P : A.Cells) for (int Q : B.Cells) if (std::abs(P % Cols - Q % Cols) + std::abs(P / Cols - Q / Cols) == 1) return true;
+		for (int P : A.Cells) for (int Q : B.Cells) if (std::abs(P % Cols - Q % Cols) + std::abs(P / Cols - Q / Cols) <= 1) return true; // 맞닿거나 카드를 나눠 씀
 		return false;
 	};
 	std::vector<int> GroupOf(Nodes.size(), -1);
@@ -1032,6 +1041,8 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 			}
 			G.Cells.insert(G.Cells.end(), Nodes[K].Cells.begin(), Nodes[K].Cells.end());
 		}
+		std::sort(G.Cells.begin(), G.Cells.end());
+		G.Cells.erase(std::unique(G.Cells.begin(), G.Cells.end()), G.Cells.end()); // 나눠 쓴 카드는 한 번만
 		G.Result = MatchJokerRecipe(Kinds);
 		Out.push_back(G);
 	}
