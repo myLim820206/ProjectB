@@ -6,6 +6,7 @@
     python3 tools/neon/neon.py joker 출력.png      # 조커 광대 머리
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
     python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
+    python3 tools/neon/neon.py floors 출력.png     # 족보 장판 10색 (옅은 채움 + 빗금 + 테두리)
     python3 tools/neon/neon.py suitcolors 출력.png # 무늬 색 비교: 위 4색 / 아래 2색 (♥♦ 빨강, ♠♣ 흰빛)
     python3 tools/neon/neon.py jokers 출력.png     # 조커 카드 후보 10종
     python3 tools/neon/neon.py shots 출력.png      # 발사체 5종 (♠ 레이저, ♥ 미사일, ♦ 탄환, ♣ 서리 구체, ★ 별)
@@ -28,6 +29,15 @@ def _font_path():
 
 
 _FP = _font_path()
+def _kfont_path():  # 한글 글꼴 (리눅스는 unifont 라도)
+    import os
+    for p in ['C:/Windows/Fonts/malgunbd.ttf', '/System/Library/Fonts/AppleSDGothicNeo.ttc', '/usr/share/fonts/opentype/unifont/unifont.otf']:
+        if os.path.exists(p):
+            return p
+    return _FP
+
+
+KFONT = lambda px: ImageFont.truetype(_kfont_path(), max(6, int(px * 1.33)))
 FONT = lambda px: ImageFont.truetype(_FP, max(6, int(px * 1.33))) if _FP else ImageFont.load_default()
 COL = {'spade': (127, 184, 255), 'heart': (255, 106, 138), 'diamond': (255, 217, 106), 'club': (138, 255, 196),
        'pink': (255, 154, 213), 'white': (255, 255, 255), 'cyan': (127, 214, 255),
@@ -577,9 +587,48 @@ def render(name, out, S=4):
     img.resize((W, H), Image.LANCZOS).save(out)
 
 
+# ---------------------------------------------------------------- 족보 장판 (족보마다 색, 옅은 채움 + 빗금 + 테두리)
+HAND_FLOOR = [  # (이름, 색, 장수) 높은 족보부터. 로열은 무지개로 돈다 (그림에서는 금백색)
+    ('로열', (255, 244, 214), 5), ('파이브', (255, 217, 106), 5), ('스트레이트 플러시', (255, 154, 213), 5), ('포카드', (255, 106, 106), 4),
+    ('풀하우스', (255, 168, 106), 5), ('플러시', (180, 140, 255), 3), ('스트레이트', (106, 140, 255), 3), ('트리플', (156, 255, 176), 3),
+    ('투 페어', (127, 214, 255), 4), ('원 페어', (207, 216, 230), 2)]
+
+
+def render_floors(out, S=3):
+    cell, gap = 40, 6
+    W, H = 5 * 230, 2 * 150
+    img = Image.new('RGB', (W * S, H * S), BG)
+    for k, (name, col, n) in enumerate(HAND_FLOOR):
+        ox, oy = 20 + (k % 5) * 230, 30 + (k // 5) * 150
+        layer = Image.new('RGB', img.size, (0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        x0, y0, x1, y1 = ox * S, oy * S, (ox + n * cell) * S, (oy + cell) * S
+        dim = lambda a: tuple(int(c * a) for c in col)
+        d.rectangle([x0, y0, x1, y1], fill=dim(0.13))                         # 옅은 채움 13%
+        for t in range(-cell, n * cell, 8):                                     # 빗금 (45도, 8px 간격)
+            ax, bx = max(0, t), min(n * cell, t + cell)
+            if ax < bx:
+                d.line([(x0 + ax * S, y1 - (ax - t) * S), (x0 + bx * S, y1 - (bx - t) * S)], fill=dim(0.4), width=S)
+        glow = Image.new('RGB', img.size, (0, 0, 0))
+        ImageDraw.Draw(glow).rectangle([x0, y0, x1, y1], outline=col, width=4 * S)
+        img = ImageChops.add(img, layer)
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S)).point(lambda v: int(v * 0.8)))
+        dd = ImageDraw.Draw(img)
+        dd.rectangle([x0, y0, x1, y1], outline=col, width=max(1, int(1.5 * S)))
+        for i in range(n):                                                     # 타워 틀 (회색, 장판 위)
+            cx = (ox + i * cell + cell / 2) * S; cy = (oy + cell / 2) * S
+            dd.line(rrect(cx, cy, cell * 0.38 * S, cell * 0.38 * 0.22 * S), fill=(150, 160, 180), width=S)
+        dd.text(((ox + n * cell / 2) * S, (oy + cell + 22) * S), name, fill=col, font=KFONT(12 * S), anchor='mm')
+    img.resize((W, H), Image.LANCZOS).save(out)
+
+
 if __name__ == '__main__':
     if len(sys.argv) >= 4 and sys.argv[1] == 'tree':
         render_tree(sys.argv[2], sys.argv[3])
+        print('saved', sys.argv[2])
+        sys.exit(0)
+    if len(sys.argv) >= 3 and sys.argv[1] == 'floors':
+        render_floors(sys.argv[2])
         print('saved', sys.argv[2])
         sys.exit(0)
     if len(sys.argv) < 3 or sys.argv[1] not in SHAPES:
