@@ -6,6 +6,7 @@
     python3 tools/neon/neon.py joker 출력.png      # 조커 광대 머리
     python3 tools/neon/neon.py suits 출력.png      # 카드 무늬 4종 + 별
     python3 tools/neon/neon.py towers 출력.png     # 타워 (틀 + 숫자 + 무늬 기호)
+    python3 tools/neon/neon.py suitcolors 출력.png # 무늬 색 비교: 위 4색 / 아래 2색 (♥♦ 빨강, ♠♣ 흰빛)
     python3 tools/neon/neon.py jokers 출력.png     # 조커 카드 후보 10종
     python3 tools/neon/neon.py shots 출력.png      # 발사체 5종 (♠ 레이저, ♥ 미사일, ♦ 탄환, ♣ 서리 구체, ★ 별)
     python3 tools/neon/neon.py tree 출력.png tools/tree/tree.json   # 스킬 트리 화면 (tree.json 은 tools/tree/gen_tree.py 가 만듦)
@@ -29,7 +30,8 @@ def _font_path():
 _FP = _font_path()
 FONT = lambda px: ImageFont.truetype(_FP, max(6, int(px * 1.33))) if _FP else ImageFont.load_default()
 COL = {'spade': (127, 184, 255), 'heart': (255, 106, 138), 'diamond': (255, 217, 106), 'club': (138, 255, 196),
-       'pink': (255, 154, 213), 'white': (255, 255, 255), 'cyan': (127, 214, 255)}
+       'pink': (255, 154, 213), 'white': (255, 255, 255), 'cyan': (127, 214, 255),
+       'red': (255, 84, 104), 'ice': (220, 232, 255), 'gold': (255, 217, 106)}
 
 
 def bez(p0, p1, p2, n=18):
@@ -527,6 +529,9 @@ SHAPES = {
     'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
+    # 무늬 색 줄이기 비교 (줄마다): 지금 4색 / 2색 (♥♦ 빨강, ♠♣ 흰빛, 와일드 금색)
+    'suitcolors': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white'),
+                   (tower('spade', '9'), 'ice'), (tower('heart', 'A'), 'red'), (tower('diamond', '10'), 'red'), (tower('club', 'K'), 'ice'), (tower('wild', ''), 'gold')],
     'shots': SHOTS,
     'shots_level': SHOTS_LEVEL,   # 줄 = 레벨 1~4, 칸 = ♠ ♥ ♦ ♣ ★
     'shots_hand': SHOTS_HAND,     # 스트레이트, 플러시, 풀하우스, 포카드, 스트레이트 플러시, 파이브 카드, 로열
