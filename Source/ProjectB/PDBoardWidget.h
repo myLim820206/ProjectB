@@ -32,6 +32,25 @@ public:
 		return Out;
 	}
 
+	// 월드 이펙트 층 (D-081): 판 뒤 3D 월드에서 나이아가라로 재생할 이펙트 요청.
+	// 위치는 "화면 가운데를 0으로 한 판 좌표(px)", 아래가 +Y. 게임 모드가 정사영 카메라로 1 월드 단위 = 판 1px 로 맞춘다
+	enum class EWorldFx : uint8 { Hit, Death };
+	struct FWorldFx
+	{
+		EWorldFx Kind;
+		FVector2f Pos;
+		FLinearColor Col;
+		float Scale; // 맞음: 위력 (1~6), 죽음: 몸 크기 (작은 적 0.7, 보스 4)
+	};
+	TArray<FWorldFx> TakeWorldFx()
+	{
+		TArray<FWorldFx> Out;
+		Swap(Out, WorldFx);
+		return Out;
+	}
+	// 정사영 카메라 폭 (월드 단위 = 판 px). 창 전체 폭을 판 배율로 나눈 값
+	float GetWorldViewWidth() const { return ViewSize.X / FMath::Max(0.01f, ViewScale); }
+
 	// 메뉴의 [게임 종료]. 게임 모드가 채운다 (월드가 있어야 PIE·패키지 모두 바르게 끝낼 수 있어서)
 	TFunction<void()> OnQuit;
 
@@ -160,7 +179,12 @@ private:
 	FLinearColor BannerCol = FLinearColor::White;
 	float Clock = 0.f;
 
-	// 그릴 때 정한 화면 배율 (마우스 좌표 변환에 씀)
+	// 그릴 때 정한 화면 배율 (마우스 좌표 변환, 월드 이펙트 좌표에 씀)
 	mutable float ViewScale = 1.f;
 	mutable FVector2f ViewOffset = FVector2f(0.f, 0.f);
+	mutable FVector2f ViewSize = FVector2f(1280.f, 720.f);
+
+	// 월드 이펙트 요청 큐 (게임 모드가 매 프레임 꺼내 감)
+	TArray<FWorldFx> WorldFx;
+	void PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLinearColor& Col, float Scale);
 };

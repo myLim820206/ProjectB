@@ -1,5 +1,7 @@
 #include "PDGameMode.h"
 
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
 #include "Components/AudioComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
@@ -7,6 +9,9 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "PDBoardWidget.h"
 
@@ -28,6 +33,8 @@ void APDGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	if (!BoardWidget.IsValid()) return;
+	UpdateWorldView();
+	PlayWorldFx();
 	for (const PD::FPDSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
 	// 끝난 소리 정리
 	for (int32 I = Voices.Num() - 1; I >= 0; --I)
@@ -105,6 +112,89 @@ void APDGameMode::BeginPlay()
 		PC->bShowMouseCursor = true;
 	}
 	FSlateApplication::Get().SetKeyboardFocus(BoardWidget);
+	SetupWorldView();
+}
+
+// ---- 월드 이펙트 층 (D-081)
+// 카메라는 +X 를 바라본다: 화면 오른쪽 = 월드 +Y, 화면 위 = 월드 +Z (나이아가라 기본 중력 -Z 가 화면 아래로 떨어짐).
+// 위젯 좌표(아래가 +Y)는 (0, X, -Y) 로 옮긴다. 이펙트는 X = 0 평면에서 재생한다.
+namespace
+{
+constexpr float PDCameraDistance = 1000.f;
+// 나이아가라 에셋이 받는 사용자 변수 (에셋을 만들 때 이 이름으로 노출한다)
+const FName PDFxColor(TEXT("User.Color")); // HDR 색 (1 넘으면 블룸)
+const FName PDFxScale(TEXT("User.Scale")); // 크기·세기 배율
+
+UNiagaraSystem* LoadFx(const TCHAR* Path)
+{
+	// 에셋이 아직 없으면 경고 없이 nullptr (그 이펙트만 건너뜀)
+	return Cast<UNiagaraSystem>(FSoftObjectPath(Path).TryLoad());
+}
+}
+
+void APDGameMode::SetupWorldView()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	WorldCamera = World->SpawnActor<ACameraActor>(FVector(-PDCameraDistance, 0.f, 0.f), FRotator::ZeroRotator, Params);
+	if (!WorldCamera) return;
+	UCameraComponent* Cam = WorldCamera->GetCameraComponent();
+	Cam->SetProjectionMode(ECameraProjectionMode::Orthographic);
+	Cam->SetConstraintAspectRatio(false);
+	Cam->SetOrthoNearClipPlane(1.f);
+	Cam->SetOrthoFarClipPlane(PDCameraDistance * 2.f);
+
+	// 블룸은 살짝, 노출은 고정 (자동 노출이 바탕 밝기에 따라 출렁이지 않게)
+	FPostProcessSettings& PP = Cam->PostProcessSettings;
+	PP.bOverride_BloomIntensity = true;
+	PP.BloomIntensity = 0.8f;
+	PP.bOverride_BloomThreshold = true;
+	PP.BloomThreshold = 1.0f; // HDR(1 넘는) 색만 번진다
+	PP.bOverride_AutoExposureMethod = true;
+	PP.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
+	PP.bOverride_AutoExposureBias = true;
+	PP.AutoExposureBias = 0.f;
+	PP.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
+	PP.AutoExposureApplyPhysicalCameraExposure = false;
+	PP.bOverride_VignetteIntensity = true;
+	PP.VignetteIntensity = 0.f;
+	Cam->PostProcessBlendWeight = 1.f;
+	UpdateWorldView();
+
+	if (APlayerController* PC = World->GetFirstPlayerController()) PC->SetViewTarget(WorldCamera);
+
+	FxHit = LoadFx(TEXT("/Game/FX/NS_PD_Hit.NS_PD_Hit"));
+	FxDeath = LoadFx(TEXT("/Game/FX/NS_PD_Death.NS_PD_Death"));
+}
+
+void APDGameMode::UpdateWorldView()
+{
+	if (!WorldCamera || !BoardWidget.IsValid()) return;
+	WorldCamera->GetCameraComponent()->SetOrthoWidth(BoardWidget->GetWorldViewWidth());
+}
+
+void APDGameMode::PlayWorldFx()
+{
+	if (!BoardWidget.IsValid()) return;
+	for (const SPDBoardWidget::FWorldFx& Fx : BoardWidget->TakeWorldFx())
+	{
+		UNiagaraSystem* Sys = nullptr;
+		FLinearColor Col = Fx.Col;
+		switch (Fx.Kind)
+		{
+		case SPDBoardWidget::EWorldFx::Hit: Sys = FxHit; Col *= 2.f; break;   // 흰 불꽃, 블룸 받을 만큼 밝게
+		case SPDBoardWidget::EWorldFx::Death: Sys = FxDeath; Col *= 4.f; break; // 적 색으로 크게 번짐
+		}
+		if (!Sys) continue;
+		const FVector Loc(0.f, Fx.Pos.X, -Fx.Pos.Y);
+		UNiagaraComponent* NC = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, Sys, Loc, FRotator::ZeroRotator, FVector(1.f),
+			true, true, ENCPoolMethod::AutoRelease);
+		if (!NC) continue;
+		NC->SetVariableLinearColor(PDFxColor, Col);
+		NC->SetVariableFloat(PDFxScale, Fx.Scale);
+	}
 }
 
 void APDGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -114,6 +204,8 @@ void APDGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		GEngine->GameViewport->RemoveViewportWidgetContent(BoardWidget.ToSharedRef());
 	}
 	BoardWidget.Reset();
+	if (WorldCamera) WorldCamera->Destroy();
+	WorldCamera = nullptr;
 	for (UAudioComponent* V : Voices)
 		if (V) V->DestroyComponent();
 	Voices.Empty();

@@ -1202,8 +1202,17 @@ void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColo
 }
 
 // 맞는 순간 공통: 작은 흰 심 + 맞은 적 번쩍임 + 피해 숫자
+void SPDBoardWidget::PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLinearColor& Col, float Scale)
+{
+	if (WorldFx.Num() >= 64) return; // 한 프레임에 너무 많이 쌓이면 버린다 (나이아가라 폭주 방지)
+	// 판 좌표 → 화면 가운데를 0으로 한 판 좌표. 판은 창 가운데에 맞춰 그리므로 (Offset - 창/2) / 배율 만큼 민다
+	const FVector2f Center = (ViewOffset - ViewSize * 0.5f) / FMath::Max(0.01f, ViewScale);
+	WorldFx.Add({Kind, DesignPos + Center, Col, Scale});
+}
+
 void SPDBoardWidget::HitFx(FVector2f P, float Power, int32 Crits, float Dmg)
 {
+	PushWorldFx(EWorldFx::Hit, P, FLinearColor::White, FMath::Clamp(Power, 1.f, 6.f));
 	Flares.Add({P, 0.f, 0.07f, 5.f + 1.5f * FMath::Clamp(Power, 1.f, 6.f), 0.f, FLinearColor::White, 0});
 	// 맞은 적: 가장 가까운 적을 잠깐 하얗게
 	int32 BestId = -1;
@@ -1231,6 +1240,7 @@ void SPDBoardWidget::DeathFx(FVector2f P, EPDEnemy Type)
 	const FLinearColor Col = EnemyColor(Type), White = FLinearColor::White;
 	const bool bBoss = EnemyDef(Type).bBoss, bTank = Type == EPDEnemy::Tank || Type == EPDEnemy::Armored, bMini = Type == EPDEnemy::Mini;
 	const float S = bBoss ? 4.f : bTank ? 1.8f : bMini ? 0.7f : 1.f; // 크기
+	PushWorldFx(EWorldFx::Death, P, Col, S);
 	const bool bBusy = Particles.Num() > 1800 || Shards.Num() > 500;
 	// 빛: 흰 심 + 적 색 큰 별빛
 	Flares.Add({P, 0.f, 0.12f + 0.05f * S, 22.f * S, FMath::FRandRange(0.f, PI), White});
@@ -1675,13 +1685,14 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
 	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), &WhiteBrush, ESlateDrawEffect::None, Hex(TEXT("06060b")));
+	// 바탕은 칠하지 않는다: 뒤의 3D 월드(검은 바탕 + 나이아가라 + 블룸)가 비쳐 보여야 한다 (D-081, 월드 이펙트 층)
 	const auto LocalSize = AllottedGeometry.GetLocalSize(); // 엔진 버전에 따라 FVector2D 또는 FVector2f
 	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
 	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
 	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
 	ViewScale = Scale;
 	ViewOffset = Offset;
+	ViewSize = FVector2f(SizeX, SizeY);
 	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
 	// 판은 흔들림을 받고, 패널은 고정
 	const float SK = Shake * 14.f;
