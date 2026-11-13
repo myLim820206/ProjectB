@@ -86,6 +86,17 @@ static void UnitTests()
 		Put(T3, 0, 5, C(7)); Put(T3, 1, 5, C(7, He)); Put(T3, 2, 5, C(7, Di));
 		Expect(ApplyEffects(T3).size() == 1 && ApplyEffects(T3)[0].Kind == EPDHand::Triple, "7 7 7 은 페어가 아니라 트리플");
 	}
+	{ // 스트레이트는 순서대로 (D-108): 맞닿은 줄기를 따라 1씩, 꺾여도 되고 거꾸로도 됨
+		auto HasStraight = [](FPDTowerMap M) { for (const FPDSynergy& S : ApplyEffects(M)) if (S.Kind == EPDHand::Straight) return (int)S.N; return 0; };
+		FPDTowerMap A, B, L, R, W;
+		Put(A, 0, 0, C(5)); Put(A, 1, 0, C(6, He)); Put(A, 2, 0, C(7, Di));
+		Put(B, 0, 0, C(5)); Put(B, 1, 0, C(7, He)); Put(B, 2, 0, C(6, Di));
+		Put(L, 0, 0, C(5)); Put(L, 1, 0, C(6, He)); Put(L, 1, 1, C(7, Di));
+		Put(R, 0, 0, C(7)); Put(R, 1, 0, C(6, He)); Put(R, 2, 0, C(5, Di));
+		Put(W, 0, 0, C(14)); Put(W, 1, 0, C(2, He)); Put(W, 2, 0, C(3, Di));
+		Expect(HasStraight(A) == 3 && HasStraight(L) == 3 && HasStraight(R) == 3 && HasStraight(W) == 3, "순서대로: 5 6 7, ㄱ자 5→6→7, 거꾸로 7 6 5, A 2 3 은 스트레이트");
+		Expect(HasStraight(B) == 2, "5 7 6 은 3장 스트레이트가 아님 (붙은 7 6 만 2장 스트레이트)");
+	}
 	{ // 카드 공유 (D-097): 한 장이 여러 족보에 든다
 		FPDTowerMap M;
 		Put(M, 0, 0, C(5)); Put(M, 1, 0, C(6, He)); Put(M, 2, 0, C(7, Di)); Put(M, 3, 0, C(7, Cl));

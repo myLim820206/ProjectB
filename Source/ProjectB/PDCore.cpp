@@ -198,6 +198,37 @@ static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& 
 	}
 }
 
+// 스트레이트는 순서대로 (D-108): 칸들이 맞닿아 한 줄기로 이어지고, 그 줄기를 따라 숫자가 1씩 오른다 (꺾여도 됨, 거꾸로 읽어도 됨).
+// 조커·와일드는 아무 숫자, A 는 1 또는 14. 5칸이면 120가지 순서를 다 본다
+static bool PDOrderedStraight(const std::vector<int>& Cells, const std::vector<FPDCard>& Cards)
+{
+	const int N = (int)Cells.size();
+	std::vector<int> P(N);
+	for (int I = 0; I < N; ++I) P[I] = I;
+	auto Adjacent = [](int A, int B) { return std::abs(A % Cols - B % Cols) + std::abs(A / Cols - B / Cols) == 1; };
+	do
+	{
+		bool bPath = true;
+		for (int I = 1; I < N && bPath; ++I) bPath = Adjacent(Cells[P[I - 1]], Cells[P[I]]);
+		if (!bPath) continue;
+		for (const bool bAceLow : {false, true})
+		{
+			bool bHave = false, bOk = true;
+			int Base = 0;
+			for (int I = 0; I < N && bOk; ++I)
+			{
+				const FPDCard& C = Cards[P[I]];
+				if (C.IsWild()) continue;
+				const int B = ((C.Rank == 14 && bAceLow) ? 1 : C.Rank) - I;
+				if (!bHave) { Base = B; bHave = true; }
+				else bOk = B == Base;
+			}
+			if (bOk && (!bHave || (Base >= 1 && Base + N - 1 <= 14))) return true;
+		}
+	} while (std::next_permutation(P.begin(), P.end()));
+	return false;
+}
+
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 {
 	std::vector<FPDSynergy> Picked;
@@ -261,7 +292,16 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 				if (!T.IsJoker()) { if (Lv < 0) Lv = T.Level; else if (Lv != T.Level) bMixed = true; }
 			}
 			if (bMixed) continue; // 조커가 아닌 타워는 레벨이 같아야 족보
-			for (EPDHand H : ClassifyHand(Cards)) Cands.push_back({H, (int)Sub.size(), HandValue(H, (int)Sub.size()), Cells});
+			int Ordered = -1; // 스트레이트 순서 검사 (필요할 때 한 번만)
+			for (EPDHand H : ClassifyHand(Cards))
+			{
+				if (H == EPDHand::Straight || H == EPDHand::StraightFlush || H == EPDHand::RoyalFlush)
+				{
+					if (Ordered < 0) Ordered = PDOrderedStraight(Cells, Cards) ? 1 : 0;
+					if (!Ordered) continue;
+				}
+				Cands.push_back({H, (int)Sub.size(), HandValue(H, (int)Sub.size()), Cells});
+			}
 		}
 		std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& A, const FCand& B) { return A.Value != B.Value ? A.Value > B.Value : A.N > B.N; });
 		// 카드 한 장이 여러 족보에 같이 들 수 있다 (D-097). 큰 족보부터 고르되
