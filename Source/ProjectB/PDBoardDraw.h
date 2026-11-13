@@ -409,17 +409,17 @@ inline const TCHAR* MenuItemName(int I)
 	return N[I];
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
-enum class ESetRow : uint8_t { Window, WorldFx, Shake, Sound, Volume, Music, Close, Count };
-constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 12.f, SetLabelW = 200.f, SetBtnH = 32.f;
-constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 220.f;
-constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 80.f, SetBoxW = SetW + 60.f;
+enum class ESetRow : uint8_t { Window, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Close, Count };
+constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 8.f, SetLabelW = 200.f, SetBtnH = 32.f;
+constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 160.f;
+constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
-inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || SetBarRow(Row) ? 3 : 1; }
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : 1; }
 inline float SetBtnW(int Row, int Idx)
 {
-	if (Row == (int)ESetRow::Window) return 112.f;
+	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::Frame) return 112.f;
 	if (SetBarRow(Row)) return Idx == 1 ? 220.f : 40.f;
 	if (Row == (int)ESetRow::Close) return 160.f;
 	return 120.f;
@@ -427,7 +427,7 @@ inline float SetBtnW(int Row, int Idx)
 inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 {
 	const float X0 = SetX + SetLabelW, Y = SetRowY(Row) + (SetRowH - SetBtnH) / 2.f;
-	if (Row == (int)ESetRow::Window) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
+	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::Frame) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
 	if (SetBarRow(Row)) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
 	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
 	return FVector2f(X0, Y);
@@ -492,10 +492,11 @@ struct SPDBoardWidget::FCanvas
 	const FSlateBrush* White;
 
 	int32 NextLayer() { return ++(*Layer); }
-
+	// 층 나누기 (D-120): 선은 지금 층에 모아 그린다 (같은 층의 선은 한 번에 묶여 그려져 그리기 호출이 크게 준다).
+	// 상자·글자는 새 층을 받고, 그 뒤의 선이 그 위에 오도록 층을 하나 더 올려 둔다 (그리는 순서는 그대로)
 	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
-		FSlateDrawElement::MakeLines(Out, NextLayer(), Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
+		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
 	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
@@ -538,6 +539,7 @@ struct SPDBoardWidget::FCanvas
 	void Box(float X, float Y, float W, float H, const FLinearColor& Col)
 	{
 		BoxAt(NextLayer(), X, Y, W, H, Col);
+		NextLayer();
 	}
 	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
 	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
@@ -605,6 +607,7 @@ struct SPDBoardWidget::FCanvas
 		const float Left = Align == 1 ? X - Sz.X / 2.f : Align == 2 ? X - Sz.X : X;
 		const float Top = Y - Sz.Y * 0.8f;
 		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(Left, Top))), S, F, ESlateDrawEffect::None, Col);
+		NextLayer();
 	}
 	void TextCentered(const FString& InS, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float MaxW = 0.f)
 	{
@@ -614,6 +617,7 @@ struct SPDBoardWidget::FCanvas
 		FitText(S, F, Sz, Px, bBold, MaxW);
 		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(CX - Sz.X / 2.f, CY - Sz.Y / 2.f))), S, F,
 			ESlateDrawEffect::None, Col);
+		NextLayer();
 	}
 	void Panel(float X, float Y, float W, float H) { Lines(RectPoints(X, Y, W, H), Hex(TEXT("7fd6ff"), 0.3f), 1.f); }
 

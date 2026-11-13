@@ -99,6 +99,7 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
 	{
 		const int32 L = F.NextLayer();
+		F.NextLayer();
 		for (int I = 0; I < 14; ++I)
 		{
 			const float D = FMath::Fmod(Clock * 1.6f + I * G.Path.Length / 14.f, G.Path.Length);
@@ -630,6 +631,7 @@ void SPDBoardWidget::PaintEffects(FCanvas& F) const
 	}
 	{
 		const int32 L1 = F.NextLayer(), L2 = F.NextLayer();
+		F.NextLayer();
 		for (const FParticle& Pa : Particles)
 		{
 			const float A = FMath::Clamp(Pa.Life / Pa.MaxLife, 0.f, 1.f), S = Pa.Size;
@@ -1427,7 +1429,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	C.Box(SetBoxX, SetBoxY, SetBoxW, SetBoxH, Hex(TEXT("06060b"), 0.95f));
 	C.Glow(FCanvas::RoundRectPoints(SetBoxX, SetBoxY, SetBoxW, SetBoxH, 10.f), Cyan, 1.4f, 0.7f);
 	C.TextCentered(TEXT("설정"), DesignW / 2.f, SetBoxY + 40.f, Cyan, 24.f, true);
-	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		if (bOn) C.Box(X, Y, W, SetBtnH, WithAlpha(Col, 0.12f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, 6.f), Col, bOn ? 1.6f : 1.1f, bOn ? (bRowSel ? 1.f + 0.5f * Pulse : 0.9f) : 0.35f);
@@ -1447,11 +1449,18 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Modes[I], Cyan, Settings.WindowMode == I, bRowSel); }
 			break;
 		}
+		case ESetRow::Frame:
+		{
+			static const TCHAR* Caps[] = {TEXT("60"), TEXT("120"), TEXT("제한 없음")};
+			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Caps[I], Cyan, Settings.FrameCap == I, bRowSel); }
+			break;
+		}
+		case ESetRow::VSync:
 		case ESetRow::WorldFx:
 		case ESetRow::Shake:
 		case ESetRow::Sound:
 		{
-			const bool bOn = Row == (int32)ESetRow::WorldFx ? Settings.bWorldFx : Row == (int32)ESetRow::Shake ? Settings.bShake : Settings.bSound;
+			const bool bOn = Row == (int32)ESetRow::VSync ? Settings.bVSync : Row == (int32)ESetRow::WorldFx ? Settings.bWorldFx : Row == (int32)ESetRow::Shake ? Settings.bShake : Settings.bSound;
 			const FVector2f B = SetBtnPos(Row, 0);
 			Button(B.X, B.Y, SetBtnW(Row, 0), bOn ? TEXT("켜짐") : TEXT("꺼짐"), bOn ? Good : Grey, bOn, bRowSel);
 			break;
@@ -1477,6 +1486,6 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		default: break;
 		}
 	}
-	if (GIsEditor) C.TextCentered(TEXT("화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)"), DesignW / 2.f, SetRowY((int32)ESetRow::Window) + SetRowH + 2.f, Dim, 10.f, false);
+	if (GIsEditor) C.TextCentered(TEXT("화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)"), DesignW / 2.f, SetBoxY + SetBoxH - 38.f, Dim, 10.f, false);
 	C.TextCentered(TEXT("↑↓ 고르기 · ←→ 바꾸기 · Enter 켜기/끄기 · Esc 메뉴로"), DesignW / 2.f, SetBoxY + SetBoxH - 18.f, Dim, 11.f, false);
 }

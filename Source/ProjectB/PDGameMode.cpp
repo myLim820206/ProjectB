@@ -201,6 +201,15 @@ void APDGameMode::SetupWorldView()
 	PP.AutoExposureApplyPhysicalCameraExposure = false;
 	PP.bOverride_VignetteIntensity = true;
 	PP.VignetteIntensity = 0.f;
+	// 검은 바탕 위 이펙트만 그리므로 전역 조명·반사·AO·모션 블러는 끈다 (D-120, GPU 부하)
+	PP.bOverride_DynamicGlobalIlluminationMethod = true;
+	PP.DynamicGlobalIlluminationMethod = EDynamicGlobalIlluminationMethod::None;
+	PP.bOverride_ReflectionMethod = true;
+	PP.ReflectionMethod = EReflectionMethod::None;
+	PP.bOverride_AmbientOcclusionIntensity = true;
+	PP.AmbientOcclusionIntensity = 0.f;
+	PP.bOverride_MotionBlurAmount = true;
+	PP.MotionBlurAmount = 0.f;
 	Cam->PostProcessBlendWeight = 1.f;
 	UpdateWorldView();
 

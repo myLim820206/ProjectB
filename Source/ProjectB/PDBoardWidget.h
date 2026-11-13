@@ -95,6 +95,8 @@ private:
 		bool bSound = true;
 		float Volume = 0.8f;
 		float MusicVolume = 0.6f; // 배경 음악 (D-117)
+		int32 FrameCap = 0;       // 프레임 제한 (D-120): 0 = 60, 1 = 120, 2 = 제한 없음
+		bool bVSync = false;      // 수직 동기화
 	};
 	FSettings Settings;
 	bool bSettings = false;                // 설정 창 (메뉴에서 연다, 여는 동안 메뉴도 열려 있어 게임은 멈춤)
@@ -103,6 +105,7 @@ private:
 	void SaveSettings() const;
 	void SaveProgress();                   // 도감·최고 기록 저장 (Saved/SaveGames/Progress.txt)
 	void ApplyWindowMode(int32 Mode);
+	void ApplyFrameSettings() const;       // 프레임 제한·수직 동기화를 엔진에 (t.MaxFPS, r.VSync)
 	void SetSound(bool bOn);
 	void SettingsClick(FVector2f P);
 	void SettingsKey(const FKey& K);

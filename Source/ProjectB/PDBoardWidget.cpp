@@ -6,6 +6,7 @@
 #include "InputCoreTypes.h"
 #include "Engine/Engine.h"
 #include "GameFramework/GameUserSettings.h"
+#include "HAL/IConsoleManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -34,7 +35,11 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetFloat(PDSetSection, TEXT("Volume"), Settings.Volume, GGameUserSettingsIni);
 		GConfig->GetFloat(PDSetSection, TEXT("MusicVolume"), Settings.MusicVolume, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
+		GConfig->GetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
+		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	}
+	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
+	ApplyFrameSettings();
 	Settings.Volume = FMath::Clamp(Settings.Volume, 0.f, 1.f);
 	Settings.MusicVolume = FMath::Clamp(Settings.MusicVolume, 0.f, 1.f);
 	if (!GIsEditor && GEngine && GEngine->GetGameUserSettings()) // 실제 화면 모드는 엔진이 저장한 값
@@ -70,6 +75,8 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetFloat(PDSetSection, TEXT("Volume"), Settings.Volume, GGameUserSettingsIni);
 	GConfig->SetFloat(PDSetSection, TEXT("MusicVolume"), Settings.MusicVolume, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
+	GConfig->SetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -78,6 +85,22 @@ void SPDBoardWidget::SaveProgress()
 	SavedDiscovered = Game.Discovered;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\n"), SavedDiscovered, SavedBest), *PDProgressPath());
+}
+
+// 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
+void SPDBoardWidget::ApplyFrameSettings() const
+{
+	static const float Caps[] = {60.f, 120.f, 0.f};
+	if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"))) V->Set(Caps[Settings.FrameCap], ECVF_SetByGameSetting);
+	if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"))) V->Set(Settings.bVSync ? 1 : 0, ECVF_SetByGameSetting);
+	if (GEngine && GEngine->GetGameUserSettings() && !GIsEditor)
+	{
+		UGameUserSettings* U = GEngine->GetGameUserSettings();
+		U->SetFrameRateLimit(Caps[Settings.FrameCap]);
+		U->SetVSyncEnabled(Settings.bVSync);
+		U->ApplyNonResolutionSettings();
+		U->SaveSettings();
+	}
 }
 
 void SPDBoardWidget::ApplyWindowMode(int32 Mode)
@@ -106,6 +129,8 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 	switch ((ESetRow)Row)
 	{
 	case ESetRow::Window: ApplyWindowMode(Settings.WindowMode + (Delta == 0 ? 1 : Delta)); break;
+	case ESetRow::Frame: Settings.FrameCap = ((Settings.FrameCap + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; SaveSettings(); ApplyFrameSettings(); break;
+	case ESetRow::VSync: Settings.bVSync = !Settings.bVSync; SaveSettings(); ApplyFrameSettings(); break;
 	case ESetRow::WorldFx: Settings.bWorldFx = !Settings.bWorldFx; SaveSettings(); break;
 	case ESetRow::Shake: Settings.bShake = !Settings.bShake; SaveSettings(); break;
 	case ESetRow::Sound: SetSound(!Settings.bSound); break;
@@ -135,6 +160,7 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			if (!InRect(P, B.X, B.Y, SetBtnW(Row, I), SetBtnH)) continue;
 			SetSel = Row;
 			if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
+			else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
 			else if (SetBarRow(Row))
 			{
 				if (I == 1) // 막대: 누른 자리로
