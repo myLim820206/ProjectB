@@ -258,6 +258,21 @@ static void UnitTests()
 		const auto Bad = G.PreviewPower(FPDGame::EPowerAction::Fuse, 99);
 		Expect(G.Synergies.size() == 1 && P.Before > 0.f && P.After > 0.f && std::fabs(P.Before - G.Power()) < 1e-3f && Bad.After < 0.f && G.Towers.size() == 2,
 			"합성 전 판 위력 비교: " + std::to_string((int)P.Before) + " → " + std::to_string((int)P.After) + " (원본 판은 그대로)");
+		// 화면 위력 정보 (D-119): 타워마다 몫의 합 = 판 위력, 큰 것부터
+		Put(G.Towers, 8, 5, C(13, EPDSuit::Diamond));
+		G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
+		const auto TP = G.TowerPowers();
+		float Sum = 0.f;
+		for (const auto& KV : TP) Sum += KV.second;
+		Expect(TP.size() == 3 && std::fabs(Sum - G.Power()) < G.Power() * 1e-4f && TP[0].second >= TP[1].second && TP[1].second >= TP[2].second,
+			"타워별 위력 합 = 판 위력 (" + std::to_string((int)Sum) + ")");
+		G.Wave = 3; G.Phase = EPDPhase::Build;
+		const int B1 = G.NextBossWave();
+		G.Wave = 5; G.Phase = EPDPhase::Wave;
+		const int B2 = G.NextBossWave();
+		G.Phase = EPDPhase::Build;
+		const int B3 = G.NextBossWave();
+		Expect(B1 == 5 && B2 == 5 && B3 == 10 && FPDGame::BossOfWave(20) == BossOrder[3], "다음 보스 웨이브: 3 → 5, 5 진행 중 → 5, 5 끝 → 10");
 	}
 	{ // 보스 13종 (D-112): 순서와 능력
 		auto BossOf = [](int W) {

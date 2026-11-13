@@ -931,6 +931,7 @@ void FPDGame::StartWave()
 	Wave++;
 	Phase = EPDPhase::Wave;
 	Pending = WaveSpec(Wave);
+	WaveTotal = (int)Pending.size();
 	SpawnT = 0.f;
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::WaveStart;
@@ -1078,13 +1079,10 @@ bool FPDGame::Place(int HandIdx, int X, int Y)
 
 double TowerPower(const FPDTowerStats& S) { return (double)(S.Dmg * S.Rate * S.CritFactor()) * (1 + S.Splash * 0.8); }
 
-double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
+double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
 {
 	auto W = [&](const FPDTower& At, float Range) { return Weight ? Weight(At, Range) : 1.0; };
-	double Sum = 0;
-	for (const auto& KV : Towers)
 	{
-		const FPDTower& T = KV.second;
 		const FPDTowerStats S = TowerStats(T, Charms, Tree);
 		double V = TowerPower(S) * W(T, S.Range);
 		if (T.IsJoker())
@@ -1104,9 +1102,35 @@ double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMo
 			default: break;
 			}
 		}
-		Sum += V;
+		return V;
 	}
+}
+
+double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
+{
+	double Sum = 0;
+	for (const auto& KV : Towers) Sum += OneTowerPower(Towers, KV.second, Charms, Tree, Weight);
 	return Sum;
+}
+
+std::vector<std::pair<int, float>> FPDGame::TowerPowers() const
+{
+	FPDTowerMap T = Towers;
+	ApplyEffects(T, CharmMask(), &Mods);
+	std::vector<std::pair<int, float>> Out;
+	for (const auto& KV : T) Out.push_back({KV.first, (float)OneTowerPower(T, KV.second, CharmMask(), &Mods)});
+	std::stable_sort(Out.begin(), Out.end(), [](const std::pair<int, float>& A, const std::pair<int, float>& B) { return A.second > B.second; });
+	return Out;
+}
+
+float FPDGame::SynergyGain() const
+{
+	FPDTowerMap T = Towers;
+	ApplyEffects(T, CharmMask(), &Mods);
+	const double With = SumBoardPower(T, CharmMask(), &Mods);
+	for (auto& KV : T) KV.second.Eff = FPDEffects(); // 족보·연쇄·조커 오라 없이 (합성 배율·특성은 그대로)
+	const double Without = SumBoardPower(T, CharmMask(), &Mods);
+	return Without > 0 ? (float)(With / Without) : 1.f;
 }
 
 float BoardPower(FPDTowerMap Towers, uint32_t Charms, const FPDTreeMods* Tree)

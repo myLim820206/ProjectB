@@ -169,6 +169,7 @@ void SPDBoardWidget::HandleEvents()
 			break;
 		}
 		case FPDEvent::EKind::WaveStart:
+			PowerRef = Game.Power(); // 위쪽 띠의 판 위력 ±% 기준 (D-119)
 			BannerText = E.B ? FString::Printf(TEXT("BOSS WAVE %d"), E.A) : FString::Printf(TEXT("WAVE %d"), E.A);
 			BannerSub = E.B ? FString::Printf(TEXT("보스: %s · %s"), BossName(E.Enemy), BossSkillText(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(TEXT("최고 기록 갱신 중!")) : FString::Printf(TEXT("최고 %d웨이브"), Game.BestWave));
 			BannerCol = E.B ? Hex(TEXT("ff6a6a")) : Hex(TEXT("7fd6ff"));

@@ -73,6 +73,8 @@ private:
 	void PaintScreens(FCanvas& C) const;   // 부적 고르기, 조커 도감, 골드 강화 창
 	void PaintTree(FCanvas& C) const;      // 스킬 트리 창
 	void PaintHandGuide(FCanvas& C) const; // 왼쪽 족보 패널
+	void PaintHud(FCanvas& C) const;       // 위쪽 상태 띠 (D-119)
+	void PaintCloseButton(FCanvas& C, const FLinearColor& Col) const; // 도감·트리 창 닫기 버튼
 	void PaintMenu(FCanvas& C) const;      // Esc 메뉴 창
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
@@ -203,6 +205,11 @@ private:
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
+	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)
+	float PowerRef = 0.f;                  // 이번 웨이브 시작 때 판 위력 (위쪽 띠의 ±%)
+	// 위력 정보 (D-119): 그릴 때 한 번 계산해 패널·타워 정보가 같이 쓴다
+	mutable std::vector<std::pair<int, float>> PowerList; // 타워 칸 키, 위력 (큰 것부터)
+	mutable float PowerSum = 0.f, PowerGain = 1.f;
 	bool bTree = false;                    // 스킬 트리 화면 (K)
 	bool bUpg = false;                     // 골드 강화 화면 (U)
 	int32 TreeBuyId = -1;                  // 방금 찍은 노드 (연출)

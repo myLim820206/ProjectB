@@ -260,6 +260,8 @@ double TowerPower(const FPDTowerStats& S);
 // 봇(Tests/core_test.cpp)은 Weight 로 사거리 안 길 칸 수를 곱한다
 using FPDPowerWeight = std::function<double(const FPDTower& T, float Range)>;
 double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
+// 타워 하나의 몫 (SumBoardPower 의 한 항): 조커 어림 배율까지
+double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
 // 판 위력 어림 (D-107, 화면 비교용): 사거리·적 위치는 보지 않는다
 float BoardPower(FPDTowerMap Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
 
@@ -400,6 +402,13 @@ public:
 	struct FPowerPreview { float Before = 0.f, After = -1.f; };
 	FPowerPreview PreviewPower(EPowerAction Action, int Idx) const;
 	float Power() const { return BoardPower(Towers, CharmMask(), &Mods); }
+	// 화면 위력 정보 (D-119): 타워마다 위력(초당 피해 어림), 큰 것부터. first = 칸 키
+	std::vector<std::pair<int, float>> TowerPowers() const;
+	float SynergyGain() const; // 족보 덤: 지금 판 위력 / 족보·연쇄·조커 효과가 없을 때 위력
+	int WaveLeft() const { return (int)(Enemies.size() + Pending.size()); } // 이번 웨이브 남은 적 (나올 적 포함)
+	int WaveTotal = 0;                                                    // 이번 웨이브 적 수 (분열·소환 제외)
+	int NextBossWave() const { const int W = Phase == EPDPhase::Wave ? Wave : Wave + 1; return (W + 4) / 5 * 5; } // 지금 또는 다음 보스 웨이브
+	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;

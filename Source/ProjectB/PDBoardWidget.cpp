@@ -330,7 +330,16 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		}
 		return;
 	}
-	if (bCodex) { bCodex = false; return; }
+	if (bCodex) // 도감 (D-119): 카드 클릭 = 크게 보기, 닫기 버튼·오른쪽 클릭 = 닫기
+	{
+		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bCodex = false; return; }
+		for (int32 K = 0; K < (int32)EPDJoker::Count; ++K)
+		{
+			const FVector2f C0 = CodexCardPos(K);
+			if (InRect(P, C0.X, C0.Y, CdxCardW, CdxCardH)) { CodexSel = K; UiSound(EPDSound::Move); }
+		}
+		return;
+	}
 	if (bUpg)
 	{
 		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
@@ -343,6 +352,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (bTree)
 	{
+		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bTree = false; return; }
 		const int32 Id = TreeHoverAt(P);
 		if (Id >= 0 && !Game.BuyNode(Id)) UiSound(EPDSound::Denied);
 		return;
@@ -362,6 +372,10 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; }
 	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
+	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; Sel = -1; return; }
+	// 위쪽 띠 버튼 (D-119): 속도, 설정
+	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1; UiSound(EPDSound::Move); return; }
+	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bSettings = true; SetSel = 0; Sel = -1; return; }
 	// 조커 합치기 버튼 (같은 조커끼리, D-114): 마우스가 그 조커들 위나 버튼 자리에 있을 때만
 	if (!bRight)
 	{
@@ -438,6 +452,7 @@ void SPDBoardWidget::RestartRun()
 	Game.NewGame(true);
 	Sel = -1;
 	bTree = bUpg = bCodex = bMenu = bSettings = false;
+	PowerRef = 0.f;
 	PickCells.clear();
 	Particles.Empty();
 	Flares.Empty();
@@ -506,7 +521,14 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		if (K == EKeys::Escape) { OpenMenu(); return FReply::Handled(); }
 		return FReply::Unhandled();
 	}
-	if (bCodex) { if (K == EKeys::J || K == EKeys::Escape) bCodex = false; return FReply::Handled(); }
+	if (bCodex)
+	{
+		if (K == EKeys::J || K == EKeys::Escape) bCodex = false;
+		else if (K == EKeys::Left || K == EKeys::A) CodexSel = (CodexSel + 9) % 10; // 화살표로 넘겨 보기
+		else if (K == EKeys::Right || K == EKeys::D) CodexSel = (CodexSel + 1) % 10;
+		else if (K == EKeys::Up || K == EKeys::Down || K == EKeys::W || K == EKeys::S) CodexSel = (CodexSel + 5) % 10;
+		return FReply::Handled();
+	}
 	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
 	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
 	if (!PickCells.empty())

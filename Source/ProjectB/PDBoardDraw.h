@@ -5,6 +5,7 @@
 #pragma once
 
 #include "PDBoardWidget.h"
+#include "PDIcons.h"
 
 #include "Fonts/FontMeasure.h"
 #include "Framework/Application/SlateApplication.h"
@@ -24,13 +25,17 @@ constexpr float DesignH = 720.f;
 constexpr float LX = 16.f, LW = 232.f; // 왼쪽 족보 패널
 constexpr float CS = 48.f;          // 칸 크기
 constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
-constexpr float FY = 24.f;
-constexpr float HandY = FY + Rows * CS + 26.f;
-constexpr float CardW = 66.f, CardH = 92.f;
+constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
+constexpr float FY = 74.f;
+constexpr float HandY = FY + Rows * CS + 14.f;
+constexpr float CardW = 70.f, CardH = 98.f;
 constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
 constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
-constexpr float RBtnX = RX + 12.f, RBtnW = PW - 24.f; // 오른쪽 패널 버튼 줄
-constexpr float StartBtnY = FY + 92.f, StartBtnH = 38.f;
+constexpr float RBtnX = RX, RBtnW = PW;     // 오른쪽 패널 버튼 줄
+constexpr float PowCardH = 146.f;           // 판 위력 카드 (오른쪽 맨 위)
+constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 46.f;
+constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 22.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
+constexpr float HelpX = DesignW - 110.f, HelpY = DesignH - 22.f, HelpW = 94.f, HelpH = 18.f; // "? 도움말" (마우스를 올리면 키 안내)
 constexpr float TwoPi = 6.2831853f;
 
 inline FLinearColor Hex(const TCHAR* InHex, float Alpha = 1.f)
@@ -382,11 +387,17 @@ constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.
 constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
 const int32 UpgSteps[4] = {1, 10, 100, UpgradeMax};
 inline FVector2f UpgButtonPos(int Row, int K) { return FVector2f(UpgRowX + UpgRowW - 4 * (UpgBtnW + 8.f) + K * (UpgBtnW + 8.f), UpgRowY + Row * UpgRowH + (UpgRowH - UpgBtnH) / 2.f); }
-// 트리·강화 버튼 (오른쪽 패널, 웨이브 시작 버튼 아래 나란히), 메뉴 버튼 (그 아래)
-constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 30.f;
-constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = 30.f;
-constexpr float MenuBtnX = RBtnX, MenuBtnY = TreeBtnY + TreeBtnH + 8.f, MenuBtnW = RBtnW, MenuBtnH = 28.f;
-constexpr float RTopH = MenuBtnY + MenuBtnH + 12.f - FY; // 오른쪽 위 패널 높이
+// 웨이브 시작 버튼 아래 2×2 버튼 (D-119): 트리 K · 강화 U / 도감 J · 메뉴 Esc
+constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 36.f;
+constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = TreeBtnH;
+constexpr float CodexBtnX = RBtnX, CodexBtnY = TreeBtnY + TreeBtnH + 8.f, CodexBtnW = TreeBtnW, CodexBtnH = TreeBtnH;
+constexpr float MenuBtnX = UpgOpenX, MenuBtnY = CodexBtnY, MenuBtnW = TreeBtnW, MenuBtnH = TreeBtnH;
+constexpr float CharmY = MenuBtnY + MenuBtnH + 12.f; // 부적 칸
+// 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
+constexpr float CdxCardX = 16.f, CdxCardY = 76.f, CdxCardW = 164.f, CdxCardH = 304.f, CdxGapX = 8.f, CdxGapY = 12.f;
+constexpr float CdxDetX = 884.f, CdxDetW = 380.f;
+constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
+inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
 enum class EMenuItem : uint8_t { Resume, NewGame, Settings, Quit, Count };
 constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
@@ -445,6 +456,28 @@ inline FString ShortNum(float V)
 	if (V >= 1e4f) return FString::Printf(TEXT("%.0fk"), V / 1e3f);
 	if (V >= 1e3f) return FString::Printf(TEXT("%.1fk"), V / 1e3f);
 	return FString::FromInt(FMath::Max(1, FMath::RoundToInt(V)));
+}
+// 천 단위 쉼표: 12345 → 12,345
+inline FString CommaNum(int64 V)
+{
+	FString S = FString::Printf(TEXT("%lld"), V < 0 ? -V : V);
+	for (int32 I = S.Len() - 3; I > 0; I -= 3) S.InsertAt(I, TEXT(','));
+	return V < 0 ? TEXT("-") + S : S;
+}
+// 도감 카드의 작은 족보 알약용 줄임말
+inline const TCHAR* HandChip(EPDHand H)
+{
+	switch (H)
+	{
+	case EPDHand::RoyalFlush: return TEXT("로열");
+	case EPDHand::Five: return TEXT("파이브");
+	case EPDHand::StraightFlush: return TEXT("스티플");
+	case EPDHand::FullHouse: return TEXT("풀하");
+	case EPDHand::Straight: return TEXT("스트");
+	case EPDHand::TwoPair: return TEXT("투페어");
+	case EPDHand::Pair: return TEXT("페어");
+	default: return HandName(H);
+	}
 }
 } // namespace PDDraw
 
@@ -820,6 +853,20 @@ struct SPDBoardWidget::FCanvas
 		Text(Title, DesignW / 2.f, 240.f, Col, 34.f, 1, true);
 		for (int32 I = 0; I < Body.Num(); ++I) Text(Body[I], DesignW / 2.f, 290.f + I * 26.f, Hex(TEXT("cfd8e6")), 14.f, 1);
 		Text(Foot, DesignW / 2.f, 300.f + Body.Num() * 26.f + 50.f, Hex(TEXT("ffd96a")), 18.f, 1);
+	}
+	// 트리 노드 아이콘 (D-119, PDIcons.h): 선 묶음 + 광대 모자·네 무늬는 직접 그림
+	void Icon(const PDIcon::FIcon& I, const FLinearColor& Col, float Th, float Gk)
+	{
+		for (const PDIcon::FLine& L : I.Lines) Glow(L, Col, Th, Gk);
+		if (I.Extra == PDIcon::EExtra::Hat) JesterHat(I.HatC.X, I.HatC.Y, I.HatR, Col, Th, Gk);
+		else if (I.Extra == PDIcon::EExtra::Suits) IconSuits(I.HatC.X, I.HatC.Y, I.HatR, Col, Th, Gk);
+	}
+	void IconSuits(float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk) // 잡식가: 네 무늬
+	{
+		Shape(EPDSuit::Spade, CX - 0.48f * R, CY - 0.48f * R, 0.4f * R, Col, Th, Gk);
+		Shape(EPDSuit::Heart, CX + 0.48f * R, CY - 0.48f * R, 0.4f * R, Col, Th, Gk);
+		Shape(EPDSuit::Diamond, CX - 0.48f * R, CY + 0.48f * R, 0.4f * R, Col, Th, Gk);
+		Shape(EPDSuit::Club, CX + 0.48f * R, CY + 0.48f * R, 0.4f * R, Col, Th, Gk);
 	}
 	// 버튼 위 판 위력 비교 (D-107): "판 위력 1.2k → 1.6k (+27%)" 오르면 초록, 내리면 빨강. 누를 수 없으면 안 그림
 	void PowerBadge(const FPDGame::FPowerPreview& P, float X, float Y)
