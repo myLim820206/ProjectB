@@ -40,11 +40,9 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ACameraActor> WorldCamera;
 
-	// 이펙트 종류별 나이아가라 시스템 (Content/FX/NS_PD_*). 없으면 nullptr
+	// 이펙트 종류별 나이아가라 시스템 (Content/FX/NS_PD_*). 없는 칸은 nullptr
 	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraSystem> FxHit;
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraSystem> FxDeath;
+	TArray<TObjectPtr<UNiagaraSystem>> FxSystems; // SPDBoardWidget::EWorldFx 순서
 
 	// 합성한 PCM 캐시 (소리 종류별로 한 번만 합성)
 	TMap<int32, TArray<uint8>> PcmCache;

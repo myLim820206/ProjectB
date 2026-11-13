@@ -1033,6 +1033,21 @@ void SPDBoardWidget::AddShards(FVector2f P, int N, FLinearColor Col, float Speed
 }
 
 // 발사체마다 다른 타격 효과 (Power: 1 약 ~ 6 강, 레벨·족보·조커·치명타로 커진다)
+// 발사체 → 월드 타격 이펙트 무리 (D-094): 방향 불꽃, 폭발, 서리, 전기, 반짝이, 별빛 터짐
+static SPDBoardWidget::EWorldFx ImpactWorldFx(EPDShot K)
+{
+	using W = SPDBoardWidget::EWorldFx;
+	switch (K)
+	{
+	case EPDShot::Laser: case EPDShot::Bullet: case EPDShot::Arrow: case EPDShot::Blade: return W::ImpSpark;
+	case EPDShot::Missile: case EPDShot::Cluster: case EPDShot::Shell: return W::ImpBlast;
+	case EPDShot::Orb: return W::ImpFrost;
+	case EPDShot::Arc: case EPDShot::JokerLaser: case EPDShot::Grin: case EPDShot::Crescent: return W::ImpZap;
+	case EPDShot::Comet: case EPDShot::StarComet: case EPDShot::Nova: case EPDShot::Wave: return W::ImpStarburst;
+	default: return W::ImpGlitter; // 별, 로열, 광대, 모자 장수, 희비극, 할리퀸, 지휘봉
+	}
+}
+
 void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColor Col, int32 Lv, float Power)
 {
 	const float Pw = FMath::Clamp(Power, 1.f, 6.f), Ang = FMath::Atan2(Dir.Y, Dir.X);
@@ -1199,15 +1214,18 @@ void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColo
 		break;
 	}
 	if (Pw >= 5.f) Shake = FMath::Max(Shake, 0.04f + 0.02f * (Pw - 5.f));
+	// 월드 층: 무리별 나이아가라 (♦ 도탄은 맞은 반대쪽으로 튄다)
+	PushWorldFx(ImpactWorldFx(K), P, Col, Pw, K == EPDShot::Bullet ? -Dir : Dir);
 }
 
 // 맞는 순간 공통: 작은 흰 심 + 맞은 적 번쩍임 + 피해 숫자
-void SPDBoardWidget::PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLinearColor& Col, float Scale)
+void SPDBoardWidget::PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLinearColor& Col, float Scale, FVector2f Dir)
 {
 	if (WorldFx.Num() >= 64) return; // 한 프레임에 너무 많이 쌓이면 버린다 (나이아가라 폭주 방지)
 	// 판 좌표 → 화면 가운데를 0으로 한 판 좌표. 판은 창 가운데에 맞춰 그리므로 (Offset - 창/2) / 배율 만큼 민다
 	const FVector2f Center = (ViewOffset - ViewSize * 0.5f) / FMath::Max(0.01f, ViewScale);
-	WorldFx.Add({Kind, DesignPos + Center, Col, Scale});
+	const FVector2f D = Dir.GetSafeNormal();
+	WorldFx.Add({Kind, DesignPos + Center, Col, Scale, D.IsNearlyZero() ? FVector2f(0.f, -1.f) : D});
 }
 
 void SPDBoardWidget::HitFx(FVector2f P, float Power, int32 Crits, float Dmg)

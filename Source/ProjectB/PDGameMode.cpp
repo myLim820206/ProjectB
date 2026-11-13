@@ -124,6 +124,13 @@ constexpr float PDCameraDistance = 1000.f;
 // 나이아가라 에셋이 받는 사용자 변수 (에셋을 만들 때 이 이름으로 노출한다)
 const FName PDFxColor(TEXT("User.Color")); // HDR 색 (1 넘으면 블룸)
 const FName PDFxScale(TEXT("User.Scale")); // 크기·세기 배율
+const FName PDFxDir(TEXT("User.Dir"));     // 튀는 방향 (월드, 단위 벡터)
+// SPDBoardWidget::EWorldFx 순서대로 에셋 이름과 HDR 밝기 배율
+const TCHAR* const PDFxNames[] = {TEXT("NS_PD_Hit"), TEXT("NS_PD_Death"), TEXT("NS_PD_ImpSpark"), TEXT("NS_PD_ImpBlast"),
+	TEXT("NS_PD_ImpFrost"), TEXT("NS_PD_ImpZap"), TEXT("NS_PD_ImpGlitter"), TEXT("NS_PD_ImpStarburst")};
+const float PDFxGlow[] = {2.f, 4.f, 3.f, 3.f, 2.5f, 3.f, 2.5f, 3.f}; // 맞음: 흰 불꽃, 죽음: 적 색 크게, 타격: 발사체 색
+static_assert(UE_ARRAY_COUNT(PDFxNames) == (int32)SPDBoardWidget::EWorldFx::Count, "FX name table out of sync");
+static_assert(UE_ARRAY_COUNT(PDFxGlow) == (int32)SPDBoardWidget::EWorldFx::Count, "FX glow table out of sync");
 
 UNiagaraSystem* LoadFx(const TCHAR* Path)
 {
@@ -165,8 +172,9 @@ void APDGameMode::SetupWorldView()
 
 	if (APlayerController* PC = World->GetFirstPlayerController()) PC->SetViewTarget(WorldCamera);
 
-	FxHit = LoadFx(TEXT("/Game/FX/NS_PD_Hit.NS_PD_Hit"));
-	FxDeath = LoadFx(TEXT("/Game/FX/NS_PD_Death.NS_PD_Death"));
+	FxSystems.SetNum((int32)SPDBoardWidget::EWorldFx::Count);
+	for (int32 I = 0; I < FxSystems.Num(); ++I)
+		FxSystems[I] = LoadFx(*FString::Printf(TEXT("/Game/FX/%s.%s"), PDFxNames[I], PDFxNames[I]));
 }
 
 void APDGameMode::UpdateWorldView()
@@ -180,13 +188,10 @@ void APDGameMode::PlayWorldFx()
 	if (!BoardWidget.IsValid()) return;
 	for (const SPDBoardWidget::FWorldFx& Fx : BoardWidget->TakeWorldFx())
 	{
-		UNiagaraSystem* Sys = nullptr;
-		FLinearColor Col = Fx.Col;
-		switch (Fx.Kind)
-		{
-		case SPDBoardWidget::EWorldFx::Hit: Sys = FxHit; Col *= 2.f; break;   // 흰 불꽃, 블룸 받을 만큼 밝게
-		case SPDBoardWidget::EWorldFx::Death: Sys = FxDeath; Col *= 4.f; break; // 적 색으로 크게 번짐
-		}
+		const int32 K = (int32)Fx.Kind;
+		UNiagaraSystem* Sys = FxSystems.IsValidIndex(K) ? FxSystems[K].Get() : nullptr;
+		FLinearColor Col = Fx.Col * PDFxGlow[FMath::Clamp(K, 0, (int32)SPDBoardWidget::EWorldFx::Count - 1)];
+		Col.A = 1.f;
 		if (!Sys) continue;
 		const FVector Loc(0.f, Fx.Pos.X, -Fx.Pos.Y);
 		UNiagaraComponent* NC = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, Sys, Loc, FRotator::ZeroRotator, FVector(1.f),
@@ -194,6 +199,7 @@ void APDGameMode::PlayWorldFx()
 		if (!NC) continue;
 		NC->SetVariableLinearColor(PDFxColor, Col);
 		NC->SetVariableFloat(PDFxScale, Fx.Scale);
+		NC->SetVariableVec3(PDFxDir, FVector(0.f, Fx.Dir.X, -Fx.Dir.Y));
 	}
 }
 
