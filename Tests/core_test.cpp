@@ -211,6 +211,20 @@ static void UnitTests()
 		G.TakeReward(0);
 		Expect(G.Gold - G0 == 50, "골드 보상 10 + 웨이브 × 4");
 	}
+	{ // 판 위력 비교 (D-107): 합성 버튼을 누르기 전 지금 / 누른 뒤
+		FPDGame G(14);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Phase = EPDPhase::Build;
+		G.Towers.clear();
+		Put(G.Towers, 2, 0, C(9, He));
+		Put(G.Towers, 3, 0, C(9, EPDSuit::Spade));
+		G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
+		const auto P = G.PreviewPower(FPDGame::EPowerAction::Fuse, 0);
+		const auto Bad = G.PreviewPower(FPDGame::EPowerAction::Fuse, 99);
+		Expect(G.Synergies.size() == 1 && P.Before > 0.f && P.After > 0.f && std::fabs(P.Before - G.Power()) < 1e-3f && Bad.After < 0.f && G.Towers.size() == 2,
+			"합성 전 판 위력 비교: " + std::to_string((int)P.Before) + " → " + std::to_string((int)P.After) + " (원본 판은 그대로)");
+	}
 	{ // 부적 창은 5웨이브마다 (D-101): 그 사이 웨이브는 창 없이 5초 뒤 다음 웨이브
 		FPDGame G(12);
 		G.NewGame(true);

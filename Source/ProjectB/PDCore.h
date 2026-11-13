@@ -236,6 +236,9 @@ struct FPDTowerStats
 	float CritFactor() const { return 1.f + Crit * (CritMult - 1.f); } // 기대 배율
 };
 FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
+// 판 위력 어림 (D-107): 타워마다 피해 × 연사 × 치명타 기대 × (1 + 범위 × 0.8) 의 합. 조커 능력은 어림 배율
+// (희비극 ×1.8, 스타 ×4, 방울 ×1.3, 웃는 가면은 따라 하는 타워). 사거리·적 위치는 보지 않는다 (화면 비교용)
+float BoardPower(FPDTowerMap Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
 
 // ---------------------------------------------------------------- 길
 struct FPDPoint
@@ -344,6 +347,11 @@ public:
 	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
 	std::vector<FPDFeed> FeedTargets() const;        // 조커에 먹일 수 있는 족보 (족보마다 하나)
 	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치)
+	// 버튼을 누르기 전 판 위력 비교 (D-107): 지금 / 누른 뒤 (기본 칸에 합칠 때). 누를 수 없으면 After < 0
+	enum class EPowerAction : uint8_t { Fuse, JokerFuse, Feed };
+	struct FPowerPreview { float Before = 0.f, After = -1.f; };
+	FPowerPreview PreviewPower(EPowerAction Action, int Idx) const;
+	float Power() const { return BoardPower(Towers, CharmMask(), &Mods); }
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;

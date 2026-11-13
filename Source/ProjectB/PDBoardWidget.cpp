@@ -1061,6 +1061,16 @@ void SPDBoardWidget::HandleEvents()
 
 namespace
 {
+FString ShortNum(float V); // 아래에 정의
+// 버튼 위 판 위력 비교 (D-107): "판 위력 1.2k → 1.6k (+27%)" 오르면 초록, 내리면 빨강
+template <class TCanvas> static void PowerBadge(TCanvas& F, const FPDGame::FPowerPreview& P, float X, float Y)
+{
+	if (P.After < 0.f || P.Before <= 0.f) return;
+	const float Pct = (P.After / P.Before - 1.f) * 100.f;
+	const FLinearColor Col = Pct >= 0.5f ? Hex(TEXT("9cffb0")) : Pct <= -0.5f ? Hex(TEXT("ff6a6a")) : Hex(TEXT("cfd8e6"));
+	F.Badge(FString::Printf(TEXT("판 위력 %s → %s (%s%.0f%%)"), *ShortNum(P.Before), *ShortNum(P.After), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct), X, Y, Col, 1.f);
+}
+
 FString ShortNum(float V) // 1234 → 1.2k, 3456789 → 3.5M
 {
 	if (V >= 1e9f) return FString::Printf(TEXT("%.1fB"), V / 1e9f);
@@ -2303,6 +2313,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
 			F.TextCentered(TEXT("합성"), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.8f), 10.f, true);
+			if (bHov && PickCells.empty()) PowerBadge(F, G.PreviewPower(FPDGame::EPowerAction::Fuse, I), B.X, B.Y - FuseH - 6.f);
 		}
 	// 먹이기 버튼: 마우스를 올리면 먹일 칸과 얻을 경험치
 	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
@@ -2325,6 +2336,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 				while (Lv < JokerMaxLevel && Xp >= JokerXpNeed(Lv)) { Xp -= JokerXpNeed(Lv); ++Lv; }
 				const FVector2f J = CellCenter(Fd.Joker);
 				F.Badge(FString::Printf(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), J.X, J.Y - CS * 0.75f, JokerPink, 1.f);
+				PowerBadge(F, G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
 			}
 			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
@@ -2338,6 +2350,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			const bool bHov = FMath::Abs(Mouse.X - B.X) <= JokerBtnW / 2.f && FMath::Abs(Mouse.Y - B.Y) <= JokerBtnH / 2.f;
 			const bool bKnown = (G.Discovered >> (int)Gr.Result) & 1u;
 			if (bHov) for (int K : Gr.Cells) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f)); }
+			if (bHov && PickCells.empty()) PowerBadge(F, G.PreviewPower(FPDGame::EPowerAction::JokerFuse, (int)(&Gr - JGroups.data())), B.X, B.Y - JokerBtnH - 6.f);
 			F.Box(B.X - JokerBtnW / 2.f, B.Y - JokerBtnH / 2.f, JokerBtnW, JokerBtnH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - JokerBtnW / 2.f, B.Y - JokerBtnH / 2.f, JokerBtnW, JokerBtnH, 7.f), JokerPink, bHov ? 1.8f : 1.3f, 1.f + 0.8f * Pulse);
 			F.TextCentered(FString::Printf(TEXT("조커: %s"), bKnown ? JokerName((int)Gr.Result) : TEXT("???")), B.X, B.Y, JokerPink, 10.f, true, JokerBtnW - 6.f);

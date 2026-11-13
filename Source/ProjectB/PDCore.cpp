@@ -987,6 +987,48 @@ bool FPDGame::Place(int HandIdx, int X, int Y)
 	return true;
 }
 
+float BoardPower(FPDTowerMap Towers, uint32_t Charms, const FPDTreeMods* Tree)
+{
+	ApplyEffects(Towers, Charms, Tree);
+	auto Base = [&](const FPDTower& T) { const FPDTowerStats S = TowerStats(T, Charms, Tree); return S.Dmg * S.Rate * S.CritFactor() * (1.f + S.Splash * 0.8f); };
+	float Sum = 0.f;
+	for (const auto& KV : Towers)
+	{
+		const FPDTower& T = KV.second;
+		float V = Base(T);
+		if (T.IsJoker())
+		{
+			switch ((EPDJoker)T.Joker)
+			{
+			case EPDJoker::Comedy: V *= 1.8f; break; // 두 발
+			case EPDJoker::Star: V *= 4.f; break;    // 모든 적
+			case EPDJoker::Bell: V *= 1.3f; break;   // 멈춤
+			case EPDJoker::Mask: if (T.Eff.CopyKey >= 0 && Towers.count(T.Eff.CopyKey)) V = std::max(V, Base(Towers.at(T.Eff.CopyKey))); break; // 옆 타워 따라 함
+			default: break;
+			}
+		}
+		Sum += V;
+	}
+	return Sum;
+}
+
+FPDGame::FPowerPreview FPDGame::PreviewPower(EPowerAction Action, int Idx) const
+{
+	FPowerPreview P;
+	P.Before = Power();
+	FPDGame Copy = *this; // 사본에서 눌러 본다 (소리·사건은 버려짐)
+	Copy.bMuted = true;
+	bool bOk = false;
+	switch (Action)
+	{
+	case EPowerAction::Fuse: bOk = Copy.Fuse(Idx); break;
+	case EPowerAction::JokerFuse: bOk = Copy.JokerFuse(Idx); break;
+	case EPowerAction::Feed: bOk = Copy.Feed(Idx); break;
+	}
+	if (bOk) P.After = Copy.Power();
+	return P;
+}
+
 bool FPDGame::CanFuse(int SynergyIdx) const
 {
 	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return false;
