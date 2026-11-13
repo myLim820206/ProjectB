@@ -808,7 +808,107 @@ def render_bosses(out, S=4):
     img.resize((W, H), Image.LANCZOS).save(out)
 
 
+# ---------------------------------------------------------------- UI 개선 시안 (D-119): 1280×720 한 화면
+def render_ui_mock(out, S=2):
+    W, H = 1280, 720
+    img = Image.new('RGB', (W * S, H * S), BG)
+    glow = Image.new('RGB', img.size, (0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    HEX = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+    CY, GOLD, RED, GRN, PNK, DIM, FG, GRY = HEX('7fd6ff'), HEX('ffd96a'), HEX('ff6a6a'), HEX('9cffb0'), HEX('ff9ad5'), HEX('5f6878'), HEX('cfd8e6'), HEX('8a94a6')
+    lines, texts, fills = [], [], []
+
+    def rr(x, y, w, h, r, c, wd=1.6):
+        P = []
+        for (cx, cy, a0) in ((x + w - r, y + r, -90), (x + w - r, y + h - r, 0), (x + r, y + h - r, 90), (x + r, y + r, 180)):
+            for k in range(7):
+                a = math.radians(a0 + k * 15)
+                P.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
+        P.append(P[0])
+        lines.append((P, c, wd))
+
+    def ln(pts, c, wd=1.6): lines.append((pts, c, wd))
+    def tx(x, y, s, c, px=12, anchor='lm'): texts.append((x, y, s, c, px, anchor))
+    def box(x, y, w, h, c, a): fills.append((x, y, w, h, c, a))
+
+    # 판 (가운데)
+    FX, FY, CS = 262, 74, 48
+    for i in range(17): ln([(FX + i * CS, FY), (FX + i * CS, FY + 10 * CS)], (24, 30, 44), 1)
+    for j in range(11): ln([(FX, FY + j * CS), (FX + 16 * CS, FY + j * CS)], (24, 30, 44), 1)
+    path = [(0, 2), (5, 2), (5, 6), (10, 6), (10, 1), (15, 1), (15, 8)]
+    ln([(FX + x * CS + CS / 2, FY + y * CS + CS / 2) for x, y in path], (40, 70, 90), 10)
+    rr(FX, FY, 16 * CS, 10 * CS, 8, CY, 1.4)
+    for (x, y, col, s) in ((7, 3, GOLD, '7'), (8, 3, GOLD, '8'), (9, 3, GOLD, '9'), (7, 4, HEX('7fb8ff'), '2'), (11, 4, PNK, 'J')):
+        rr(FX + x * CS + 4, FY + y * CS + 4, CS - 8, CS - 8, 5, col, 1.6)
+        tx(FX + x * CS + CS / 2, FY + y * CS + CS / 2, s, col, 18, 'mm')
+    # 위쪽 HUD 띠
+    rr(16, 12, W - 32, 50, 10, CY, 1.2)
+    tx(34, 30, 'WAVE 12', CY, 22)
+    tx(34, 50, '다음 보스  20웨이브 · 돌진 기사', HEX('ffa86a'), 10)
+    tx(330, 28, '남은 적 23 / 64', FG, 11)
+    rr(330, 40, 420, 10, 5, CY, 1.2); box(330, 40, 420 * 0.64, 10, CY, 0.35)
+    tx(820, 36, '목숨 18', RED, 17); tx(930, 36, '골드 1,240', GOLD, 17)
+    tx(1060, 26, '판 위력', GRY, 10); tx(1060, 46, '3.4k', GRN, 20); tx(1124, 46, '+12%', GRN, 11)
+    rr(1184, 22, 30, 30, 8, CY, 1.2); tx(1199, 37, 'x2', CY, 11, 'mm')
+    rr(1222, 22, 30, 30, 8, GRY, 1.2); tx(1237, 37, '=', GRY, 14, 'mm')
+    # 왼쪽 족보 판 (간결)
+    rr(16, 74, 232, 480, 10, CY, 1.2); tx(30, 94, '족보', CY, 15); tx(234, 94, '판 위', DIM, 9, 'rm')
+    rows = [('로열', HEX('fff4d6'), '전부 x2.5', 0), ('파이브 카드', GOLD, '공격 x5', 0), ('스트레이트 플러시', PNK, '혜성', 0), ('포카드', RED, '공격 x3.5', 0),
+            ('풀하우스', HEX('ffa86a'), '범위 · 연사', 0), ('플러시', HEX('b48cff'), '범위 +', 1), ('스트레이트', HEX('6a8cff'), '연사 +', 2), ('트리플', GRN, '공격 x2', 0),
+            ('투 페어', CY, '사거리 +', 0), ('원 페어', FG, '공격 x1.5', 1)]
+    for k, (n, c, e, cnt) in enumerate(rows):
+        y = 122 + k * 42
+        if cnt: box(24, y - 15, 216, 30, c, 0.08)
+        ln([(34, y - 7), (34, y + 7)], c, 3)
+        tx(46, y - 4, n, c if cnt else GRY, 12); tx(46, y + 10, e, DIM, 9)
+        if cnt: rr(206, y - 9, 26, 18, 9, c, 1.2); tx(219, y, 'x%d' % cnt, c, 10, 'mm')
+    # 오른쪽 패널 (폭 220)
+    RX, PW = 1044, 220
+    rr(RX, 74, PW, 186, 10, GRN, 1.2); tx(RX + 12, 92, '판 위력', GRN, 13); tx(RX + PW - 10, 92, '초당 피해', DIM, 9, 'rm')
+    tx(RX + 12, 122, '3,412', GRN, 26); tx(RX + 124, 116, '족보 덤 x1.8', FG, 10); tx(RX + 124, 132, '연쇄 x1.25', FG, 10)
+    for k, (n, v, c, s) in enumerate((('지휘봉 Lv12', 0.95, PNK, '1.4k'), ('플러시 7 8 9', 0.62, HEX('b48cff'), '880'), ('다이아 9 Lv3', 0.4, GOLD, '560'))):
+        y = 158 + k * 32
+        tx(RX + 12, y, n, c, 10); tx(RX + PW - 10, y, s, c, 10, 'rm')
+        rr(RX + 12, y + 9, PW - 24, 8, 4, c, 1.0); box(RX + 12, y + 9, (PW - 24) * v, 8, c, 0.35)
+    rr(RX, 272, PW, 48, 12, CY, 2.0); box(RX, 272, PW, 48, CY, 0.08); tx(RX + PW / 2, 291, '웨이브 13 시작', CY, 15, 'mm'); tx(RX + PW / 2, 309, 'Space', DIM, 9, 'mm')
+    for k, (n, key, c) in enumerate((('트리', 'K', HEX('b48cff')), ('강화', 'U', GOLD), ('도감', 'J', PNK), ('메뉴', 'Esc', GRY))):
+        x, y = RX + (k % 2) * 113, 332 + (k // 2) * 44
+        rr(x, y, 107, 36, 10, c, 1.4); tx(x + 14, y + 18, n, c, 13); tx(x + 96, y + 18, key, DIM, 9, 'rm')
+    rr(RX, 428, PW, 92, 10, GOLD, 1.0); tx(RX + 12, 446, '부적', GOLD, 12); tx(RX + PW - 10, 446, '다음 15웨이브', DIM, 9, 'rm')
+    for k in range(5):
+        cx = RX + 26 + k * 42
+        if k < 2: rr(cx - 16, 466, 32, 32, 16, GOLD, 1.6); tx(cx, 482, ['H', '7'][k], GOLD, 12, 'mm')
+        else: rr(cx - 16, 466, 32, 32, 16, DIM, 1.0)
+    tx(RX + 12, 510, '하트 애호가 · 행운의 7', GRY, 9)
+    # 아래: 손패 (크게) + 덱
+    for k, (r, c, s) in enumerate((('K', HEX('7fb8ff'), 'S'), ('Q', RED, 'H'), ('7', GOLD, 'D'), ('3', HEX('8affc4'), 'C'), ('A', HEX('7fb8ff'), 'S'))):
+        x = 470 + k * 84
+        y = 572 if k != 1 else 560
+        rr(x, y, 70, 98, 10, c, 2.0 if k == 1 else 1.4); tx(x + 35, y + 38, r, c, 24, 'mm')
+        sym = {'S': suit('spade'), 'H': suit('heart'), 'D': suit('diamond'), 'C': suit('club')}[s]
+        for pts in sym(x + 35, y + 72, 9): ln(pts, c, 1.4)
+    tx(330, 600, '손패 5/7', FG, 12); tx(330, 620, '덱 34장', GRY, 10)
+    tx(W - 20, 702, '?  도움말 (H)', DIM, 10, 'rm')
+    # 타워 정보 (위력 포함) - 지휘봉에 마우스
+    bx, by = FX + 12 * CS + 8, FY + 3 * CS + 10
+    box(bx, by, 196, 92, (6, 6, 11), 1.0); rr(bx, by, 196, 92, 8, PNK, 1.4)
+    tx(bx + 12, by + 16, '지휘봉 · Lv12', PNK, 12); tx(bx + 12, by + 36, '위력 1.4k/초 (판의 41%)', GRN, 11)
+    tx(bx + 12, by + 54, '공격 128 · 연사 2.4 · 사거리 3.2', FG, 10); tx(bx + 12, by + 72, '주변 타워 연사 +40%', DIM, 10)
+    # 그리기
+    base = ImageDraw.Draw(img)
+    for (x, y, w, h, c, a) in fills: base.rectangle([x * S, y * S, (x + w) * S, (y + h) * S], fill=tuple(int(v * a) for v in c))
+    for (pts, c, wd) in lines: gd.line([(x * S, y * S) for x, y in pts], fill=c, width=max(1, int(wd * S * 3)))
+    img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S)).point(lambda v: int(v * 0.6)))
+    d = ImageDraw.Draw(img)
+    for (pts, c, wd) in lines: d.line([(x * S, y * S) for x, y in pts], fill=c, width=max(1, int(wd * S)))
+    for (x, y, s, c, px, anchor) in texts:
+        if s: d.text((x * S, y * S), s, fill=c, font=KFONT(px * S), anchor=anchor)
+    img.resize((W, H), Image.LANCZOS).save(out)
+
+
 if __name__ == '__main__':
+    if len(sys.argv) >= 3 and sys.argv[1] == 'uimock':  # python neon.py uimock 출력.png
+        render_ui_mock(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 3 and sys.argv[1] == 'bosses':  # python neon.py bosses 출력.png
         render_bosses(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 3 and sys.argv[1] == 'fxshapes':  # python neon.py fxshapes 출력.png
