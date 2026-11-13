@@ -295,6 +295,7 @@ bool SPDBoardWidget::SynRevealed(int32 I) const
 {
 	if (I < 0 || I >= (int32)Game.Synergies.size()) return false;
 	if (!PickCells.empty() && !bPickJoker && FindPickIndex() == I) return true; // 합성 칸 고르는 중인 족보
+	if (Sel >= 0) return false; // 손패 카드를 고른 동안은 합성 버튼·표시를 띄우지 않는다 (놓기에 집중, D-132)
 	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 	const std::vector<int>& Cells = Game.Synergies[I].Cells;
 	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
