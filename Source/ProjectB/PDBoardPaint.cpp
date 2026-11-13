@@ -713,7 +713,24 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I)) continue;
-			if (!SynRevealed(I)) { F.Glow(FCanvas::CirclePoints(FuseDotCenter(G.Synergies, I), 2.6f, 10), Gold, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 금색 점 (D-113)
+			if (!SynRevealed(I)) // 평소 (D-113, D-126): 재료 칸 모서리에 금색 꺾쇠가 숨 쉬듯 반짝 + 아래 변에 큰 금색 점
+			{
+				const float Br = 0.55f + 0.45f * FMath::Sin(Clock * 3.f + I * 0.9f);
+				for (int K : G.Synergies[I].Cells)
+				{
+					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+					const float A = 3.f, B = CS - 3.f, L = 10.f;
+					const FLinearColor Cc = WithAlpha(Gold, 0.55f + 0.45f * Br);
+					F.Glow({C0 + FVector2f(A, A + L), C0 + FVector2f(A, A), C0 + FVector2f(A + L, A)}, Cc, 1.8f, 0.6f + 0.6f * Br);
+					F.Glow({C0 + FVector2f(B - L, A), C0 + FVector2f(B, A), C0 + FVector2f(B, A + L)}, Cc, 1.8f, 0.6f + 0.6f * Br);
+					F.Glow({C0 + FVector2f(B, B - L), C0 + FVector2f(B, B), C0 + FVector2f(B - L, B)}, Cc, 1.8f, 0.6f + 0.6f * Br);
+					F.Glow({C0 + FVector2f(A + L, B), C0 + FVector2f(A, B), C0 + FVector2f(A, B - L)}, Cc, 1.8f, 0.6f + 0.6f * Br);
+				}
+				const FVector2f D = FuseDotCenter(G.Synergies, I);
+				F.Box(D.X - 3.f, D.Y - 3.f, 6.f, 6.f, WithAlpha(Gold, 0.5f + 0.4f * Br));
+				F.Glow(FCanvas::CirclePoints(D, 4.5f, 14), Gold, 1.8f, 0.9f + 0.6f * Br);
+				continue;
+			}
 			const FVector2f B = FuseButtonCenter(G.Synergies, I);
 			const float BW = FuseBtnW(G.Synergies[I]);
 			const bool bHov = InBox(Mouse, B, BW, FuseH);
@@ -725,8 +742,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				for (int K : G.Synergies[I].Cells)
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.26f : 0.16f) + 0.2f * Wv));
-					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.f : 2.4f, 1.1f + 1.2f * Wv);
+					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.34f : 0.22f) + 0.22f * Wv));
+					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.4f : 2.8f, 1.4f + 1.4f * Wv);
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
 				}
 			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
