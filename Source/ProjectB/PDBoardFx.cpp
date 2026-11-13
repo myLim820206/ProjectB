@@ -390,17 +390,34 @@ static SPDBoardWidget::EWorldFx ImpactWorldFx(EPDShot K)
 }
 
 // 발사체마다 다른 타격 효과 (Power: 1 약 ~ 6 강, 레벨·족보·조커·치명타로 커진다)
+// 타격이 몰릴 때 (D-136): 한 프레임에 맞은 수를 세어, 많으면 작은 섬광·파동을 건너뛰고 입자를 줄인다 (적이 몰리면 하얀 덩어리가 되던 것)
+namespace
+{
+float GPDHitClock = -1.f;
+int32 GPDHitsThisFrame = 0;
+int32 CountHit(float Clock)
+{
+	if (Clock != GPDHitClock) { GPDHitClock = Clock; GPDHitsThisFrame = 0; }
+	return ++GPDHitsThisFrame;
+}
+struct FDmgAcc { float Sum = 0.f, LastShow = -10.f; };
+TMap<int32, FDmgAcc> GPDDmgAcc; // 적 Id → 아직 안 보인 피해 합
+}
+
 void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColor Col, int32 Lv, float Power)
 {
+	const int32 HitN = CountHit(Clock);
+	if (HitN > 24) return; // 한 프레임 24번째 넘는 타격은 효과 없이 (숫자·번쩍임만)
 	const float Pw = FMath::Clamp(Power, 1.f, 6.f), Ang = FMath::Atan2(Dir.Y, Dir.X);
-	const bool bBusy = Particles.Num() > 1800; // 적이 많을 때는 가볍게
-	const float Q = bBusy ? 0.4f : 1.f;        // 파티클 수 배율
+	const bool bBusy = Particles.Num() > 1800 || HitN > 8; // 적이 많거나 타격이 몰리면 가볍게
+	const float Q = bBusy ? 0.35f : 1.f;                    // 파티클 수 배율
 	auto Nq = [&](float N) { return FMath::Max(1, FMath::RoundToInt(N * Q)); };
 	const FLinearColor White = FLinearColor::White, Gold = Hex(TEXT("ffd96a")), Smoke = Hex(TEXT("8a8090"), 0.45f), Cyan = Hex(TEXT("7fd6ff"));
 	const FVector2f Nrm(-Dir.Y, Dir.X);
 	const float Rnd = FMath::FRandRange(0.f, TwoPi);
 	// 파동 하나 더하기: 모양, 갈래/변 수, 시작 크기 → 끝 크기, 늦음, 길이, 굵기, 색, 시작 각, 회전
 	auto Wave = [&](EWave S, int32 N, float R0, float R1, float Delay, float Life, float Th, const FLinearColor& Cl, float Rot, float Spin) {
+		if (HitN > 12 && Delay > 0.f) return; // 몰릴 때는 뒤따르는 파동을 뺀다
 		Rings.Add({P, R0, R1, -Delay, Life, Th, Cl, S, N, Rot, Spin});
 	};
 	switch (K)
@@ -574,8 +591,12 @@ void SPDBoardWidget::PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLine
 // 맞는 순간 공통: 작은 흰 심 + 맞은 적 번쩍임 + 피해 숫자
 void SPDBoardWidget::HitFx(FVector2f P, float Power, int32 Crits, float Dmg)
 {
-	PushWorldFx(EWorldFx::Hit, P, FLinearColor::White, FMath::Clamp(Power, 1.f, 6.f));
-	Flares.Add({P, 0.f, 0.07f, 5.f + 1.5f * FMath::Clamp(Power, 1.f, 6.f), 0.f, FLinearColor::White, 0});
+	const bool bCrowd = GPDHitsThisFrame > 8; // ImpactFx 가 먼저 세어 둔 이번 프레임 타격 수
+	if (!bCrowd) // 몰릴 때는 흰 섬광·월드 맞음을 빼서 덩어리가 지지 않게
+	{
+		PushWorldFx(EWorldFx::Hit, P, FLinearColor::White, FMath::Clamp(Power, 1.f, 6.f));
+		Flares.Add({P, 0.f, 0.07f, 5.f + 1.5f * FMath::Clamp(Power, 1.f, 6.f), 0.f, FLinearColor::White, 0});
+	}
 	// 맞은 적: 가장 가까운 적을 잠깐 하얗게
 	int32 BestId = -1;
 	float BestD = CS * 0.8f;
@@ -586,13 +607,22 @@ void SPDBoardWidget::HitFx(FVector2f P, float Power, int32 Crits, float Dmg)
 		if (D < BestD) { BestD = D; BestId = E.Id; }
 	}
 	if (BestId >= 0) HitFlash.Add(BestId, 0.14f);
-	// 피해 숫자: 치명타는 금색으로 크게 튀어 오른다
-	if (Dmg > 0.f && Floats.Num() < 70)
+	// 피해 숫자 (D-136): 적마다 모아 0.25초에 한 번 합으로 (몰리면 숫자가 겹쳐 못 읽던 것). 치명타는 바로, 금색으로 크게
+	if (Dmg > 0.f)
 	{
 		const bool bCrit = Crits > 0;
-		const FVector2f At = P + FVector2f(FMath::FRandRange(-10.f, 10.f), -12.f);
-		Floats.Add({bCrit ? ShortNum(Dmg) + TEXT("!") : ShortNum(Dmg), At, 0.f, bCrit ? 0.9f : 0.6f, bCrit ? 15.f + 2.f * FMath::Min(Crits, 4) : 11.f,
-			bCrit ? Hex(TEXT("ffd96a")) : WithAlpha(FLinearColor::White, 0.85f)});
+		if (GPDDmgAcc.Num() > 300) GPDDmgAcc.Reset(); // 죽은 적 기록 정리
+		FDmgAcc& A = GPDDmgAcc.FindOrAdd(BestId);
+		A.Sum += Dmg;
+		const bool bShow = bCrit || BestId < 0 || Clock - A.LastShow >= 0.25f;
+		if (bShow && Floats.Num() < 50)
+		{
+			const FVector2f At = P + FVector2f(FMath::FRandRange(-8.f, 8.f), -14.f);
+			Floats.Add({bCrit ? ShortNum(A.Sum) + TEXT("!") : ShortNum(A.Sum), At, 0.f, bCrit ? 0.9f : 0.6f, bCrit ? 15.f + 2.f * FMath::Min(Crits, 4) : 11.f,
+				bCrit ? Hex(TEXT("ffd96a")) : WithAlpha(FLinearColor::White, 0.85f)});
+			A.Sum = 0.f;
+			A.LastShow = Clock;
+		}
 	}
 }
 
