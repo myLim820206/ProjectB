@@ -2251,7 +2251,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			F.Badge(HandLabel(S), P.X, P.Y + 4.f + 13.f * SynLayer(List, Si), HandColor(S.Kind), Alpha);
 		}
 	};
-	// 이름표는 마우스가 올라간 타워의 족보만 (장판 색으로 구분, D-095). 놓기 미리보기는 그대로 보여 줌
+	// 이름표는 마우스가 올라간 타워의 족보만 (장판 색으로 구분, D-099). 놓기 미리보기는 그대로 보여 줌
 	{
 		std::vector<FPDSynergy> Hov;
 		const int HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
