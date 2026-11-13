@@ -353,6 +353,22 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; }
 	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
+	// 조커 합치기 버튼 (같은 조커끼리, D-114): 마우스가 그 조커들 위나 버튼 자리에 있을 때만
+	if (!bRight)
+	{
+		const std::vector<FPDJokerMerge> Ms = Game.JokerMerges();
+		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		for (int32 I = 0; I < (int32)Ms.size(); ++I)
+		{
+			const FVector2f B = MergeButtonCenter(Ms[I].Cells);
+			const bool bRev = std::find(Ms[I].Cells.begin(), Ms[I].Cells.end(), HKey) != Ms[I].Cells.end() || InBox(Mouse, B, MergeW, MergeH);
+			if (!bRev || !InBox(P, B, MergeW, MergeH)) continue;
+			PendingFuseCells.Reset();
+			for (int K : Ms[I].Cells) PendingFuseCells.Add(CellCenter(K));
+			if (!Game.MergeJokers(I)) PendingFuseCells.Reset();
+			return;
+		}
+	}
 	// 조커 합성 버튼
 	if (!bRight)
 		for (int32 I = 0; I < (int32)JGroups.size(); ++I)

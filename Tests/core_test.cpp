@@ -362,6 +362,40 @@ static void UnitTests()
 			Expect(B.Towers.at(CellKey((int)P.X, (int)P.Y)).StunT > 2.f, "파괴자: 가까운 타워 기절");
 		}
 	}
+	{ // 같은 조커끼리 합치기 (D-114), 조커는 먹이가 되지 않음
+		FPDGame G(15);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Phase = EPDPhase::Build;
+		G.Towers.clear();
+		const int Row = FreeRow(G, 5);
+		auto MakeJ = [&](int X, EPDJoker K, float M, int Lv) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = X; T.Y = Row; T.Joker = (int)K; T.Mult = M; T.JLevel = Lv; G.Towers[CellKey(X, Row)] = T; };
+		MakeJ(0, EPDJoker::Clown, 4.f, 3);
+		MakeJ(1, EPDJoker::Clown, 6.f, 5);
+		MakeJ(3, EPDJoker::Hatter, 4.f, 1); // 떨어져 있는 다른 조커
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		auto Ms = G.JokerMerges();
+		const auto Pw = Ms.size() == 1 ? G.PreviewPower(FPDGame::EPowerAction::JokerMerge, 0) : FPDGame::FPowerPreview{};
+		const bool bMerged = Ms.size() == 1 && Ms[0].Cells.size() == 2 && G.MergeJokers(0);
+		int Clowns = 0;
+		float M = 0.f;
+		int Lv = 0;
+		for (const auto& KV : G.Towers) if (KV.second.Joker == (int)EPDJoker::Clown) { Clowns++; M = KV.second.Mult; Lv = KV.second.JLevel; }
+		Expect(bMerged && Clowns == 1 && std::fabs(M - 10.f * JokerMergeBonus) < 1e-4f && Lv == 5 && G.Towers.size() == 2 && Pw.After > 0.f,
+			"같은 광대 둘이 맞닿으면 하나로: 위력 (4+6) × 1.3, 레벨은 높은 쪽 5");
+		// 조커가 족보에 와일드로 끼어도 먹이기에서 조커는 사라지지 않는다
+		G.Towers.clear();
+		MakeJ(0, EPDJoker::Clown, 4.f, 1);
+		MakeJ(1, EPDJoker::Hatter, 4.f, 1);
+		Put(G.Towers, 2, Row, C(9)); Put(G.Towers, 3, Row, C(9, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		bool bFedJoker = false;
+		for (const FPDFeed& Fd : G.FeedTargets()) { G.Feed(Fd.Syn); break; }
+		int Jokers = 0;
+		for (const auto& KV : G.Towers) Jokers += KV.second.IsJoker();
+		bFedJoker = Jokers < 2;
+		Expect(!bFedJoker, "조커는 먹이가 되지 않음 (먹이기 뒤에도 조커 둘 그대로)");
+	}
 	{ // 부적 창은 5웨이브마다 (D-101): 그 사이 웨이브는 창 없이 5초 뒤 다음 웨이브
 		FPDGame G(12);
 		G.NewGame(true);
@@ -535,8 +569,8 @@ static void UnitTests()
 		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Baton && Groups[0].Cells.size() == 6;
 		const bool bFused = G.JokerFuse(0);
 		const FPDTower& J = G.Towers.begin()->second;
-		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 6.f * JokerBonus) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
-			"연쇄된 족보 셋(페어·스트레이트·페어) → 가장 높은 스트레이트의 대장 지휘봉 (위력 6 × 조커 덤), 도감에 기록");
+		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 6.f * JokerBonus * (1.f + JokerCardBonus * 6.f)) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
+			"연쇄된 족보 셋(페어·스트레이트·페어) → 가장 높은 스트레이트의 대장 지휘봉 (위력 6 × 조커 덤 × 카드 6장 덤 1.3), 도감에 기록");
 		// 족보 먹이기 (D-098): 조커 옆 족보를 먹이면 경험치(족보 점수 × 평균 위력) → 레벨 업, 먹인 칸은 사라짐
 		{
 			const int JKey = G.Towers.begin()->first, JX = JKey % Cols;

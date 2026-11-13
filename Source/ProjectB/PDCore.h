@@ -195,6 +195,14 @@ struct FPDFeed
 // 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
 constexpr float JokerBonus = 1.2f; // 조커 합성: 재료 위력 합 × 1.2
+constexpr float JokerCardBonus = 0.05f; // 재료 카드 한 장마다 조커 위력 +5% (6장 ×1.3, 10장 ×1.5) (D-114)
+constexpr float JokerMergeBonus = 1.3f; // 같은 조커끼리 합치기: 위력 합 × 1.3 (D-114)
+// 같은 조커끼리 맞닿은 묶음 (D-114). 합치면 한 칸에 하나로
+struct FPDJokerMerge
+{
+	int Joker = -1;
+	std::vector<int> Cells;
+};
 // 조커 재료 묶음: 연쇄로 이어진 족보와 합성 타워(레벨 2+, 족보에 안 든 것)가 합쳐서 3개 이상
 struct FPDJokerGroup
 {
@@ -347,7 +355,7 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
@@ -377,9 +385,11 @@ public:
 	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
 	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
 	std::vector<FPDFeed> FeedTargets() const;        // 조커에 먹일 수 있는 족보 (족보마다 하나)
-	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치)
+	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치). 조커는 먹이가 되지 않는다
+	std::vector<FPDJokerMerge> JokerMerges() const;  // 같은 조커끼리 맞닿은 묶음 (2개 이상)
+	bool MergeJokers(int MergeIdx, int TargetCell = -1); // 묶음을 조커 하나로 (위력 합 × JokerMergeBonus, 레벨은 가장 높은 것)
 	// 버튼을 누르기 전 판 위력 비교 (D-107): 지금 / 누른 뒤 (기본 칸에 합칠 때). 누를 수 없으면 After < 0
-	enum class EPowerAction : uint8_t { Fuse, JokerFuse, Feed };
+	enum class EPowerAction : uint8_t { Fuse, JokerFuse, Feed, JokerMerge };
 	struct FPowerPreview { float Before = 0.f, After = -1.f; };
 	FPowerPreview PreviewPower(EPowerAction Action, int Idx) const;
 	float Power() const { return BoardPower(Towers, CharmMask(), &Mods); }

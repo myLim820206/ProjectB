@@ -1080,6 +1080,7 @@ FPDGame::FPowerPreview FPDGame::PreviewPower(EPowerAction Action, int Idx) const
 	case EPowerAction::Fuse: bOk = Copy.Fuse(Idx); break;
 	case EPowerAction::JokerFuse: bOk = Copy.JokerFuse(Idx); break;
 	case EPowerAction::Feed: bOk = Copy.Feed(Idx); break;
+	case EPowerAction::JokerMerge: bOk = Copy.MergeJokers(Idx); break;
 	}
 	if (bOk) P.After = Copy.Power();
 	return P;
@@ -1206,7 +1207,7 @@ bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 	}
 	int BestSC = -1;
 	for (auto& KV : SuitCnt) if (KV.second > BestSC) { BestSC = KV.second; J.JSuit = (EPDSuit)KV.first; }
-	J.Mult = Mult * JokerMult();
+	J.Mult = Mult * JokerMult() * (1.f + JokerCardBonus * (float)G.Cells.size()); // 재료 카드가 많을수록 세다 (D-114)
 	for (int K : G.Cells) Towers.erase(K);
 	Towers[Target] = J;
 	const bool bFirst = !((Discovered >> J.Joker) & 1u);
@@ -1218,6 +1219,74 @@ bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 	E.Y = J.Y + 0.5f;
 	E.A = J.Joker;
 	E.B = bFirst;
+	Ev(E);
+	Sfx(EPDSound::Win);
+	return true;
+}
+
+std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
+{
+	std::vector<FPDJokerMerge> Out;
+	if (!InPlay()) return Out;
+	std::set<int> Seen;
+	for (const auto& KV : Towers)
+	{
+		if (!KV.second.IsJoker() || Seen.count(KV.first)) continue;
+		FPDJokerMerge M;
+		M.Joker = KV.second.Joker;
+		std::vector<int> St{KV.first};
+		Seen.insert(KV.first);
+		while (!St.empty())
+		{
+			const int K = St.back();
+			St.pop_back();
+			M.Cells.push_back(K);
+			PDForNeighbors(K, [&](int NK) {
+				auto It = Towers.find(NK);
+				if (It != Towers.end() && It->second.IsJoker() && It->second.Joker == M.Joker && !Seen.count(NK)) { Seen.insert(NK); St.push_back(NK); }
+			});
+		}
+		if (M.Cells.size() >= 2)
+		{
+			std::sort(M.Cells.begin(), M.Cells.end());
+			Out.push_back(M);
+		}
+	}
+	return Out;
+}
+
+bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
+{
+	const std::vector<FPDJokerMerge> List = JokerMerges();
+	if (MergeIdx < 0 || MergeIdx >= (int)List.size()) return false;
+	const FPDJokerMerge& M = List[MergeIdx];
+	const int Target = PDFuseTarget(M.Cells, TargetCell);
+	if (Target < 0) return false;
+	FPDTower J = Towers.at(Target);
+	float Mult = 0.f;
+	for (int K : M.Cells)
+	{
+		const FPDTower& T = Towers.at(K);
+		Mult += T.Mult;
+		if (T.JLevel > J.JLevel || (T.JLevel == J.JLevel && T.JXp > J.JXp)) { J.JLevel = T.JLevel; J.JXp = T.JXp; }
+		J.Level = std::max(J.Level, T.Level);
+		J.TDmg = std::max(J.TDmg, T.TDmg);
+		J.TRate = std::max(J.TRate, T.TRate);
+		J.TRange = std::max(J.TRange, T.TRange);
+		J.TSplash = std::max(J.TSplash, T.TSplash);
+	}
+	J.Mult = Mult * JokerMergeBonus;
+	J.Cd = 0.f;
+	J.StunT = 0.f;
+	for (int K : M.Cells) Towers.erase(K);
+	Towers[Target] = J;
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	FPDEvent E;
+	E.Kind = FPDEvent::EKind::JokerMerge;
+	E.X = J.X + 0.5f;
+	E.Y = J.Y + 0.5f;
+	E.A = J.Joker;
+	E.B = (int)M.Cells.size();
 	Ev(E);
 	Sfx(EPDSound::Win);
 	return true;

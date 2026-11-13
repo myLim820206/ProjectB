@@ -738,6 +738,31 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.Glow(FCanvas::RoundRectPoints(B.X - JokerBtnW / 2.f, B.Y - JokerBtnH / 2.f, JokerBtnW, JokerBtnH, 7.f), JokerPink, bHov ? 1.8f : 1.3f, 1.f + 0.8f * Pulse);
 			F.TextCentered(FString::Printf(TEXT("조커: %s"), bKnown ? JokerName((int)Gr.Result) : TEXT("???")), B.X, B.Y, JokerPink, 10.f, true, JokerBtnW - 6.f);
 		}
+	// 조커 합치기 버튼 (같은 조커끼리, D-114): 평소엔 분홍 점 둘, 마우스를 올리면 버튼
+	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
+	{
+		const std::vector<FPDJokerMerge> Ms = G.JokerMerges();
+		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		for (int32 I = 0; I < (int32)Ms.size(); ++I)
+		{
+			const FVector2f B = MergeButtonCenter(Ms[I].Cells);
+			const bool bHov = InBox(Mouse, B, MergeW, MergeH);
+			if (!bHov && std::find(Ms[I].Cells.begin(), Ms[I].Cells.end(), HKey) == Ms[I].Cells.end())
+			{
+				F.Glow(FCanvas::CirclePoints(B - FVector2f(4.f, 0.f), 2.4f, 10), JokerPink, 1.5f, 0.6f + 0.3f * Pulse);
+				F.Glow(FCanvas::CirclePoints(B + FVector2f(4.f, 0.f), 2.4f, 10), JokerPink, 1.5f, 0.6f + 0.3f * Pulse);
+				continue;
+			}
+			if (bHov)
+			{
+				for (int K : Ms[I].Cells) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f)); }
+				F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::JokerMerge, I), B.X, B.Y - MergeH - 6.f);
+			}
+			F.Box(B.X - MergeW / 2.f, B.Y - MergeH / 2.f, MergeW, MergeH, Hex(TEXT("06060b"), 0.92f));
+			F.Glow(FCanvas::RoundRectPoints(B.X - MergeW / 2.f, B.Y - MergeH / 2.f, MergeW, MergeH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.6f);
+			F.TextCentered(TEXT("조커 합치기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, MergeW - 6.f);
+		}
+	}
 	// 타워 정보 (마우스를 올리면)
 	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward)
 	{

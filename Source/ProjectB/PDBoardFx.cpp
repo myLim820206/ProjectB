@@ -222,6 +222,17 @@ void SPDBoardWidget::HandleEvents()
 			else Floats.Add({FString::Printf(TEXT("경험치 +%.0f"), E.R), P - FVector2f(0.f, 26.f), 0.f, 1.2f, 14.f, JokerPink});
 			break;
 		}
+		case FPDEvent::EKind::JokerMerge: // 같은 조커끼리 합치기 (D-114)
+		{
+			SuckIn(P, 12, 14.f, 0.4f, 1.8f, 3.f, JokerPink, FLinearColor::White, 3);
+			Rings.Add({P, 60.f, 6.f, 0.f, 0.4f, 2.4f, JokerPink});
+			Rings.Add({P, 8.f, 90.f, 0.25f, 0.7f, 3.f, JokerPink, EWave::Star, 4, FMath::FRandRange(0.f, TwoPi), 2.f});
+			Burst(P, 40, JokerPink, 80.f, 260.f, 0.8f, 2.6f, true);
+			PushWorldFx(EWorldFx::JokerFuse, P, JokerPink, 1.f);
+			Floats.Add({FString::Printf(TEXT("%s %d개 합침!"), JokerName(E.A), E.B), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
+			Shake = FMath::Max(Shake, 0.25f);
+			break;
+		}
 		case FPDEvent::EKind::Bell:
 			Rings.Add({P, 10.f, E.R * CS, 0.f, 0.6f, 3.f, Hex(TEXT("cfe4ff"))});
 			Rings.Add({P, 10.f, E.R * CS * 0.7f, 0.1f, 0.6f, 2.f, JokerPink});

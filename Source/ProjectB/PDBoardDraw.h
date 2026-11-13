@@ -265,6 +265,14 @@ inline FVector2f JokerButtonCenter(const FPDJokerGroup& G)
 	for (int K : G.Cells) if (K / Cols < Top / Cols || (K / Cols == Top / Cols && K % Cols < Top % Cols)) Top = K;
 	return CellPx(Top % Cols + 0.5f, (float)(Top / Cols)) - FVector2f(0.f, 2.f);
 }
+// 조커 합치기 버튼 (D-114): 같은 조커 묶음 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
+constexpr float MergeW = 76.f, MergeH = 16.f;
+inline FVector2f MergeButtonCenter(const std::vector<int>& Cells)
+{
+	int Bottom = Cells[0];
+	for (int K : Cells) if (K / Cols > Bottom / Cols || (K / Cols == Bottom / Cols && K % Cols < Bottom % Cols)) Bottom = K;
+	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f);
+}
 // 합성 버튼: 족보 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
 constexpr float FuseW = 46.f, FuseH = 16.f;
 // 겹 번호: 카드를 나눠 쓰는 앞선 족보 수 (0~2). 테두리를 안쪽으로 들이고 이름표·합성 버튼을 아래로 민다
