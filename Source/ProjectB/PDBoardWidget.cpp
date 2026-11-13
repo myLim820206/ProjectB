@@ -213,6 +213,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
 	UpdatePreview();
 	JGroups = Game.JokerGroups();
+	if (FeedJoker >= 0 && (!Game.Towers.count(FeedJoker) || !Game.Towers.at(FeedJoker).IsJoker() || Game.Phase == EPDPhase::Reward || Sel >= 0)) FeedJoker = -1; // 조커가 없어졌거나 카드를 고름
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
 	Invalidate(EInvalidateWidgetReason::Paint);
@@ -297,9 +298,7 @@ bool SPDBoardWidget::SynRevealed(int32 I) const
 	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 	const std::vector<int>& Cells = Game.Synergies[I].Cells;
 	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
-	const bool bFuse = Game.CanFuse(I);
-	if (bFuse && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseBtnW(FuseSyn(Game, I)), FuseH)) return true;
-	return InBox(Mouse, FeedButtonCenter(Game, I, bFuse), FeedBtnW(Game.Synergies[I]), FuseH); // 먹이기 버튼 위 (먹일 수 없으면 그리지도 않음)
+	return Game.CanFuse(I) && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseBtnW(FuseSyn(Game, I)), FuseH);
 }
 
 bool SPDBoardWidget::JokerRevealed(const FPDJokerGroup& Gr) const
@@ -402,6 +401,23 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	// 위쪽 띠 버튼 (D-119): 속도, 설정
 	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
 	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bSettings = true; SetSel = 0; Sel = -1; return; }
+	// 먹이기 모드 (D-131): [먹이기] 버튼 → 먹이기, 다른 조커 → 그 조커로, 그 밖 → 끄기 (판 위를 눌렀으면 거기서 끝)
+	if (FeedJoker >= 0)
+	{
+		if (!bRight)
+			for (const FPDFeed& Fd : Game.FeedTargets())
+			{
+				if (Fd.Joker != FeedJoker || !InBox(P, FeedButtonCenter(Game, Fd.Syn), FeedBtnW(Game.Synergies[Fd.Syn]), FuseH)) continue;
+				PendingFuseCells.Reset();
+				for (int K : Game.Synergies[Fd.Syn].Cells) if (!Game.Towers.at(K).IsJoker()) PendingFuseCells.Add(CellCenter(K));
+				if (!Game.Feed(Fd.Syn)) PendingFuseCells.Reset();
+				return;
+			}
+		const int32 Cell = CellAt(P);
+		if (!bRight && Cell >= 0 && Cell != FeedJoker && Game.Towers.count(Cell) && Game.Towers.at(Cell).IsJoker()) { FeedJoker = Cell; UiSound(EPDSound::Move); return; }
+		FeedJoker = -1;
+		if (bRight || Cell >= 0) return;
+	}
 	// 조커 합치기 버튼 (같은 조커끼리, D-114): 마우스가 그 조커들 위나 버튼 자리에 있을 때만
 	if (!bRight)
 	{
@@ -433,19 +449,6 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 			const FVector2f B = FuseButtonCenter(Game.Synergies, I);
 			if (InBox(P, B, FuseBtnW(FuseSyn(Game, I)), FuseH)) { StartPick(FuseSyn(Game, I).Cells, false); return; }
 		}
-	// 먹이기 버튼 (조커에 맞닿은 족보)
-	if (!bRight)
-		for (const FPDFeed& Fd : Game.FeedTargets())
-		{
-			const FVector2f B = FeedButtonCenter(Game, Fd.Syn, Game.CanFuse(Fd.Syn));
-			if (SynRevealed(Fd.Syn) && InBox(P, B, FeedBtnW(Game.Synergies[Fd.Syn]), FuseH))
-			{
-				PendingFuseCells.Reset();
-				for (int K : Game.Synergies[Fd.Syn].Cells) if (!Game.Towers.at(K).IsJoker()) PendingFuseCells.Add(CellCenter(K));
-				if (!Game.Feed(Fd.Syn)) PendingFuseCells.Reset();
-				return;
-			}
-		}
 	int32 HandHit = -1;
 	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
 	{
@@ -459,6 +462,8 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (HandHit >= 0) { Sel = Sel == HandHit ? -1 : HandHit; UiSound(EPDSound::Move); return; }
+	// 카드를 고르지 않고 조커를 클릭: 먹이기 모드 (D-131)
+	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && Game.Towers.count(Cell) && Game.Towers.at(Cell).IsJoker()) { FeedJoker = Cell; UiSound(EPDSound::Move); return; }
 	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel >= 0)
 	{
 		if (Game.Place(Sel, Cell % Cols, Cell / Cols)) Sel = -1;
@@ -576,7 +581,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 			return FReply::Handled();
 		}
 	if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave();
-	else if (K == EKeys::Escape) { if (Sel >= 0) Sel = -1; else OpenMenu(); }
+	else if (K == EKeys::Escape) { if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else OpenMenu(); }
 	else if (K == EKeys::G) DoFuse(HoveredSynergy());
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }

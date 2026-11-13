@@ -708,8 +708,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.TextCentered(TEXT("빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소"), MX, MY + 22.f, WithAlpha(Fg, 0.75f), 13.f, false, Cols * CS - 40.f);
 		}
 	}
-	// 합성 버튼
-	if (!bPv && G.Phase != EPDPhase::Reward)
+	// 합성 버튼 (먹이기 모드에선 숨김)
+	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0)
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I)) continue;
@@ -752,46 +752,67 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.TextCentered(FuseLabel(FS), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
 			if (bHov && PickCells.empty()) F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Fuse, I), B.X, B.Y - FuseH - 6.f);
 		}
-	// 먹이기 버튼: 마우스를 올리면 먹일 칸과 얻을 경험치
+	// 먹이기 (D-131): 평소엔 먹일 족보가 있는 조커 위에 작은 "먹이" 표시만. 조커를 클릭하면 먹이기 모드
 	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
-		for (const FPDFeed& Fd : G.FeedTargets())
+	{
+		const std::vector<FPDFeed> Feeds = G.FeedTargets();
+		if (FeedJoker < 0)
 		{
-			const bool bFuse = G.CanFuse(Fd.Syn);
-			const FVector2f B = FeedButtonCenter(G, Fd.Syn, bFuse);
-			if (!SynRevealed(Fd.Syn)) { F.Glow(FCanvas::CirclePoints(FeedDotCenter(G.Synergies, Fd.Syn, bFuse), 3.6f, 12), JokerPink, 1.8f, 0.8f + 0.5f * Pulse); continue; } // 평소엔 분홍 점
-			const FPDSynergy& FdS = G.Synergies[Fd.Syn];
-			const float BW = FeedBtnW(FdS);
-			const bool bHov = InBox(Mouse, B, BW, FuseH);
-			// 먹이 칸 표시 (D-129): 합성처럼 분홍 → 흰빛 → 분홍으로 오간다. 합성 버튼이 같이 있으면 먹이기 버튼에 올렸을 때만 (합성 표시와 겹치지 않게)
-			if (bHov || !bFuse)
+			TMap<int32, int32> PerJoker;
+			for (const FPDFeed& Fd : Feeds) PerJoker.FindOrAdd(Fd.Joker)++;
+			for (const auto& KV : PerJoker)
 			{
-				const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f + 1.f);
-				const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.55f * Wv);
-				for (int K : FdS.Cells)
+				const FVector2f C0 = CellPx((float)(KV.Key % Cols), (float)(KV.Key / Cols));
+				const FVector2f Bp = C0 + FVector2f(12.f, 9.f);
+				F.Box(Bp.X - 10.f, Bp.Y - 6.f, 20.f, 12.f, Hex(TEXT("06060b"), 0.9f));
+				F.Glow(FCanvas::RoundRectPoints(Bp.X - 10.f, Bp.Y - 6.f, 20.f, 12.f, 5.f), JokerPink, 1.f, 0.5f + 0.5f * Pulse);
+				F.TextCentered(FString::Printf(TEXT("먹이%d"), KV.Value), Bp.X, Bp.Y, JokerPink, 7.f, true, 19.f);
+			}
+		}
+		else
+		{
+			// 고른 조커: 분홍 고리가 숨 쉰다
+			const FVector2f JC = CellCenter(FeedJoker);
+			F.Glow(FCanvas::RoundRectPoints(JC.X - CS * 0.5f - 3.f, JC.Y - CS * 0.5f - 3.f, CS + 6.f, CS + 6.f, 9.f), JokerPink, 2.4f, 1.f + 0.8f * Pulse);
+			int32 N = 0;
+			const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
+			const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.55f * Wv);
+			for (const FPDFeed& Fd : Feeds)
+			{
+				if (Fd.Joker != FeedJoker) continue;
+				++N;
+				const FPDSynergy& FdS = G.Synergies[Fd.Syn];
+				const FVector2f B = FeedButtonCenter(G, Fd.Syn);
+				const float BW = FeedBtnW(FdS);
+				const bool bHov = InBox(Mouse, B, BW, FuseH);
+				for (int K : FdS.Cells) // 먹이 칸: 분홍 → 흰빛 → 분홍
 				{
 					if (G.Towers.at(K).IsJoker()) continue;
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pc, (bHov ? 0.3f : 0.18f) + 0.2f * Wv));
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, bHov ? 3.f : 2.4f, 1.2f + 1.2f * Wv);
-					if (bHov) F.Dashed({CellCenter(K), CellCenter(Fd.Joker)}, WithAlpha(JokerPink, 0.7f), 1.4f, 4.f, 5.f);
+					F.Dashed({CellCenter(K), JC}, WithAlpha(JokerPink, bHov ? 0.8f : 0.4f), 1.3f, 4.f, 5.f);
 				}
+				if (bHov)
+				{
+					const FPDTower& Jt = G.Towers.at(FeedJoker);
+					int Lv = Jt.JLevel;
+					float Xp = Jt.JXp + Fd.Xp;
+					while (Lv < JokerMaxLevel && Xp >= JokerXpNeed(Lv)) { Xp -= JokerXpNeed(Lv); ++Lv; }
+					F.Badge(FString::Printf(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), JC.X, JC.Y - CS * 0.75f, JokerPink, 1.f);
+					F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
+				}
+				F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
+				F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), JokerPink, bHov ? 1.8f : 1.3f, bHov ? 1.2f + 0.5f * Pulse : 0.7f);
+				F.TextCentered(FeedLabel(FdS), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.9f), 10.f, true, BW - 4.f);
 			}
-			if (bHov)
-			{
-				const FPDTower& Jt = G.Towers.at(Fd.Joker);
-				int Lv = Jt.JLevel;
-				float Xp = Jt.JXp + Fd.Xp;
-				while (Lv < JokerMaxLevel && Xp >= JokerXpNeed(Lv)) { Xp -= JokerXpNeed(Lv); ++Lv; }
-				const FVector2f J = CellCenter(Fd.Joker);
-				F.Badge(FString::Printf(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), J.X, J.Y - CS * 0.75f, JokerPink, 1.f);
-				F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
-			}
-			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
-			F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
-			F.TextCentered(FeedLabel(FdS), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
+			F.Badge(N > 0 ? FString::Printf(TEXT("%s 먹이기: 먹일 족보의 [먹이기] 클릭 · 다른 곳 클릭 / Esc: 취소"), JokerName(G.Towers.at(FeedJoker).Joker))
+						  : FString(TEXT("먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · 다른 곳 클릭 / Esc: 취소")),
+				FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
 		}
-	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상)
-	if (!bPv && G.Phase != EPDPhase::Reward)
+	}
+	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상, 먹이기 모드에선 숨김)
+	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0)
 		for (const FPDJokerGroup& Gr : JGroups)
 		{
 			// 조커를 만들 수 있는 재료 칸은 늘 반짝인다 (D-115): 칸마다 박자를 어긋나게 한 분홍 테두리 + 작은 별빛
@@ -818,7 +839,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.TextCentered(FString::Printf(TEXT("조커: %s"), bKnown ? JokerName((int)Gr.Result) : TEXT("???")), B.X, B.Y, JokerPink, 10.f, true, JokerBtnW - 6.f);
 		}
 	// 조커 합치기 버튼 (같은 조커끼리, D-114): 평소엔 분홍 점 둘, 마우스를 올리면 버튼
-	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
+	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty() && FeedJoker < 0)
 	{
 		const std::vector<FPDJokerMerge> Ms = G.JokerMerges();
 		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
@@ -864,7 +885,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(PowLine, JX + 10.f, JY + 36.f, PowCol, 11.f, 0, true, 226.f);
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 54.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 70.f, Gold, 10.f, 0, false, 226.f);
-				F.Text(FString::Printf(TEXT("배율 ×%.0f · 처치 +%.0f 경험치 (보스 +%.0f)"), T.Mult, JokerKillXp, JokerBossXp), JX + 10.f, JY + 86.f, Grey, 10.f, 0, false, 226.f);
+				F.Text(FString::Printf(TEXT("클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 86.f, Grey, 10.f, 0, false, 226.f);
 				F.Text(T.JLevel >= JokerMaxLevel ? FString::Printf(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, (T.JLevel - 1) * 10)
 					: FString::Printf(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), (T.JLevel - 1) * 10, T.JLevel >= JokerUpLevel ? TEXT(" · 강화") : TEXT("")),
 					JX + 10.f, JY + 102.f, JokerPink, 10.f, 0, false, 226.f);
@@ -1111,7 +1132,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		if (bHov)
 		{
 			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
-				TEXT("족보에 마우스: [합성] G · [먹이기] · [조커] 버튼"), TEXT("Space 웨이브 시작 · F 속도 · M 소리"), TEXT("K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴")};
+				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리"), TEXT("K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴")};
 			const float W = 400.f, Hh = 24.f + UE_ARRAY_COUNT(Lines) * 18.f, X = DesignW - 16.f - W, Y = HelpY - 6.f - Hh;
 			C.Box(X, Y, W, Hh, Hex(TEXT("0a0b14"), 0.96f));
 			C.Glow(FCanvas::RoundRectPoints(X, Y, W, Hh, 8.f), Cyan, 1.f, 0.4f);

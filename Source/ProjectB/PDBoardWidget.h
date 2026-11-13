@@ -208,6 +208,7 @@ private:
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
+	int32 FeedJoker = -1;                  // 먹이기 모드 (D-131): 클릭한 조커 칸. 이 조커에 먹일 족보만 버튼이 뜬다
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)
 	float PowerRef = 0.f;                  // 이번 웨이브 시작 때 판 위력 (위쪽 띠의 ±%)
 	// 위력 정보 (D-119): 그릴 때 한 번 계산해 패널·타워 정보가 같이 쓴다

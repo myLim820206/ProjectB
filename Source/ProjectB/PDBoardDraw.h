@@ -300,7 +300,7 @@ inline FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
 }
 
 // 먹이기 버튼: 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
-// 먹이기 버튼 (D-129): "먹이기 · 플러시" 처럼 족보 이름, 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
+// 먹이기 버튼 (D-129, D-131): "먹이기 · 플러시" 처럼 족보 이름. 조커를 클릭한 먹이기 모드에서만, 족보 가운데
 inline FString FeedLabel(const FPDSynergy& S) { return FString::Printf(TEXT("먹이기 · %s"), HandShort(S.Kind)); }
 inline float FeedBtnW(const FPDSynergy& S)
 {
@@ -308,15 +308,7 @@ inline float FeedBtnW(const FPDSynergy& S)
 	for (const TCHAR Ch : FeedLabel(S)) W += Ch >= 0x1100 ? 10.f : 6.f;
 	return W;
 }
-inline FVector2f FeedButtonCenter(const FPDGame& G, int I, bool bCanFuse)
-{
-	const float FW = FeedBtnW(G.Synergies[I]);
-	return FuseButtonCenter(G.Synergies, I) + FVector2f(bCanFuse ? FuseBtnW(FuseSyn(G, I)) / 2.f + 4.f + FW / 2.f : 0.f, 0.f);
-}
-inline FVector2f FeedDotCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
-{
-	return FuseDotCenter(L, I) + FVector2f(bCanFuse ? 10.f : 0.f, 0.f);
-}
+inline FVector2f FeedButtonCenter(const FPDGame& G, int I) { return FuseButtonCenter(G.Synergies, I); } // 먹이기 모드에선 합성 버튼이 없어 족보 가운데
 
 // ---- 스킬 트리 글자와 위치 (docs/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
 inline FVector2f TreeNodePos(int Id) { return FVector2f(TreeNode(Id).X, TreeNode(Id).Y); }
