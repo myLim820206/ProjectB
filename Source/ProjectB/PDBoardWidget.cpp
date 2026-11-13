@@ -461,6 +461,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
+	// 족보 필터 (D-148): 판에서 그 족보가 없어지면 (합성 등) 끈다
+	if (HandFilter >= 0 && std::none_of(Game.Synergies.begin(), Game.Synergies.end(), [this](const FPDSynergy& S) { return (int32)S.Kind == HandFilter; })) HandFilter = -1;
 #if !UE_BUILD_SHIPPING
 	// 자동 부하 시험 (D-138): -pdstress 로 켜면 2초 뒤 F4 판 + 10배속 + 프레임 제한 없음으로 웨이브를 계속 돌리고 45초 뒤 끈다 (로그 PDPERF)
 	{
@@ -611,7 +613,8 @@ int32 SPDBoardWidget::HoveredSynergy() const
 	if (HoverX < 0) return -1;
 	const int Key = CellKey(HoverX, HoverY);
 	for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
-		for (int K : Game.Synergies[I].Cells) if (K == Key) return I;
+		if (FilterPass(Game.Synergies[I].Kind))
+			for (int K : Game.Synergies[I].Cells) if (K == Key) return I;
 	return -1;
 }
 
@@ -620,6 +623,7 @@ bool SPDBoardWidget::SynRevealed(int32 I) const
 	if (I < 0 || I >= (int32)Game.Synergies.size()) return false;
 	if (!PickCells.empty() && !bPickJoker && FindPickIndex() == I) return true; // 합성 칸 고르는 중인 족보
 	if (Sel >= 0) return false; // 손패 카드를 고른 동안은 합성 버튼·표시를 띄우지 않는다 (놓기에 집중, D-132)
+	if (!FilterPass(Game.Synergies[I].Kind)) return false; // 족보 필터 중엔 그 족보만 (D-148)
 	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 	const std::vector<int>& Cells = Game.Synergies[I].Cells;
 	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
@@ -719,6 +723,17 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else PickCells.clear();
 		return;
 	}
+	// 족보 필터 (D-148): 왼쪽 족보 목록 한 줄 클릭 = 그 족보만 보기, 다시 클릭 = 끄기
+	if (!bRight && InRect(P, LX + 8.f, HandRowY0, LW - 16.f, HandRowH * (int32)EPDHand::Count))
+	{
+		const int32 Hi = FMath::Clamp((int32)((P.Y - HandRowY0) / HandRowH), 0, (int32)EPDHand::Count - 1);
+		const bool bAny = std::any_of(Game.Synergies.begin(), Game.Synergies.end(), [Hi](const FPDSynergy& S) { return (int32)S.Kind == Hi; });
+		if (HandFilter == Hi) HandFilter = -1;
+		else if (bAny) { HandFilter = Hi; Sel = -1; FeedJoker = -1; }
+		else { UiSound(EPDSound::Denied); return; }
+		UiSound(EPDSound::Move);
+		return;
+	}
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; }
 	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
@@ -787,6 +802,15 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (HandHit >= 0) { Sel = Sel == HandHit ? -1 : HandHit; UiSound(EPDSound::Move); return; }
+	// 족보 필터 중 그 족보 칸 클릭 = 그 족보 합성 (D-148)
+	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && HandFilter >= 0)
+		for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
+		{
+			const FPDSynergy& S = Game.Synergies[I];
+			if ((int32)S.Kind != HandFilter || !Game.CanFuse(I) || std::find(S.Cells.begin(), S.Cells.end(), Cell) == S.Cells.end()) continue;
+			StartPick(FuseSyn(Game, I).Cells, false);
+			return;
+		}
 	// 카드를 고르지 않고 조커를 클릭: 먹이기 모드 (D-131)
 	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && Game.Towers.count(Cell) && Game.Towers.at(Cell).IsJoker()) { FeedJoker = Cell; UiSound(EPDSound::Move); return; }
 	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel >= 0)
@@ -957,7 +981,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 			return FReply::Handled();
 		}
 	if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave();
-	else if (K == EKeys::Escape) { if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else OpenMenu(); }
+	else if (K == EKeys::Escape) { if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::G) DoFuse(HoveredSynergy());
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }

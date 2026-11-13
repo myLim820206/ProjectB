@@ -27,6 +27,7 @@ constexpr float CS = 48.f;          // 칸 크기
 constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
 constexpr float FY = 74.f;
+constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
 constexpr float HandY = FY + Rows * CS + 14.f;
 constexpr float CardW = 70.f, CardH = 98.f;
 constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널

@@ -226,6 +226,8 @@ public:
 	int32 PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 판 배경 굽는 그림
 private:
 	int32 FeedJoker = -1;                  // 먹이기 모드 (D-131): 클릭한 조커 칸. 이 조커에 먹일 족보만 버튼이 뜬다
+	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만
+	bool FilterPass(PD::EPDHand Kind) const { return HandFilter < 0 || (int32)Kind == HandFilter; }
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)
 	float PowerRef = 0.f;                  // 이번 웨이브 시작 때 판 위력 (위쪽 띠의 ±%)
 	// 위력 정보 (D-119): 그릴 때 한 번 계산해 패널·타워 정보가 같이 쓴다

@@ -363,7 +363,9 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			const FPDSynergy& S = List[Si];
 			// 로열은 무지개로 천천히 돈다
 			const FLinearColor Base = S.Kind == EPDHand::RoyalFlush ? FLinearColor::MakeFromHSV8((uint8)FMath::Fmod(Clock * 40.f, 256.f), 110, 255) : HandColor(S.Kind);
-			const FLinearColor Col = WithAlpha(Base, Alpha);
+			const bool bFilt = HandFilter >= 0 && (int32)S.Kind == HandFilter; // 족보 필터 (D-148): 고른 족보는 반짝이고 나머지는 흐리게
+			const float FiltA = HandFilter < 0 ? 1.f : bFilt ? 1.f : 0.22f;
+			const FLinearColor Col = WithAlpha(Base, Alpha * FiltA);
 			if (bOutline)
 			{
 			TSet<int32> Has;
@@ -420,7 +422,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 							Used[J] = bGrew = true;
 						}
 					}
-					F.Glow(Line, Col, 2.f, 0.8f);
+					F.Glow(Line, Col, bFilt ? 2.6f : 2.f, bFilt ? 1.1f + 0.6f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)) : 0.8f);
 				}
 			}
 			}
@@ -1157,6 +1159,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
 		}
 	}
+	// 족보 필터 안내 (D-148)
+	if (HandFilter >= 0 && FeedJoker < 0 && PickCells.empty())
+		F.Badge(FString::Printf(TEXT("%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기"), HandName((EPDHand)HandFilter)), FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
 	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상, 먹이기 모드에선 숨김)
 	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0)
 		for (const FPDJokerGroup& Gr : JGroups)
@@ -1795,9 +1800,9 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	C.Box(LX, FY, LW, PH, Hex(TEXT("06060b"), 0.5f));
 	C.Glow(FCanvas::RoundRectPoints(LX, FY, LW, PH, 10.f), Cyan, 1.f, 0.3f);
 	C.Text(TEXT("족보"), LX + 14.f, FY + 24.f, Cyan, 15.f, 0, true);
-	C.Text(TEXT("붙어 있으면 모양 상관없이"), LX + LW - 14.f, FY + 24.f, Dim, 9.f, 2, false, LW - 70.f);
-	constexpr float RowH = 38.f;
-	const float Y0 = FY + 36.f;
+	C.Text(HandFilter >= 0 ? TEXT("다시 클릭 / Esc: 필터 끄기") : TEXT("클릭: 그 족보만 보기"), LX + LW - 14.f, FY + 24.f, HandFilter >= 0 ? Gold : Dim, 9.f, 2, false, LW - 70.f);
+	constexpr float RowH = HandRowH;
+	const float Y0 = HandRowY0;
 	for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
 	{
 		const EPDHand H = (EPDHand)I;
@@ -1812,6 +1817,8 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		if (H == EPDHand::Straight) Name += TEXT(" (2~5장)");
 		C.Text(Name, LX + 30.f, Y + 16.f, bPv ? Gold : bOn ? HC : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
 		C.Text(HandEffect(H), LX + 30.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
+		if (HandFilter == I) // 족보 필터 (D-148): 고른 줄은 테두리
+			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), HC, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
 		if (bOn)
 		{
 			C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), HC, 1.1f, 0.5f);
