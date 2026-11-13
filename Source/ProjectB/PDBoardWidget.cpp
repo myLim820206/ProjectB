@@ -255,6 +255,26 @@ int32 SPDBoardWidget::HoveredSynergy() const
 	return -1;
 }
 
+bool SPDBoardWidget::SynRevealed(int32 I) const
+{
+	if (I < 0 || I >= (int32)Game.Synergies.size()) return false;
+	if (!PickCells.empty() && !bPickJoker && FindPickIndex() == I) return true; // 합성 칸 고르는 중인 족보
+	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+	const std::vector<int>& Cells = Game.Synergies[I].Cells;
+	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
+	const bool bFuse = Game.CanFuse(I);
+	if (bFuse && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseW, FuseH)) return true;
+	return InBox(Mouse, FeedButtonCenter(Game.Synergies, I, bFuse), FuseW, FuseH); // 먹이기 버튼 위 (먹일 수 없으면 그리지도 않음)
+}
+
+bool SPDBoardWidget::JokerRevealed(const FPDJokerGroup& Gr) const
+{
+	if (!PickCells.empty() && bPickJoker && SameCells(Gr.Cells, PickCells)) return true;
+	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+	if (Key >= 0 && std::find(Gr.Cells.begin(), Gr.Cells.end(), Key) != Gr.Cells.end()) return true;
+	return InBox(Mouse, JokerButtonCenter(Gr), JokerBtnW, JokerBtnH);
+}
+
 FVector2f SPDBoardWidget::ToDesign(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
 {
 	const auto Local = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
@@ -338,13 +358,13 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		for (int32 I = 0; I < (int32)JGroups.size(); ++I)
 		{
 			const FVector2f B = JokerButtonCenter(JGroups[I]);
-			if (InBox(P, B, JokerBtnW, JokerBtnH)) { StartPick(JGroups[I].Cells, true); return; }
+			if (JokerRevealed(JGroups[I]) && InBox(P, B, JokerBtnW, JokerBtnH)) { StartPick(JGroups[I].Cells, true); return; }
 		}
 	// 합성 버튼
 	if (!bRight)
 		for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
 		{
-			if (!Game.CanFuse(I)) continue;
+			if (!Game.CanFuse(I) || !SynRevealed(I)) continue;
 			const FVector2f B = FuseButtonCenter(Game.Synergies, I);
 			if (InBox(P, B, FuseW, FuseH)) { StartPick(Game.Synergies[I].Cells, false); return; }
 		}
@@ -353,7 +373,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		for (const FPDFeed& Fd : Game.FeedTargets())
 		{
 			const FVector2f B = FeedButtonCenter(Game.Synergies, Fd.Syn, Game.CanFuse(Fd.Syn));
-			if (InBox(P, B, FuseW, FuseH))
+			if (SynRevealed(Fd.Syn) && InBox(P, B, FuseW, FuseH))
 			{
 				PendingFuseCells.Reset();
 				for (int K : Game.Synergies[Fd.Syn].Cells) if (!Game.Towers.at(K).IsJoker()) PendingFuseCells.Add(CellCenter(K));

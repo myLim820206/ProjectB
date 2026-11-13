@@ -115,6 +115,9 @@ private:
 	void Click(FVector2f P, bool bRight);
 	void DoFuse(int32 SynergyIdx, int32 Cell = -1); // 합성 + 빨려 들어가는 연출 준비 (Cell = 결과 칸, -1 = 기본)
 	int32 HoveredSynergy() const;      // 마우스가 올라간 타워의 족보 번호
+	// 판 위 합성·먹이기·조커 버튼은 그 족보 타워(또는 버튼)에 마우스가 있을 때만 보이고 눌린다 (D-113). 평소엔 작은 점
+	bool SynRevealed(int32 SynergyIdx) const;
+	bool JokerRevealed(const PD::FPDJokerGroup& Gr) const;
 	int32 TreeHoverAt(FVector2f P) const; // 트리 창에서 이 위치의 노드 (-1 = 없음)
 	TArray<FVector2f> PendingFuseCells; // 합성 직전 족보 칸 위치 (연출용)
 

@@ -685,6 +685,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			if (!G.CanFuse(I)) continue;
 			const FVector2f B = FuseButtonCenter(G.Synergies, I);
+			if (!SynRevealed(I)) { F.Glow(FCanvas::CirclePoints(B, 2.6f, 10), Gold, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 금색 점 (D-113)
 			const bool bHov = InBox(Mouse, B, FuseW, FuseH);
 			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
@@ -696,6 +697,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (const FPDFeed& Fd : G.FeedTargets())
 		{
 			const FVector2f B = FeedButtonCenter(G.Synergies, Fd.Syn, G.CanFuse(Fd.Syn));
+			if (!SynRevealed(Fd.Syn)) { F.Glow(FCanvas::CirclePoints(B, 2.6f, 10), JokerPink, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 분홍 점
 			const bool bHov = InBox(Mouse, B, FuseW, FuseH);
 			if (bHov)
 			{
@@ -723,6 +725,11 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (const FPDJokerGroup& Gr : JGroups)
 		{
 			const FVector2f B = JokerButtonCenter(Gr);
+			if (!JokerRevealed(Gr)) // 평소엔 작은 분홍 마름모 (조커를 만들 수 있다는 표시)
+			{
+				F.Glow({B + FVector2f(0.f, -5.f), B + FVector2f(4.f, 0.f), B + FVector2f(0.f, 5.f), B + FVector2f(-4.f, 0.f), B + FVector2f(0.f, -5.f)}, JokerPink, 1.6f, 0.8f + 0.5f * Pulse);
+				continue;
+			}
 			const bool bHov = InBox(Mouse, B, JokerBtnW, JokerBtnH);
 			const bool bKnown = (G.Discovered >> (int)Gr.Result) & 1u;
 			if (bHov) for (int K : Gr.Cells) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f)); }
