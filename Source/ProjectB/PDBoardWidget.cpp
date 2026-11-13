@@ -408,7 +408,7 @@ struct SPDBoardWidget::FCanvas
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 네 겹 + 흰빛이 도는 가늘고 또렷한 심 (D-102 강화)
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다. 진짜 블룸은 월드 층 거울(판 사본)이 더한다
 	// 네온 세기 (D-103): 번짐 겹 불투명도와 심의 흰빛에 곱한다. 1 = D-102 강화 그대로
-	static constexpr float NeonK = 0.2f;
+	static constexpr float NeonK = 0.1f;
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
 		if (Strength > 0.f)

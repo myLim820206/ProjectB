@@ -131,8 +131,8 @@ const FName PDFxColor(TEXT("User.Color")); // HDR 색 (1 넘으면 블룸)
 const FName PDFxScale(TEXT("User.Scale")); // 크기·세기 배율
 // 블룸 거울 (D-102): 렌더 타깃 해상도 배율과 후처리 머티리얼
 constexpr float PDBloomRes = 0.5f;
-// 판 블룸 세기 (D-103): 거울 밝기 = 1 + 0.5 × 이 값. 블룸 문턱(1)을 넘는 만큼만 번지므로 0.2 = D-102 의 20%
-constexpr float PDBoardBloomK = 0.2f;
+// 판 블룸 세기 (D-103·D-104): 거울 밝기 = 1 + 0.5 × 이 값. 블룸 문턱(1)을 넘는 만큼만 번지므로 0.1 = D-102 의 10%
+constexpr float PDBoardBloomK = 0.1f;
 const TCHAR* const PDBloomMaterial = TEXT("/Game/FX/M_PD_BoardBloom.M_PD_BoardBloom");
 const FName PDFxDir(TEXT("User.Dir"));     // 튀는 방향 (월드, 단위 벡터)
 // SPDBoardWidget::EWorldFx 순서대로 에셋 이름과 HDR 밝기 배율
