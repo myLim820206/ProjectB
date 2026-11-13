@@ -486,6 +486,9 @@ struct FPDDebugStats
 	float Fps = 0.f, Ms = 0.f;          // 부드럽게 한 값
 	float WorstMs = 0.f, WorstShown = 0.f; // 1초 동안 가장 느린 프레임
 	float Acc = 0.f;
+	int32 Lines = 0, Points = 0, Texts = 0, Boxes = 0; // 이번 프레임 그리기 요소 (D-135)
+	int32 PartLines[6] = {}; // 판·발사체·이펙트·판 위 UI·패널·창 별 선 수
+	float PaintMs = 0.f, TickMs = 0.f;                 // 그리기·갱신 CPU 시간 (부드럽게)
 	void Add(float RawDt)
 	{
 		const float Ms0 = RawDt * 1000.f;
@@ -539,15 +542,15 @@ struct SPDBoardWidget::FCanvas
 	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
 		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
+		++GPDDebug.Lines; GPDDebug.Points += P.Num();
 	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
-		if (Strength > 0.f)
+		if (Strength > 0.f) // 번짐 두 겹 (D-135: 가장 넓은 10배 겹은 거의 안 보이면서 그리기 부담이 커서 빼고 6배 겹을 조금 진하게)
 		{
-			Lines(P, WithAlpha(Col, 0.04f * Strength), Thick * 10.f);
-			Lines(P, WithAlpha(Col, 0.07f * Strength), Thick * 6.f);
+			Lines(P, WithAlpha(Col, 0.09f * Strength), Thick * 6.5f);
 			Lines(P, WithAlpha(Col, 0.14f * Strength), Thick * 3.2f);
 		}
 		Lines(P, Col, Thick * 0.8f);

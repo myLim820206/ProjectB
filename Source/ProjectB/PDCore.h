@@ -378,6 +378,10 @@ struct FPDEvent
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over }; // Reward: 부적 창에서 고르는 중
 
+// 부하 시험 배율 (D-135, F4 치트): 웨이브 적 체력·마리 수. 평소 1
+inline float GPDDebugHpMul = 1.f;
+inline int GPDDebugCountMul = 1;
+
 class FPDGame
 {
 public:

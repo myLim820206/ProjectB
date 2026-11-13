@@ -940,8 +940,8 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 	std::vector<FPDEnemy> List;
 	// 무한 진행: NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 ×1.3씩
 	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(1.3f, (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
-	const float Hp = BossHp * WaveScale(W) * MobHpBonus; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
-	const int N = WaveCount(W);
+	const float Hp = BossHp * WaveScale(W) * MobHpBonus * GPDDebugHpMul; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
+	const int N = WaveCount(W) * GPDDebugCountMul;
 	for (int I = 0; I < N; ++I)
 	{
 		EPDEnemy T = EPDEnemy::Normal;
@@ -953,7 +953,7 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 		List.push_back(MakeEnemy(T, Hp, W));
 	}
 	// 보스: 5웨이브마다 BossOrder 13종이 차례로 돌아온다 (D-112)
-	if (W % 5 == 0) List.push_back(MakeEnemy(BossOrder[(W / 5 - 1) % 13], BossHp, W));
+	if (W % 5 == 0) List.push_back(MakeEnemy(BossOrder[(W / 5 - 1) % 13], BossHp * GPDDebugHpMul, W));
 	return List;
 }
 

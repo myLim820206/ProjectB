@@ -203,6 +203,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
+	const double TickT0 = FPlatformTime::Seconds();
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
 	if (!bTree && !bUpg && !bMenu) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
@@ -217,6 +218,10 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (FeedJoker >= 0 && (!Game.Towers.count(FeedJoker) || !Game.Towers.at(FeedJoker).IsJoker() || Game.Phase == EPDPhase::Reward || Sel >= 0)) FeedJoker = -1; // 조커가 없어졌거나 카드를 고름
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
+	GPDDebug.TickMs = FMath::Lerp(GPDDebug.TickMs, (float)((FPlatformTime::Seconds() - TickT0) * 1000.0), 0.1f);
+	if (GPDDebug.bShow && GPDDebug.Acc < Dt) // 디버그 표시가 켜져 있으면 1초마다 로그에도 (Saved/Logs, D-135)
+		UE_LOG(LogTemp, Log, TEXT("PDPERF fps=%.1f ms=%.1f low=%.1f paint=%.2f tick=%.2f lines=%d points=%d enemies=%d shots=%d towers=%d particles=%d rings=%d speed=%d parts=%d/%d/%d/%d/%d/%d"),
+			GPDDebug.Fps, GPDDebug.Ms, GPDDebug.WorstShown, GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points, (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size(), Particles.Num(), Rings.Num(), Game.Speed, GPDDebug.PartLines[0], GPDDebug.PartLines[1], GPDDebug.PartLines[2], GPDDebug.PartLines[3], GPDDebug.PartLines[4], GPDDebug.PartLines[5]);
 	Invalidate(EInvalidateWidgetReason::Paint);
 }
 
@@ -486,6 +491,8 @@ void SPDBoardWidget::RestartRun()
 	Sel = -1;
 	bTree = bUpg = bCodex = bMenu = bSettings = false;
 	PowerRef = 0.f;
+	GPDDebugHpMul = 1.f; // 새 판에서는 부하 시험 배율 끔
+	GPDDebugCountMul = 1;
 	PickCells.clear();
 	Particles.Empty();
 	Flares.Empty();
@@ -527,7 +534,7 @@ FReply SPDBoardWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoi
 
 #if !UE_BUILD_SHIPPING
 // 부하 시험 치트 (D-134, F4, 쉬핑 빌드에는 없음): 길 둘레 2칸 안 빈칸을 무작위 카드로 채우고(9칸마다 조커) 웨이브 20 직전으로.
-// 타워는 세게(배율 ×6, 조커 ×30·레벨 15), 목숨 999 · 골드 99,999 라 오래 버티며 이펙트를 많이 낸다
+// 타워 배율 ×6 (조커 ×6·레벨 5), 적 체력·마리 수 ×3, 목숨 999 · 골드 99,999: 적이 길을 따라 오래 맞으며 타격 이펙트를 많이 낸다
 static void PDDebugStress(FPDGame& G)
 {
 	std::mt19937 R(1234);
@@ -552,7 +559,7 @@ static void PDDebugStress(FPDGame& G)
 			T.Y = Y;
 			T.Card = {2 + (int)(R() % 13), (EPDSuit)(R() % 4)};
 			T.Mult = 6.f;
-			if (++N % 9 == 0) { T.Joker = (int)(R() % (int)EPDJoker::Count); T.JLevel = 15; T.Mult = 30.f; T.Card = {0, EPDSuit::Wild}; }
+			if (++N % 9 == 0) { T.Joker = (int)(R() % (int)EPDJoker::Count); T.JLevel = 5; T.Mult = 6.f; T.Card = {0, EPDSuit::Wild}; }
 			G.Towers[CellKey(X, Y)] = T;
 		}
 	G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
@@ -561,6 +568,8 @@ static void PDDebugStress(FPDGame& G)
 	G.Gold = 99999;
 	G.Phase = EPDPhase::Build;
 	G.AutoStartT = -1.f;
+	GPDDebugHpMul = 3.f;  // 적 체력·마리 수 3배 (타격 이펙트 검수, D-135)
+	GPDDebugCountMul = 3;
 }
 #endif
 

@@ -46,7 +46,10 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	int32 Layer = LayerId;
 	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
 	FCanvas F{OutDrawElements, Field, &Layer, &WhiteBrush};
+	const double T0 = FPlatformTime::Seconds();
+	GPDDebug.Lines = GPDDebug.Points = 0;
 	PaintAll(C, F);
+	GPDDebug.PaintMs = FMath::Lerp(GPDDebug.PaintMs, (float)((FPlatformTime::Seconds() - T0) * 1000.0), 0.1f);
 	return Layer;
 }
 
@@ -75,12 +78,14 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		}
 	}
 	// 판 쪽(F, 흔들림을 받음): 판·적 → 발사체 → 이펙트 → 판 위 UI. 그 위에 고정 패널과 창(C)
-	PaintField(F);
-	PaintShots(F);
-	PaintEffects(F);
-	PaintBoardUi(F);
-	PaintPanels(C);
-	PaintScreens(C);
+	int32 L0 = GPDDebug.Lines;
+	auto Part = [&](int32 I) { GPDDebug.PartLines[I] = GPDDebug.Lines - L0; L0 = GPDDebug.Lines; };
+	PaintField(F); Part(0);
+	PaintShots(F); Part(1);
+	PaintEffects(F); Part(2);
+	PaintBoardUi(F); Part(3);
+	PaintPanels(C); Part(4);
+	PaintScreens(C); Part(5);
 	PaintTree(C);
 	// 화면 번쩍임과 덮개 화면 (제목, 게임 오버), 메뉴
 	const FPDGame& G = Game;
@@ -101,7 +106,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		const FLinearColor Good = Hex(TEXT("9cffb0")), Warn = Hex(TEXT("ffd96a")), Bad = Hex(TEXT("ff6a6a"));
 		const float Fps = GPDDebug.Fps, Low = GPDDebug.WorstShown > 0.f ? 1000.f / GPDDebug.WorstShown : 0.f;
 		const FLinearColor Fc = Fps >= 55.f ? Good : Fps >= 30.f ? Warn : Bad;
-		const float X = 24.f, Y = DesignH - 118.f, W = 216.f, H = 92.f;
+		const float X = 24.f, Y = DesignH - 136.f, W = 216.f, H = 110.f;
 		C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.92f));
 		C.Lines(FCanvas::RectPoints(X, Y, W, H), WithAlpha(Fc, 0.7f), 1.f);
 		C.Text(FString::Printf(TEXT("FPS %.0f"), Fps), X + 10.f, Y + 24.f, Fc, 18.f, 0, true);
@@ -109,6 +114,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Text(FString::Printf(TEXT("1초 최저 %.0f fps (%.1f ms)"), Low, GPDDebug.WorstShown), X + 10.f, Y + 44.f, Low >= 50.f ? Good : Low >= 25.f ? Warn : Bad, 10.f, 0, false, W - 20.f);
 		C.Text(FString::Printf(TEXT("적 %d · 발사체 %d · 타워 %d"), (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size()), X + 10.f, Y + 62.f, Hex(TEXT("cfd8e6")), 10.f, 0, false, W - 20.f);
 		C.Text(FString::Printf(TEXT("입자 %d · 고리 %d · 배속 ×%d · F3 닫기"), Particles.Num(), Rings.Num(), Game.Speed), X + 10.f, Y + 80.f, Hex(TEXT("8a94a6")), 10.f, 0, false, W - 20.f);
+		C.Text(FString::Printf(TEXT("그리기 %.1fms · 갱신 %.1fms · 선 %d (%dk점)"), GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points / 1000), X + 10.f, Y + 98.f, Hex(TEXT("7fd6ff")), 10.f, 0, false, W - 20.f);
 	}
 }
 
@@ -144,6 +150,7 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 	F.Glow(FCanvas::RectPoints(FX, FY, Cols * CS, Rows * CS), Hex(TEXT("7fd6ff"), 0.5f), 1.5f, 0.6f);
 
 	// ---- 족보 테두리 (칸 모양대로 바깥 변만) + 연쇄 번개
+	TSet<int32> Hatched; // 빗금은 칸마다 한 번만 (카드를 나눠 쓰는 족보가 겹쳐 그리던 것, D-135)
 	auto DrawSyn = [&](const std::vector<FPDSynergy>& List, float Alpha, bool bLightning) {
 		for (int32 Si = 0; Si < (int32)List.size(); ++Si)
 		{
@@ -154,32 +161,66 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 			TSet<int32> Has;
 			for (int K : S.Cells) Has.Add(K);
 			const float M = 4.f + 5.f * SynLayer(List, Si); // 카드를 나눠 쓰는 족보는 안쪽 테두리
+			TArray<TPair<FVector2f, FVector2f>> Edges; // 바깥 변 조각들 → 끝점끼리 이어 긴 선으로 (D-135: 선 수 줄이기)
 			for (int K : S.Cells)
 			{
 				const int X = K % Cols, Y = K / Cols;
 				const bool bL = X == 0 || !Has.Contains(K - 1), bR = X == Cols - 1 || !Has.Contains(K + 1), bU = !Has.Contains(K - Cols), bD = !Has.Contains(K + Cols);
 				const FVector2f P = CellPx((float)X, (float)Y);
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
-				// 장판 (D-099): 족보 색 옅은 채움 13% + 45도 빗금 (x + y 가 8 의 배수인 선이라 칸끼리 이어진다)
+				// 장판 (D-099): 족보 색 옅은 채움 13% + 45도 빗금 (x + y 가 10 의 배수인 선이라 칸끼리 이어진다)
 				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.13f * Alpha));
-				for (float D = FMath::CeilToFloat((X0 + Y0) / 8.f) * 8.f; D < X1 + Y1; D += 8.f)
+				bool bAlready = false;
+				Hatched.Add(K + (&List == &Preview ? 100000 : 0), &bAlready);
+				if (!bAlready)
+				for (float D = FMath::CeilToFloat((X0 + Y0) / 10.f) * 10.f; D < X1 + Y1; D += 10.f)
 				{
 					const float Ax = FMath::Max(X0, D - Y1), Bx = FMath::Min(X1, D - Y0);
 					if (Bx - Ax > 0.5f) F.Lines({{Ax, D - Ax}, {Bx, D - Bx}}, WithAlpha(Col, 0.3f * Alpha), 1.f);
 				}
-				if (bU) F.Glow({{X0, Y0}, {X1, Y0}}, Col, 2.f, 0.8f);
-				if (bD) F.Glow({{X0, Y1}, {X1, Y1}}, Col, 2.f, 0.8f);
-				if (bL) F.Glow({{X0, Y0}, {X0, Y1}}, Col, 2.f, 0.8f);
-				if (bR) F.Glow({{X1, Y0}, {X1, Y1}}, Col, 2.f, 0.8f);
+				if (bU) Edges.Emplace(FVector2f(X0, Y0), FVector2f(X1, Y0));
+				if (bR) Edges.Emplace(FVector2f(X1, Y0), FVector2f(X1, Y1));
+				if (bD) Edges.Emplace(FVector2f(X1, Y1), FVector2f(X0, Y1));
+				if (bL) Edges.Emplace(FVector2f(X0, Y1), FVector2f(X0, Y0));
+			}
+			// 끝점이 맞는 조각을 이어 붙인다 (방향 무관)
+			{
+				TArray<bool> Used;
+				Used.Init(false, Edges.Num());
+				auto Same = [](FVector2f A, FVector2f B) { return FMath::Abs(A.X - B.X) < 0.01f && FMath::Abs(A.Y - B.Y) < 0.01f; };
+				for (int32 I = 0; I < Edges.Num(); ++I)
+				{
+					if (Used[I]) continue;
+					Used[I] = true;
+					TArray<FVector2f> Line{Edges[I].Key, Edges[I].Value};
+					for (bool bGrew = true; bGrew;)
+					{
+						bGrew = false;
+						for (int32 J = 0; J < Edges.Num(); ++J)
+						{
+							if (Used[J]) continue;
+							const FVector2f A = Edges[J].Key, B = Edges[J].Value;
+							if (Same(Line.Last(), A)) Line.Add(B);
+							else if (Same(Line.Last(), B)) Line.Add(A);
+							else if (Same(Line[0], B)) Line.Insert(A, 0);
+							else if (Same(Line[0], A)) Line.Insert(B, 0);
+							else continue;
+							Used[J] = bGrew = true;
+						}
+					}
+					F.Glow(Line, Col, 2.f, 0.8f);
+				}
 			}
 			if (!bLightning) continue;
 			for (int J : S.Links)
 			{
-				if (J < 0 || J >= (int)List.size()) continue;
+				if (J <= Si || J >= (int)List.size()) continue; // 연쇄 번개는 족보 둘 사이에 하나만 (예전엔 맞닿은 칸마다, 양쪽에서 두 번)
+				bool bDone = false;
 				for (int A : S.Cells)
 					for (int B : List[J].Cells)
 					{
-						if (FMath::Abs(A % Cols - B % Cols) + FMath::Abs(A / Cols - B / Cols) != 1) continue;
+						if (bDone || FMath::Abs(A % Cols - B % Cols) + FMath::Abs(A / Cols - B / Cols) != 1) continue;
+						bDone = true;
 						const FVector2f PA = CellCenter(A), PB = CellCenter(B);
 						TArray<FVector2f> Bolt{PA};
 						for (int Seg = 1; Seg < 5; ++Seg)
