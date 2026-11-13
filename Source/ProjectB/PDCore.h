@@ -65,10 +65,11 @@ enum class EPDCharm : uint8_t
 	Count
 };
 inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
-// 즉시 보상 (부적 칸을 쓰지 않음)
-enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Gold, Count }; // 와일드는 드물게 (WildChance, 3웨이브에 한 번까지), 골드 = 10 + 웨이브 × 4
-constexpr float WildChance = 0.2f;
-constexpr int WildCooldown = 3;
+// 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
+constexpr int CharmEvery = 5;
+// 즉시 보상 (부적 칸을 쓰지 않음): 부적 창에서 와일드가 셋째 칸에 들거나, 부적 칸이 가득일 때 채움
+enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Gold, Count }; // 골드 = 10 + 웨이브 × 4
+constexpr float WildChance = 0.5f; // 부적 창마다 와일드가 셋째 칸에 들 확률
 struct FPDReward
 {
 	bool bCharm = true;
@@ -381,7 +382,6 @@ public:
 	std::vector<FPDSynergy> Synergies;
 	std::vector<FPDEnemy> Enemies;
 	std::vector<FPDProjectile> Projectiles;
-	int LastWildWave = -99; // 마지막으로 와일드 보상이 나온 웨이브
 	FPDPath Path;
 	std::vector<FPDEvent> Events;
 	std::vector<FPDSoundEvent> Sounds;

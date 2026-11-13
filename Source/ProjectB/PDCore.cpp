@@ -657,7 +657,6 @@ void FPDGame::NewGame(bool bStart)
 	Charms.clear();
 	Rewards.clear();
 	Projectiles.clear();
-	LastWildWave = -99;
 	for (int S = 0; S < 4; ++S) for (int R = 2; R <= 14; ++R) Deck.push_back({R, (EPDSuit)S});
 	std::shuffle(Deck.begin(), Deck.end(), Rng);
 	Path.Build(GeneratePath(Rng));
@@ -858,8 +857,17 @@ void FPDGame::EndWave()
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + Mods.DrawAdd, &Got);
 	AddGold(5.f + Wave); // 웨이브 통과 덤
-	Phase = EPDPhase::Reward;
-	Rewards = RollRewards();
+	if (Wave % CharmEvery == 0) // 부적 창은 5웨이브마다 (D-101)
+	{
+		Phase = EPDPhase::Reward;
+		Rewards = RollRewards();
+	}
+	else // 그 사이는 창 없이 5초 뒤 다음 웨이브
+	{
+		Rewards.clear();
+		Phase = EPDPhase::Build;
+		AutoStartT = AutoStartDelay;
+	}
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::WaveClear;
 	E.A = Got;
@@ -867,22 +875,20 @@ void FPDGame::EndWave()
 	Sfx(EPDSound::Clear);
 }
 
-// 보상 후보: 부적 2개(가진 것 제외) + 즉시 보상 1개. 부적 칸이 가득이면 즉시 보상만
-// 와일드 카드는 드물게: 20% 확률이고 3웨이브에 한 번까지. 빈자리는 보충·수리·골드로
+// 부적 창 (5웨이브마다, D-101): 부적 3개(가진 것 제외). 와일드가 나오면(WildChance) 셋째 칸이 와일드.
+// 부적 칸이 가득이거나 남은 부적이 모자라면 보충·수리·골드로 채운다
 std::vector<FPDReward> FPDGame::RollRewards()
 {
 	std::vector<FPDReward> Out;
 	std::vector<int> Pool;
 	for (int J = 0; J < (int)EPDCharm::Count; ++J) if (std::find(Charms.begin(), Charms.end(), (EPDCharm)J) == Charms.end()) Pool.push_back(J);
 	std::shuffle(Pool.begin(), Pool.end(), Rng);
-	if ((int)Charms.size() < CharmMax) for (int I = 0; I < 2 && I < (int)Pool.size(); ++I) Out.push_back({true, Pool[I]});
+	const bool bWild = std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < WildChance;
+	const int NCharm = (int)Charms.size() < CharmMax ? std::min(bWild ? 2 : 3, (int)Pool.size()) : 0;
+	for (int I = 0; I < NCharm; ++I) Out.push_back({true, Pool[I]});
 	std::vector<int> Inst{(int)EPDInstant::Draw2, (int)EPDInstant::Repair, (int)EPDInstant::Gold};
 	std::shuffle(Inst.begin(), Inst.end(), Rng);
-	if (Wave - LastWildWave >= WildCooldown && std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < WildChance)
-	{
-		Inst.insert(Inst.begin(), (int)EPDInstant::Wild);
-		LastWildWave = Wave;
-	}
+	if (bWild) Inst.insert(Inst.begin(), (int)EPDInstant::Wild);
 	for (int I = 0; Out.size() < 3 && I < (int)Inst.size(); ++I) Out.push_back({false, Inst[I]});
 	return Out;
 }
@@ -913,7 +919,7 @@ void FPDGame::TakeReward(int Index)
 	}
 	Rewards.clear();
 	Phase = EPDPhase::Build;
-	AutoStartT = AutoStartDelay; // 보상을 고르면 5초 뒤 다음 웨이브
+	AutoStartT = AutoStartDelay; // 부적을 고르면 5초 뒤 다음 웨이브
 }
 
 std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers) const

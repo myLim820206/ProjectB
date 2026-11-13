@@ -2458,7 +2458,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	const float CharmY = FY + RTopH + 10.f;
 	C.Panel(RX, CharmY, PW, 40.f + CharmMax * 34.f);
 	C.Text(FString::Printf(TEXT("부적 %d/%d"), (int32)G.Charms.size(), CharmMax), RX + 12.f, CharmY + 22.f, Gold, 12.f, 0, true, PW - 24.f);
-	if (G.Charms.empty()) C.Text(TEXT("웨이브를 막으면 보상으로 고른다"), RX + 12.f, CharmY + 46.f, Dim, 11.f, 0, false, PW - 24.f);
+	if (G.Charms.empty()) C.Text(FString::Printf(TEXT("%d웨이브마다 하나를 고른다"), CharmEvery), RX + 12.f, CharmY + 46.f, Dim, 11.f, 0, false, PW - 24.f);
 	for (int32 I = 0; I < (int32)G.Charms.size(); ++I)
 	{
 		const float Y = CharmY + 46.f + I * 34.f;
@@ -2471,7 +2471,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	if (G.Phase == EPDPhase::Reward)
 	{
 		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.9f));
-		C.TextCentered(FString::Printf(TEXT("웨이브 %d 보상 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
+		C.TextCentered(FString::Printf(TEXT("웨이브 %d 부적 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
 		for (int32 I = 0; I < (int32)G.Rewards.size(); ++I)
 		{
 			const FPDReward& R = G.Rewards[I];

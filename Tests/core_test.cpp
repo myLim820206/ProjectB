@@ -178,13 +178,13 @@ static void UnitTests()
 		G.TakeReward(0);
 		Expect(std::fabs(TowerStats(T, G.CharmMask()).Dmg - Base * 1.4f) < 1e-3f && G.Phase == EPDPhase::Build && G.Charms.size() == 1, "하트 애호가 부적: ♥ 공격력 ×1.4");
 		auto R1 = G.RollRewards();
-		int J1 = 0;
-		for (auto& R : R1) J1 += R.bCharm;
+		int J1 = 0, W1 = 0;
+		for (auto& R : R1) { J1 += R.bCharm; W1 += !R.bCharm && R.Id == (int)EPDInstant::Wild; }
 		G.Charms = {EPDCharm::Twins, EPDCharm::Scope, EPDCharm::Supply, EPDCharm::Lucky7, EPDCharm::Frost};
 		auto R2 = G.RollRewards();
 		bool bAllInst = true;
 		for (auto& R : R2) bAllInst = bAllInst && !R.bCharm;
-		Expect(R1.size() == 3 && J1 == 2 && bAllInst && R2.size() == 3, "보상 후보: 부적 2 + 즉시 1, 부적 칸이 차면 즉시만");
+		Expect(R1.size() == 3 && (J1 == 3 || (J1 == 2 && W1 == 1)) && bAllInst && R2.size() == 3, "부적 창: 부적 3 (와일드면 부적 2 + 와일드), 부적 칸이 차면 즉시만");
 		G.Charms = {EPDCharm::BigHand};
 		Expect(G.HandMax() == 9, "큰 손: 손패 최대 9");
 		G.Phase = EPDPhase::Reward;
@@ -192,25 +192,36 @@ static void UnitTests()
 		G.TakeReward(0);
 		Expect(!G.Hand.empty() && G.Hand.back().IsWild(), "와일드 카드 보상");
 	}
-	{ // 와일드 카드 보상은 드물게: 20% 쯤, 3웨이브에 한 번까지
+	{ // 와일드 카드: 부적 창(5웨이브마다)의 절반쯤에만
 		FPDGame G(31);
 		G.NewGame(true);
-		for (int K = 0; K < (int)EPDCharm::Count && (int)G.Charms.size() < CharmMax; ++K) G.Charms.push_back((EPDCharm)K); // 부적 칸 가득 (즉시 보상만 나옴)
-		int Wild = 0, Last = -99, MinGap = 99;
-		for (int W = 1; W <= 300; ++W)
+		int Wild = 0;
+		for (int W = CharmEvery; W <= 300; W += CharmEvery)
 		{
 			G.Wave = W;
 			bool bW = false;
 			for (const FPDReward& R : G.RollRewards()) bW = bW || (!R.bCharm && R.Id == (int)EPDInstant::Wild);
-			if (bW) { Wild++; MinGap = std::min(MinGap, W - Last); Last = W; }
+			Wild += bW;
 		}
-		Expect(Wild >= 20 && Wild <= 70 && MinGap >= WildCooldown, "와일드 보상 300웨이브에 " + std::to_string(Wild) + "번, 간격 최소 " + std::to_string(MinGap));
+		Expect(Wild >= 18 && Wild <= 42, "와일드 보상 300웨이브(부적 창 60번)에 " + std::to_string(Wild) + "번");
 		G.Phase = EPDPhase::Reward;
 		G.Rewards = {{false, (int)EPDInstant::Gold}};
 		G.Wave = 10;
 		const int G0 = G.Gold;
 		G.TakeReward(0);
 		Expect(G.Gold - G0 == 50, "골드 보상 10 + 웨이브 × 4");
+	}
+	{ // 부적 창은 5웨이브마다 (D-101): 그 사이 웨이브는 창 없이 5초 뒤 다음 웨이브
+		FPDGame G(12);
+		G.NewGame(true);
+		G.bMuted = true;
+		auto EndAt = [&](int W) { G.Wave = W; G.Phase = EPDPhase::Wave; G.Enemies.clear(); G.Update(0.f); }; // 새 판이라 남은 적(Pending)도 없음
+		EndAt(3);
+		const bool bNoWindow = G.Phase == EPDPhase::Build && G.Rewards.empty() && std::fabs(G.AutoStartT - AutoStartDelay) < 1e-4f;
+		EndAt(5);
+		int NC = 0;
+		for (const FPDReward& R : G.Rewards) NC += R.bCharm;
+		Expect(bNoWindow && G.Phase == EPDPhase::Reward && G.Rewards.size() == 3 && NC >= 2, "3웨이브는 창 없이 5초 뒤 다음, 5웨이브에 부적 창");
 	}
 	{ // 발사체: ♥ 미사일은 날아가서 닿을 때 피해, ♠ 레이저는 즉시
 		FPDGame G(32);
