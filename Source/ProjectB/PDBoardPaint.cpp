@@ -179,7 +179,16 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 		if (T.IsJoker())
 		{
 			F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
-			if (T.JLevel >= 2) F.TextCentered(FString::Printf(TEXT("Lv%d"), T.JLevel), P.X, P.Y + CS * 0.5f - 5.f, WithAlpha(JokerPink, 0.9f), 9.f, true, CS - 2.f);
+			// 레벨 (위 오른쪽) + 경험치 막대 (아래), 레벨업 순간 막대가 번쩍 (D-125)
+			F.Text(FString::Printf(TEXT("Lv%d"), T.JLevel), P.X + CS * 0.5f - 3.f, P.Y - CS * 0.5f + 10.f, JokerPink, 9.f, 2, true, CS - 6.f);
+			if (T.JLevel < JokerMaxLevel)
+			{
+				const float BW = CS - 12.f, BX = P.X - BW / 2.f, BY = P.Y + CS * 0.5f - 5.f;
+				const float U = FMath::Clamp(T.JXp / JokerXpNeed(T.JLevel), 0.f, 1.f);
+				F.Box(BX, BY, BW, 3.f, Hex(TEXT("06060b"), 0.9f));
+				F.Box(BX, BY, BW * U, 3.f, WithAlpha(JokerPink, 0.95f));
+				F.Lines(FCanvas::RectPoints(BX, BY, BW, 3.f), WithAlpha(JokerPink, 0.45f), 1.f);
+			}
 			continue;
 		}
 		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
@@ -710,14 +719,15 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			const bool bHov = InBox(Mouse, B, BW, FuseH);
 			// 재료 칸 색이 족보 색 → 흰빛 → 족보 색으로 천천히 오간다 (D-122)
 			const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
-			const FLinearColor Pick = FMath::Lerp(HandColor(G.Synergies[I].Kind), FLinearColor::White, 0.75f * Wv);
+			const FLinearColor Pick = FMath::Lerp(HandColor(G.Synergies[I].Kind), FLinearColor::White, 0.6f * Wv);
 			// 합성 대상 표시 (D-121): 재료 칸마다 금색 테두리 + 옅은 채움, 버튼에 올리면 더 밝게
 			if (PickCells.empty())
 				for (int K : G.Synergies[I].Cells)
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.12f : 0.05f) + 0.12f * Wv));
-					F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), Pick, bHov ? 2.f : 1.5f, 0.6f + 0.9f * Wv);
+					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.26f : 0.16f) + 0.2f * Wv));
+					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.f : 2.4f, 1.1f + 1.2f * Wv);
+					F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
 				}
 			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
@@ -826,7 +836,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(PowLine, JX + 10.f, JY + 36.f, PowCol, 11.f, 0, true, 226.f);
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 54.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 70.f, Gold, 10.f, 0, false, 226.f);
-				F.Text(FString::Printf(TEXT("배율 ×%.0f · 맞닿은 족보에서 와일드"), T.Mult), JX + 10.f, JY + 86.f, Grey, 10.f, 0, false, 226.f);
+				F.Text(FString::Printf(TEXT("배율 ×%.0f · 처치 +%.0f 경험치 (보스 +%.0f)"), T.Mult, JokerKillXp, JokerBossXp), JX + 10.f, JY + 86.f, Grey, 10.f, 0, false, 226.f);
 				F.Text(T.JLevel >= JokerMaxLevel ? FString::Printf(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, (T.JLevel - 1) * 10)
 					: FString::Printf(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), (T.JLevel - 1) * 10, T.JLevel >= JokerUpLevel ? TEXT(" · 강화") : TEXT("")),
 					JX + 10.f, JY + 102.f, JokerPink, 10.f, 0, false, 226.f);

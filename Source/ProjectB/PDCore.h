@@ -176,7 +176,7 @@ struct FPDTower
 	EPDSuit JSuit = EPDSuit::Spade; // 할리퀸: 강화할 무늬 (재료에 가장 많던 무늬)
 	float Timer = 0.f;              // 방울: 종 주기
 	int Cycle = 0;                  // 광대: 공격 무늬 순환
-	int JLevel = 1;                 // 조커 레벨 (족보 먹이기 경험치로 오름, 최대 JokerMaxLevel)
+	int JLevel = 1;                 // 조커 레벨 (족보 먹이기·처치 경험치로 오름, 최대 JokerMaxLevel)
 	float StunT = 0.f;              // 파괴자 보스에게 기절한 남은 시간 (D-112)
 	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
 	bool IsJoker() const { return Joker >= 0; }
@@ -186,6 +186,7 @@ constexpr int JokerMaxLevel = 9999;
 constexpr float JokerLevelDmg = 0.1f;
 constexpr int JokerUpLevel = 10;
 inline float JokerXpNeed(int Level) { return 20.f + 10.f * (Level - 1); }
+constexpr float JokerKillXp = 1.f, JokerBossXp = 15.f; // 조커가 적을 처치하면 경험치 (D-125)
 struct FPDFeed
 {
 	int Syn = -1;   // 먹일 족보 번호
@@ -357,6 +358,7 @@ struct FPDProjectile
 	int Target = 0;                             // 목표 적 Id (죽으면 마지막 위치로 날아가 터짐)
 	float Dmg = 0.f, Splash = 0.f, Slow = 0.f, Life = 0.f;
 	int Crits = 0, Level = 1;
+	int Src = -1;               // 쏜 타워 칸 키 (처치 경험치, D-125)
 	bool bHand = false;
 	EPDSuit Suit = EPDSuit::Spade;
 };
@@ -364,7 +366,7 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
@@ -382,6 +384,8 @@ public:
 	explicit FPDGame(uint32_t Seed = 0);
 	FPDEnemy SpawnTestEnemy(EPDEnemy T, float BaseHp, int W) { return MakeEnemy(T, BaseHp, W); } // 시험용
 	void HitTest(FPDEnemy& E, float Dmg) { Hit(E, Dmg, 0.f); } // 시험용
+	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { HitSrc = SrcKey; Hit(E, Dmg, 0.f); HitSrc = -1; } // 시험용: 이 칸 타워가 때림
+	bool GainJokerXp(int Key, float Xp);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치
 	void NewGame(bool bStart);
 	void Tick(float Dt);                     // 0.05초로 잘라 Speed 배만큼 진행
 	bool Place(int HandIdx, int X, int Y);   // 카드 설치 (타워 위면 교체)
@@ -482,6 +486,8 @@ private:
 	void BossEvent(const FPDEnemy& E, float X2 = 0.f, float Y2 = 0.f);
 	float SpawnT = 0.f;
 	int NextId = 1;
+	int HitSrc = -1; // 지금 피해를 주는 타워 칸 키 (처치 경험치를 줄 조커, -1 = 모름)
+	bool bReapply = false; // 조커 레벨업으로 족보 효과를 다시 계산해야 함
 	float KillSfxT = 0.f;
 };
 } // namespace PD

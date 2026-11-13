@@ -223,6 +223,24 @@ void SPDBoardWidget::HandleEvents()
 			else Floats.Add({FString::Printf(TEXT("경험치 +%.0f"), E.R), P - FVector2f(0.f, 26.f), 0.f, 1.2f, 14.f, JokerPink});
 			break;
 		}
+		case FPDEvent::EKind::JokerXp: // 조커 처치 경험치 (D-125): 작은 "+1 경험치" + 별빛, 레벨이 오르면 고리·입자·큰 글자
+		{
+			if (E.B > 0)
+			{
+				Rings.Add({P, 10.f, 120.f, 0.3f, 0.9f, 3.f, JokerPink});
+				Rings.Add({P, 6.f, 70.f, 0.15f, 0.6f, 2.f, FLinearColor::White, EWave::Star, 4, FMath::FRandRange(0.f, TwoPi), 2.f});
+				Burst(P, 36, JokerPink, 80.f, 240.f, 0.8f, 2.4f, true);
+				PushWorldFx(EWorldFx::Synergy, P, JokerPink, 1.6f);
+				Floats.Add({FString::Printf(TEXT("레벨 업! Lv%d"), E.A), P - FVector2f(0.f, 34.f), 0.f, 1.6f, 22.f, JokerPink});
+				Shake = FMath::Max(Shake, 0.15f);
+			}
+			else
+			{
+				Burst(P + FVector2f(FMath::FRandRange(-8.f, 8.f), -CS * 0.3f), 3, JokerPink, 20.f, 60.f, 0.35f, 1.6f, false);
+				Floats.Add({FString::Printf(TEXT("+%.0f 경험치"), E.R), P + FVector2f(FMath::FRandRange(-10.f, 10.f), -CS * 0.45f), 0.f, 0.7f, E.R >= 10.f ? 16.f : 11.f, WithAlpha(JokerPink, 0.9f)});
+			}
+			break;
+		}
 		case FPDEvent::EKind::JokerMerge: // 같은 조커끼리 합치기 (D-114)
 		{
 			SuckIn(P, 12, 14.f, 0.4f, 1.8f, 3.f, JokerPink, FLinearColor::White, 3);

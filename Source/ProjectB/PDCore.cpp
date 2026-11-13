@@ -1416,8 +1416,8 @@ bool FPDGame::Feed(int SynergyIdx)
 	const float Xp = F->Xp;
 	for (int K : Synergies[SynergyIdx].Cells) if (!Towers.at(K).IsJoker()) Towers.erase(K);
 	FPDTower& J = Towers.at(JKey);
-	J.JXp += Xp;
 	const int Old = J.JLevel;
+	J.JXp += Xp;
 	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
 	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
@@ -1507,6 +1507,31 @@ void FPDGame::Discard(int HandIdx)
 	Sfx(EPDSound::HardDrop);
 }
 
+bool FPDGame::GainJokerXp(int Key, float Xp)
+{
+	auto It = Towers.find(Key);
+	if (It == Towers.end() || !It->second.IsJoker() || It->second.JLevel >= JokerMaxLevel) return false;
+	FPDTower& J = It->second;
+	const int Old = J.JLevel;
+	J.JXp += Xp;
+	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
+	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
+	FPDEvent E;
+	E.Kind = FPDEvent::EKind::JokerXp;
+	E.X = J.X + 0.5f;
+	E.Y = J.Y + 0.5f;
+	E.A = J.JLevel;
+	E.B = J.JLevel - Old;
+	E.R = Xp;
+	Ev(E);
+	if (E.B > 0)
+	{
+		bReapply = true; // 레벨 10 강화 등 효과는 다음 갱신 처음에 다시 (타워를 도는 중일 수 있어서)
+		Sfx(EPDSound::Clear);
+	}
+	return E.B > 0;
+}
+
 void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 {
 	if (E.bDead || E.Untargetable()) return; // 유령: 무적인 동안은 안 맞음
@@ -1518,6 +1543,11 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	if (E.Hp > 0.f) return;
 	E.bDead = true;
 	Kills++;
+	if (HitSrc >= 0) // 조커가 처치하면 경험치 (D-125)
+	{
+		auto It = Towers.find(HitSrc);
+		if (It != Towers.end() && It->second.IsJoker()) GainJokerXp(HitSrc, EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp);
+	}
 	const FPDPoint P = Path.At(E.D);
 	FPDEvent K;
 	K.Kind = FPDEvent::EKind::Kill;
@@ -1567,6 +1597,7 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	Pr.Slow = Slow;
 	Pr.Crits = Crits;
 	Pr.Level = T.Level;
+	Pr.Src = CellKey(T.X, T.Y);
 	Pr.bHand = T.Eff.Hand >= 0 || T.IsJoker();
 	Pr.Suit = T.IsJoker() ? EPDSuit::Wild : T.Card.Suit;
 	FPDEvent Sh;
@@ -1605,6 +1636,8 @@ void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 {
 	FPDPoint At{P.TX, P.TY};
 	const bool bHitTarget = Target && !Target->bDead;
+	struct FSrcScope { int& R; int Old; ~FSrcScope() { R = Old; } } Scope{HitSrc, HitSrc};
+	HitSrc = P.Src;
 	if (bHitTarget) { At = Path.At(Target->D); Hit(*Target, P.Dmg, P.Slow); }
 	if (P.Splash > 0.f)
 	{
@@ -1771,6 +1804,7 @@ float FPDGame::BossTick(FPDEnemy& E, float Dt)
 void FPDGame::Update(float Dt)
 {
 	Time += Dt;
+	if (bReapply) { bReapply = false; Synergies = ApplyEffects(Towers, CharmMask(), &Mods); }
 	for (auto& KV : Towers) KV.second.Age += Dt;
 	KillSfxT -= Dt;
 	if (Phase != EPDPhase::Wave) return;
@@ -1853,7 +1887,9 @@ void FPDGame::Update(float Dt)
 		{
 			bool bAny = false;
 			const float SD = St.Dmg * (1.f + RollCrit() * (St.CritMult - 1.f));
+			HitSrc = CellKey(T.X, T.Y);
 			for (FPDEnemy& E : Enemies) if (!E.bDead) { Hit(E, SD, 0.f); bAny = true; }
+			HitSrc = -1;
 			if (bAny)
 			{
 				T.Cd = 1.f / St.Rate;

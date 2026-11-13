@@ -274,6 +274,30 @@ static void UnitTests()
 		const int B3 = G.NextBossWave();
 		Expect(B1 == 5 && B2 == 5 && B3 == 10 && FPDGame::BossOfWave(20) == BossOrder[3], "다음 보스 웨이브: 3 → 5, 5 진행 중 → 5, 5 끝 → 10");
 	}
+	{ // 조커 처치 경험치 (D-125): 조커가 잡으면 +1 (보스 +15), 다른 타워가 잡으면 없음, 레벨업 사건
+		FPDGame G(21);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		Put(G.Towers, 4, 4, C(9, He));
+		FPDTower& J = G.Towers.at(CellKey(4, 4));
+		J.Joker = (int)EPDJoker::Jack;
+		Put(G.Towers, 6, 4, C(5, EPDSuit::Spade));
+		G.Events.clear();
+		FPDEnemy A = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 3);
+		G.HitTestFrom(CellKey(4, 4), A, 1e6f);
+		FPDEnemy B = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 3);
+		G.HitTestFrom(CellKey(6, 4), B, 1e6f);
+		const float Xp1 = G.Towers.at(CellKey(4, 4)).JXp;
+		G.Towers.at(CellKey(4, 4)).JXp = JokerXpNeed(1) - 1.f;
+		FPDEnemy Bs = G.SpawnTestEnemy(EPDEnemy::ShieldBoss, 10.f, 5);
+		G.HitTestFrom(CellKey(4, 4), Bs, 1e6f);
+		const FPDTower& J2 = G.Towers.at(CellKey(4, 4));
+		bool bUp = false;
+		for (const FPDEvent& E : G.Events) bUp = bUp || (E.Kind == FPDEvent::EKind::JokerXp && E.B == 1 && E.A == 2);
+		Expect(Xp1 == JokerKillXp && J2.JLevel == 2 && std::fabs(J2.JXp - (JokerBossXp - 1.f)) < 1e-4f && bUp,
+			"조커 처치 경험치: 일반 +1, 보스 +15 → 레벨 2 (남은 경험치 " + std::to_string((int)J2.JXp) + "), 다른 타워 처치는 없음");
+	}
 	{ // 보스 13종 (D-112): 순서와 능력
 		auto BossOf = [](int W) {
 			FPDGame G(40);
