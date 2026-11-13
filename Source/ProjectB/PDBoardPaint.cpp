@@ -691,8 +691,13 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		const int32 Target = bHoverIn ? HoverKey : Def;
 		for (int K : PickCells)
 			if (K != Target) F.Dashed({CellCenter(K), CellCenter(Target)}, WithAlpha(PickCol, 0.5f), 1.2f, 4.f, 5.f);
-		F.Badge(bPickJoker ? TEXT("조커가 놓일 칸을 클릭 · 버튼 다시/G: 기본 칸 · Esc/오른쪽 클릭: 취소") : TEXT("합성 타워가 놓일 칸을 클릭 · 버튼 다시/G: 기본 칸 · Esc/오른쪽 클릭: 취소"),
-			FX + Cols * CS / 2.f, FY + 12.f, PickCol, 1.f);
+		// 자리 고르는 중 (D-123): 판 가운데에 큰 글자 (바탕 없이 반투명, 아래 칸이 비쳐 보이게)
+		{
+			const float MX = FX + Cols * CS / 2.f, MY = FY + Rows * CS / 2.f;
+			const FLinearColor Big = WithAlpha(PickCol, 0.55f + 0.3f * Pulse);
+			F.TextCentered(bPickJoker ? TEXT("조커 자리를 고르세요") : TEXT("합성 타워 자리를 고르세요"), MX, MY - 14.f, Big, 34.f, true, Cols * CS - 40.f);
+			F.TextCentered(TEXT("빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소"), MX, MY + 22.f, WithAlpha(Fg, 0.75f), 13.f, false, Cols * CS - 40.f);
+		}
 	}
 	// 합성 버튼
 	if (!bPv && G.Phase != EPDPhase::Reward)
