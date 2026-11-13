@@ -65,7 +65,7 @@ void SPDBoardWidget::BakeAtlas()
 	// 미리 만든 에셋이 있으면 그걸 쓴다 (D-145): 굽지 않으니 시작·창 크기 바뀜에도 멈추지 않는다
 	UObject* Res = nullptr;
 	if (bFirst && !bForceBake)
-		if (UTexture2D* Tex = LoadObject<UTexture2D>(nullptr, TEXT("/Game/Sprites/T_PDAtlas.T_PDAtlas"), nullptr, LOAD_NoWarn | LOAD_Quiet))
+		if (UTexture2D* Tex = LoadObject<UTexture2D>(nullptr, *FString::Printf(TEXT("/Game/Sprites/T_PDAtlas_v%d.T_PDAtlas_v%d"), AtlasVersion, AtlasVersion), nullptr, LOAD_NoWarn | LOAD_Quiet))
 		{
 			Tex->AddToRoot();
 			Res = Tex;
@@ -125,6 +125,7 @@ void SPDBoardWidget::BakeAtlas()
 		}
 	Atlas->BracketBrush = Sub(AtlasBracket, -CS / 2.f - BracketPad, -CS / 2.f - BracketPad, CS + BracketPad * 2.f, CS + BracketPad * 2.f);
 	Atlas->LineBrush = Sub(AtlasLine, -LineHalf - 6.f, -LineH / 2.f, LineHalf * 2.f + 12.f, LineH);
+	Atlas->LineAABrush = Sub(AtlasLineAA, -LineAAW / 2.f + 4.f, -LineAAH / 2.f, LineAAW - 8.f, LineAAH); // 양 끝 4px 은 빼고 (가로로 늘여도 끝이 흐려지지 않게)
 }
 
 // 조각 굽기 (D-143): 512 조각마다 그려서 큰 텍스처의 제자리로 복사, 조각마다 렌더가 끝날 때까지 기다린다
@@ -183,14 +184,15 @@ void SPDBoardWidget::SaveAtlasAsset()
 	bForceBake = false;
 	UTextureRenderTarget2D* RT = Atlas.IsValid() ? Cast<UTextureRenderTarget2D>(Atlas->RT) : nullptr;
 	if (!RT) return;
-	const FString PkgName = TEXT("/Game/Sprites/T_PDAtlas");
+	const FString AssetName = FString::Printf(TEXT("T_PDAtlas_v%d"), AtlasVersion);
+	const FString PkgName = TEXT("/Game/Sprites/") + AssetName;
 	UPackage* Pkg = CreatePackage(*PkgName);
 	// 렌더 타깃 바이트를 그대로 텍스처 원본으로 (sRGB 로 저장된 그대로, 알파는 미리 곱한 값). ConstructTexture2D 는 감마를 바꿔 하얗게 떠서 쓰지 않는다
 	const TArray<FColor>& Px = Atlas->LastPixels;
 	if (Px.Num() != AtlasTex * AtlasTex) return;
 	Pkg->FullyLoad(); // 게임이 불러 둔 옛 에셋이 있으면 다 불러야 덮어쓸 수 있다
-	UTexture2D* Tex = FindObject<UTexture2D>(Pkg, TEXT("T_PDAtlas"));
-	if (!Tex) Tex = NewObject<UTexture2D>(Pkg, TEXT("T_PDAtlas"), RF_Public | RF_Standalone);
+	UTexture2D* Tex = FindObject<UTexture2D>(Pkg, *AssetName);
+	if (!Tex) Tex = NewObject<UTexture2D>(Pkg, *AssetName, RF_Public | RF_Standalone);
 	Tex->PreEditChange(nullptr);
 	Tex->Source.Init(AtlasTex, AtlasTex, 1, 1, TSF_BGRA8, reinterpret_cast<const uint8*>(Px.GetData()));
 	Tex->SRGB = true;
@@ -204,7 +206,7 @@ void SPDBoardWidget::SaveAtlasAsset()
 	Args.TopLevelFlags = RF_Public | RF_Standalone;
 	const bool bOk = UPackage::SavePackage(Pkg, Tex, *FPackageName::LongPackageNameToFilename(PkgName, FPackageName::GetAssetPackageExtension()), Args);
 	UE_LOG(LogTemp, Log, TEXT("PDATLAS asset saved: %s"), bOk ? TEXT("ok") : TEXT("FAILED"));
-	Floats.Add({bOk ? FString(TEXT("아틀라스 에셋 저장: Content/Sprites/T_PDAtlas")) : FString(TEXT("아틀라스 에셋 저장 실패")), FVector2f(DesignW / 2.f, DesignH / 2.f), 0.f, 2.5f, 18.f, bOk ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a"))});
+	Floats.Add({bOk ? FString(TEXT("아틀라스 에셋 저장: Content/Sprites/")) + AssetName : FString(TEXT("아틀라스 에셋 저장 실패")), FVector2f(DesignW / 2.f, DesignH / 2.f), 0.f, 2.5f, 18.f, bOk ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a"))});
 #endif
 }
 

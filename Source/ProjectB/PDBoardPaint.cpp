@@ -102,6 +102,22 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 		F.Glow({C0 + FVector2f(B, B - L), C0 + FVector2f(B, B), C0 + FVector2f(B - L, B)}, W, 1.8f, 1.f);
 		F.Glow({C0 + FVector2f(A + L, B), C0 + FVector2f(A, B), C0 + FVector2f(A, B - L)}, W, 1.8f, 1.f);
 	}
+	{ // 선 스프라이트 띠 (D-146): 굵기마다 한 줄. Slate 선 셰이더와 같은 덮임: 너비 T+2 를 -1..1 로 두고 smoothstep(1, 안쪽, |u|)
+		const FVector2f C = AtlasCellCenter(AtlasLineAA);
+		const int32 NRows = (int32)(LineBandH * AtlasK);
+		for (int32 Bi = 0; Bi < LineBands; ++Bi)
+		{
+			const float Inside = (LineBandT[Bi] * 0.5f - 1.f) / (LineBandT[Bi] * 0.5f + 1.f);
+			const float Top = C.Y - LineAAH / 2.f + Bi * LineBandH;
+			for (int32 Y = 0; Y < NRows; ++Y)
+			{
+				const float U = FMath::Abs((Y + 0.5f) / NRows * 2.f - 1.f);
+				const float S = FMath::Clamp((U - 1.f) / (Inside - 1.f), 0.f, 1.f);
+				const float A = S * S * (3.f - 2.f * S);
+				if (A > 0.002f) F.Box(C.X - LineAAW / 2.f, Top + Y / AtlasK, LineAAW, 1.f / AtlasK, WithAlpha(W, A));
+			}
+		}
+	}
 	{ // 가로 빛선 (조각·입자 꼬리)
 		const FVector2f C = AtlasCellCenter(AtlasLine);
 		F.Glow({C - FVector2f(LineHalf, 0.f), C + FVector2f(LineHalf, 0.f)}, W, 1.5f, 0.9f);
@@ -163,6 +179,21 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	int32 Layer = LayerId;
 	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
 	FCanvas F{OutDrawElements, Field, &Layer, &WhiteBrush};
+	if (UseAtlas()) // 모든 선을 선 스프라이트로 (D-146, F6 으로 끄면 진짜 선)
+	{
+		// 굵기별 띠 붓: 전체 띠 붓을 줄마다 나눈다 (반 텍셀 안쪽으로: 옆 띠가 섞이지 않게)
+		static FSlateBrush Bands[LineBands];
+		const FBox2f R = Atlas->LineAABrush.GetUVRegion();
+		const float Hv = (R.Max.Y - R.Min.Y) / LineBands, Pad = 0.5f / AtlasTex;
+		for (int32 Bi = 0; Bi < LineBands; ++Bi)
+		{
+			Bands[Bi] = Atlas->LineAABrush;
+			Bands[Bi].ImageSize.Y = Atlas->LineAABrush.ImageSize.Y / LineBands;
+			Bands[Bi].SetUVRegion(FBox2f(FVector2f(R.Min.X, R.Min.Y + Hv * Bi + Pad), FVector2f(R.Max.X, R.Min.Y + Hv * (Bi + 1) - Pad)));
+		}
+		C.LineAA = F.LineAA = Bands;
+		C.PxToDesign = F.PxToDesign = 1.f / FMath::Max(0.01f, Design.GetAccumulatedLayoutTransform().GetScale()); // DPI 배율까지 포함한 화면 px
+	}
 	const double T0 = FPlatformTime::Seconds();
 	GPDDebug.Lines = GPDDebug.Points = 0;
 	PaintAll(C, F);
@@ -239,7 +270,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Text(FString::Printf(TEXT("1초 최저 %.0f fps (%.1f ms)"), Low, GPDDebug.WorstShown), X + 10.f, Y + 44.f, Low >= 50.f ? Good : Low >= 25.f ? Warn : Bad, 10.f, 0, false, W - 20.f);
 		C.Text(FString::Printf(TEXT("적 %d · 발사체 %d · 타워 %d"), (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size()), X + 10.f, Y + 62.f, Hex(TEXT("cfd8e6")), 10.f, 0, false, W - 20.f);
 		C.Text(FString::Printf(TEXT("입자 %d · 고리 %d · 배속 ×%d · F3 닫기"), Particles.Num(), Rings.Num(), Game.Speed), X + 10.f, Y + 80.f, Hex(TEXT("8a94a6")), 10.f, 0, false, W - 20.f);
-		C.Text(FString::Printf(TEXT("그리기 %.1fms · 갱신 %.1fms · 선 %d (%dk점)"), GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points / 1000), X + 10.f, Y + 98.f, Hex(TEXT("7fd6ff")), 10.f, 0, false, W - 20.f);
+		C.Text(FString::Printf(TEXT("그리기 %.1fms · 갱신 %.1fms · 선 %d (%dk점) · %s"), GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points / 1000, UseAtlas() ? TEXT("스프라이트") : TEXT("진짜 선(F6)")), X + 10.f, Y + 98.f, Hex(TEXT("7fd6ff")), 10.f, 0, false, W - 20.f);
 	}
 }
 

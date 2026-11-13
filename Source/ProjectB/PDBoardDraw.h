@@ -513,7 +513,15 @@ constexpr int32 AtlasCards = 53, AtlasTowerN = AtlasCards * 4 * 2, AtlasJoker0 =
 // 0 원, 1~6 다각형 3~8, 7~12 별 3~8, 13~27 끊어진 호 2~16, 28~42 빛줄기 2~16, 43~47 무늬 0~4, 48~52 별빛 갈래 0·2·4·6·8
 constexpr int32 AtlasFx0 = AtlasJoker0 + 10, AtlasFxN = 53;
 // 그 밖 (D-143): 족보 빗금 칸, 합성 가능 꺾쇠 칸, 가로 빛선 (조각·입자 꼬리)
-constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1, AtlasLine = AtlasHatch + 2, AtlasN = AtlasHatch + 3;
+constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1, AtlasLine = AtlasHatch + 2;
+// 선 스프라이트 (D-146): 가로 띠 (가운데 꽉, 위아래 가장자리만 부드럽게). 모든 선은 이걸 늘여 찍는다
+constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasN = AtlasHatch + 4;
+// 띠는 굵기별로 여러 줄: Slate 선 셰이더와 같은 모양 (굵기+2px 너비, 가장자리 smoothstep) 을 굵기마다 구워 둔다
+constexpr int32 LineBands = 10;
+constexpr float LineBandT[LineBands] = {0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f, 9.f, 14.f, 22.f}; // 띠마다 대표 굵기 (화면 px)
+constexpr float LineBandH = 8.f;
+constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (설계 px)
+constexpr int32 AtlasVersion = 3; // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
@@ -571,7 +579,7 @@ struct FPDAtlas
 	UObject* BgTex = nullptr; // 판 배경도 같은 방식
 	TArray<FColor> LastPixels; // 마지막으로 구운 아틀라스 바이트 (에셋 저장용)
 	TArray<FSlateBrush> HatchBrushes;   // 빗금: 겹 3 × 네 변 들임 16가지 (D-143)
-	FSlateBrush BracketBrush, LineBrush;
+	FSlateBrush BracketBrush, LineBrush, LineAABrush;
 	// 판 배경 (D-143)
 	UObject* BgRT = nullptr;
 	FSlateBrush BgBrush;
@@ -603,6 +611,8 @@ struct SPDBoardWidget::FCanvas
 	int32* Layer;
 	const FSlateBrush* White;
 	float HaloK = 1.f; // 번짐 배율 (이펙트가 많으면 0 = 심만, D-138)
+	const FSlateBrush* LineAA = nullptr; // 있으면 선을 선 스프라이트로 찍는다 (D-146). 굽는 붓에선 없음 (진짜 선으로 굽는다)
+	float PxToDesign = 1.f;              // 화면 픽셀 → 설계 좌표 (선 굵기는 화면 픽셀 기준이라)
 	float ThickK = 1.f; // 선 굵기 배율: Slate 선 굵기는 화면 픽셀이라 배율을 따라가지 않는다. 2배로 굽는 그림은 2 (D-143)
 
 	int32 NextLayer() { return ++(*Layer); }
@@ -610,6 +620,28 @@ struct SPDBoardWidget::FCanvas
 	// 상자·글자는 새 층을 받고, 그 뒤의 선이 그 위에 오도록 층을 하나 더 올려 둔다 (그리는 순서는 그대로)
 	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
+		if (LineAA) // 선 스프라이트 (D-146): 마디마다 띠 하나를 늘이고 돌려 찍는다. 같은 층이라 한 번에 그려진다
+		{
+			// Slate 선은 굵기 + 2px (양쪽 1px 거르기) 너비로 그리고 셰이더가 가장자리를 깎는다. 같은 너비로 찍고, 굵기에 가장 가까운 띠를 쓴다
+			// (얇은 사각형을 그대로 찍으면 래스터에서 덮임이 반쯤 날아가 가늘고 흐려진다)
+			const float Tpx = FMath::Max(0.75f, Thick * ThickK);
+			int32 Bi = 0;
+			while (Bi + 1 < LineBands && Tpx > FMath::Sqrt(LineBandT[Bi] * LineBandT[Bi + 1])) ++Bi;
+			const FSlateBrush* Band = LineAA + Bi;
+			const float Th = (Tpx + 2.f) * PxToDesign; // 화면 px → 설계 좌표 (DPI 포함 화면 배율로 나눔)
+			const FLinearColor T = PM(Col);
+			for (int32 I = 0; I + 1 < P.Num(); ++I)
+			{
+				const FVector2f D = P[I + 1] - P[I];
+				const float L = D.Size();
+				if (L < 0.01f) continue;
+				const FVector2f M = (P[I] + P[I + 1]) * 0.5f;
+				FSlateDrawElement::MakeRotatedBox(Out, *Layer, Geo.ToPaintGeometry(FVector2f(L, Th), FSlateLayoutTransform(FVector2f(M.X - L / 2.f, M.Y - Th / 2.f))), Band,
+					ESlateDrawEffect::PreMultipliedAlpha, FMath::Atan2(D.Y, D.X), TOptional<FVector2f>(), FSlateDrawElement::RelativeToElement, T);
+			}
+			++GPDDebug.Lines; GPDDebug.Points += P.Num();
+			return;
+		}
 		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick * ThickK);
 		++GPDDebug.Lines; GPDDebug.Points += P.Num();
 	}
@@ -974,7 +1006,16 @@ struct SPDBoardWidget::FCanvas
 	}
 	// 구운 그림은 빈 바탕에 반투명으로 그려져 색에 알파가 이미 곱해져 있다 (premultiplied). 그대로 알파를 또 곱하면 옅은 선(격자·번짐)이 사라지므로
 	// 미리 곱한 알파로 섞고, 덧칠 색도 알파를 곱해 넘긴다 (D-143)
-	static FLinearColor PM(const FLinearColor& C) { return FLinearColor(C.R * C.A, C.G * C.A, C.B * C.A, C.A); }
+	// 미리 곱한 알파 색 (D-146): Slate 는 꼭짓점 색을 sRGB 로 바꿔 감마 공간에서 섞으므로 sRGB 값에 알파를 곱한다
+	// (선형 값에 곱하면 sRGB 로 바뀌며 옅은 색이 몇 배 밝아져, 옅은 빛번짐이 진짜 선보다 하얗게 뜬다)
+	static FLinearColor PM(const FLinearColor& C)
+	{
+		if (C.A >= 0.999f) return C;
+		const FColor S = FLinearColor(C.R, C.G, C.B, 1.f).ToFColor(true);
+		FLinearColor O = FLinearColor::FromSRGBColor(FColor((uint8)(S.R * C.A + 0.5f), (uint8)(S.G * C.A + 0.5f), (uint8)(S.B * C.A + 0.5f), 255));
+		O.A = C.A;
+		return O;
+	}
 	// 아틀라스 칸 찍기 (D-140): 가운데 (CX, CY), 설계 크기 AtlasCell × S. 같은 층 L 에 모으면 한 번에 그려진다
 	void Sprite(int32 L, const FSlateBrush* B, float CX, float CY, float S, const FLinearColor& Tint)
 	{
