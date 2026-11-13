@@ -32,7 +32,7 @@ public:
 		return Out;
 	}
 
-	// 월드 이펙트 층 (D-081): 판 뒤 3D 월드에서 나이아가라로 재생할 이펙트 요청.
+	// 월드 이펙트 층 (D-092): 판 뒤 3D 월드에서 나이아가라로 재생할 이펙트 요청.
 	// 위치는 "화면 가운데를 0으로 한 판 좌표(px)", 아래가 +Y. 게임 모드가 정사영 카메라로 1 월드 단위 = 판 1px 로 맞춘다
 	enum class EWorldFx : uint8 { Hit, Death };
 	struct FWorldFx
