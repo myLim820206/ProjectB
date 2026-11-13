@@ -203,7 +203,8 @@ struct FPDJokerMerge
 	int Joker = -1;
 	std::vector<int> Cells;
 };
-// 조커 재료 묶음: 연쇄로 이어진 족보와 합성 타워(레벨 2+, 족보에 안 든 것)가 합쳐서 3개 이상
+// 조커 재료 묶음 (D-115): 서로 맞닿은 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개가 레시피와 정확히 맞을 때.
+// 이어진 것이 더 많아도 그 3개만 쓰고, 맞는 조합이 여럿이면 족보 기본값 합이 가장 낮은 것부터
 struct FPDJokerGroup
 {
 	std::vector<int> SynergyIdx; // 족보 번호
@@ -211,10 +212,12 @@ struct FPDJokerGroup
 	std::vector<int> Cells;      // 쓰이는 칸 전부
 	EPDJoker Result = EPDJoker::Clown;
 };
-// 대장: 족보마다 조커 하나. 재료(족보·합성 타워의 족보) 중 가장 높은 족보의 대장이 나온다
+// 대장: 족보마다 조커 하나 (지휘 능력과 도감 표시). 조커마다 레시피에 자기 대장 족보가 들어 있다
 EPDJoker CaptainOf(EPDHand H);
 EPDHand CaptainHand(EPDJoker J);
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands);
+// 레시피 (D-115): 조커마다 족보 3개 (순서 무관, 같은 족보 여러 번 가능). 족보 10개로 만들 수 있는 3개 조합은 220가지
+const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J);
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 정확히 맞는 조커, 없으면 EPDJoker::Count
 constexpr float CaptainCommand = 0.3f; // 지휘: 판 위 자기 족보 타워 위력 +30%, 대장이 여럿이면 겹친다 (+60%, +90% …)
 constexpr int MaxLevel = 4;
 constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5

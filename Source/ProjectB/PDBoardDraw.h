@@ -185,37 +185,14 @@ inline const TCHAR* JokerAbility(int K)
 		TEXT("사거리 무한: 가장 앞선 적 저격"), TEXT("8초마다 종: 사거리 안 적 1.5초 멈춤"), TEXT("판 전체 레이저: 모든 적에게 피해")};
 	return N[K];
 }
-// 조커 조합법. 대장 순위는 코어(MatchJokerRecipe)와 같이 족보 기본값(HandBaseValue)으로 매긴다
-// (트리플·투 페어가 플러시·스트레이트보다 높다)
-inline EPDHand NextLowerHand(EPDHand H) // H 바로 아래 족보, 없으면 H
-{
-	int Best = -1;
-	for (int I = 0; I < (int)EPDHand::Count; ++I)
-		if (HandBaseValue((EPDHand)I) < HandBaseValue(H) && (Best < 0 || HandBaseValue((EPDHand)I) > HandBaseValue((EPDHand)Best))) Best = I;
-	return Best < 0 ? H : (EPDHand)Best;
-}
+// 조커 레시피 (D-115): 코어 JokerRecipe 의 족보 3개를 그대로 보여 준다
 inline const TCHAR* HandShort(EPDHand H) { return H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H); } // 도감 칸이 좁아서
-inline FString JokerRecipe(int K)
+inline FString JokerRecipeText(int K)
 {
-	const EPDHand H = CaptainHand((EPDJoker)K);
-	if (NextLowerHand(H) == H) return FString::Printf(TEXT("%s 3개"), HandShort(H));
-	return FString::Printf(TEXT("%s + 같거나 낮은 족보 2개"), HandShort(H));
+	const auto& R = JokerRecipe((EPDJoker)K);
+	return FString::Printf(TEXT("%s + %s + %s"), HandShort(R[0]), HandShort(R[1]), HandShort(R[2]));
 }
-inline FString JokerRecipeExample(int K)
-{
-	const EPDHand H = CaptainHand((EPDJoker)K), Low = NextLowerHand(H);
-	if (Low == H) return TEXT("가장 낮은 족보라 셋 다 원 페어");
-	return FString::Printf(TEXT("예) %s + %s + 원 페어"), HandShort(H), HandShort(Low));
-}
-inline FString JokerRankText() // 대장 순위 한 줄
-{
-	TArray<int32> Order;
-	for (int32 I = 0; I < (int32)EPDHand::Count; ++I) Order.Add(I);
-	Order.Sort([](int32 A, int32 B) { return HandBaseValue((EPDHand)A) > HandBaseValue((EPDHand)B); });
-	FString Out = TEXT("대장 순위: ");
-	for (int32 I = 0; I < Order.Num(); ++I) Out += (I ? TEXT(" > ") : TEXT("")) + FString(HandName((EPDHand)Order[I]));
-	return Out;
-}
+inline FString JokerRuleText() { return TEXT("맞닿은 족보 3개가 레시피와 정확히 맞으면 조커 · 이어진 게 더 많아도 그 3개만 (낮은 족보부터)"); }
 inline FString JokerCommand(int K) { return FString::Printf(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
 // 발사체 색: 무늬 기본형은 무늬 색, 족보 발사체는 족보 색, 조커는 분홍

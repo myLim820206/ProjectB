@@ -724,6 +724,15 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	if (!bPv && G.Phase != EPDPhase::Reward)
 		for (const FPDJokerGroup& Gr : JGroups)
 		{
+			// 조커를 만들 수 있는 재료 칸은 늘 반짝인다 (D-115): 칸마다 박자를 어긋나게 한 분홍 테두리 + 작은 별빛
+			for (int K : Gr.Cells)
+			{
+				const float Tw = 0.5f + 0.5f * FMath::Sin(Clock * 5.f + K * 1.7f);
+				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), WithAlpha(JokerPink, 0.35f + 0.55f * Tw), 1.4f, 0.5f + 0.9f * Tw);
+				if (Tw > 0.8f) { const FVector2f S = C0 + FVector2f(CS - 9.f, 9.f); const float L = 3.f + 4.f * (Tw - 0.8f) * 5.f;
+					F.Lines({S - FVector2f(L, 0.f), S + FVector2f(L, 0.f)}, WithAlpha(FLinearColor::White, Tw), 1.2f); F.Lines({S - FVector2f(0.f, L), S + FVector2f(0.f, L)}, WithAlpha(FLinearColor::White, Tw), 1.2f); }
+			}
 			const FVector2f B = JokerButtonCenter(Gr);
 			if (!JokerRevealed(Gr)) // 평소엔 작은 분홍 마름모 (조커를 만들 수 있다는 표시)
 			{
@@ -930,7 +939,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.94f));
 		C.TextCentered(FString::Printf(TEXT("조커 도감  %d / 10"), FMath::CountBits(G.Discovered)), DesignW / 2.f, 48.f, JokerPink, 24.f, true);
 		C.TextCentered(TEXT("연쇄로 이어진 족보 3개 (합성 타워도 기억한 족보로 침)를 합치면, 그중 가장 높은 족보의 대장 조커가 된다"), DesignW / 2.f, 74.f, Grey, 12.f, false, DesignW - 40.f);
-		C.TextCentered(JokerRankText(), DesignW / 2.f, 94.f, Gold, 11.f, false, DesignW - 40.f);
+		C.TextCentered(JokerRuleText(), DesignW / 2.f, 94.f, Gold, 11.f, false, DesignW - 40.f);
 		for (int32 K = 0; K < (int32)EPDJoker::Count; ++K)
 		{
 			const float X = 72.f + (K % 5) * 236.f, Y = 112.f + (K / 5) * 290.f;
@@ -945,8 +954,8 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			C.TextCentered(bKnown ? JokerName(K) : TEXT("???"), X + 107.f, Y + 150.f, WithAlpha(JokerPink, bKnown ? 1.f : 0.6f), 16.f, true, 200.f);
 			C.TextCentered(FString::Printf(TEXT("%s 대장"), HandName(CaptainHand((EPDJoker)K))), X + 107.f, Y + 176.f, HandColor(CaptainHand((EPDJoker)K)), 11.f, true, 200.f);
 			// 조합법은 만들기 전에도 보인다 (이름·능력만 숨김)
-			C.TextCentered(JokerRecipe(K), X + 107.f, Y + 194.f, Fg, 10.f, true, 200.f);
-			C.TextCentered(JokerRecipeExample(K), X + 107.f, Y + 210.f, Dim, 9.f, false, 200.f);
+			C.TextCentered(TEXT("레시피"), X + 107.f, Y + 194.f, Dim, 9.f, false, 200.f);
+			C.TextCentered(JokerRecipeText(K), X + 107.f, Y + 210.f, Fg, 10.f, true, 200.f);
 			C.TextCentered(bKnown ? FString(JokerAbility(K)) : FString(TEXT("만들어 보면 능력이 열린다")), X + 107.f, Y + 232.f, bKnown ? Gold : Dim, 10.f, false, 200.f);
 			if (bKnown) C.TextCentered(JokerCommand(K), X + 107.f, Y + 250.f, Fg, 10.f, false, 200.f);
 		}

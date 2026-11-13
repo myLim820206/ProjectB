@@ -480,12 +480,34 @@ EPDHand CaptainHand(EPDJoker J)
 	for (int H = 0; H < (int)EPDHand::Count; ++H) if (GPDCaptain[H] == J) return (EPDHand)H;
 	return EPDHand::Pair;
 }
+// 레시피 (D-115). EPDJoker 순서: 광대, 모자 장수, 웃는 가면, 희비극, 할리퀸, 지휘봉, 잭, 체셔, 방울, 스타
+static const std::array<EPDHand, 3> GPDRecipe[(int)EPDJoker::Count] = {
+	{EPDHand::Five, EPDHand::Four, EPDHand::Triple},                 // 광대
+	{EPDHand::StraightFlush, EPDHand::Flush, EPDHand::Straight},     // 모자 장수
+	{EPDHand::TwoPair, EPDHand::Pair, EPDHand::Pair},                // 웃는 가면
+	{EPDHand::Pair, EPDHand::Pair, EPDHand::Pair},                   // 희비극
+	{EPDHand::Flush, EPDHand::Flush, EPDHand::Straight},             // 할리퀸
+	{EPDHand::Straight, EPDHand::Straight, EPDHand::Pair},           // 지휘봉
+	{EPDHand::Triple, EPDHand::TwoPair, EPDHand::Pair},              // 잭
+	{EPDHand::Four, EPDHand::Triple, EPDHand::Pair},                 // 체셔
+	{EPDHand::FullHouse, EPDHand::Triple, EPDHand::TwoPair},         // 방울
+	{EPDHand::RoyalFlush, EPDHand::StraightFlush, EPDHand::FullHouse}, // 스타
+};
+const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J) { return GPDRecipe[(int)J]; }
 EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 {
-	if (Hands.empty()) return EPDJoker::Comedy;
-	EPDHand Best = Hands[0];
-	for (EPDHand H : Hands) if (HandBaseValue(H) > HandBaseValue(Best)) Best = H;
-	return CaptainOf(Best);
+	if (Hands.size() != 3) return EPDJoker::Count;
+	std::vector<int> A;
+	for (EPDHand H : Hands) A.push_back((int)H);
+	std::sort(A.begin(), A.end());
+	for (int J = 0; J < (int)EPDJoker::Count; ++J)
+	{
+		std::vector<int> B;
+		for (EPDHand H : GPDRecipe[J]) B.push_back((int)H);
+		std::sort(B.begin(), B.end());
+		if (A == B) return (EPDJoker)J;
+	}
+	return EPDJoker::Count;
 }
 
 EPDShot ShotKind(const FPDTower& T)
@@ -1120,38 +1142,43 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 		for (int P : A.Cells) for (int Q : B.Cells) if (PDCellDist(P, Q) <= 1) return true; // 맞닿거나 카드를 나눠 씀
 		return false;
 	};
-	std::vector<int> GroupOf(Nodes.size(), -1);
-	int Gid = 0;
-	for (int I = 0; I < (int)Nodes.size(); ++I)
-	{
-		if (GroupOf[I] >= 0) continue;
-		std::vector<int> Mem, St{I};
-		GroupOf[I] = Gid;
-		while (!St.empty())
-		{
-			const int K = St.back();
-			St.pop_back();
-			Mem.push_back(K);
-			for (int J = 0; J < (int)Nodes.size(); ++J) if (GroupOf[J] < 0 && Touch(Nodes[K], Nodes[J])) { GroupOf[J] = Gid; St.push_back(J); }
-		}
-		Gid++;
-		if (Mem.size() < 3) continue;
-		FPDJokerGroup G;
-		std::vector<EPDHand> Kinds;
-		for (int K : Mem)
-		{
-			if (Nodes[K].Syn >= 0) { G.SynergyIdx.push_back(Nodes[K].Syn); Kinds.push_back(Synergies[Nodes[K].Syn].Kind); }
-			else
+	auto KindOf = [&](const FNode& N) { return N.Syn >= 0 ? (int)Synergies[N.Syn].Kind : Towers.at(N.Fused).FuseHand; };
+	// 맞닿은 3개 조합 (셋이 한 줄기로 이어지면 됨) 중 레시피와 정확히 맞는 것 (D-115)
+	struct FCand { int A, B, C; EPDJoker J; int Value; };
+	std::vector<FCand> Cands;
+	const int NN = (int)Nodes.size();
+	std::vector<std::vector<char>> Adj(NN, std::vector<char>(NN, 0));
+	for (int I = 0; I < NN; ++I) for (int J = I + 1; J < NN; ++J) Adj[I][J] = Adj[J][I] = Touch(Nodes[I], Nodes[J]);
+	for (int I = 0; I < NN; ++I)
+		for (int J = I + 1; J < NN; ++J)
+			for (int K = J + 1; K < NN; ++K)
 			{
-				G.FusedCells.push_back(Nodes[K].Fused);
-				const int FH = Towers.at(Nodes[K].Fused).FuseHand;
-				if (FH >= 0) Kinds.push_back((EPDHand)FH);
+				if (Adj[I][J] + Adj[J][K] + Adj[I][K] < 2) continue; // 이어지지 않음
+				const int KI = KindOf(Nodes[I]), KJ = KindOf(Nodes[J]), KK = KindOf(Nodes[K]);
+				if (KI < 0 || KJ < 0 || KK < 0) continue;
+				const EPDJoker R = MatchJokerRecipe({(EPDHand)KI, (EPDHand)KJ, (EPDHand)KK});
+				if (R == EPDJoker::Count) continue;
+				Cands.push_back({I, J, K, R, HandBaseValue((EPDHand)KI) + HandBaseValue((EPDHand)KJ) + HandBaseValue((EPDHand)KK)});
 			}
-			G.Cells.insert(G.Cells.end(), Nodes[K].Cells.begin(), Nodes[K].Cells.end());
+	// 낮은 족보부터 (값 합이 작은 것 먼저), 칸이 겹치지 않게
+	std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& X, const FCand& Y) { return X.Value < Y.Value; });
+	std::set<int> UsedCells;
+	for (const FCand& Cd : Cands)
+	{
+		FPDJokerGroup G;
+		bool bFree = true;
+		for (int N : {Cd.A, Cd.B, Cd.C})
+		{
+			for (int K : Nodes[N].Cells) bFree = bFree && !UsedCells.count(K);
+			if (Nodes[N].Syn >= 0) G.SynergyIdx.push_back(Nodes[N].Syn);
+			else G.FusedCells.push_back(Nodes[N].Fused);
+			G.Cells.insert(G.Cells.end(), Nodes[N].Cells.begin(), Nodes[N].Cells.end());
 		}
+		if (!bFree) continue;
 		std::sort(G.Cells.begin(), G.Cells.end());
 		G.Cells.erase(std::unique(G.Cells.begin(), G.Cells.end()), G.Cells.end()); // 나눠 쓴 카드는 한 번만
-		G.Result = MatchJokerRecipe(Kinds);
+		for (int K : G.Cells) UsedCells.insert(K);
+		G.Result = Cd.J;
 		Out.push_back(G);
 	}
 	return Out;
