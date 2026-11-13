@@ -732,14 +732,15 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				continue;
 			}
 			const FVector2f B = FuseButtonCenter(G.Synergies, I);
-			const float BW = FuseBtnW(G.Synergies[I]);
+			const FPDSynergy FS = FuseSyn(G, I); // 조커를 뺀 실제 합성 칸 (D-128)
+			const float BW = FuseBtnW(FS);
 			const bool bHov = InBox(Mouse, B, BW, FuseH);
 			// 재료 칸 색이 족보 색 → 흰빛 → 족보 색으로 천천히 오간다 (D-122)
 			const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
-			const FLinearColor Pick = FMath::Lerp(HandColor(G.Synergies[I].Kind), FLinearColor::White, 0.6f * Wv);
+			const FLinearColor Pick = FMath::Lerp(HandColor(FS.Kind), FLinearColor::White, 0.6f * Wv);
 			// 합성 대상 표시 (D-121): 재료 칸마다 금색 테두리 + 옅은 채움, 버튼에 올리면 더 밝게
 			if (PickCells.empty())
-				for (int K : G.Synergies[I].Cells)
+				for (int K : FS.Cells)
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.34f : 0.22f) + 0.22f * Wv));
@@ -748,25 +749,35 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				}
 			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
-			F.TextCentered(FuseLabel(G.Synergies[I]), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
+			F.TextCentered(FuseLabel(FS), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
 			if (bHov && PickCells.empty()) F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Fuse, I), B.X, B.Y - FuseH - 6.f);
 		}
 	// 먹이기 버튼: 마우스를 올리면 먹일 칸과 얻을 경험치
 	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
 		for (const FPDFeed& Fd : G.FeedTargets())
 		{
-			const FVector2f B = FeedButtonCenter(G.Synergies, Fd.Syn, G.CanFuse(Fd.Syn));
-			if (!SynRevealed(Fd.Syn)) { F.Glow(FCanvas::CirclePoints(FeedDotCenter(G.Synergies, Fd.Syn, G.CanFuse(Fd.Syn)), 2.6f, 10), JokerPink, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 분홍 점
-			const bool bHov = InBox(Mouse, B, FuseW, FuseH);
-			if (bHov)
+			const bool bFuse = G.CanFuse(Fd.Syn);
+			const FVector2f B = FeedButtonCenter(G, Fd.Syn, bFuse);
+			if (!SynRevealed(Fd.Syn)) { F.Glow(FCanvas::CirclePoints(FeedDotCenter(G.Synergies, Fd.Syn, bFuse), 3.6f, 12), JokerPink, 1.8f, 0.8f + 0.5f * Pulse); continue; } // 평소엔 분홍 점
+			const FPDSynergy& FdS = G.Synergies[Fd.Syn];
+			const float BW = FeedBtnW(FdS);
+			const bool bHov = InBox(Mouse, B, BW, FuseH);
+			// 먹이 칸 표시 (D-129): 합성처럼 분홍 → 흰빛 → 분홍으로 오간다. 합성 버튼이 같이 있으면 먹이기 버튼에 올렸을 때만 (합성 표시와 겹치지 않게)
+			if (bHov || !bFuse)
 			{
-				for (int K : G.Synergies[Fd.Syn].Cells)
+				const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f + 1.f);
+				const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.55f * Wv);
+				for (int K : FdS.Cells)
 				{
 					if (G.Towers.at(K).IsJoker()) continue;
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f));
-					F.Dashed({CellCenter(K), CellCenter(Fd.Joker)}, WithAlpha(JokerPink, 0.5f), 1.2f, 4.f, 5.f);
+					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pc, (bHov ? 0.3f : 0.18f) + 0.2f * Wv));
+					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, bHov ? 3.f : 2.4f, 1.2f + 1.2f * Wv);
+					if (bHov) F.Dashed({CellCenter(K), CellCenter(Fd.Joker)}, WithAlpha(JokerPink, 0.7f), 1.4f, 4.f, 5.f);
 				}
+			}
+			if (bHov)
+			{
 				const FPDTower& Jt = G.Towers.at(Fd.Joker);
 				int Lv = Jt.JLevel;
 				float Xp = Jt.JXp + Fd.Xp;
@@ -775,9 +786,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Badge(FString::Printf(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), J.X, J.Y - CS * 0.75f, JokerPink, 1.f);
 				F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
 			}
-			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
-			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
-			F.TextCentered(TEXT("먹이기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.8f), 10.f, true, FuseW - 4.f);
+			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
+			F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
+			F.TextCentered(FeedLabel(FdS), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
 		}
 	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상)
 	if (!bPv && G.Phase != EPDPhase::Reward)

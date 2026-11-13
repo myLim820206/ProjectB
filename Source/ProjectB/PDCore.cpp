@@ -1161,8 +1161,22 @@ bool FPDGame::CanFuse(int SynergyIdx) const
 {
 	if (!InPlay()) return false;
 	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return false;
-	for (int K : Synergies[SynergyIdx].Cells) if (Towers.at(K).IsJoker()) return false; // 조커가 든 족보는 합성하지 않는다
-	return Towers.at(Synergies[SynergyIdx].Cells[0]).Level < (Mods.Key(EPDKeystone::ClownPath) ? 2 : MaxLevel); // 광대의 길: 합성은 레벨 2까지
+	FPDSynergy S;
+	if (!FuseSynergy(SynergyIdx, S)) return false;
+	return Towers.at(S.Cells[0]).Level < (Mods.Key(EPDKeystone::ClownPath) ? 2 : MaxLevel); // 광대의 길: 합성은 레벨 2까지
+}
+
+bool FPDGame::FuseSynergy(int SynergyIdx, FPDSynergy& Out) const
+{
+	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return false;
+	const FPDSynergy& S = Synergies[SynergyIdx];
+	FPDTowerMap Sub;
+	for (int K : S.Cells) if (!Towers.at(K).IsJoker()) Sub[K] = Towers.at(K);
+	if (Sub.size() == S.Cells.size()) { Out = S; return true; }
+	if (Sub.size() < 2) return false;
+	for (const FPDSynergy& X : ComputeSynergies(Sub)) // 조커를 빼고도 남은 칸 전부가 한 족보인가
+		if (X.Cells.size() == Sub.size()) { Out = X; return true; }
+	return false;
 }
 
 std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
@@ -1437,7 +1451,8 @@ bool FPDGame::Feed(int SynergyIdx)
 bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 {
 	if (!CanFuse(SynergyIdx)) return false;
-	const FPDSynergy S = Synergies[SynergyIdx];
+	FPDSynergy S;
+	FuseSynergy(SynergyIdx, S); // 조커가 들었으면 조커를 뺀 칸들 (D-128)
 	// 합쳐질 칸: 고른 칸 (재료 칸 중 하나), 안 골랐으면 족보 가운데에 가장 가까운 칸
 	const int Target = PDFuseTarget(S.Cells, TargetCell);
 	if (Target < 0) return false;

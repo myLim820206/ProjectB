@@ -264,7 +264,12 @@ void SPDBoardWidget::HandleEvents()
 			else
 			{
 				Burst(P + FVector2f(FMath::FRandRange(-8.f, 8.f), -CS * 0.3f), 3, JokerPink, 20.f, 60.f, 0.35f, 1.6f, false);
-				Floats.Add({FString::Printf(TEXT("+%.0f 경험치"), E.R), P + FVector2f(FMath::FRandRange(-10.f, 10.f), -CS * 0.45f), 0.f, 0.7f, E.R >= 10.f ? 16.f : 11.f, WithAlpha(JokerPink, 0.9f)});
+				// 같은 조커 위의 "+N 경험치" 글자가 떠 있으면 숫자만 더한다 (여럿이 겹쳐 읽을 수 없던 문제)
+				const FVector2f At = P - FVector2f(0.f, CS * 0.45f);
+				FFloatText* Same = nullptr;
+				for (FFloatText& Ft : Floats) if (Ft.S.EndsWith(TEXT(" 경험치")) && FVector2f::Distance(Ft.P, At) < 1.f && Ft.T < Ft.MaxT * 0.8f) Same = &Ft;
+				if (Same) { Same->S = FString::Printf(TEXT("+%d 경험치"), FCString::Atoi(*Same->S.Mid(1)) + FMath::RoundToInt(E.R)); Same->T = FMath::Min(Same->T, 0.15f); Same->Size = FMath::Min(16.f, Same->Size + 0.3f); }
+				else Floats.Add({FString::Printf(TEXT("+%.0f 경험치"), E.R), At, 0.f, 0.9f, E.R >= 10.f ? 15.f : 12.f, WithAlpha(JokerPink, 0.95f)});
 			}
 			break;
 		}

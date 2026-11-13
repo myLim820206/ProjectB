@@ -274,6 +274,28 @@ static void UnitTests()
 		const int B3 = G.NextBossWave();
 		Expect(B1 == 5 && B2 == 5 && B3 == 10 && FPDGame::BossOfWave(20) == BossOrder[3], "다음 보스 웨이브: 3 → 5, 5 진행 중 → 5, 5 끝 → 10");
 	}
+	{ // 조커가 든 족보 (D-128): 조커를 빼고도 플러시면 그 칸들만 합성, 조커는 남는다
+		FPDGame G(22);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Phase = EPDPhase::Build;
+		G.Towers.clear();
+		Put(G.Towers, 3, 2, C(13, Di));
+		G.Towers.at(CellKey(3, 2)).Joker = (int)EPDJoker::Jack;
+		Put(G.Towers, 3, 3, C(3, Di));
+		Put(G.Towers, 3, 4, C(8, Di));
+		Put(G.Towers, 3, 5, C(11, Di));
+		G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
+		int Fl = -1;
+		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::Flush && G.Synergies[I].Cells.size() == 4) Fl = I;
+		FPDSynergy FS;
+		const bool bCan = Fl >= 0 && G.CanFuse(Fl) && G.FuseSynergy(Fl, FS) && FS.Cells.size() == 3 && FS.Kind == EPDHand::Flush;
+		const bool bFused = bCan && G.Fuse(Fl);
+		int Lv2 = 0;
+		for (const auto& KV : G.Towers) Lv2 += KV.second.Level == 2 && !KV.second.IsJoker();
+		Expect(bFused && G.Towers.count(CellKey(3, 2)) && G.Towers.at(CellKey(3, 2)).IsJoker() && Lv2 == 1 && G.Towers.size() == 2,
+			"조커 + ♦ 셋 = 플러시4 → 조커 빼고 ♦ 셋 플러시 합성 (조커는 그대로)");
+	}
 	{ // 조커 처치 경험치 (D-125): 조커가 잡으면 +1 (보스 +15), 다른 타워가 잡으면 없음, 레벨업 사건
 		FPDGame G(21);
 		G.NewGame(true);

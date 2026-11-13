@@ -263,6 +263,7 @@ inline FVector2f MergeButtonCenter(const std::vector<int>& Cells)
 // 합성 버튼: 족보 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
 constexpr float FuseW = 46.f, FuseH = 16.f; // 먹이기 버튼 크기 (합성 버튼 높이도)
 // 합성 버튼 글자 (D-122): "합성 · 원 페어" 처럼 족보 이름을 같이. 너비는 글자 수로 어림 (한글 10, 그 밖 6)
+inline FPDSynergy FuseSyn(const FPDGame& G, int I) { FPDSynergy S = G.Synergies[I]; G.FuseSynergy(I, S); return S; } // 실제로 합쳐질 족보 (조커 뺀 것, D-128)
 inline FString FuseLabel(const FPDSynergy& S) { return FString::Printf(TEXT("합성 · %s"), HandShort(S.Kind)); }
 inline float FuseBtnW(const FPDSynergy& S)
 {
@@ -299,9 +300,18 @@ inline FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
 }
 
 // 먹이기 버튼: 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
-inline FVector2f FeedButtonCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
+// 먹이기 버튼 (D-129): "먹이기 · 플러시" 처럼 족보 이름, 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
+inline FString FeedLabel(const FPDSynergy& S) { return FString::Printf(TEXT("먹이기 · %s"), HandShort(S.Kind)); }
+inline float FeedBtnW(const FPDSynergy& S)
 {
-	return FuseButtonCenter(L, I) + FVector2f(bCanFuse ? FuseBtnW(L[I]) / 2.f + 4.f + FuseW / 2.f : 0.f, 0.f);
+	float W = 14.f;
+	for (const TCHAR Ch : FeedLabel(S)) W += Ch >= 0x1100 ? 10.f : 6.f;
+	return W;
+}
+inline FVector2f FeedButtonCenter(const FPDGame& G, int I, bool bCanFuse)
+{
+	const float FW = FeedBtnW(G.Synergies[I]);
+	return FuseButtonCenter(G.Synergies, I) + FVector2f(bCanFuse ? FuseBtnW(FuseSyn(G, I)) / 2.f + 4.f + FW / 2.f : 0.f, 0.f);
 }
 inline FVector2f FeedDotCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
 {
