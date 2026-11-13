@@ -1251,7 +1251,10 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	}
 	// 족보 필터 안내 (D-148)
 	if (HandFilter >= 0 && FeedJoker < 0 && PickCells.empty() && !bSwapMode)
-		F.Badge(FString::Printf(TEXT("%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기"), HandName((EPDHand)HandFilter)), FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
+	{
+		if (HandFilter == JokerFilterId) F.Badge(TEXT("조커 만들기만 보기: [조커] 버튼이나 재료 칸 클릭 = 조커 합성 · 족보 목록 다시 클릭 / Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
+		else F.Badge(FString::Printf(TEXT("%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기"), HandName((EPDHand)HandFilter)), FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
+	}
 	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상, 먹이기 모드에선 숨김)
 	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0)
 		for (const FPDJokerGroup& Gr : JGroups)
@@ -1952,7 +1955,23 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			C.TextCentered(FString::Printf(TEXT("×%d"), Count[I]), LX + LW - 28.f, Y + 14.f, HC, 10.f, true);
 		}
 	}
-	const float FootY = Y0 + (int32)EPDHand::Count * RowH + 18.f;
+	{ // 조커 줄 (D-152): 만들 수 있는 조커 수, 클릭하면 조커 합성 버튼을 모두 펼친다
+		const float Y = Y0 + JokerFilterId * RowH;
+		const int32 NJ = (int32)JGroups.size();
+		const bool bOn = NJ > 0;
+		if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.08f));
+		if (HandFilter == JokerFilterId)
+			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
+		C.Lines({FVector2f(LX + 18.f, Y + 10.f), FVector2f(LX + 18.f, Y + RowH - 10.f)}, WithAlpha(JokerPink, bOn ? 1.f : 0.6f), 3.f);
+		C.Text(TEXT("조커"), LX + 30.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
+		C.Text(TEXT("맞닿은 족보 3개(또는 2개)로 만든다"), LX + 30.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
+		if (bOn)
+		{
+			C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), JokerPink, 1.1f, 0.5f);
+			C.TextCentered(FString::Printf(TEXT("×%d"), NJ), LX + LW - 28.f, Y + 14.f, JokerPink, 10.f, true);
+		}
+	}
+	const float FootY = Y0 + HandRowsN * RowH + 18.f;
 	C.Text(TEXT("연쇄"), LX + 14.f, FootY, FLinearColor::White, 12.f, 0, true);
 	C.Text(FString::Printf(TEXT("족보끼리 맞닿으면 하나에 +%d%%씩"), G.Has(EPDCharm::ChainLink) ? 45 : 25), LX + 14.f, FootY + 16.f, Hex(TEXT("cfd8e6")), 10.f, 0, false, LW - 28.f);
 	// 무늬 = 공격 방식

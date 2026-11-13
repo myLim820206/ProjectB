@@ -28,6 +28,8 @@ constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
 constexpr float FY = 74.f;
 constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
+constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 아래 '조커' 줄 (D-152): 조커 합성 버튼을 모두 펼친다
+constexpr int32 HandRowsN = (int32)EPDHand::Count + 1;
 constexpr float HandY = FY + Rows * CS + 14.f;
 constexpr float SwapBtnX = FX, SwapBtnY = HandY + 54.f, SwapBtnW = 86.f, SwapBtnH = 28.f; // 자리바꿈 버튼 (D-149, 덱 글자 아래)
 constexpr float CardW = 70.f, CardH = 98.f;
