@@ -379,18 +379,19 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 				const FVector2f P = CellPx((float)X, (float)Y);
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
 				// 장판 (D-099, D-144): 족보 색 옅은 채움 13%. 빗금은 합성할 때만 (합성 버튼이 뜬 족보의 재료 칸)
-				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.13f * Alpha));
-				bool bAlready = true; // 평소 장판엔 빗금 없음
+				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.2f : 0.13f) * Alpha));
+				bool bAlready = !bFilt; // 평소 장판엔 빗금 없음. 족보 필터로 고른 족보는 빗금 (D-148)
+				if (bFilt) { if (Hatched.Contains(K)) bAlready = true; else Hatched.Add(K); }
 				if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
 				{
 					const int32 Lyr = FMath::Min(SynLayer(List, Si), 2), Mask = (bL ? 1 : 0) | (bR ? 2 : 0) | (bU ? 4 : 0) | (bD ? 8 : 0);
-					F.Image(F.NextLayer(), &Atlas->HatchBrushes[Lyr * 16 + Mask], X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.3f * Alpha));
+					F.Image(F.NextLayer(), &Atlas->HatchBrushes[Lyr * 16 + Mask], X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.55f : 0.3f) * Alpha));
 				}
 				else if (!bAlready)
 				for (float D = FMath::CeilToFloat((X0 + Y0) / HatchStep) * HatchStep; D < X1 + Y1; D += HatchStep)
 				{
 					const float Ax = FMath::Max(X0, D - Y1), Bx = FMath::Min(X1, D - Y0);
-					if (Bx - Ax > 0.5f) F.Lines({{Ax, D - Ax}, {Bx, D - Bx}}, WithAlpha(Col, 0.3f * Alpha), 1.f);
+					if (Bx - Ax > 0.5f) F.Lines({{Ax, D - Ax}, {Bx, D - Bx}}, WithAlpha(Col, (bFilt ? 0.55f : 0.3f) * Alpha), 1.f);
 				}
 				if (bU) Edges.Emplace(FVector2f(X0, Y0), FVector2f(X1, Y0));
 				if (bR) Edges.Emplace(FVector2f(X1, Y0), FVector2f(X1, Y1));
