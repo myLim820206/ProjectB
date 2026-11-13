@@ -26,7 +26,7 @@ void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 {
 	const bool bHov = InRect(Mouse, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH);
 	C.Glow(FCanvas::RoundRectPoints(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, 8.f), Col, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.4f);
-	C.TextCentered(bTree ? TEXT("닫기  K") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
+	C.TextCentered(bTree ? TEXT("닫기  K") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
 }
 
 // 아틀라스 굽기 (D-140): 칸마다 타워 카드(레벨 틀·점 포함) / 조커를 지금 코드 그대로, 맥박은 가운데 값
@@ -1633,7 +1633,8 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 				C.TextCentered(N > 0 ? FString::Printf(TEXT("%d"), Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 22.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
 			}
 		}
-		C.TextCentered(TEXT("버튼 클릭: 강화   U 또는 Esc: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
+		C.TextCentered(TEXT("버튼 클릭: 강화   U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
+		PaintCloseButton(C, Hex(TEXT("ff9a6a")));
 	}
 }
 

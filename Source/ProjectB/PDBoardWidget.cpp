@@ -696,6 +696,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (bUpg)
 	{
+		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bUpg = false; return; } // 닫기 버튼 (트리·도감과 같은 자리)
 		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
 			for (int32 K = 0; K < 4; ++K)
 			{
