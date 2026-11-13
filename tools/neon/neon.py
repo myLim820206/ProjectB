@@ -259,23 +259,281 @@ def tree_color(n):
     return 'gold' if n['k'] == 3 else THEME_COL[n['theme']]
 
 
-def tree_shape(n, cx, cy):
+# ---------------------------------------------------------------- 트리 노드 아이콘 (D-119): 노드가 하는 일마다 기호 하나
+# EPDStat: 1 SuitDmg 2 SuitRate 3 SuitRange 4 SuitSplash 5 SuitSlow 6 HandDmg 7 HandRate 8 HandSplash 9 AllDmg 10 ChainAdd
+#          11 FuseAdd 12 FusedDmg 13 GoldPct 14 HandMax 15 Draw 16 Lives 19 JokerDmg 20 JokerAdd 21 AllRate 22 CritChance 23 CritMult
+# 좌표는 반지름 r 기준 (-1..1). 모두 닫힌 윤곽선으로 그려 작아져도 덩어리로 읽히게 한다
+def _xf(cx, cy, r, ang=0.0, ox=0.0, oy=0.0, sc=1.0):
+    a = math.radians(ang); c, s = math.cos(a), math.sin(a)
+    return lambda x, y: (cx + (ox + (x * c - y * s) * sc) * r, cy + (oy + (x * s + y * c) * sc) * r)
+
+
+def _poly(P, pts, close=True):
+    L = [P(x, y) for x, y in pts]
+    return L + [L[0]] if close else L
+
+
+def _rbox(P, x0, y0, x1, y1, rad, n=4):
+    """P 좌표계 안의 둥근 사각형 (회전 따라감)"""
+    pts = []
+    for (qx, qy, a0) in ((x1 - rad, y0 + rad, -90), (x1 - rad, y1 - rad, 0), (x0 + rad, y1 - rad, 90), (x0 + rad, y0 + rad, 180)):
+        for k in range(n + 1):
+            a = math.radians(a0 + k * 90 / n)
+            pts.append((qx + math.cos(a) * rad, qy + math.sin(a) * rad))
+    return _poly(P, pts)
+
+
+def _arc(P, x, y, rad, a0, a1, n=16, sx=1.0):
+    return [P(x + math.cos(math.radians(a0 + (a1 - a0) * k / n)) * rad * sx, y + math.sin(math.radians(a0 + (a1 - a0) * k / n)) * rad) for k in range(n + 1)]
+
+
+def _sword(P):
+    """칼: 끝이 뾰족한 칼날 윤곽 + 홈 + 코등이 + 손잡이 + 끝 구슬 (세로, 위가 칼끝)"""
+    return [_poly(P, [(0, -1.0), (0.17, -0.78), (0.17, 0.3), (-0.17, 0.3), (-0.17, -0.78)]),
+            [P(0, -0.72), P(0, 0.22)],
+            _rbox(P, -0.48, 0.3, 0.48, 0.44, 0.07),
+            _poly(P, [(-0.08, 0.44), (0.08, 0.44), (0.08, 0.78), (-0.08, 0.78)]),
+            [P(math.cos(math.radians(a)) * 0.12, 0.9 + math.sin(math.radians(a)) * 0.12) for a in range(0, 361, 30)]]
+
+
+def _arrow(P, tail=True):
+    """빠른 화살: 날렵한 화살촉 + 살 + 깃 (오른쪽으로)"""
+    L = [_poly(P, [(1.0, 0), (0.45, -0.38), (0.55, -0.1), (-0.55, -0.1), (-0.55, 0.1), (0.55, 0.1), (0.45, 0.38)]),
+         _poly(P, [(-0.55, -0.1), (-0.85, -0.38), (-1.0, -0.38), (-0.75, -0.1)], False),
+         _poly(P, [(-0.55, 0.1), (-0.85, 0.38), (-1.0, 0.38), (-0.75, 0.1)], False)]
+    return L
+
+
+def _bolt(P):
+    return [_poly(P, [(0.22, -1.0), (-0.5, 0.12), (-0.06, 0.12), (-0.3, 1.0), (0.5, -0.18), (0.06, -0.18), (0.32, -1.0)])]
+
+
+def _heart(P, k=1.0):
+    pts = []
+    for i in range(0, 361, 8):
+        t = math.radians(i)
+        x = 16 * math.sin(t) ** 3
+        y = -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+        pts.append((x / 17 * k, (y + 2) / 17 * k))
+    return _poly(P, pts, False)
+
+
+def _card(P, pip=True):
+    L = [_rbox(P, -0.4, -0.62, 0.4, 0.62, 0.1)]
+    if pip:
+        L.append(_poly(P, [(0, -0.22), (0.16, 0), (0, 0.22), (-0.16, 0)]))
+    return L
+
+
+def _burst(P, n=8, ro=1.0, ri=0.55, rot=0.0):
+    pts = []
+    for k in range(n * 2):
+        a = math.radians(rot + k * 180 / n - 90)
+        rr_ = ro if k % 2 == 0 else ri
+        pts.append((math.cos(a) * rr_, math.sin(a) * rr_))
+    return _poly(P, pts)
+
+
+def _inside(pt, poly):
+    x, y = pt; c = False
+    for i in range(len(poly) - 1):
+        (x1, y1), (x2, y2) = poly[i], poly[i + 1]
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1): c = not c
+    return c
+
+
+def _hide(lines, fronts, step=0.6):
+    """앞 물체(닫힌 윤곽 fronts)에 가려지는 선 조각을 지운다 (겹친 카드·동전·사람)"""
+    out = []
+    for ln in lines:
+        cur = []
+        for i in range(len(ln) - 1):
+            (x1, y1), (x2, y2) = ln[i], ln[i + 1]
+            n = max(1, int(math.hypot(x2 - x1, y2 - y1) / step))
+            for k in range(n):
+                a = (x1 + (x2 - x1) * k / n, y1 + (y2 - y1) * k / n)
+                b = (x1 + (x2 - x1) * (k + 1) / n, y1 + (y2 - y1) * (k + 1) / n)
+                mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+                if any(_inside(mid, f) for f in fronts):
+                    if len(cur) > 1: out.append(cur)
+                    cur = []
+                else:
+                    if not cur: cur = [a]
+                    cur.append(b)
+        if len(cur) > 1: out.append(cur)
+    return out
+
+
+def _stack(groups):
+    """groups: 뒤→앞 순서의 (선들, 윤곽). 뒤 것은 앞 윤곽에 가려진다"""
+    L = []
+    for i, (lines, _) in enumerate(groups):
+        L += _hide(lines, [g[1] for g in groups[i + 1:]]) if i + 1 < len(groups) else lines
+    return L
+
+
+def _cards(specs, pips):
+    """specs: 뒤→앞 (cx, cy, r, ang, ox, oy, sc)"""
+    G = []
+    for sp, pip in zip(specs, pips):
+        L = _card(_xf(*sp), pip)
+        G.append((L, L[0]))
+    return _stack(G)
+
+
+def _ring(P, x, y, rad, sx=1.0, n=28):
+    return _arc(P, x, y, rad, 0, 360, n, sx)
+
+
+def _person(P, x, y, s):
+    return [_ring(P, x, y - 0.32 * s, 0.24 * s, 1.0, 18), _arc(P, x, y + 0.45 * s, 0.42 * s, 180, 360, 14, 1.0) + [P(x - 0.42 * s, y + 0.45 * s)]]
+
+
+def _person_sil(P, x, y, s):
+    """사람 윤곽 (머리 둘레 + 어깨를 조금 넓게): 뒤 사람을 가릴 때"""
+    head = _ring(P, x, y - 0.32 * s, 0.32 * s, 1.0, 18)
+    body = _arc(P, x, y + 0.45 * s, 0.5 * s, 180, 360, 14, 1.0) + [P(x + 0.5 * s, y + 0.6 * s), P(x - 0.5 * s, y + 0.6 * s), P(x - 0.5 * s, y + 0.45 * s)]
+    return [head, body]
+
+
+def stat_icon(st, cx, cy, r):
+    P = _xf(cx, cy, r)
+    if st in (1, 6):                      # 공격: 칼
+        return _sword(_xf(cx, cy, r, 45))
+    if st == 9:                           # 모든 공격: 엇갈린 칼 둘
+        return _sword(_xf(cx, cy, r, 45, sc=0.95)) + _sword(_xf(cx, cy, r, -45, sc=0.95))
+    if st == 12:                          # 합성 타워 공격: 겹쳐 쌓인 판 셋 위에 칼
+        G = []
+        for k in (2, 1, 0):   # 아래 판부터 (위 판이 가린다)
+            y = 0.25 + k * 0.25
+            d = _poly(P, [(-0.9, y), (0, y - 0.32), (0.9, y), (0, y + 0.32)])
+            G.append(([d], d))
+        return _stack(G) + _sword(_xf(cx, cy, r, 0, 0, -0.35, 0.62))
+    if st == 19:                          # 조커 공격: 칼 + 칼끝에 광대 방울
+        return _sword(_xf(cx, cy, r, 45, -0.05, 0.05, 0.9)) + [_ring(P, 0.68, -0.68, 0.2, 1.0, 16), [P(0.55, -0.68), P(0.81, -0.68)]]
+    if st in (2, 7):                      # 연사: 빠른 화살 + 바람 줄
+        return _arrow(_xf(cx, cy, r, -30, 0, 0, 1.0))
+    if st == 21:                          # 모든 연사: 겹친 화살 둘
+        return _arrow(_xf(cx, cy, r, -30, 0.2, -0.32, 0.8)) + _arrow(_xf(cx, cy, r, -30, -0.2, 0.32, 0.8))
+    if st == 3:                           # 사거리: 조준경 (두 겹 원 + 눈금 + 가운데 점)
+        return [_ring(P, 0, 0, 0.72), _ring(P, 0, 0, 0.12, 1.0, 12),
+                [P(-1.0, 0), P(-0.42, 0)], [P(0.42, 0), P(1.0, 0)], [P(0, -1.0), P(0, -0.42)], [P(0, 0.42), P(0, 1.0)]]
+    if st in (4, 8):                      # 범위: 터지는 별 + 가운데 원
+        return [_burst(P, 8, 1.0, 0.58, 22.5), _ring(P, 0, 0, 0.28, 1.0, 16)]
+    if st == 5:                           # 둔화: 눈꽃 (육각 가운데 + 가지 끝 갈래)
+        L = [_poly(P, [(math.cos(math.radians(30 + 60 * k)) * 0.22, math.sin(math.radians(30 + 60 * k)) * 0.22) for k in range(6)])]
+        for k in range(6):
+            a = math.radians(-90 + 60 * k); ux, uy = math.cos(a), math.sin(a)
+            L.append([P(ux * 0.22, uy * 0.22), P(ux, uy)])
+            for sg in (1, -1):
+                b = a + sg * math.radians(40)
+                L.append([P(ux * 0.6, uy * 0.6), P(ux * 0.6 + math.cos(b) * 0.3, uy * 0.6 + math.sin(b) * 0.3)])
+        return L
+    if st == 10:                          # 연쇄: 맞물린 사슬 고리 둘 (비스듬히)
+        Q = _xf(cx, cy, r, -45)
+        return [_rbox(Q, -1.0, -0.32, 0.15, 0.32, 0.3), _rbox(Q, -0.15, -0.32, 1.0, 0.32, 0.3)]
+    if st == 11:                          # 합성 배율: 두 길이 굽어 모여 위로 하나
+        L = [_rbox(P, -1.0, 0.35, -0.55, 0.8, 0.1), _rbox(P, 0.55, 0.35, 1.0, 0.8, 0.1), _rbox(P, -0.42, -0.95, 0.42, -0.11, 0.14),
+             _burst(_xf(cx, cy, r, 0, 0, -0.53, 0.3), 5, 1.0, 0.45, 0)]
+        L += [bez(P(-0.78, 0.35), P(-0.75, -0.05), P(-0.48, -0.2), 8), _poly(P, [(-0.62, -0.32), (-0.46, -0.2), (-0.6, -0.06)], False),
+              bez(P(0.78, 0.35), P(0.75, -0.05), P(0.48, -0.2), 8), _poly(P, [(0.62, -0.32), (0.46, -0.2), (0.6, -0.06)], False)]
+        return L
+    if st == 13:                          # 골드: 쌓인 동전 셋 (타원 + 옆면)
+        G = []
+        for k in range(3):    # 아래 동전부터
+            y = 0.5 - k * 0.38
+            top = _ring(P, 0, y - 0.12, 0.26, 3.0, 24)
+            side = [P(-0.78, y - 0.12), P(-0.78, y + 0.06)] + _arc(P, 0, y + 0.06, 0.26, 180, 0, 12, 3.0) + [P(0.78, y - 0.12)]
+            sil = _arc(P, 0, y - 0.12, 0.26, 180, 360, 12, 3.0) + [P(0.78, y + 0.06)] + _arc(P, 0, y + 0.06, 0.26, 0, 180, 12, 3.0)[1:] + [P(-0.78, y - 0.12)]
+            G.append(([top, side], sil))
+        return _stack(G)
+    if st == 14:                          # 손패 칸: 부채꼴 카드 셋
+        return _cards([(cx, cy, r, k * 24, k * 0.42, 0.12 + abs(k) * 0.08, 0.95) for k in (-1, 1, 0)], [False, False, True])
+    if st == 15:                          # 드로우: 카드 + 뽑는 굽은 화살
+        L = _card(_xf(cx, cy, r, -8, -0.3, 0.15, 0.95))
+        L.append(bez(P(0.25, 0.7), P(0.95, 0.55), P(0.75, -0.6), 12))
+        L.append(_poly(P, [(0.5, -0.45), (0.78, -0.85), (0.98, -0.4)], False))
+        return L
+    if st == 16:                          # 목숨: 하트 + 안쪽 빛
+        return [_heart(P, 1.0), _arc(P, -0.38, -0.25, 0.22, 200, 280, 8)]
+    if st == 20:                          # 조커 하나 더: 광대 모자 + 더하기
+        return jester_hat(cx - r * 0.12, cy + r * 0.55, r * 0.95, band=True) + [[P(0.5, -0.78), P(1.0, -0.78)], [P(0.75, -1.03), P(0.75, -0.53)]]
+    if st == 22:                          # 치명 확률: 번개
+        return _bolt(P)
+    if st == 23:                          # 치명 배율: 터지는 별 안에 번개
+        return [_burst(P, 10, 1.0, 0.78)] + _bolt(_xf(cx, cy, r, sc=0.6))
+    return [_ring(P, 0, 0, 0.4)]
+
+
+def keystone_icon(k, cx, cy, r):
+    P = _xf(cx, cy, r)
+    if k == 0:                            # 외골수: 깎은 보석 하나 (한 무늬만)
+        return [_poly(P, [(-0.9, -0.3), (-0.5, -0.8), (0.5, -0.8), (0.9, -0.3), (0, 0.95)]), [P(-0.9, -0.3), P(0.9, -0.3)],
+                _poly(P, [(-0.5, -0.8), (-0.25, -0.3), (0, 0.95)], False), _poly(P, [(0.5, -0.8), (0.25, -0.3), (0, 0.95)], False),
+                [P(-0.25, -0.3), P(0, -0.8), P(0.25, -0.3)]]
+    if k == 1:                            # 잡식가: 네 무늬 다
+        L = []
+        for (kind, ox, oy) in (('spade', -0.48, -0.48), ('heart', 0.48, -0.48), ('diamond', -0.48, 0.48), ('club', 0.48, 0.48)):
+            L += suit(kind)(cx + ox * r, cy + oy * r, r * 0.4)
+        return L
+    if k == 2:                            # 큰 판: 다섯 장 부채
+        return _cards([(cx, cy, r, j * 17, j * 0.3, 0.1 + abs(j) * 0.06, 0.82) for j in (-2, 2, -1, 1, 0)], [True] * 5)
+    if k == 3:                            # 작은 판: 두 장 (원 페어)
+        return _cards([(cx, cy, r, -14, -0.3, 0, 0.95), (cx, cy, r, 14, 0.3, 0, 0.95)], [True, True])
+    if k == 4:                            # 대장장이: 모루 + 망치
+        return [_poly(P, [(-0.95, 0.05), (0.75, 0.05), (0.75, 0.25), (0.35, 0.4), (0.35, 0.65), (0.6, 0.9), (-0.6, 0.9), (-0.35, 0.65), (-0.35, 0.4), (-0.7, 0.25)]),
+                _rbox(_xf(cx, cy, r, -35, 0.1, -0.38), -0.5, -0.2, 0.15, 0.2, 0.06), [_xf(cx, cy, r, -35, 0.1, -0.38)(0.15, 0), _xf(cx, cy, r, -35, 0.1, -0.38)(0.9, 0)]]
+    if k == 5:                            # 광대의 길: 광대 모자
+        return jester_hat(cx, cy + r * 0.5, r * 0.95, band=False)
+    if k == 6:                            # 고독한 저격수: 조준경 안에 한 사람
+        return [_ring(P, 0, 0, 0.92), [P(-1.0, 0), P(-0.62, 0)], [P(0.62, 0), P(1.0, 0)], [P(0, -1.0), P(0, -0.62)], [P(0, 0.62), P(0, 1.0)]] + _person(P, 0, 0.05, 0.85)
+    if k == 7:                            # 군중: 세 사람
+        fronts = _person_sil(P, -0.55, 0.25, 0.75) + _person_sil(P, 0.55, 0.25, 0.75)   # 양옆이 앞, 가운데가 뒤
+        return _hide(_person(P, 0, -0.1, 0.9), fronts) + _person(P, -0.55, 0.25, 0.75) + _person(P, 0.55, 0.25, 0.75)
+    return []
+
+
+def render_icon_sheet(out, S=2):
+    """아이콘을 크게 / 실제 크기로 나란히 (확인용)"""
+    stats = [(1, '공격'), (9, '모든 공격'), (12, '합성 공격'), (19, '조커 공격'), (2, '연사'), (21, '모든 연사'), (3, '사거리'), (4, '범위'),
+             (5, '둔화'), (10, '연쇄'), (11, '합성 배율'), (13, '골드'), (14, '손패 칸'), (15, '드로우'), (16, '목숨'), (20, '조커 +1'), (22, '치명 확률'), (23, '치명 배율')]
+    keys = ['외골수', '잡식가', '큰 판', '작은 판', '대장장이', '광대의 길', '고독한 저격수', '군중']
+    W, H = 1280, 720
+    M = _Mock(S, W, H)
+    for i, (st, n) in enumerate(stats):
+        x, y = 70 + (i % 9) * 132, 90 + (i // 9) * 200
+        M.lines += [(ln, (127, 214, 255), 1.4) for ln in stat_icon(st, x, y, 36)]
+        M.lines += [(circle(x, y + 92, 11, 28), (127, 214, 255), 1.2)] + [(ln, (127, 214, 255), 0.9) for ln in stat_icon(st, x, y + 92, 7)]
+        M.tx(x, y + 50, n, (207, 216, 230), 11, 'mm')
+    for i, n in enumerate(keys):
+        x, y = 80 + i * 150, 560
+        M.lines += [(ln, (255, 217, 106), 1.4) for ln in keystone_icon(i, x, y, 36)]
+        oct_ = [(x + 90 * 0 + math.cos(math.radians(22.5 + 45 * j)) * 22, y + 100 + math.sin(math.radians(22.5 + 45 * j)) * 22) for j in range(9)]
+        M.lines += [(oct_, (255, 217, 106), 1.4)] + [(ln, (255, 217, 106), 0.9) for ln in keystone_icon(i, x, y + 100, 13)]
+        M.tx(x, y + 50, n, (207, 216, 230), 11, 'mm')
+    base = Image.new('RGB', (W * S, H * S), BG)
+    M.draw(base).resize((W, H), Image.LANCZOS).save(out)
+
+
+def tree_parts(n, cx, cy):
+    """(틀, 안쪽 기호). 기호는 틀보다 가는 선으로 그린다"""
     k = n['k']
     if k == 0:
-        return [circle(cx, cy, 13, 32)] + suit('wild')(cx, cy, 8)
-    if k == 1:
-        return [circle(cx, cy, 6, 24)]
-    if k == 2:
-        L = [rrect(cx, cy, 13, 4)]
-        if n['theme'] < 4:
-            L += suit(SUIT_COL[n['theme']])(cx, cy, 7)
-        else:
-            L.append(circle(cx, cy, 3.5, 16))
-        return L
-    if k == 3:  # 키스톤: 팔각 이중 틀
-        oct_ = lambda r: [(cx + math.cos(math.radians(22.5 + 45 * j)) * r, cy + math.sin(math.radians(22.5 + 45 * j)) * r) for j in range(9)]
-        return [oct_(18), oct_(11)]
-    return [rrect(cx, cy, 15, 4)] + jester_hat(cx, cy + 4, 11, band=False)
+        return [circle(cx, cy, 14, 32)], suit('wild')(cx, cy, 8)
+    if k == 1:   # 작은 노드: 동그라미 안에 하는 일 기호
+        return [circle(cx, cy, 11, 32)], stat_icon(n['fx'][0][0], cx, cy, 6.8)
+    if k == 2:   # 굵은 노드: 둥근 사각 안에 주된 효과 기호 (색이 무늬·주제)
+        return [rrect(cx, cy, 15, 4)], stat_icon(n['fx'][0][0], cx, cy, 10)
+    if k == 3:   # 키스톤: 팔각 틀 안에 키스톤마다 다른 기호
+        oct_ = [(cx + math.cos(math.radians(22.5 + 45 * j)) * 21, cy + math.sin(math.radians(22.5 + 45 * j)) * 21) for j in range(9)]
+        return [oct_], keystone_icon(n['fx'][0][1], cx, cy, 13)
+    L = joker_cards()[n['fx'][0][1]][0](cx, cy, 16)   # 조커 노드: 그 조커의 카드 그림
+    return L[:1], L[1:]
+
+
+def tree_shape(n, cx, cy):
+    f, i = tree_parts(n, cx, cy)
+    return f + i
 
 
 def render_tree(out, path, owned=None, sealed=(), S=2):
@@ -311,7 +569,11 @@ def render_tree(out, path, owned=None, sealed=(), S=2):
             if m < n['id']:
                 continue
             on = n['id'] in owned and m in owned
-            a, b = (n['x'], n['y']), (nodes[m]['x'], nodes[m]['y'])
+            NR = (14, 11, 16, 21, 17)
+            ax, ay, bx_, by_ = n['x'], n['y'], nodes[m]['x'], nodes[m]['y']
+            dd = max(1e-3, math.hypot(bx_ - ax, by_ - ay)); ux, uy = (bx_ - ax) / dd, (by_ - ay) / dd
+            ra, rb = NR[n['k']] + 1.5, NR[nodes[m]['k']] + 1.5
+            a, b = (ax + ux * ra, ay + uy * ra), (bx_ - ux * rb, by_ - uy * rb)
             col = tree_color(nodes[m] if nodes[m]['k'] != 3 else n) if on else 'cyan'
             jobs.append(([[a, b]], col, 1.0 if on else 0.2, 1.1))
     for n in nodes:
@@ -321,18 +583,27 @@ def render_tree(out, path, owned=None, sealed=(), S=2):
             jobs.append((tree_shape(n, cx, cy), 'red', 0.5, 1.3))
             jobs.append(([[(cx - 11, cy - 11), (cx + 11, cy + 11)], [(cx + 11, cy - 11), (cx - 11, cy + 11)]], 'red', 0.8, 1.3))
         else:
-            jobs.append((tree_shape(n, cx, cy), tree_color(n), 1.0 if i in owned else 0.4, 1.5 if n['k'] >= 2 else 1.2))
-    for lines, col, alpha, w in jobs:
+            fr, ic = tree_parts(n, cx, cy)
+            jobs.append((fr, tree_color(n), 1.0 if i in owned else 0.4, 1.5 if n['k'] >= 2 else 1.2))
+            jobs.append((ic, tree_color(n), 1.0 if i in owned else 0.5, 0.9, 0.3))
+    for job in jobs:
+        lines, col, alpha, w = job[:4]
+        gk = job[4] if len(job) > 4 else 1.0
         c = tuple(int(v * alpha) for v in COL[col])
         glow = Image.new('RGB', img.size, (0, 0, 0))
         gd = ImageDraw.Draw(glow)
-        sl = [[(x * S, y * S) for x, y in ln] for ln in lines]
+        sl = [[(x * S, y * S) for x, y in ln] for ln in lines if not (ln and ln[0] == 'text')]
+        tl = [ln for ln in lines if ln and ln[0] == 'text']   # 조커 카드 그림의 글자 (잭의 J)
         for ln in sl:
-            gd.line(ln, fill=c, width=int(w * 4 * S))
-        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S)).point(lambda v: int(v * 0.8)))
+            gd.line(ln, fill=c, width=int(w * (4 if gk >= 1 else 2) * S))
+        for ln in tl:
+            gd.text((ln[1] * S, ln[2] * S), ln[3], fill=c, font=FONT(ln[4] * S), anchor='mm')
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S)).point(lambda v: int(v * 0.8 * gk)))
         d = ImageDraw.Draw(img)
         for ln in sl:
             d.line(ln, fill=c, width=max(1, int(w * S)))
+        for ln in tl:
+            d.text((ln[1] * S, ln[2] * S), ln[3], fill=c, font=FONT(ln[4] * S), anchor='mm')
     d = ImageDraw.Draw(img)
     d.text((40 * S, 40 * S), 'SKILL TREE  %d nodes' % len(nodes), fill=COL['gold'], font=FONT(14 * S), anchor='lm')
     img.resize((1280, 720), Image.LANCZOS).save(out)
@@ -1064,15 +1335,20 @@ def render_tree_mock(out, path, S=2):
     bx = hx_ + 34 if hx_ < 900 else hx_ - 34 - 300
     by = min(max(hy_ - 60, 80), 520)
     M.box(bx, by, 300, 132, BG, 1.0); M.rr(bx, by, 300, 132, 10, GRN, 1.6)
-    M.tx(bx + 14, by + 20, '고독한 저격수', GOLD, 14)
+    KN = ['외골수', '잡식가', '큰 판', '작은 판', '대장장이', '광대의 길', '고독한 저격수', '군중']
+    KD = ['플러시 타워 위력 ×2', '플러시 아닌 족보 위력 ×1.3', '5장 족보 위력 ×1.6', '원 페어·투 페어 위력 ×1.8', '합성 배율 1.5 → 2.0', '조커 배율 1.2 → 1.6', '족보에 안 든 타워 위력 ×1.6', '연쇄 덤 +25% → +40%']
+    hk = hov['fx'][0][1]
+    M.tx(bx + 14, by + 20, KN[hk], GOLD, 14)
     M.tx(bx + 14, by + 44, '키스톤 · 찍을 수 있음', GRN, 10)
-    M.tx(bx + 14, by + 68, '혼자 선 타워 위력 ×1.6', FG, 12)
-    M.tx(bx + 14, by + 90, '짝: 군중의 힘 (봉인됨)', RED, 10)
+    M.tx(bx + 14, by + 68, KD[hk], FG, 12)
+    M.tx(bx + 14, by + 90, '짝: %s (함께 못 찍음)' % KN[hk ^ 1], RED, 10)
     M.rr(bx + 14, by + 102, 120, 22, 8, GRN, 1.2); M.tx(bx + 74, by + 113, '찍기 · 포인트 1', GRN, 10, 'mm')
     img = M.draw(base)
     img.resize((1280, 720), Image.LANCZOS).save(out)
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 3 and sys.argv[1] == 'iconsheet':  # python neon.py iconsheet 출력.png (트리 노드 아이콘 확인)
+        render_icon_sheet(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 3 and sys.argv[1] == 'codexmock':  # python neon.py codexmock 출력.png
         render_codex_mock(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 4 and sys.argv[1] == 'treemock':  # python neon.py treemock 출력.png tools/tree/tree.json
