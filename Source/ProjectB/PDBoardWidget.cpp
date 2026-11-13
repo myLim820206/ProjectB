@@ -246,6 +246,12 @@ FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
 	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f) + FVector2f(0.f, SynLayer(L, I) * (FuseH + 2.f));
 }
 
+// 먹이기 버튼: 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
+FVector2f FeedButtonCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
+{
+	return FuseButtonCenter(L, I) + FVector2f(bCanFuse ? FuseW + 4.f : 0.f, 0.f);
+}
+
 // ---- 스킬 트리 글자와 위치 (docs/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
 FVector2f TreeNodePos(int Id) { return FVector2f(TreeNode(Id).X, TreeNode(Id).Y); }
 const TCHAR* KeystoneName(int K)
@@ -955,6 +961,34 @@ void SPDBoardWidget::HandleEvents()
 			BannerT = BannerMax = 1.8f;
 			break;
 		}
+		case FPDEvent::EKind::Feed: // 족보 먹이기: 먹인 칸에서 조커로 빨려 드는 입자, 레벨이 오르면 고리와 글자
+		{
+			for (const FVector2f& From : PendingFuseCells)
+				for (int I = 0; I < 8; ++I)
+				{
+					FParticle Pa;
+					Pa.P = From + FVector2f(FMath::FRandRange(-14.f, 14.f), FMath::FRandRange(-14.f, 14.f));
+					Pa.V = (P - Pa.P) / 0.4f;
+					Pa.MaxLife = Pa.Life = 0.4f;
+					Pa.Size = FMath::FRandRange(1.6f, 2.8f);
+					Pa.Drag = 0.f;
+					Pa.Gravity = 0.f;
+					Pa.Col = I % 3 ? JokerPink : FLinearColor::White;
+					Pa.bStreak = true;
+					Particles.Add(Pa);
+				}
+			PendingFuseCells.Reset();
+			Rings.Add({P, 60.f, 6.f, 0.f, 0.4f, 2.4f, JokerPink});
+			if (E.B > 0)
+			{
+				Rings.Add({P, 10.f, 110.f, 0.3f, 0.9f, 3.f, JokerPink});
+				Burst(P, 40, JokerPink, 80.f, 260.f, 0.8f, 2.6f, true);
+				Floats.Add({FString::Printf(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
+				Shake = FMath::Max(Shake, 0.25f);
+			}
+			else Floats.Add({FString::Printf(TEXT("경험치 +%.0f"), E.R), P - FVector2f(0.f, 26.f), 0.f, 1.2f, 14.f, JokerPink});
+			break;
+		}
 		case FPDEvent::EKind::Bell:
 			Rings.Add({P, 10.f, E.R * CS, 0.f, 0.6f, 3.f, Hex(TEXT("cfe4ff"))});
 			Rings.Add({P, 10.f, E.R * CS * 0.7f, 0.1f, 0.6f, 2.f, JokerPink});
@@ -1585,6 +1619,19 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 			const FVector2f B = FuseButtonCenter(Game.Synergies, I);
 			if (FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f) { StartPick(Game.Synergies[I].Cells, false); return; }
 		}
+	// 먹이기 버튼 (조커에 맞닿은 족보)
+	if (!bRight)
+		for (const FPDFeed& Fd : Game.FeedTargets())
+		{
+			const FVector2f B = FeedButtonCenter(Game.Synergies, Fd.Syn, Game.CanFuse(Fd.Syn));
+			if (FMath::Abs(P.X - B.X) <= FuseW / 2.f && FMath::Abs(P.Y - B.Y) <= FuseH / 2.f)
+			{
+				PendingFuseCells.Reset();
+				for (int K : Game.Synergies[Fd.Syn].Cells) if (!Game.Towers.at(K).IsJoker()) PendingFuseCells.Add(CellCenter(K));
+				if (!Game.Feed(Fd.Syn)) PendingFuseCells.Reset();
+				return;
+			}
+		}
 	int32 HandHit = -1;
 	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
 	{
@@ -1825,7 +1872,12 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		if (bPv && T.X == HoverX && T.Y == HoverY) continue;
 		const FVector2f P = CellCenter(KV.first);
 		const float Pop = T.Age < 0.3f ? 1.f + 0.5f * (1.f - T.Age / 0.3f) : 1.f; // 놓는 순간 커졌다 줄어듦
-		if (T.IsJoker()) { F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse); continue; }
+		if (T.IsJoker())
+		{
+			F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
+			if (T.JLevel >= 2) F.TextCentered(FString::Printf(TEXT("Lv%d"), T.JLevel), P.X, P.Y + CS * 0.5f - 5.f, WithAlpha(JokerPink, 0.9f), 9.f, true, CS - 2.f);
+			continue;
+		}
 		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
 		// 레벨: 틀을 한 겹씩 더 (안쪽으로), 위쪽에 레벨 점
 		for (int L = 2; L <= T.Level; ++L)
@@ -2225,6 +2277,32 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
 			F.TextCentered(TEXT("합성"), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.8f), 10.f, true);
 		}
+	// 먹이기 버튼: 마우스를 올리면 먹일 칸과 얻을 경험치
+	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
+		for (const FPDFeed& Fd : G.FeedTargets())
+		{
+			const FVector2f B = FeedButtonCenter(G.Synergies, Fd.Syn, G.CanFuse(Fd.Syn));
+			const bool bHov = FMath::Abs(Mouse.X - B.X) <= FuseW / 2.f && FMath::Abs(Mouse.Y - B.Y) <= FuseH / 2.f;
+			if (bHov)
+			{
+				for (int K : G.Synergies[Fd.Syn].Cells)
+				{
+					if (G.Towers.at(K).IsJoker()) continue;
+					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f));
+					F.Dashed({CellCenter(K), CellCenter(Fd.Joker)}, WithAlpha(JokerPink, 0.5f), 1.2f, 4.f, 5.f);
+				}
+				const FPDTower& Jt = G.Towers.at(Fd.Joker);
+				int Lv = Jt.JLevel;
+				float Xp = Jt.JXp + Fd.Xp;
+				while (Lv < JokerMaxLevel && Xp >= JokerXpNeed(Lv)) { Xp -= JokerXpNeed(Lv); ++Lv; }
+				const FVector2f J = CellCenter(Fd.Joker);
+				F.Badge(FString::Printf(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), J.X, J.Y - CS * 0.75f, JokerPink, 1.f);
+			}
+			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
+			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
+			F.TextCentered(TEXT("먹이기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.8f), 10.f, true, FuseW - 4.f);
+		}
 	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상)
 	if (!bPv && G.Phase != EPDPhase::Reward)
 		for (const FPDJokerGroup& Gr : JGroups)
@@ -2249,12 +2327,15 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			{
 				const FVector2f Pj = CellCenter(It->first) + FVector2f(CS * 0.6f, -CS * 0.6f);
 				const float JX = FMath::Min(Pj.X, FX + Cols * CS - 250.f), JY = FMath::Max(Pj.Y - 60.f, FY + 4.f);
-				F.Box(JX, JY, 246.f, 74.f, Hex(TEXT("06060b"), 0.92f));
-				F.Lines(FCanvas::RectPoints(JX, JY, 246.f, 74.f), WithAlpha(JokerPink, 0.8f), 1.f);
+				F.Box(JX, JY, 246.f, 90.f, Hex(TEXT("06060b"), 0.92f));
+				F.Lines(FCanvas::RectPoints(JX, JY, 246.f, 90.f), WithAlpha(JokerPink, 0.8f), 1.f);
 				F.Text(FString::Printf(TEXT("%s 대장: %s"), HandName(CaptainHand((EPDJoker)T.Joker)), JokerName(T.Joker)), JX + 8.f, JY + 18.f, JokerPink, 12.f, 0, true, 230.f);
 				F.Text(JokerAbility(T.Joker), JX + 8.f, JY + 36.f, Fg, 10.f, 0, false, 230.f);
 				F.Text(JokerCommand(T.Joker), JX + 8.f, JY + 52.f, Gold, 10.f, 0, false, 230.f);
 				F.Text(FString::Printf(TEXT("위력 ×%.0f · 맞닿은 족보에서 와일드"), T.Mult), JX + 8.f, JY + 68.f, Grey, 10.f, 0, false, 230.f);
+				F.Text(T.JLevel >= JokerMaxLevel ? FString::Printf(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, (T.JLevel - 1) * 10)
+					: FString::Printf(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), (T.JLevel - 1) * 10, T.JLevel >= JokerUpLevel ? TEXT(" · 강화") : TEXT("")),
+					JX + 8.f, JY + 84.f, JokerPink, 10.f, 0, false, 230.f);
 			}
 			else
 			{
