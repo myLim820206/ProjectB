@@ -1056,17 +1056,25 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 			const bool bTarget = bHoverIn ? K == HoverKey : K == Def; // 지금 클릭하면 모일 칸
-			const FLinearColor Pc = FMath::Lerp(PickCol, FLinearColor::White, (bTarget ? 0.5f : 0.3f) * Wv);
-			F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pc, bTarget ? 0.3f + 0.15f * Wv : 0.14f + 0.1f * Wv));
-			if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pc, 0.4f + 0.25f * Wv));
-			F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, bTarget ? 3.4f : 2.4f, bTarget ? 1.6f + 1.f * Wv : 0.9f + 0.6f * Wv);
-			if (bTarget) F.Glow(FCanvas::RoundRectPoints(C0.X - 3.f - 3.f * Wv, C0.Y - 3.f - 3.f * Wv, CS + 6.f + 6.f * Wv, CS + 6.f + 6.f * Wv, 9.f), WithAlpha(PickCol, 0.8f - 0.5f * Wv), 2.f, 1.f);
+			// 모일 칸은 다른 색 (D-149): 하늘색으로 진하게 + 퍼지는 테두리 두 겹 + "여기". 나머지 재료 칸은 금색으로 한 단계 옅게
+			const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
+			const FLinearColor Pc = bTarget ? FMath::Lerp(TargetCol, FLinearColor::White, 0.35f * Wv) : FMath::Lerp(PickCol, FLinearColor::White, 0.2f * Wv);
+			F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pc, bTarget ? 0.38f + 0.17f * Wv : 0.1f + 0.08f * Wv));
+			if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pc, bTarget ? 0.55f + 0.25f * Wv : 0.3f + 0.15f * Wv));
+			F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, bTarget ? 3.8f : 2.f, bTarget ? 1.8f + 1.f * Wv : 0.7f + 0.4f * Wv);
+			if (bTarget)
+				for (int32 Ring = 0; Ring < 2; ++Ring)
+				{
+					const float U = FMath::Fmod(Clock * 1.4f + Ring * 0.5f, 1.f), Gr = 2.f + 12.f * U;
+					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.9f * (1.f - U)), 2.2f, 1.f);
+				}
+			if (bTarget) F.TextCentered(TEXT("여기"), C0.X + CS / 2.f, C0.Y - 10.f, TargetCol, 12.f, true, CS + 20.f);
 			if (K == Def) F.TextCentered(TEXT("기본"), C0.X + CS / 2.f, C0.Y + CS - 8.f, WithAlpha(FLinearColor::White, 0.9f), 9.f, true, CS - 4.f);
 		}
 		// 다른 칸에서 고른 칸으로 빨려 드는 선
 		const int32 Target = bHoverIn ? HoverKey : Def;
 		for (int K : PickCells)
-			if (K != Target) F.Dashed({CellCenter(K), CellCenter(Target)}, WithAlpha(PickCol, 0.5f), 1.2f, 4.f, 5.f);
+			if (K != Target) F.Dashed({CellCenter(K), CellCenter(Target)}, WithAlpha(Hex(TEXT("5ff2ff")), 0.7f), 1.6f, 4.f, 5.f);
 		// 자리 고르는 중 (D-123): 판 가운데에 큰 글자 (바탕 없이 반투명, 아래 칸이 비쳐 보이게)
 		{
 			const float MX = FX + Cols * CS / 2.f, MY = FY + Rows * CS / 2.f;
