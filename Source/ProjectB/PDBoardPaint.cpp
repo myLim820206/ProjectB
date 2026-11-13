@@ -1,5 +1,7 @@
 ﻿// 포커 디펜스 화면 그리기: 판, 적, 발사체, 이펙트, 버튼, 패널, 창 (화풍 docs/15-art-style.md)
 #include "PDBoardDraw.h"
+#include "Misc/ScopeExit.h"
+#include "Misc/CommandLine.h"
 
 #include "PDTreeText.inl" // 생성됨: 특급 노드 이름 (tools/tree/gen_tree.py)
 
@@ -27,20 +29,35 @@ void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 	C.TextCentered(bTree ? TEXT("닫기  K") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
 }
 
-// 정적 층 그리기 (D-137): 흔들림 없이 (흔들림은 리테이너의 렌더 변환으로)
-int32 SPDBoardWidget::PaintStatic(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+// 아틀라스 굽기 (D-140): 칸마다 타워 카드(레벨 틀·점 포함) / 조커를 지금 코드 그대로, 맥박은 가운데 값
+int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
-	const auto LocalSize = AllottedGeometry.GetLocalSize();
-	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
-	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
-	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
-	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
+	const FGeometry G2 = AllottedGeometry.MakeChild(FVector2f(AtlasTex / AtlasK, AtlasTex / AtlasK), FSlateLayoutTransform(AtlasK));
 	int32 Layer = LayerId;
-	FCanvas F{OutDrawElements, Design, &Layer, &WhiteBrush};
-	const int32 L0 = GPDDebug.Lines;
-	PaintField(F, true);
-	GPDDebug.Lines = L0; // 정적 층 선은 프레임 선 수에 넣지 않는다 (가끔만 그림)
-	++GPDDebug.StaticPaints;
+	FCanvas F{OutDrawElements, G2, &Layer, &WhiteBrush};
+	const float R = CS * 0.4f;
+	for (int32 Ci = 0; Ci < AtlasCards; ++Ci)
+		{
+			const FPDCard Card = Ci == 52 ? FPDCard{0, EPDSuit::Wild} : FPDCard{2 + Ci / 4, (EPDSuit)(Ci % 4)};
+			for (int32 Lv = 1; Lv <= 4; ++Lv)
+				for (int32 St = 0; St < 2; ++St)
+				{
+					const FVector2f P = AtlasCellCenter(TowerSprite(Card, Lv, St != 0));
+					F.CardShape(Card, P.X, P.Y, R, 1.f, St != 0, 0.5f);
+					for (int L = 2; L <= Lv; ++L)
+					{
+						const float H = R * 0.98f + (L - 1) * 3.5f;
+						F.Glow(FCanvas::RoundRectPoints(P.X - H, P.Y - H, H * 2.f, H * 2.f, 6.f + L), WithAlpha(SuitColor(Card.Suit), 0.75f), 1.2f, 0.6f);
+					}
+					if (Lv >= 2)
+						for (int L = 0; L < Lv; ++L) F.Box(P.X - (Lv - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, Hex(TEXT("ffd96a")));
+				}
+		}
+	for (int32 K = 0; K < 10; ++K)
+	{
+		const FVector2f P = AtlasCellCenter(AtlasJoker0 + K);
+		F.JokerTower(K, P.X, P.Y, R, 1.f, 0.5f);
+	}
 	return Layer;
 }
 
@@ -58,8 +75,7 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
 	// 판은 흔들림을 받고, 패널은 고정
 	const FGeometry Field = Design.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(ShakeOff)); // 흔들림은 틱에서 정함
-	// 맨 아래: 정적 층 (리테이너가 캐시한 텍스처, D-137)
-	int32 Layer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1;
+	int32 Layer = LayerId;
 	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
 	FCanvas F{OutDrawElements, Field, &Layer, &WhiteBrush};
 	const double T0 = FPlatformTime::Seconds();
@@ -96,9 +112,17 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	// 판 쪽(F, 흔들림을 받음): 판·적 → 발사체 → 이펙트 → 판 위 UI. 그 위에 고정 패널과 창(C)
 	int32 L0 = GPDDebug.Lines;
 	auto Part = [&](int32 I) { GPDDebug.PartLines[I] = GPDDebug.Lines - L0; L0 = GPDDebug.Lines; };
+#if !UE_BUILD_SHIPPING
+	static const bool bNoFx = FParse::Param(FCommandLine::Get(), TEXT("pdnofx")), bNoDraw = FParse::Param(FCommandLine::Get(), TEXT("pdnodraw")); // 부하 나누어 보기 (D-138)
+	if (bNoDraw) return;
+#else
+	const bool bNoFx = false;
+#endif
+	PaintField(F, true);
 	PaintField(F, false); Part(0);
 	PaintShots(F); Part(1);
-	PaintEffects(F); Part(2);
+	if (!bNoFx) PaintEffects(F);
+	Part(2);
 	PaintBoardUi(F); Part(3);
 	PaintPanels(C); Part(4);
 	PaintScreens(C); Part(5);
@@ -138,7 +162,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 {
 	const FPDGame& G = Game;
-	const float Pulse = bStatic ? 0.5f : 0.5f + 0.5f * FMath::Sin(Clock * 4.f); // 정적 층은 맥박 없이 가운데 값
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const bool bPv = !Preview.empty(); // 고른 카드를 놓으면 생길 족보를 보여 주는 중
 	// 격자, 길 (정적 층)
 	if (bStatic)
@@ -266,7 +290,10 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			F.Box(P.X + 2.f, P.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Fl.Col, Fl.T * 0.5f));
 		}
 
-	// ---- 타워
+	// ---- 타워 (D-140: 아틀라스가 준비되면 카드·조커는 구운 그림을 한 층에 모아 찍는다)
+	const bool bAtlas = bStatic && Atlas.IsValid() && Atlas->Ready();
+	const int32 SpriteLayer = bAtlas ? F.NextLayer() : 0;
+	if (bAtlas) F.NextLayer();
 	for (const auto& KV : G.Towers)
 	{
 		const FPDTower& T = KV.second;
@@ -276,7 +303,11 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		const float Pop = T.Age < 0.3f ? 1.f + 0.5f * (1.f - T.Age / 0.3f) : 1.f; // 놓는 순간 커졌다 줄어듦
 		if (T.IsJoker())
 		{
-			if (bStatic != bYoung) F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
+			if (bStatic != bYoung)
+			{
+				if (bAtlas) F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + T.Joker], P.X, P.Y, 1.f, FLinearColor::White);
+				else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
+			}
 			if (bStatic) continue; // 레벨·경험치는 자주 바뀌어 움직이는 층에서
 			// 레벨 (위 오른쪽) + 경험치 막대 (아래), 레벨업 순간 막대가 번쩍 (D-125)
 			F.Text(FString::Printf(TEXT("Lv%d"), T.JLevel), P.X + CS * 0.5f - 3.f, P.Y - CS * 0.5f + 10.f, JokerPink, 9.f, 2, true, CS - 6.f);
@@ -291,6 +322,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			continue;
 		}
 		if (bStatic == bYoung) continue;
+		if (bAtlas) { F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, T.Eff.Hand >= 0)], P.X, P.Y, 1.f, FLinearColor::White); continue; }
 		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
 		// 레벨: 틀을 한 겹씩 더 (안쪽으로), 위쪽에 레벨 점
 		for (int L = 2; L <= T.Level; ++L)
@@ -615,6 +647,11 @@ void SPDBoardWidget::PaintShots(FCanvas& F) const
 // 이펙트: 빛줄기, 별빛, 몸 조각, 퍼지는 파동, 파티클
 void SPDBoardWidget::PaintEffects(FCanvas& F) const
 {
+	// 이펙트가 많을 때 (10배속): 번짐 없이 심만, 입자 꼬리는 점으로 (선 수가 곧 그리기 부담, D-138)
+	const bool bBusyFx = Rings.Num() + Flares.Num() + Shards.Num() + Beams.Num() > 150;
+	const bool bDotParticles = Particles.Num() > 400;
+	F.HaloK = bBusyFx ? 0.f : 1.f;
+	ON_SCOPE_EXIT { F.HaloK = 1.f; };
 	// 빛줄기: 레이저, 레일건, 번개, 로열, 체셔
 	for (const FBeam& B : Beams)
 	{
@@ -746,7 +783,7 @@ void SPDBoardWidget::PaintEffects(FCanvas& F) const
 		{
 			const float A = FMath::Clamp(Pa.Life / Pa.MaxLife, 0.f, 1.f), S = Pa.Size;
 			F.BoxAt(L1, Pa.P.X - S * 2.f, Pa.P.Y - S * 2.f, S * 4.f, S * 4.f, WithAlpha(Pa.Col, 0.15f * A));
-			if (Pa.bStreak)
+			if (Pa.bStreak && !bDotParticles)
 			{
 				const FVector2f Tail = Pa.P - Pa.V * 0.04f;
 				F.Lines({Tail, Pa.P}, WithAlpha(Pa.Col, A), S);

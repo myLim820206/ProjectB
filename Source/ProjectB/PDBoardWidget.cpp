@@ -10,71 +10,69 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Slate/SRetainerWidget.h"
+#include "Slate/WidgetRenderer.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "UObject/StrongObjectPtr.h"
+#include "RenderingThread.h"
 #include "Widgets/SLeafWidget.h"
+#include "RenderTimer.h"
+#include "DynamicRHI.h"
+#include "Misc/CommandLine.h"
+
+#if !UE_BUILD_SHIPPING
+static void PDDebugStress(PD::FPDGame& G);
+#endif
 
 // ---------------------------------------------------------------- 위젯
-// 판 정적 층 (D-137): 주인 위젯의 PaintStatic 을 부르기만 하는 잎 위젯. 리테이너가 텍스처로 들고 있다가 무효화될 때만 다시 그린다
-class SPDBoardStatic : public SLeafWidget
+// 아틀라스를 굽는 동안만 쓰는 잎 위젯: 주인의 PaintAtlas 를 부른다
+class SPDAtlasPainter : public SLeafWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SPDBoardStatic) {}
+	SLATE_BEGIN_ARGS(SPDAtlasPainter) {}
 	SLATE_ARGUMENT(const SPDBoardWidget*, Owner)
 	SLATE_END_ARGS()
 	void Construct(const FArguments& A) { Owner = A._Owner; }
-	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(PDDraw::DesignW, PDDraw::DesignH); }
+	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(PDDraw::AtlasTex, PDDraw::AtlasTex); }
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
 		int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
 	{
-		return Owner ? Owner->PaintStatic(AllottedGeometry, OutDrawElements, LayerId) : LayerId;
+		return Owner ? Owner->PaintAtlas(AllottedGeometry, OutDrawElements, LayerId) : LayerId;
 	}
 private:
 	const SPDBoardWidget* Owner = nullptr;
 };
 
+void SPDBoardWidget::BakeAtlas()
+{
+	Atlas = MakeShared<FPDAtlas>();
+	UTextureRenderTarget2D* RT = FWidgetRenderer::CreateTargetFor(FVector2D(AtlasTex, AtlasTex), TF_Bilinear, false);
+	if (!RT) { Atlas.Reset(); return; }
+	RT->ClearColor = FLinearColor::Transparent;
+	RT->AddToRoot(); // 게임 내내 쓴다
+	Atlas->RT = RT;
+	TSharedRef<SPDAtlasPainter> Painter = SNew(SPDAtlasPainter).Owner(this);
+	Atlas->Painter = Painter;
+	Atlas->Renderer = MakeShared<FWidgetRenderer>(false, true);
+	Atlas->Renderer->DrawWidget(RT, Painter, FVector2D(AtlasTex, AtlasTex), 0.f);
+	FlushRenderingCommands(); // 한 번만 굽는다: 끝날 때까지 기다린다
+	Atlas->Brushes.SetNum(AtlasN);
+	for (int32 I = 0; I < AtlasN; ++I)
+	{
+		FSlateBrush& B = Atlas->Brushes[I];
+		B.SetResourceObject(RT);
+		B.ImageSize = FVector2D(AtlasCell * AtlasK, AtlasCell * AtlasK);
+		B.DrawAs = ESlateBrushDrawType::Image;
+		const FVector2f C = AtlasCellCenter(I) * AtlasK, H(AtlasCell * AtlasK * 0.5f, AtlasCell * AtlasK * 0.5f);
+		B.SetUVRegion(FBox2f((C - H) / (float)AtlasTex, (C + H) / (float)AtlasTex));
+	}
+}
+
 void SPDBoardWidget::Construct(const FArguments& InArgs)
 {
 	SetCanTick(true);
 	LoadUserData();
-	ChildSlot
-	[
-		SAssignNew(StaticRetainer, SRetainerWidget)
-		.RenderOnPhase(false)
-		.RenderOnInvalidation(true)
-		.Visibility(EVisibility::HitTestInvisible)
-		[
-			SAssignNew(StaticLayer, SPDBoardStatic).Owner(this)
-		]
-	];
 }
 
-// 정적 층 서명: 이것이 바뀔 때만 정적 층을 다시 그린다
-uint64 SPDBoardWidget::ComputeStaticSig() const
-{
-	uint64 S = 1469598103934665603ull;
-	auto Mix = [&](uint64 V) { S = (S ^ V) * 1099511628211ull; };
-	const bool bPv = !Preview.empty();
-	for (const auto& KV : Game.Towers)
-	{
-		const FPDTower& T = KV.second;
-		Mix((uint64)KV.first);
-		Mix((uint64)T.Card.Rank << 8 | (uint64)T.Card.Suit);
-		Mix((uint64)T.Level << 8 | (uint64)(T.Joker + 1));
-		Mix((uint64)(T.Eff.Hand >= 0) << 1 | (uint64)(T.Age < PDDraw::YoungAge));
-	}
-	for (const FPDSynergy& Sy : Game.Synergies)
-	{
-		Mix((uint64)Sy.Kind << 8 | (uint64)Sy.N);
-		for (int K : Sy.Cells) Mix((uint64)K);
-		for (int L : Sy.Links) Mix((uint64)L + 7777);
-	}
-	Mix(bPv ? (uint64)(CellKey(FMath::Max(0, HoverX), FMath::Max(0, HoverY)) + 1) : 0ull);
-	Mix((uint64)Game.Path.Points.size());
-	Mix((uint64)FMath::RoundToInt(ViewSize.X) << 16 | (uint64)FMath::RoundToInt(ViewSize.Y));
-	// 로열은 장판이 무지개로 돈다: 로열이 있으면 0.1초마다 다시
-	for (const FPDSynergy& Sy : Game.Synergies) if (Sy.Kind == EPDHand::RoyalFlush) { Mix((uint64)(Clock * 10.f)); break; }
-	return S;
-}
 
 // ---------------------------------------------------------------- 설정·진행 저장 (D-110)
 namespace
@@ -261,12 +259,50 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
+#if !UE_BUILD_SHIPPING
+	// 자동 부하 시험 (D-138): -pdstress 로 켜면 2초 뒤 F4 판 + 10배속 + 프레임 제한 없음으로 웨이브를 계속 돌리고 45초 뒤 끈다 (로그 PDPERF)
+	{
+		static const bool bAutoStress = FParse::Param(FCommandLine::Get(), TEXT("pdstress"));
+		static float StressT = -1.f;
+		if (bAutoStress)
+		{
+			if (StressT < 0.f && Clock > 2.f)
+			{
+				Game.Phase = EPDPhase::Build;
+				PDDebugStress(Game);
+				GPDDebug.bShow = true;
+				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔
+				if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"))) V->Set(0.f, ECVF_SetByCode);
+				if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"))) V->Set(0, ECVF_SetByCode);
+				StressT = 0.f;
+			}
+			else if (StressT >= 0.f)
+			{
+				StressT += InDeltaTime;
+				Game.Speed = 10;
+				if (Game.Phase == EPDPhase::Build) Game.StartWave();
+				if (Game.Phase == EPDPhase::Reward) Game.TakeReward(-1);
+				if (StressT > 45.f) FPlatformMisc::RequestExit(false);
+			}
+		}
+	}
+#endif
 	const double TickT0 = FPlatformTime::Seconds();
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
 	if (!bTree && !bUpg && !bMenu) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
+	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다
+	{
+		auto Cap = [](auto& A, int32 Max) { if (A.Num() > Max) A.RemoveAt(0, A.Num() - Max, EAllowShrinking::No); };
+		Cap(Rings, 70);
+		Cap(Flares, 60);
+		Cap(Shards, 120);
+		Cap(Beams, 80);
+		Cap(Particles, 700);
+		Cap(Floats, 60);
+	}
 	UpdateFx(Dt);
 	if (!Settings.bShake) { Shake = 0.f; FlashT = 0.f; } // 설정: 화면 흔들림·번쩍임 끔
 	if (Game.Discovered != SavedDiscovered || FMath::Max(Game.BestWave, Game.Wave) > SavedBest) SaveProgress(); // 도감·최고 기록이 바뀌면 바로 저장
@@ -276,25 +312,19 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (FeedJoker >= 0 && (!Game.Towers.count(FeedJoker) || !Game.Towers.at(FeedJoker).IsJoker() || Game.Phase == EPDPhase::Reward || Sel >= 0)) FeedJoker = -1; // 조커가 없어졌거나 카드를 고름
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
-	// 판 흔들림과 정적 층 캐시 (D-137)
+	// 판 흔들림 + 스프라이트 아틀라스 (D-140): 처음 한 번 굽고, 렌더가 끝난 몇 프레임 뒤부터 쓴다
 	{
 		const float SK = Shake * 14.f;
 		ShakeOff = FVector2f(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
-		static FVector2f LastShake(0.f, 0.f);
-		if (StaticRetainer.IsValid() && !ShakeOff.Equals(LastShake, 0.01f)) { LastShake = ShakeOff; StaticRetainer->SetRenderTransform(FSlateRenderTransform(FVector2f(ShakeOff * ViewScale))); }
-		const uint64 Sig = ComputeStaticSig();
-		if (Sig != StaticSig && StaticLayer.IsValid())
-		{
-			StaticSig = Sig;
-			StaticLayer->Invalidate(EInvalidateWidgetReason::Paint);
-			StaticRetainer->RequestRender();
-		}
+		if (!Atlas.IsValid() && Clock > 0.3f) BakeAtlas();
+		else if (Atlas.IsValid()) ++Atlas->Frames;
 	}
 	GPDDebug.TickMs = FMath::Lerp(GPDDebug.TickMs, (float)((FPlatformTime::Seconds() - TickT0) * 1000.0), 0.1f);
 	if (GPDDebug.bShow && GPDDebug.Acc < Dt) // 디버그 표시가 켜져 있으면 1초마다 로그에도 (Saved/Logs, D-135)
 	{
-		UE_LOG(LogTemp, Log, TEXT("PDPERF fps=%.1f ms=%.1f low=%.1f paint=%.2f tick=%.2f lines=%d points=%d enemies=%d shots=%d towers=%d particles=%d rings=%d speed=%d parts=%d/%d/%d/%d/%d/%d static=%d"),
-			GPDDebug.Fps, GPDDebug.Ms, GPDDebug.WorstShown, GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points, (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size(), Particles.Num(), Rings.Num(), Game.Speed, GPDDebug.PartLines[0], GPDDebug.PartLines[1], GPDDebug.PartLines[2], GPDDebug.PartLines[3], GPDDebug.PartLines[4], GPDDebug.PartLines[5], GPDDebug.StaticPaints);
+		UE_LOG(LogTemp, Log, TEXT("PDPERF fps=%.1f ms=%.1f low=%.1f paint=%.2f tick=%.2f lines=%d points=%d enemies=%d shots=%d towers=%d particles=%d rings=%d speed=%d parts=%d/%d/%d/%d/%d/%d static=%d game=%.1f render=%.1f rhi=%.1f gpu=%.1f wave=%d mode=%.2f floats=%d voicesfx=%d"),
+			GPDDebug.Fps, GPDDebug.Ms, GPDDebug.WorstShown, GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points, (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size(), Particles.Num(), Rings.Num(), Game.Speed, GPDDebug.PartLines[0], GPDDebug.PartLines[1], GPDDebug.PartLines[2], GPDDebug.PartLines[3], GPDDebug.PartLines[4], GPDDebug.PartLines[5], GPDDebug.StaticPaints,
+			FPlatformTime::ToMilliseconds(GGameThreadTime), FPlatformTime::ToMilliseconds(GRenderThreadTime), FPlatformTime::ToMilliseconds(GRHIThreadTime), FPlatformTime::ToMilliseconds(RHIGetGPUFrameCycles()), Game.Wave, GPDDebug.ModeMs, Floats.Num(), WorldFx.Num());
 		GPDDebug.StaticPaints = 0;
 	}
 	Invalidate(EInvalidateWidgetReason::Paint);

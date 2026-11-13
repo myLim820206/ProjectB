@@ -5,7 +5,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "PDCore.h"
 
-class SRetainerWidget;
+struct FPDAtlas;
 
 // 포커 디펜스 화면 전체. 1280 x 720 기준 좌표로 그리고 창 크기에 맞춰 확대한다.
 // 그래픽은 도형과 선뿐이고, 네온 빛번짐은 굵고 옅은 선 위에 가늘고 밝은 선을 겹쳐 흉내 낸다 (docs/15-art-style.md).
@@ -210,14 +210,12 @@ private:
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
-	// 판 정적 층 캐시 (D-137): 격자·족보 장판·테두리·연쇄 번개·타워를 텍스처에 그려 두고 판이 바뀔 때만 다시 그린다
-	TSharedPtr<SRetainerWidget> StaticRetainer;
-	TSharedPtr<SWidget> StaticLayer;
-	uint64 StaticSig = 0;
-	uint64 ComputeStaticSig() const;
-	FVector2f ShakeOff = FVector2f(0.f, 0.f); // 판 흔들림 (틱에서 정해 정적 층·움직이는 층이 같이 흔들림)
+	// 스프라이트 아틀라스 (D-140): 타워 카드·조커를 게임 시작 때 지금 네온 코드로 텍스처 한 장에 구워 두고, 판에선 사각형으로 찍는다
+	TSharedPtr<FPDAtlas> Atlas;
+	void BakeAtlas();
+	FVector2f ShakeOff = FVector2f(0.f, 0.f); // 판 흔들림 (틱에서 정함)
 public:
-	int32 PaintStatic(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+	int32 PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 아틀라스 굽는 그림
 private:
 	int32 FeedJoker = -1;                  // 먹이기 모드 (D-131): 클릭한 조커 칸. 이 조커에 먹일 족보만 버튼이 뜬다
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)

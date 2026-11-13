@@ -490,6 +490,7 @@ struct FPDDebugStats
 	int32 Lines = 0, Points = 0, Texts = 0, Boxes = 0; // 이번 프레임 그리기 요소 (D-135)
 	int32 PartLines[6] = {}; // 판·발사체·이펙트·판 위 UI·패널·창 별 선 수
 	int32 StaticPaints = 0;  // 1초 동안 정적 층을 다시 그린 횟수 (D-137)
+	float ModeMs = 0.f;      // 게임 모드 틱 (소리·나이아가라, D-138)
 	float PaintMs = 0.f, TickMs = 0.f;                 // 그리기·갱신 CPU 시간 (부드럽게)
 	void Add(float RawDt)
 	{
@@ -502,6 +503,18 @@ struct FPDDebugStats
 	}
 };
 inline FPDDebugStats GPDDebug;
+// 스프라이트 아틀라스 (D-140): 칸 하나 = 설계 좌표 AtlasCell px, 텍스처엔 AtlasK 배로 굽는다 (화면 확대에도 또렷하게)
+// 타워 카드: 카드 53종(2~A × 무늬 4 + 와일드) × 레벨 4 × 족보 듦 2 = 424, 조커 10 → 434칸 (23 × 19줄 = 3344px)
+constexpr float AtlasCell = 88.f, AtlasK = 2.f;
+constexpr int32 AtlasCols = 23, AtlasTex = 4096; // 23 × 88 × 2 = 4048 ≤ 4096
+constexpr int32 AtlasCards = 53, AtlasTowerN = AtlasCards * 4 * 2, AtlasJoker0 = AtlasTowerN, AtlasN = AtlasTowerN + 10;
+static_assert((AtlasN + AtlasCols - 1) / AtlasCols * AtlasCell * AtlasK <= AtlasTex, "atlas rows overflow the texture");
+inline int32 AtlasCardIndex(const FPDCard& C) { return C.IsWild() ? 52 : (FMath::Clamp(C.Rank, 2, 14) - 2) * 4 + FMath::Clamp((int)C.Suit, 0, 3); }
+inline int32 TowerSprite(const FPDCard& C, int Level, bool bStrong)
+{
+	return (AtlasCardIndex(C) * 4 + (FMath::Clamp(Level, 1, 4) - 1)) * 2 + (bStrong ? 1 : 0);
+}
+inline FVector2f AtlasCellCenter(int32 I) { return FVector2f((I % AtlasCols + 0.5f) * AtlasCell, (I / AtlasCols + 0.5f) * AtlasCell); }
 // 배속 차례 (D-124): 1 → 2 → 3 → 5 → 10 → 1
 inline int NextSpeed(int S) { return S < 2 ? 2 : S < 3 ? 3 : S < 5 ? 5 : S < 10 ? 10 : 1; }
 // 천 단위 쉼표: 12345 → 12,345
@@ -530,6 +543,18 @@ inline const TCHAR* HandChip(EPDHand H)
 
 using namespace PDDraw;
 
+// 스프라이트 아틀라스 (D-140): 렌더 타깃 하나(루트에 붙여 유지) + 칸마다 UV 를 정한 붓
+class FWidgetRenderer;
+struct FPDAtlas
+{
+	UObject* RT = nullptr;
+	TSharedPtr<FWidgetRenderer> Renderer; // 구울 때 쓴 것들은 같이 들고 있는다 (뒤에서 도는 선 만들기 작업이 끝나기 전에 사라지면 터짐)
+	TSharedPtr<SWidget> Painter;
+	TArray<FSlateBrush> Brushes;
+	int32 Frames = 0; // 구운 뒤 몇 프레임 (렌더 명령이 끝난 다음부터 쓴다)
+	bool Ready() const { return Frames > 2; }
+};
+
 // ---------------------------------------------------------------- 그리기 도우미
 struct SPDBoardWidget::FCanvas
 {
@@ -537,6 +562,7 @@ struct SPDBoardWidget::FCanvas
 	FGeometry Geo;
 	int32* Layer;
 	const FSlateBrush* White;
+	float HaloK = 1.f; // 번짐 배율 (이펙트가 많으면 0 = 심만, D-138)
 
 	int32 NextLayer() { return ++(*Layer); }
 	// 층 나누기 (D-120): 선은 지금 층에 모아 그린다 (같은 층의 선은 한 번에 묶여 그려져 그리기 호출이 크게 준다).
@@ -550,7 +576,7 @@ struct SPDBoardWidget::FCanvas
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
-		if (Strength > 0.f) // 번짐 두 겹 (D-135: 가장 넓은 10배 겹은 거의 안 보이면서 그리기 부담이 커서 빼고 6배 겹을 조금 진하게)
+		if (Strength > 0.f && HaloK > 0.f) // 번짐 두 겹 (D-135: 가장 넓은 10배 겹은 거의 안 보이면서 그리기 부담이 커서 빼고 6배 겹을 조금 진하게)
 		{
 			Lines(P, WithAlpha(Col, 0.09f * Strength), Thick * 6.5f);
 			Lines(P, WithAlpha(Col, 0.14f * Strength), Thick * 3.2f);
@@ -904,6 +930,12 @@ struct SPDBoardWidget::FCanvas
 		Text(Title, DesignW / 2.f, 240.f, Col, 34.f, 1, true);
 		for (int32 I = 0; I < Body.Num(); ++I) Text(Body[I], DesignW / 2.f, 290.f + I * 26.f, Hex(TEXT("cfd8e6")), 14.f, 1);
 		Text(Foot, DesignW / 2.f, 300.f + Body.Num() * 26.f + 50.f, Hex(TEXT("ffd96a")), 18.f, 1);
+	}
+	// 아틀라스 칸 찍기 (D-140): 가운데 (CX, CY), 설계 크기 AtlasCell × S. 같은 층 L 에 모으면 한 번에 그려진다
+	void Sprite(int32 L, const FSlateBrush* B, float CX, float CY, float S, const FLinearColor& Tint)
+	{
+		const float H = AtlasCell * S * 0.5f;
+		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(H * 2.f, H * 2.f), FSlateLayoutTransform(FVector2f(CX - H, CY - H))), B, ESlateDrawEffect::None, Tint);
 	}
 	// 트리 노드 아이콘 (D-119, PDIcons.h): 선 묶음 + 광대 모자·네 무늬는 직접 그림
 	void Icon(const PDIcon::FIcon& I, const FLinearColor& Col, float Th, float Gk)

@@ -15,6 +15,8 @@
 #include "NiagaraSystem.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "PDBoardWidget.h"
+#include "PDBoardDraw.h"
+#include "Misc/ScopeExit.h"
 
 APDGameMode::APDGameMode()
 {
@@ -34,6 +36,8 @@ void APDGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	if (!BoardWidget.IsValid()) return;
+	const double ModeT0 = FPlatformTime::Seconds();
+	ON_SCOPE_EXIT { GPDDebug.ModeMs = FMath::Lerp(GPDDebug.ModeMs, (float)((FPlatformTime::Seconds() - ModeT0) * 1000.0), 0.1f); };
 	UpdateWorldView();
 	PlayWorldFx();
 	for (const PD::FPDSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
@@ -63,6 +67,19 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 	}
 	const TArray<uint8>& Pcm = PcmCache[Key];
 	if (Pcm.Num() == 0) return;
+	// 소리 줄이기 (D-138): 소리 하나마다 사운드 객체를 새로 만들어 비싸다. 10배속에선 초당 수백 개가 쌓여 게임 스레드가 막히던 것.
+	// 한 프레임 6개까지, 같은 소리는 0.05초에 한 번
+	{
+		static uint64 Frame = 0;
+		static int32 InFrame = 0;
+		static TMap<int32, double> Last;
+		if (Frame != GFrameCounter) { Frame = GFrameCounter; InFrame = 0; }
+		const double Now = FPlatformTime::Seconds();
+		double& L = Last.FindOrAdd(Key, -1.0);
+		if (InFrame >= 6 || Now - L < 0.05) return;
+		++InFrame;
+		L = Now;
+	}
 
 	USoundWaveProcedural* Wave = NewObject<USoundWaveProcedural>(this);
 	Wave->SetSampleRate(PDSampleRate);

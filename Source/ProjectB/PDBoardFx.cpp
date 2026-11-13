@@ -582,6 +582,15 @@ void SPDBoardWidget::PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLine
 {
 	if (!Settings.bWorldFx) return; // 설정: 월드 이펙트 끔 (D-110)
 	if (WorldFx.Num() >= 64) return; // 한 프레임에 너무 많이 쌓이면 버린다 (나이아가라 폭주 방지)
+	// 초당 예산 (D-138): 나이아가라는 하나 띄울 때마다 비싸다. 10배속에서 초당 수백 개가 떠 화면이 깨지고 8fps 가 되던 것.
+	// 초당 90개까지 (모아 둘 수 있는 것 24개), 큰 이펙트(합성·조커·족보)는 예산과 상관없이
+	{
+		static float Tokens = 24.f, LastClock = 0.f;
+		Tokens = FMath::Min(24.f, Tokens + (Clock - LastClock) * 90.f);
+		LastClock = Clock;
+		const bool bBig = Kind == EWorldFx::Fuse || Kind == EWorldFx::JokerFuse || Kind == EWorldFx::Synergy || Kind == EWorldFx::Leak;
+		if (!bBig) { if (Tokens < 1.f) return; Tokens -= 1.f; }
+	}
 	// 판 좌표 → 화면 가운데를 0으로 한 판 좌표. 판은 창 가운데에 맞춰 그리므로 (Offset - 창/2) / 배율 만큼 민다
 	const FVector2f Center = (ViewOffset - ViewSize * 0.5f) / FMath::Max(0.01f, ViewScale);
 	const FVector2f D = Dir.GetSafeNormal();
@@ -631,6 +640,18 @@ void SPDBoardWidget::DeathFx(FVector2f P, EPDEnemy Type)
 {
 	const FLinearColor Col = EnemyColor(Type), White = FLinearColor::White;
 	const bool bBoss = EnemyDef(Type).bBoss, bTank = Type == EPDEnemy::Tank || Type == EPDEnemy::Armored, bMini = Type == EPDEnemy::Mini;
+	// 한 프레임에 많이 죽으면 (10배속) 5마리째부터는 가볍게: 작은 섬광 + 입자 몇 개 (D-138)
+	{
+		static float DeathClock = -1.f;
+		static int32 DeathsThisFrame = 0;
+		if (Clock != DeathClock) { DeathClock = Clock; DeathsThisFrame = 0; }
+		if (++DeathsThisFrame > 4 && !bBoss)
+		{
+			Flares.Add({P, 0.f, 0.12f, 16.f, FMath::FRandRange(0.f, PI), Col});
+			Burst(P, 5, Col, 60.f, 160.f, 0.35f, 1.8f, true);
+			return;
+		}
+	}
 	const float S = bBoss ? 4.f : bTank ? 1.8f : bMini ? 0.7f : 1.f; // 크기
 	PushWorldFx(EWorldFx::Death, P, Col, S);
 	const bool bBusy = Particles.Num() > 1800 || Shards.Num() > 500;
