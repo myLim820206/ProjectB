@@ -5,10 +5,6 @@
 #include "Components/AudioComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "Materials/MaterialInstanceDynamic.h"
-#include "RenderingThread.h"
-#include "Slate/WidgetRenderer.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -39,7 +35,6 @@ void APDGameMode::Tick(float DeltaSeconds)
 	if (!BoardWidget.IsValid()) return;
 	UpdateWorldView();
 	PlayWorldFx();
-	UpdateBoardBloom(DeltaSeconds);
 	for (const PD::FPDSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
 	// 끝난 소리 정리
 	for (int32 I = Voices.Num() - 1; I >= 0; --I)
@@ -129,11 +124,6 @@ constexpr float PDCameraDistance = 1000.f;
 // 나이아가라 에셋이 받는 사용자 변수 (에셋을 만들 때 이 이름으로 노출한다)
 const FName PDFxColor(TEXT("User.Color")); // HDR 색 (1 넘으면 블룸)
 const FName PDFxScale(TEXT("User.Scale")); // 크기·세기 배율
-// 블룸 거울 (D-102): 렌더 타깃 해상도 배율과 후처리 머티리얼
-constexpr float PDBloomRes = 0.5f;
-// 판 블룸 세기 (D-103·D-104): 거울 밝기 = 1 + 0.5 × 이 값. 블룸 문턱(1)을 넘는 만큼만 번지므로 0.1 = D-102 의 10%
-constexpr float PDBoardBloomK = 0.1f;
-const TCHAR* const PDBloomMaterial = TEXT("/Game/FX/M_PD_BoardBloom.M_PD_BoardBloom");
 const FName PDFxDir(TEXT("User.Dir"));     // 튀는 방향 (월드, 단위 벡터)
 // SPDBoardWidget::EWorldFx 순서대로 에셋 이름과 HDR 밝기 배율
 const TCHAR* const PDFxNames[] = {TEXT("NS_PD_Hit"), TEXT("NS_PD_Death"), TEXT("NS_PD_ImpSpark"), TEXT("NS_PD_ImpBlast"),
@@ -189,16 +179,6 @@ void APDGameMode::SetupWorldView()
 
 	if (APlayerController* PC = World->GetFirstPlayerController()) PC->SetViewTarget(WorldCamera);
 
-	// 블룸 거울: 머티리얼이 있을 때만 (없으면 판 블룸 없이 그대로)
-	if (UMaterialInterface* Mat = Cast<UMaterialInterface>(FSoftObjectPath(PDBloomMaterial).TryLoad()))
-	{
-		BloomMID = UMaterialInstanceDynamic::Create(Mat, this);
-		BloomMID->SetScalarParameterValue(TEXT("Glow"), 1.f + 0.5f * PDBoardBloomK);
-		PP.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, BloomMID));
-		MirrorRenderer = new FWidgetRenderer(false, true);
-		BoardMirror = SNew(SPDBoardMirror, BoardWidget);
-	}
-
 	FxSystems.SetNum((int32)SPDBoardWidget::EWorldFx::Count);
 	for (int32 I = 0; I < FxSystems.Num(); ++I)
 		FxSystems[I] = LoadFx(*FString::Printf(TEXT("/Game/FX/%s.%s"), PDFxNames[I], PDFxNames[I]));
@@ -230,28 +210,8 @@ void APDGameMode::PlayWorldFx()
 	}
 }
 
-void APDGameMode::UpdateBoardBloom(float DeltaSeconds)
-{
-	if (!BloomMID || !MirrorRenderer || !BoardMirror.IsValid() || !BoardWidget.IsValid() || !GEngine || !GEngine->GameViewport) return;
-	FVector2D Vp(0.0, 0.0);
-	GEngine->GameViewport->GetViewportSize(Vp);
-	const FVector2f Logical = BoardWidget->GetViewSize();
-	if (Vp.X < 16.0 || Vp.Y < 16.0 || Logical.X < 16.f) return;
-	const int32 W = FMath::Max(16, FMath::RoundToInt32(Vp.X * PDBloomRes)), H = FMath::Max(16, FMath::RoundToInt32(Vp.Y * PDBloomRes));
-	if (!BoardRT || BoardRT->SizeX != W || BoardRT->SizeY != H)
-	{
-		BoardRT = FWidgetRenderer::CreateTargetFor(FVector2D(W, H), TF_Bilinear, false);
-		if (!BoardRT) return;
-		BloomMID->SetTextureParameterValue(TEXT("Board"), BoardRT);
-	}
-	// 거울은 위젯과 같은 논리 크기로 배치되고 (W / 논리 폭) 배율로 작게 그려진다
-	MirrorRenderer->DrawWidget(BoardRT, BoardMirror.ToSharedRef(), (float)W / Logical.X, FVector2D(W, H), DeltaSeconds, false);
-}
-
 void APDGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (MirrorRenderer) { BeginCleanup(MirrorRenderer); MirrorRenderer = nullptr; }
-	BoardMirror.Reset();
 	if (BoardWidget.IsValid() && GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(BoardWidget.ToSharedRef());

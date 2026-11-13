@@ -405,22 +405,17 @@ struct SPDBoardWidget::FCanvas
 	{
 		FSlateDrawElement::MakeLines(Out, NextLayer(), Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
 	}
-	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 네 겹 + 흰빛이 도는 가늘고 또렷한 심 (D-102 강화)
-	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다. 진짜 블룸은 월드 층 거울(판 사본)이 더한다
-	// 네온 세기 (D-103): 번짐 겹 불투명도와 심의 흰빛에 곱한다. 1 = D-102 강화 그대로
-	static constexpr float NeonK = 0.1f;
+	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
+	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
 		if (Strength > 0.f)
 		{
-			const float K = Strength * NeonK;
-			Lines(P, WithAlpha(Col, 0.055f * K), Thick * 10.f);
-			Lines(P, WithAlpha(Col, 0.10f * K), Thick * 6.f);
-			Lines(P, WithAlpha(Col, 0.20f * K), Thick * 3.2f);
-			Lines(P, WithAlpha(Col, 0.35f * K), Thick * 1.8f);
+			Lines(P, WithAlpha(Col, 0.04f * Strength), Thick * 10.f);
+			Lines(P, WithAlpha(Col, 0.07f * Strength), Thick * 6.f);
+			Lines(P, WithAlpha(Col, 0.14f * Strength), Thick * 3.2f);
 		}
-		const FLinearColor Core = FMath::Lerp(Col, FLinearColor::White, 0.25f * NeonK);
-		Lines(P, FLinearColor(Core.R, Core.G, Core.B, Col.A), Thick * 0.8f);
+		Lines(P, Col, Thick * 0.8f);
 	}
 	void Dashed(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Dash = 6.f, float Gap = 6.f)
 	{
@@ -1786,30 +1781,19 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
 	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
 	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
-	if (!bMirrorPaint) // 거울은 화면 좌표·흔들림을 바꾸지 않는다 (D-102)
-	{
-		ViewScale = Scale;
-		ViewOffset = Offset;
-		ViewSize = FVector2f(SizeX, SizeY);
-		const float SK = Shake * 14.f;
-		LastShakeOff = FVector2f(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
-	}
+	ViewScale = Scale;
+	ViewOffset = Offset;
+	ViewSize = FVector2f(SizeX, SizeY);
 	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
 	// 판은 흔들림을 받고, 패널은 고정
-	const FVector2f ShakeOff = LastShakeOff;
+	const float SK = Shake * 14.f;
+	const FVector2f ShakeOff(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
 	const FGeometry Field = Design.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(ShakeOff));
 	int32 Layer = LayerId;
 	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
 	FCanvas F{OutDrawElements, Field, &Layer, &WhiteBrush};
 	PaintAll(C, F);
 	return Layer;
-}
-
-int32 SPDBoardWidget::PaintMirror(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
-	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
-{
-	TGuardValue<bool> Guard(bMirrorPaint, true);
-	return OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
