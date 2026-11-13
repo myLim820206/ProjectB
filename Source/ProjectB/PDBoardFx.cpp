@@ -225,14 +225,38 @@ void SPDBoardWidget::HandleEvents()
 		}
 		case FPDEvent::EKind::JokerXp: // 조커 처치 경험치 (D-125): 작은 "+1 경험치" + 별빛, 레벨이 오르면 고리·입자·큰 글자
 		{
-			if (E.B > 0)
+			if (E.B > 0) // 레벨업 (D-127): 칸 번쩍 + 고리 여러 겹(별·빛살·조각) + 빛살 줄기 + 별빛 + 분수처럼 솟는 금빛 + 큰 글자
 			{
-				Rings.Add({P, 10.f, 120.f, 0.3f, 0.9f, 3.f, JokerPink});
-				Rings.Add({P, 6.f, 70.f, 0.15f, 0.6f, 2.f, FLinearColor::White, EWave::Star, 4, FMath::FRandRange(0.f, TwoPi), 2.f});
-				Burst(P, 36, JokerPink, 80.f, 240.f, 0.8f, 2.4f, true);
-				PushWorldFx(EWorldFx::Synergy, P, JokerPink, 1.6f);
-				Floats.Add({FString::Printf(TEXT("레벨 업! Lv%d"), E.A), P - FVector2f(0.f, 34.f), 0.f, 1.6f, 22.f, JokerPink});
-				Shake = FMath::Max(Shake, 0.15f);
+				const FLinearColor Gold = Hex(TEXT("ffd96a")), White = FLinearColor::White;
+				const float R0 = FMath::FRandRange(0.f, TwoPi);
+				CellFlashes.Add({CellKey((int)E.X, (int)E.Y), 0.6f, JokerPink});
+				FlashT = FMath::Max(FlashT, 0.12f); FlashCol = JokerPink;
+				Rings.Add({P, 4.f, 60.f, 0.f, 0.35f, 3.f, White});
+				Rings.Add({P, 10.f, 140.f, 0.f, 0.9f, 3.f, JokerPink});
+				Rings.Add({P, 8.f, 100.f, 0.05f, 0.8f, 2.4f, Gold, EWave::Star, 6, R0, 2.5f});
+				Rings.Add({P, 14.f, 120.f, 0.1f, 0.9f, 2.f, WithAlpha(White, 0.9f), EWave::Rays, 12, R0 + 0.26f, -1.5f});
+				Rings.Add({P, 30.f, 170.f, 0.2f, 1.1f, 2.f, WithAlpha(JokerPink, 0.8f), EWave::Broken, 10, R0, 1.f});
+				for (int32 K = 0; K < 8; ++K) // 사방으로 뻗는 빛살 줄기
+				{
+					const FVector2f D(FMath::Cos(R0 + K * TwoPi / 8.f), FMath::Sin(R0 + K * TwoPi / 8.f));
+					Beams.Add({P + D * 14.f, P + D * (K % 2 ? 60.f : 90.f), 0.f, 0.35f, K % 2 ? 1.6f : 2.4f, K % 2 ? Gold : JokerPink});
+				}
+				Flares.Add({P, 0.f, 0.7f, 70.f, R0, White, 4});
+				for (int32 K = 0; K < 6; ++K) // 둘레에 차례로 터지는 작은 별빛
+				{
+					const float A = R0 + K * TwoPi / 6.f;
+					Flares.Add({P + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 46.f, -0.06f * (K + 1), 0.45f, 26.f, A, K % 2 ? Gold : JokerPink, 4});
+				}
+				Burst(P, 50, JokerPink, 90.f, 280.f, 0.9f, 2.6f, true);
+				Burst(P, 18, White, 40.f, 160.f, 0.6f, 2.f, false);
+				BurstCone(P, FVector2f(0.f, -1.f), 0.6f, 28, Gold, 160.f, 320.f, 1.1f, 2.4f, true, 380.f); // 금빛 분수
+				AddShards(P, 12, JokerPink, 80.f, 200.f, 6.f, 12.f, 0.7f);
+				PushWorldFx(EWorldFx::JokerFuse, P, JokerPink, 1.4f);
+				PushWorldFx(EWorldFx::Synergy, P, Gold, 1.8f);
+				Floats.Add({TEXT("LEVEL UP!"), P - FVector2f(0.f, 46.f), 0.f, 1.8f, 26.f, Gold});
+				Floats.Add({E.B > 1 ? FString::Printf(TEXT("Lv%d  (+%d)"), E.A, E.B) : FString::Printf(TEXT("Lv%d"), E.A), P - FVector2f(0.f, 22.f), 0.f, 1.8f, 18.f, JokerPink});
+				if (E.A >= JokerUpLevel && E.A - E.B < JokerUpLevel) Floats.Add({TEXT("조커 강화!"), P + FVector2f(0.f, 30.f), 0.f, 2.f, 18.f, White}); // 레벨 10: 트리 강화와 같은 효과
+				Shake = FMath::Max(Shake, 0.25f);
 			}
 			else
 			{
