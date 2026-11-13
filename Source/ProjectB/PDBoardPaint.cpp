@@ -380,7 +380,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
 				// 장판 (D-099, D-144): 족보 색 옅은 채움 13%. 빗금은 합성할 때만 (합성 버튼이 뜬 족보의 재료 칸)
 				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.2f : 0.13f) * Alpha));
-				bool bAlready = !bFilt; // 평소 장판엔 빗금 없음. 족보 필터로 고른 족보는 빗금 (D-148)
+				bool bAlready = !(bFilt && &List == &G.Synergies && !G.CanFuse(Si)); // 평소 장판엔 빗금 없음. 필터로 고른 족보 중 합성 못 하는 것만 여기서 빗금 (합성 되는 건 합성 표시가 그림, D-148)
 				if (bFilt) { if (Hatched.Contains(K)) bAlready = true; else Hatched.Add(K); }
 				if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
 				{
@@ -1016,7 +1016,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	{
 		std::vector<FPDSynergy> Hov;
 		const int HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
-		for (const FPDSynergy& S : G.Synergies) if (std::find(S.Cells.begin(), S.Cells.end(), HKey) != S.Cells.end()) Hov.push_back(S);
+		for (const FPDSynergy& S : G.Synergies)
+			if (std::find(S.Cells.begin(), S.Cells.end(), HKey) != S.Cells.end() || (HandFilter >= 0 && (int32)S.Kind == HandFilter)) Hov.push_back(S); // 필터로 고른 족보는 이름표도 (D-148)
 		if (!bPv) DrawBadges(Hov, 1.f);
 	}
 	if (bPv) DrawBadges(Preview, 1.f);

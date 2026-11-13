@@ -624,6 +624,7 @@ bool SPDBoardWidget::SynRevealed(int32 I) const
 	if (!PickCells.empty() && !bPickJoker && FindPickIndex() == I) return true; // 합성 칸 고르는 중인 족보
 	if (Sel >= 0) return false; // 손패 카드를 고른 동안은 합성 버튼·표시를 띄우지 않는다 (놓기에 집중, D-132)
 	if (!FilterPass(Game.Synergies[I].Kind)) return false; // 족보 필터 중엔 그 족보만 (D-148)
+	if (HandFilter >= 0) return true; // 필터로 고른 족보는 마우스를 올린 것처럼 모두 펼친다 (합성 표시·버튼)
 	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 	const std::vector<int>& Cells = Game.Synergies[I].Cells;
 	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
