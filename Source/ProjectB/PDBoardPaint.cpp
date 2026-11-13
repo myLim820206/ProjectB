@@ -301,10 +301,9 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 				const bool bL = X == 0 || !Has.Contains(K - 1), bR = X == Cols - 1 || !Has.Contains(K + 1), bU = !Has.Contains(K - Cols), bD = !Has.Contains(K + Cols);
 				const FVector2f P = CellPx((float)X, (float)Y);
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
-				// 장판 (D-099): 족보 색 옅은 채움 13% + 45도 빗금 (x + y 가 12 의 배수인 선이라 칸끼리 이어진다)
+				// 장판 (D-099, D-144): 족보 색 옅은 채움 13%. 빗금은 합성할 때만 (합성 버튼이 뜬 족보의 재료 칸)
 				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.13f * Alpha));
-				bool bAlready = false;
-				Hatched.Add(K + (&List == &Preview ? 100000 : 0), &bAlready);
+				bool bAlready = true; // 평소 장판엔 빗금 없음
 				if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
 				{
 					const int32 Lyr = FMath::Min(SynLayer(List, Si), 2), Mask = (bL ? 1 : 0) | (bR ? 2 : 0) | (bU ? 4 : 0) | (bD ? 8 : 0);
@@ -1009,6 +1008,13 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.34f : 0.22f) + 0.22f * Wv));
+					// 합성 시점의 빗금 (D-144): 합성될 칸에만
+					if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pick, 0.45f + 0.25f * Wv));
+					else for (float D = HatchStep; D < CS * 2.f; D += HatchStep)
+					{
+						const float Ax = FMath::Max(0.f, D - CS), Bx = FMath::Min(CS, D);
+						F.Lines({C0 + FVector2f(Ax, D - Ax), C0 + FVector2f(Bx, D - Bx)}, WithAlpha(Pick, 0.45f), 1.f);
+					}
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.4f : 2.8f, 1.4f + 1.4f * Wv);
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
 				}

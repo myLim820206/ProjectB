@@ -567,6 +567,9 @@ class FWidgetRenderer;
 struct FPDAtlas
 {
 	UObject* RT = nullptr;
+	UObject* Tex = nullptr;   // 붓이 쓰는 텍스처: 에셋, 또는 구운 바이트를 담은 sRGB 텍스처 (D-145)
+	UObject* BgTex = nullptr; // 판 배경도 같은 방식
+	TArray<FColor> LastPixels; // 마지막으로 구운 아틀라스 바이트 (에셋 저장용)
 	TArray<FSlateBrush> HatchBrushes;   // 빗금: 겹 3 × 네 변 들임 16가지 (D-143)
 	FSlateBrush BracketBrush, LineBrush;
 	// 판 배경 (D-143)
@@ -583,6 +586,7 @@ struct FPDAtlas
 	int32 Frames = 0; // 구운 뒤 몇 프레임 (렌더 명령이 끝난 다음부터 쓴다)
 	float BakedScale = 1.f; // 구울 때의 화면 배율: 선 굵기를 화면 픽셀로 맞춘다 (바뀌면 다시 굽는다)
 	bool bRebaked = false;  // 시작 직후 한 번 더 구웠나 (패키지에서 너무 일찍 구우면 빈 그림이 됨)
+	bool bAsset = false;    // 미리 만든 에셋(Content/Sprites/T_PDAtlas)을 쓰는 중 (D-145): 굽지 않는다
 	// 조각 굽기 (D-143): 패키지에선 화면 밖 그리기가 창 크기로 잘려 큰 텍스처를 한 번에 못 굽는다.
 	// 512 조각 텍스처에 그린 뒤 GPU 로 제자리에 복사한다. 그리는 동안 TileOrigin (텍스처 픽셀) 만큼 밀어 그린다
 	UObject* Scratch = nullptr;

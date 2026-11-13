@@ -16,6 +16,12 @@
 #include "RenderingThread.h"
 #include "RHICommandList.h"
 #include "TextureResource.h"
+#include "Engine/Texture2D.h"
+#if WITH_EDITOR
+#include "UObject/Package.h"
+#include "UObject/SavePackage.h"
+#include "Misc/PackageName.h"
+#endif
 #include "Widgets/SLeafWidget.h"
 #include "RenderTimer.h"
 #include "DynamicRHI.h"
@@ -56,10 +62,23 @@ void SPDBoardWidget::BakeAtlas()
 	const bool bFirst = !Atlas.IsValid();
 	if (bFirst) Atlas = MakeShared<FPDAtlas>();
 	Atlas->BakedScale = FMath::Max(0.25f, ViewScale);
-	UTextureRenderTarget2D* RT = Cast<UTextureRenderTarget2D>(Atlas->RT);
+	// 미리 만든 에셋이 있으면 그걸 쓴다 (D-145): 굽지 않으니 시작·창 크기 바뀜에도 멈추지 않는다
+	UObject* Res = nullptr;
+	if (bFirst && !bForceBake)
+		if (UTexture2D* Tex = LoadObject<UTexture2D>(nullptr, TEXT("/Game/Sprites/T_PDAtlas.T_PDAtlas"), nullptr, LOAD_NoWarn | LOAD_Quiet))
+		{
+			Tex->AddToRoot();
+			Res = Tex;
+			Atlas->bAsset = true;
+			Atlas->bRebaked = true;
+			Atlas->Frames = 3;
+		}
+	UTextureRenderTarget2D* RT = Res ? nullptr : Cast<UTextureRenderTarget2D>(Atlas->RT);
+	if (!Res)
+	{
 	if (!RT)
 	{
-		RT = FWidgetRenderer::CreateTargetFor(FVector2D(AtlasTex, AtlasTex), TF_Bilinear, true);
+		RT = FWidgetRenderer::CreateTargetFor(FVector2D(AtlasTex, AtlasTex), TF_Bilinear, false);
 		if (!RT) { Atlas.Reset(); return; }
 		RT->ClearColor = FLinearColor::Transparent;
 		RT->AddToRoot(); // 게임 내내 쓴다
@@ -67,15 +86,20 @@ void SPDBoardWidget::BakeAtlas()
 		Atlas->Painter = SNew(SPDAtlasPainter).Owner(this);
 		Atlas->Renderer = MakeShared<FWidgetRenderer>(true, true);
 	}
+	Res = RT;
 	BakeTiled(RT, AtlasTex, (AtlasN + AtlasCols - 1) / AtlasCols * (int32)(AtlasCell * AtlasK), Atlas->Painter.ToSharedRef()); // 처음과 화면 크기가 바뀔 때만
+	Atlas->Tex = PixelsToTexture(Atlas->Tex, RT, AtlasTex, AtlasTex, &Atlas->LastPixels);
+	Res = Atlas->Tex ? Atlas->Tex : RT;
 	Atlas->Frames = 0;
+	}
 	Atlas->BgSig = 0; // 판 배경도 다시
 	if (!bFirst) return;
+	UObject* RTRes = Res; // 붓이 쓰는 텍스처: 에셋 또는 구운 렌더 타깃
 	Atlas->Brushes.SetNum(AtlasN);
 	for (int32 I = 0; I < AtlasN; ++I)
 	{
 		FSlateBrush& B = Atlas->Brushes[I];
-		B.SetResourceObject(RT);
+		B.SetResourceObject(RTRes);
 		B.ImageSize = FVector2D(AtlasCell * AtlasK, AtlasCell * AtlasK);
 		B.DrawAs = ESlateBrushDrawType::Image;
 		const FVector2f C = AtlasCellCenter(I) * AtlasK, H(AtlasCell * AtlasK * 0.5f, AtlasCell * AtlasK * 0.5f);
@@ -84,7 +108,7 @@ void SPDBoardWidget::BakeAtlas()
 	// 보조 붓 (D-143): 칸 가운데의 일부만 쓰는 붓. Wd·Hd 는 설계 크기, (Ox, Oy) 는 칸 가운데 기준 왼쪽 위
 	auto Sub = [&](int32 I, float Ox, float Oy, float Wd, float Hd) {
 		FSlateBrush B;
-		B.SetResourceObject(RT);
+		B.SetResourceObject(RTRes);
 		B.ImageSize = FVector2D(Wd * AtlasK, Hd * AtlasK);
 		B.DrawAs = ESlateBrushDrawType::Image;
 		const FVector2f C = AtlasCellCenter(I), A = (C + FVector2f(Ox, Oy)) * AtlasK, Bm = (C + FVector2f(Ox + Wd, Oy + Hd)) * AtlasK;
@@ -110,7 +134,7 @@ void SPDBoardWidget::BakeTiled(UObject* DstObj, int32 W, int32 H, const TSharedR
 	if (!Atlas.IsValid() || !Dst) return;
 	if (!Atlas->Scratch)
 	{
-		UTextureRenderTarget2D* S = FWidgetRenderer::CreateTargetFor(FVector2D(BakeTile, BakeTile), TF_Bilinear, true);
+		UTextureRenderTarget2D* S = FWidgetRenderer::CreateTargetFor(FVector2D(BakeTile, BakeTile), TF_Bilinear, false);
 		if (!S) return;
 		S->ClearColor = FLinearColor::Transparent;
 		S->AddToRoot();
@@ -144,6 +168,75 @@ void SPDBoardWidget::BakeTiled(UObject* DstObj, int32 W, int32 H, const TSharedR
 	Atlas->TileOrigin = FVector2f(0.f, 0.f);
 }
 
+// 아틀라스 에셋 만들기 (D-145, 에디터 F8): 화면 배율 1 굵기로 새로 굽고 렌더 타깃을 텍스처로 만들어 Content/Sprites/T_PDAtlas 에 저장.
+// 다음 실행부터 게임은 이 에셋을 쓴다. 그림 코드를 고치면 F8 을 다시 누른다
+void SPDBoardWidget::SaveAtlasAsset()
+{
+#if WITH_EDITOR
+	// 에셋을 쓰는 중이면 굽는 판으로 새로 만든다
+	if (Atlas.IsValid() && Atlas->bAsset) { Atlas.Reset(); }
+	bForceBake = true;
+	const float OldScale = ViewScale;
+	ViewScale = 1.f; // 굵기 기준: 화면 배율 1
+	BakeAtlas();
+	ViewScale = OldScale;
+	bForceBake = false;
+	UTextureRenderTarget2D* RT = Atlas.IsValid() ? Cast<UTextureRenderTarget2D>(Atlas->RT) : nullptr;
+	if (!RT) return;
+	const FString PkgName = TEXT("/Game/Sprites/T_PDAtlas");
+	UPackage* Pkg = CreatePackage(*PkgName);
+	// 렌더 타깃 바이트를 그대로 텍스처 원본으로 (sRGB 로 저장된 그대로, 알파는 미리 곱한 값). ConstructTexture2D 는 감마를 바꿔 하얗게 떠서 쓰지 않는다
+	const TArray<FColor>& Px = Atlas->LastPixels;
+	if (Px.Num() != AtlasTex * AtlasTex) return;
+	Pkg->FullyLoad(); // 게임이 불러 둔 옛 에셋이 있으면 다 불러야 덮어쓸 수 있다
+	UTexture2D* Tex = FindObject<UTexture2D>(Pkg, TEXT("T_PDAtlas"));
+	if (!Tex) Tex = NewObject<UTexture2D>(Pkg, TEXT("T_PDAtlas"), RF_Public | RF_Standalone);
+	Tex->PreEditChange(nullptr);
+	Tex->Source.Init(AtlasTex, AtlasTex, 1, 1, TSF_BGRA8, reinterpret_cast<const uint8*>(Px.GetData()));
+	Tex->SRGB = true;
+	Tex->CompressionSettings = TC_EditorIcon; // 무손실 (선이 가늘어 압축하면 번진다)
+	Tex->LODGroup = TEXTUREGROUP_UI;
+	Tex->MipGenSettings = TMGS_SimpleAverage; // 작게 그려도 깨끗하게
+	Tex->NeverStream = true;
+	Tex->PostEditChange();
+	Pkg->MarkPackageDirty();
+	FSavePackageArgs Args;
+	Args.TopLevelFlags = RF_Public | RF_Standalone;
+	const bool bOk = UPackage::SavePackage(Pkg, Tex, *FPackageName::LongPackageNameToFilename(PkgName, FPackageName::GetAssetPackageExtension()), Args);
+	UE_LOG(LogTemp, Log, TEXT("PDATLAS asset saved: %s"), bOk ? TEXT("ok") : TEXT("FAILED"));
+	Floats.Add({bOk ? FString(TEXT("아틀라스 에셋 저장: Content/Sprites/T_PDAtlas")) : FString(TEXT("아틀라스 에셋 저장 실패")), FVector2f(DesignW / 2.f, DesignH / 2.f), 0.f, 2.5f, 18.f, bOk ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a"))});
+#endif
+}
+
+// 렌더 타깃 바이트 → sRGB 텍스처 (D-145). 선형 렌더 타깃에 감마로 그려 바이트가 곧 화면 값이고, sRGB 로 읽어야 화면과 같다
+// (렌더 타깃을 바로 읽으면 감마가 한 번 더 걸려 옅은 선이 하얗게 뜬다). 처음엔 새로 만들고, 다시 구울 땐 같은 텍스처를 고쳐 쓴다
+UObject* SPDBoardWidget::PixelsToTexture(UObject* Existing, UObject* RTObj, int32 W, int32 H, TArray<FColor>* OutPx)
+{
+	UTextureRenderTarget2D* RT = Cast<UTextureRenderTarget2D>(RTObj);
+	TArray<FColor> Px;
+	if (!RT || !RT->GameThread_GetRenderTargetResource()->ReadPixels(Px) || Px.Num() != RT->SizeX * RT->SizeY) return Existing;
+	if (RT->SizeX != W || RT->SizeY != H) { W = RT->SizeX; H = RT->SizeY; }
+	UTexture2D* Tex = Cast<UTexture2D>(Existing);
+	if (!Tex || Tex->GetSizeX() != W || Tex->GetSizeY() != H)
+	{
+		Tex = UTexture2D::CreateTransient(W, H, PF_B8G8R8A8);
+		if (!Tex) return Existing;
+		Tex->SRGB = true;
+		Tex->Filter = TF_Bilinear;
+		Tex->LODGroup = TEXTUREGROUP_UI;
+		Tex->AddToRoot();
+	}
+	if (FTexturePlatformData* PD = Tex->GetPlatformData())
+	{
+		void* Dst = PD->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+		FMemory::Memcpy(Dst, Px.GetData(), (SIZE_T)W * H * sizeof(FColor));
+		PD->Mips[0].BulkData.Unlock();
+		Tex->UpdateResource();
+	}
+	if (OutPx) *OutPx = MoveTemp(Px);
+	return Tex;
+}
+
 // 판 배경 서명: 길이 바뀌면 (새 판) 다시 굽는다
 uint64 SPDBoardWidget::BoardBgSig() const
 {
@@ -157,18 +250,19 @@ void SPDBoardWidget::BakeBoardBg(uint64 Sig)
 	if (!Atlas.IsValid()) return;
 	if (!Atlas->BgRT)
 	{
-		UTextureRenderTarget2D* RT = FWidgetRenderer::CreateTargetFor(FVector2D(BgW * AtlasK, BgH * AtlasK), TF_Bilinear, true);
+		UTextureRenderTarget2D* RT = FWidgetRenderer::CreateTargetFor(FVector2D(BgW * AtlasK, BgH * AtlasK), TF_Bilinear, false);
 		if (!RT) return;
 		RT->ClearColor = FLinearColor::Transparent;
 		RT->AddToRoot();
 		Atlas->BgRT = RT;
-		Atlas->BgBrush.SetResourceObject(RT);
 		Atlas->BgBrush.ImageSize = FVector2D(BgW * AtlasK, BgH * AtlasK);
 		Atlas->BgBrush.DrawAs = ESlateBrushDrawType::Image;
 		Atlas->BgPainter = SNew(SPDAtlasPainter).Owner(this).Mode(1);
 		Atlas->BgRenderer = MakeShared<FWidgetRenderer>(true, true);
 	}
 	BakeTiled(Atlas->BgRT, (int32)(BgW * AtlasK), (int32)(BgH * AtlasK), Atlas->BgPainter.ToSharedRef());
+	Atlas->BgTex = PixelsToTexture(Atlas->BgTex, Atlas->BgRT, (int32)(BgW * AtlasK), (int32)(BgH * AtlasK));
+	Atlas->BgBrush.SetResourceObject(Atlas->BgTex ? Atlas->BgTex : Atlas->BgRT);
 	Atlas->BgSig = Sig;
 	Atlas->BgFrames = 0;
 }
@@ -427,7 +521,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		// 패키지에선 시작 직후 렌더러·글꼴이 덜 준비돼 빈 그림이 구워질 수 있다: 1초에 굽고 4초에 한 번 더 (D-143)
 		if (!Atlas.IsValid() && Clock > 1.f) BakeAtlas();
 		else if (Atlas.IsValid() && !Atlas->bRebaked && Clock > 4.f) { Atlas->bRebaked = true; BakeAtlas(); }
-		else if (Atlas.IsValid() && Atlas->Ready() && FMath::Abs(ViewScale - Atlas->BakedScale) > 0.04f) BakeAtlas(); // 화면 크기가 바뀜
+		else if (Atlas.IsValid() && !Atlas->bAsset && Atlas->Ready() && FMath::Abs(ViewScale - Atlas->BakedScale) > 0.04f) BakeAtlas(); // 화면 크기가 바뀜
 		else if (Atlas.IsValid())
 		{
 			++Atlas->Frames;
@@ -801,6 +895,9 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	const FKey K = InKeyEvent.GetKey();
 	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
 	if (K == EKeys::F6) { GPDDebug.bNoAtlas = !GPDDebug.bNoAtlas; return FReply::Handled(); } // 구운 그림 ↔ 선 비교
+#if WITH_EDITOR
+	if (K == EKeys::F8) { SaveAtlasAsset(); return FReply::Handled(); } // 아틀라스 에셋 만들기 (에디터)
+#endif
 #if !UE_BUILD_SHIPPING
 	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); }
 #endif
