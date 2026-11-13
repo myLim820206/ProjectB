@@ -699,9 +699,17 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I)) continue;
+			if (!SynRevealed(I)) { F.Glow(FCanvas::CirclePoints(FuseDotCenter(G.Synergies, I), 2.6f, 10), Gold, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 금색 점 (D-113)
 			const FVector2f B = FuseButtonCenter(G.Synergies, I);
-			if (!SynRevealed(I)) { F.Glow(FCanvas::CirclePoints(B, 2.6f, 10), Gold, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 금색 점 (D-113)
 			const bool bHov = InBox(Mouse, B, FuseW, FuseH);
+			// 합성 대상 표시 (D-121): 재료 칸마다 금색 테두리 + 옅은 채움, 버튼에 올리면 더 밝게
+			if (PickCells.empty())
+				for (int K : G.Synergies[I].Cells)
+				{
+					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Gold, bHov ? 0.16f : 0.07f));
+					F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), Gold, bHov ? 1.8f : 1.2f, bHov ? 1.2f + 0.5f * Pulse : 0.6f);
+				}
 			F.Box(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, Hex(TEXT("06060b"), 0.9f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - FuseW / 2.f, B.Y - FuseH / 2.f, FuseW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
 			F.TextCentered(TEXT("합성"), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.8f), 10.f, true);
@@ -712,7 +720,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (const FPDFeed& Fd : G.FeedTargets())
 		{
 			const FVector2f B = FeedButtonCenter(G.Synergies, Fd.Syn, G.CanFuse(Fd.Syn));
-			if (!SynRevealed(Fd.Syn)) { F.Glow(FCanvas::CirclePoints(B, 2.6f, 10), JokerPink, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 분홍 점
+			if (!SynRevealed(Fd.Syn)) { F.Glow(FCanvas::CirclePoints(FeedDotCenter(G.Synergies, Fd.Syn, G.CanFuse(Fd.Syn)), 2.6f, 10), JokerPink, 1.6f, 0.6f + 0.3f * Pulse); continue; } // 평소엔 작은 분홍 점
 			const bool bHov = InBox(Mouse, B, FuseW, FuseH);
 			if (bHov)
 			{

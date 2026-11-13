@@ -274,18 +274,30 @@ inline int SynLayer(const std::vector<FPDSynergy>& L, int I)
 	}
 	return FMath::Min(N, 2);
 }
-inline FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
+// 평소(마우스가 없을 때) 합성할 수 있다는 작은 점 자리: 족보 맨 아래 칸의 아래 변 가운데
+inline FVector2f FuseDotCenter(const std::vector<FPDSynergy>& L, int I)
 {
 	const FPDSynergy& S = L[I];
 	int Bottom = S.Cells[0];
 	for (int K : S.Cells) if (K / Cols > Bottom / Cols || (K / Cols == Bottom / Cols && K % Cols < Bottom % Cols)) Bottom = K;
 	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f) + FVector2f(0.f, SynLayer(L, I) * (FuseH + 2.f));
 }
+// 합성 버튼 (D-121): 마우스를 올리면 족보 칸들의 가운데에 뜬다. 카드를 나눠 쓰는 족보끼리는 겹 번호만큼 아래로
+inline FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
+{
+	FVector2f C(0.f, 0.f);
+	for (int K : L[I].Cells) C += CellPx(K % Cols + 0.5f, K / Cols + 0.5f);
+	return C / (float)FMath::Max<int>(1, (int)L[I].Cells.size()) + FVector2f(0.f, SynLayer(L, I) * (FuseH + 4.f));
+}
 
 // 먹이기 버튼: 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
 inline FVector2f FeedButtonCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
 {
 	return FuseButtonCenter(L, I) + FVector2f(bCanFuse ? FuseW + 4.f : 0.f, 0.f);
+}
+inline FVector2f FeedDotCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
+{
+	return FuseDotCenter(L, I) + FVector2f(bCanFuse ? 10.f : 0.f, 0.f);
 }
 
 // ---- 스킬 트리 글자와 위치 (docs/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
