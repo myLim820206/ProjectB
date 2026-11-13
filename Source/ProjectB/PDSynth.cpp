@@ -195,6 +195,61 @@ std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int Rate)
 		Buf.Tone(0.f, 0.26f, 600.f, 1800.f, EWave::Triangle, 0.06f, 0.01f, 2.f);
 		Buf.Echo(0.1f, 0.25f, 2);
 		break;
+	// 발사·타격 (D-155): 아주 짧고 작게 (자주 나서 귀가 피곤하지 않게). 무늬마다 공격 방식에 맞는 소리
+	case EPDSound::Shot:
+	{
+		const float K = B ? 1.15f : 1.f;
+		switch (A)
+		{
+		case 0: // ♠ 저격 레이저: 높은 곳에서 빠르게 떨어지는 '퓻'
+			Buf.Tone(0.f, 0.07f, 2600.f, 700.f, EWave::Saw, 0.07f * K, 0.001f, 5.f);
+			Buf.Tone(0.f, 0.05f, 1300.f, 500.f, EWave::Sine, 0.06f * K, 0.001f, 4.f);
+			break;
+		case 1: // ♥ 폭발 미사일: 낮은 '슉' (잡음 + 낮게 미끄러지는 음)
+			Buf.Noise(0.f, 0.12f, 0.10f * K, 0.18f, 21);
+			Buf.Tone(0.f, 0.12f, 260.f, 170.f, EWave::Triangle, 0.07f * K, 0.004f, 3.f);
+			break;
+		case 2: // ♦ 연사 탄환: 짧은 '틱'
+			Buf.Tone(0.f, 0.035f, 1700.f, 900.f, EWave::Square, 0.05f * K, 0.0005f, 7.f);
+			Buf.Noise(0.f, 0.02f, 0.06f * K, 0.6f, 22);
+			break;
+		case 3: // ♣ 서리 구체: 올라가는 맑은 '띵'
+			Buf.Tone(0.f, 0.09f, 1800.f, 2300.f, EWave::Sine, 0.05f * K, 0.002f, 4.f);
+			Buf.Tone(0.02f, 0.08f, 2800.f, 2800.f, EWave::Sine, 0.03f * K, 0.002f, 5.f);
+			break;
+		default: // 조커·와일드 별: 두 음이 반짝
+			Buf.Tone(0.f, 0.08f, 1200.f, 1800.f, EWave::Triangle, 0.06f * K, 0.002f, 4.f);
+			Buf.Tone(0.03f, 0.08f, 1800.f, 2400.f, EWave::Sine, 0.04f * K, 0.002f, 4.f);
+			break;
+		}
+		break;
+	}
+	case EPDSound::Hit:
+		switch (A)
+		{
+		case 0: // ♠ 지직
+			Buf.Tone(0.f, 0.045f, 1500.f, 600.f, EWave::Triangle, 0.07f, 0.001f, 5.f);
+			Buf.Noise(0.f, 0.03f, 0.07f, 0.7f, 31);
+			break;
+		case 1: // ♥ 쿵 (작은 폭발)
+			Buf.Tone(0.f, 0.15f, 150.f, 45.f, EWave::Sine, 0.22f, 0.002f, 3.f);
+			Buf.Noise(0.f, 0.12f, 0.16f, 0.12f, 32);
+			break;
+		case 2: // ♦ 탁
+			Buf.Tone(0.f, 0.035f, 900.f, 450.f, EWave::Square, 0.05f, 0.0005f, 7.f);
+			Buf.Noise(0.f, 0.025f, 0.08f, 0.35f, 33);
+			break;
+		case 3: // ♣ 얼음 깨지는 소리
+			Buf.Noise(0.f, 0.06f, 0.08f, 0.85f, 34);
+			Buf.Tone(0.f, 0.07f, 2600.f, 1800.f, EWave::Sine, 0.04f, 0.001f, 5.f);
+			break;
+		default:
+			Buf.Tone(0.f, 0.06f, 700.f, 1000.f, EWave::Triangle, 0.06f, 0.001f, 4.f);
+			Buf.Noise(0.f, 0.04f, 0.06f, 0.4f, 35);
+			break;
+		}
+		if (B) Buf.Tone(0.f, 0.1f, 1800.f, 2700.f, EWave::Triangle, 0.08f, 0.001f, 3.f); // 치명타: 높은 '핑'
+		break;
 	default:
 		break;
 	}

@@ -24,6 +24,8 @@ enum class EPDSound : uint8_t
 	GameOver,   // 게임 오버
 	Win,        // 조커 합성, 키스톤·조커 노드 찍기
 	Start,      // 게임 시작, 웨이브 시작
+	Shot,       // 발사 (D-155). A = 무늬 (EPDSuit, 4 = 조커·와일드), B = 1 이면 족보 타워 (조금 밝게)
+	Hit,        // 타격 (D-155). A = 무늬, B = 1 이면 치명타
 	Count
 };
 

@@ -73,12 +73,25 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 		static uint64 Frame = 0;
 		static int32 InFrame = 0;
 		static TMap<int32, double> Last;
-		if (Frame != GFrameCounter) { Frame = GFrameCounter; InFrame = 0; }
+		static int32 MinorInFrame = 0;
+		static double LastMinor = -1.0;
+		if (Frame != GFrameCounter) { Frame = GFrameCounter; InFrame = 0; MinorInFrame = 0; }
 		const double Now = FPlatformTime::Seconds();
 		double& L = Last.FindOrAdd(Key, -1.0);
-		if (InFrame >= 6 || Now - L < 0.05) return;
-		++InFrame;
-		L = Now;
+		// 발사·타격 (D-155)은 따로: 한 프레임 1개, 전체 0.045초·같은 소리 0.09초 간격 (중요한 소리 몫을 뺏지 않게, 10배속에서도 초당 20개 남짓)
+		if (Event.Sound == PD::EPDSound::Shot || Event.Sound == PD::EPDSound::Hit)
+		{
+			if (MinorInFrame >= 1 || Now - LastMinor < 0.045 || Now - L < 0.09) return;
+			++MinorInFrame;
+			LastMinor = Now;
+			L = Now;
+		}
+		else
+		{
+			if (InFrame >= 6 || Now - L < 0.05) return;
+			++InFrame;
+			L = Now;
+		}
 	}
 
 	USoundWaveProcedural* Wave = NewObject<USoundWaveProcedural>(this);

@@ -1711,6 +1711,7 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	Sh.Dmg = Spd <= 0.f ? Dmg : 0.f;
 	Sh.R = (float)(int)Pr.Kind;
 	Ev(Sh);
+	if (Sounds.size() < 256) Sfx(EPDSound::Shot, (int)Pr.Suit, Pr.bHand ? 1 : 0); // 발사 소리 (D-155). 쌓이지 않게 (화면이 프레임마다 가져간다)
 	if (Spd <= 0.f) { Explode(Pr, &Target); return; }
 	const float DX = P.X - TX, DY = P.Y - TY, Len = std::max(0.01f, std::hypot(DX, DY));
 	if (Pr.Kind == EPDShot::Missile) // 미사일: 옆으로 튀어 나갔다가 휘어 들어간다
@@ -1735,7 +1736,12 @@ void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 	const bool bHitTarget = Target && !Target->bDead;
 	struct FSrcScope { int& R; int Old; ~FSrcScope() { R = Old; } } Scope{HitSrc, HitSrc};
 	HitSrc = P.Src;
-	if (bHitTarget) { At = Path.At(Target->D); Hit(*Target, P.Dmg, P.Slow); }
+	if (bHitTarget)
+	{
+		At = Path.At(Target->D);
+		Hit(*Target, P.Dmg, P.Slow);
+		if (Sounds.size() < 256) Sfx(EPDSound::Hit, (int)P.Suit, P.Crits > 0 ? 1 : 0); // 타격 소리 (D-155)
+	}
 	if (P.Splash > 0.f)
 	{
 		for (FPDEnemy& O : Enemies)
