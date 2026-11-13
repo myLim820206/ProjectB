@@ -407,16 +407,19 @@ struct SPDBoardWidget::FCanvas
 	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 네 겹 + 흰빛이 도는 가늘고 또렷한 심 (D-102 강화)
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다. 진짜 블룸은 월드 층 거울(판 사본)이 더한다
+	// 네온 세기 (D-103): 번짐 겹 불투명도와 심의 흰빛에 곱한다. 1 = D-102 강화 그대로
+	static constexpr float NeonK = 0.2f;
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
 		if (Strength > 0.f)
 		{
-			Lines(P, WithAlpha(Col, 0.055f * Strength), Thick * 10.f);
-			Lines(P, WithAlpha(Col, 0.10f * Strength), Thick * 6.f);
-			Lines(P, WithAlpha(Col, 0.20f * Strength), Thick * 3.2f);
-			Lines(P, WithAlpha(Col, 0.35f * Strength), Thick * 1.8f);
+			const float K = Strength * NeonK;
+			Lines(P, WithAlpha(Col, 0.055f * K), Thick * 10.f);
+			Lines(P, WithAlpha(Col, 0.10f * K), Thick * 6.f);
+			Lines(P, WithAlpha(Col, 0.20f * K), Thick * 3.2f);
+			Lines(P, WithAlpha(Col, 0.35f * K), Thick * 1.8f);
 		}
-		const FLinearColor Core = FMath::Lerp(Col, FLinearColor::White, 0.25f);
+		const FLinearColor Core = FMath::Lerp(Col, FLinearColor::White, 0.25f * NeonK);
 		Lines(P, FLinearColor(Core.R, Core.G, Core.B, Col.A), Thick * 0.8f);
 	}
 	void Dashed(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Dash = 6.f, float Gap = 6.f)
