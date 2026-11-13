@@ -515,13 +515,17 @@ constexpr int32 AtlasFx0 = AtlasJoker0 + 10, AtlasFxN = 53;
 // 그 밖 (D-143): 족보 빗금 칸, 합성 가능 꺾쇠 칸, 가로 빛선 (조각·입자 꼬리)
 constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1, AtlasLine = AtlasHatch + 2;
 // 선 스프라이트 (D-146): 가로 띠 (가운데 꽉, 위아래 가장자리만 부드럽게). 모든 선은 이걸 늘여 찍는다
-constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasN = AtlasHatch + 4;
+constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4, AtlasN = AtlasHatch + 5;
 // 띠는 굵기별로 여러 줄: Slate 선 셰이더와 같은 모양 (굵기+2px 너비, 가장자리 smoothstep) 을 굵기마다 구워 둔다
 constexpr int32 LineBands = 10;
 constexpr float LineBandT[LineBands] = {0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f, 9.f, 14.f, 22.f}; // 띠마다 대표 굵기 (화면 px)
 constexpr float LineBandH = 8.f;
 constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (설계 px)
-constexpr int32 AtlasVersion = 3; // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+// 번짐 띠 (D-147): 네온 선의 번짐 두 겹(굵기 6.5배 9% + 3.2배 14%)을 미리 합성한 띠. 굵기별로 한 줄, 알파는 HaloGain 배로 구워 정밀도를 지킨다
+constexpr int32 HaloBands = 8;
+constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
+constexpr float HaloGain = 4.f;
+constexpr int32 AtlasVersion = 4; // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
@@ -615,6 +619,23 @@ struct SPDBoardWidget::FCanvas
 	float PxToDesign = 1.f;              // 화면 픽셀 → 설계 좌표 (선 굵기는 화면 픽셀 기준이라)
 	float ThickK = 1.f; // 선 굵기 배율: Slate 선 굵기는 화면 픽셀이라 배율을 따라가지 않는다. 2배로 굽는 그림은 2 (D-143)
 
+	// 띠 묶음 (D-147): 같은 층의 띠는 꼭짓점 묶음 하나로 모아 Slate 요소 하나로 넘긴다
+	// (띠마다 상자 요소를 만들면 큰 판에서 한 프레임 9천 개가 넘어 그리기·묶기 시간이 크게 늘었다)
+	TArray<FSlateVertex> QV;
+	TArray<SlateIndex> QI;
+	int32 QLayer = -1;
+	const FSlateBrush* QBrush = nullptr;
+	~FCanvas() { FlushQuads(); }
+	void FlushQuads()
+	{
+		if (QV.Num() && QBrush)
+		{
+			const FSlateResourceHandle H = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*QBrush);
+			FSlateDrawElement::MakeCustomVerts(Out, QLayer, H, QV, QI, nullptr, 0, 0, ESlateDrawEffect::PreMultipliedAlpha);
+		}
+		QV.Reset();
+		QI.Reset();
+	}
 	int32 NextLayer() { return ++(*Layer); }
 	// 층 나누기 (D-120): 선은 지금 층에 모아 그린다 (같은 층의 선은 한 번에 묶여 그려져 그리기 호출이 크게 준다).
 	// 상자·글자는 새 층을 받고, 그 뒤의 선이 그 위에 오도록 층을 하나 더 올려 둔다 (그리는 순서는 그대로)
@@ -627,29 +648,63 @@ struct SPDBoardWidget::FCanvas
 			const float Tpx = FMath::Max(0.75f, Thick * ThickK);
 			int32 Bi = 0;
 			while (Bi + 1 < LineBands && Tpx > FMath::Sqrt(LineBandT[Bi] * LineBandT[Bi + 1])) ++Bi;
-			const FSlateBrush* Band = LineAA + Bi;
-			const float Th = (Tpx + 2.f) * PxToDesign; // 화면 px → 설계 좌표 (DPI 포함 화면 배율로 나눔)
-			const FLinearColor T = PM(Col);
-			for (int32 I = 0; I + 1 < P.Num(); ++I)
-			{
-				const FVector2f D = P[I + 1] - P[I];
-				const float L = D.Size();
-				if (L < 0.01f) continue;
-				const FVector2f M = (P[I] + P[I + 1]) * 0.5f;
-				FSlateDrawElement::MakeRotatedBox(Out, *Layer, Geo.ToPaintGeometry(FVector2f(L, Th), FSlateLayoutTransform(FVector2f(M.X - L / 2.f, M.Y - Th / 2.f))), Band,
-					ESlateDrawEffect::PreMultipliedAlpha, FMath::Atan2(D.Y, D.X), TOptional<FVector2f>(), FSlateDrawElement::RelativeToElement, T);
-			}
+			Stamp(P, PM(Col), LineAA + Bi, (Tpx + 2.f) * PxToDesign); // 화면 px → 설계 좌표 (DPI 포함 화면 배율로 나눔)
 			++GPDDebug.Lines; GPDDebug.Points += P.Num();
 			return;
 		}
 		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick * ThickK);
 		++GPDDebug.Lines; GPDDebug.Points += P.Num();
 	}
+	// 띠 찍기 (D-146/147): 마디마다 띠를 늘이고 돌려 한 장. 한 줄로 곧게 이어지는 마디는 한 장으로 합친다 (격자·테두리의 칸 마디)
+	FSlateRenderTransform RT;
+	void Stamp(const TArray<FVector2f>& P, const FLinearColor& T, const FSlateBrush* Band, float Th)
+	{
+		const int32 N = P.Num();
+		const FColor Col32 = T.ToFColor(true); // Slate 꼭짓점 색과 같게 sRGB
+		int32 I = 0;
+		while (I + 1 < N)
+		{
+			int32 J = I + 1;
+			FVector2f D = P[J] - P[I];
+			float L = D.Size();
+			if (L < 0.01f) { I = J; continue; }
+			while (J + 1 < N)
+			{
+				const FVector2f E = P[J + 1] - P[J];
+				const float LE = E.Size();
+				if (LE < 0.01f) { ++J; continue; }
+				if (FVector2f::DotProduct(D, E) <= 0.f || FMath::Abs(FVector2f::CrossProduct(D, E)) > 0.004f * L * LE) break;
+				++J;
+			}
+			D = P[J] - P[I];
+			L = D.Size();
+			const FVector2f Dir = D / L, Nrm = FVector2f(-Dir.Y, Dir.X) * (Th * 0.5f);
+			if (QV.Num() && (QLayer != *Layer || QV.Num() > 60000)) FlushQuads();
+			if (QV.Num() == 0) { QLayer = *Layer; QBrush = Band; RT = Geo.GetAccumulatedRenderTransform(); }
+			const FBox2f UV = Band->GetUVRegion();
+			const SlateIndex B = (SlateIndex)QV.Num();
+			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] - Nrm, FVector2f(UV.Min.X, UV.Min.Y), Col32));
+			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[J] - Nrm, FVector2f(UV.Max.X, UV.Min.Y), Col32));
+			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[J] + Nrm, FVector2f(UV.Max.X, UV.Max.Y), Col32));
+			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] + Nrm, FVector2f(UV.Min.X, UV.Max.Y), Col32));
+			QI.Add(B); QI.Add(B + 1); QI.Add(B + 2); QI.Add(B); QI.Add(B + 2); QI.Add(B + 3);
+			++GPDDebug.Boxes; // 띠 수
+			I = J;
+		}
+	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
-		if (Strength > 0.f && HaloK > 0.f) // 번짐 두 겹 (D-135: 가장 넓은 10배 겹은 거의 안 보이면서 그리기 부담이 커서 빼고 6배 겹을 조금 진하게)
+		if (Strength > 0.f && HaloK > 0.f && LineAA) // 번짐 두 겹을 합성한 띠 한 장 (D-147). 띠는 선 띠 다음에 이어 둔다
+		{
+			const float Tpx = FMath::Max(0.25f, Thick * ThickK);
+			int32 Bi = 0;
+			while (Bi + 1 < HaloBands && Tpx > FMath::Sqrt(HaloBandT[Bi] * HaloBandT[Bi + 1])) ++Bi;
+			Stamp(P, PM(WithAlpha(Col, FMath::Min(1.f, Strength / HaloGain))), LineAA + LineBands + Bi, (Tpx * 6.5f + 2.f) * PxToDesign);
+			++GPDDebug.Lines; GPDDebug.Points += P.Num();
+		}
+		else if (Strength > 0.f && HaloK > 0.f) // 번짐 두 겹 (D-135: 가장 넓은 10배 겹은 거의 안 보이면서 그리기 부담이 커서 빼고 6배 겹을 조금 진하게)
 		{
 			Lines(P, WithAlpha(Col, 0.09f * Strength), Thick * 6.5f);
 			Lines(P, WithAlpha(Col, 0.14f * Strength), Thick * 3.2f);

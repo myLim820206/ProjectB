@@ -118,6 +118,26 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 			}
 		}
 	}
+	{ // 번짐 띠 (D-147): 네온 선 번짐 두 겹 (굵기 6.5T 알파 9%, 3.2T 알파 14%) 을 Slate 선 덮임 그대로 겹친 값. 띠 너비 = 6.5T + 2
+		const FVector2f C = AtlasCellCenter(AtlasHalo);
+		const int32 NRows = (int32)(LineBandH * AtlasK);
+		auto Cover = [](float D, float T) { // Slate 선 셰이더 덮임: 굵기 T, 가운데에서 D px
+			const float H = T * 0.5f + 1.f, G = D / H, In = (T * 0.5f - 1.f) / H;
+			const float S = FMath::Clamp((G - 1.f) / (In - 1.f), 0.f, 1.f);
+			return S * S * (3.f - 2.f * S);
+		};
+		for (int32 Bi = 0; Bi < HaloBands; ++Bi)
+		{
+			const float T = HaloBandT[Bi], Half = T * 6.5f * 0.5f + 1.f;
+			const float Top = C.Y - LineAAH / 2.f + Bi * LineBandH;
+			for (int32 Y = 0; Y < NRows; ++Y)
+			{
+				const float D = FMath::Abs((Y + 0.5f) / NRows * 2.f - 1.f) * Half;
+				const float A = 1.f - (1.f - 0.09f * Cover(D, T * 6.5f)) * (1.f - 0.14f * Cover(D, T * 3.2f));
+				if (A > 0.0005f) F.Box(C.X - LineAAW / 2.f, Top + Y / AtlasK, LineAAW, 1.f / AtlasK, WithAlpha(W, FMath::Min(1.f, A * HaloGain)));
+			}
+		}
+	}
 	{ // 가로 빛선 (조각·입자 꼬리)
 		const FVector2f C = AtlasCellCenter(AtlasLine);
 		F.Glow({C - FVector2f(LineHalf, 0.f), C + FVector2f(LineHalf, 0.f)}, W, 1.5f, 0.9f);
@@ -182,7 +202,7 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	if (UseAtlas()) // 모든 선을 선 스프라이트로 (D-146, F6 으로 끄면 진짜 선)
 	{
 		// 굵기별 띠 붓: 전체 띠 붓을 줄마다 나눈다 (반 텍셀 안쪽으로: 옆 띠가 섞이지 않게)
-		static FSlateBrush Bands[LineBands];
+		static FSlateBrush Bands[LineBands + HaloBands]; // 선 띠 뒤에 번짐 띠 (D-147)
 		const FBox2f R = Atlas->LineAABrush.GetUVRegion();
 		const float Hv = (R.Max.Y - R.Min.Y) / LineBands, Pad = 0.5f / AtlasTex;
 		for (int32 Bi = 0; Bi < LineBands; ++Bi)
@@ -191,11 +211,19 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 			Bands[Bi].ImageSize.Y = Atlas->LineAABrush.ImageSize.Y / LineBands;
 			Bands[Bi].SetUVRegion(FBox2f(FVector2f(R.Min.X, R.Min.Y + Hv * Bi + Pad), FVector2f(R.Max.X, R.Min.Y + Hv * (Bi + 1) - Pad)));
 		}
+		const FVector2f Shift = (AtlasCellCenter(AtlasHalo) - AtlasCellCenter(AtlasLineAA)) * AtlasK / (float)AtlasTex; // 번짐 칸은 선 칸과 같은 자리 배치
+		for (int32 Bi = 0; Bi < HaloBands; ++Bi)
+		{
+			FSlateBrush& B = Bands[LineBands + Bi];
+			B = Bands[Bi];
+			const FBox2f U = Bands[Bi].GetUVRegion();
+			B.SetUVRegion(FBox2f(U.Min + Shift, U.Max + Shift));
+		}
 		C.LineAA = F.LineAA = Bands;
 		C.PxToDesign = F.PxToDesign = 1.f / FMath::Max(0.01f, Design.GetAccumulatedLayoutTransform().GetScale()); // DPI 배율까지 포함한 화면 px
 	}
 	const double T0 = FPlatformTime::Seconds();
-	GPDDebug.Lines = GPDDebug.Points = 0;
+	GPDDebug.Lines = GPDDebug.Points = GPDDebug.Boxes = 0;
 	PaintAll(C, F);
 	GPDDebug.PaintMs = FMath::Lerp(GPDDebug.PaintMs, (float)((FPlatformTime::Seconds() - T0) * 1000.0), 0.1f);
 	return Layer;
@@ -226,8 +254,24 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		}
 	}
 	// 판 쪽(F, 흔들림을 받음): 판·적 → 발사체 → 이펙트 → 판 위 UI. 그 위에 고정 패널과 창(C)
-	int32 L0 = GPDDebug.Lines;
-	auto Part = [&](int32 I) { GPDDebug.PartLines[I] = GPDDebug.Lines - L0; L0 = GPDDebug.Lines; };
+	int32 L0 = GPDDebug.Lines, Q0 = GPDDebug.Boxes;
+	double PT = FPlatformTime::Seconds();
+	static double PartMs[7] = {}; static int32 PartQ[7] = {}; static int32 PartFrames = 0; // 부분별 시간·띠 수 (D-147 측정, 로그 PDPART)
+	auto Part = [&](int32 I) {
+		GPDDebug.PartLines[I] = GPDDebug.Lines - L0; L0 = GPDDebug.Lines;
+		const double Now = FPlatformTime::Seconds(); PartMs[I] += (Now - PT) * 1000.0; PT = Now;
+		PartQ[I] += GPDDebug.Boxes - Q0; Q0 = GPDDebug.Boxes;
+	};
+	ON_SCOPE_EXIT {
+		const double Now = FPlatformTime::Seconds(); PartMs[6] += (Now - PT) * 1000.0; PartQ[6] += GPDDebug.Boxes - Q0;
+		if (++PartFrames >= 120)
+		{
+			UE_LOG(LogTemp, Log, TEXT("PDPART ms=%.2f/%.2f/%.2f/%.2f/%.2f/%.2f/%.2f quads=%d/%d/%d/%d/%d/%d/%d"), PartMs[0] / PartFrames, PartMs[1] / PartFrames, PartMs[2] / PartFrames, PartMs[3] / PartFrames,
+				PartMs[4] / PartFrames, PartMs[5] / PartFrames, PartMs[6] / PartFrames, PartQ[0] / PartFrames, PartQ[1] / PartFrames, PartQ[2] / PartFrames, PartQ[3] / PartFrames, PartQ[4] / PartFrames, PartQ[5] / PartFrames, PartQ[6] / PartFrames);
+			for (int32 I = 0; I < 7; ++I) { PartMs[I] = 0.0; PartQ[I] = 0; }
+			PartFrames = 0;
+		}
+	};
 #if !UE_BUILD_SHIPPING
 	static const bool bNoFx = FParse::Param(FCommandLine::Get(), TEXT("pdnofx")), bNoDraw = FParse::Param(FCommandLine::Get(), TEXT("pdnodraw")); // 부하 나누어 보기 (D-138)
 	if (bNoDraw) return;
