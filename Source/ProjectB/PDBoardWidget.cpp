@@ -400,7 +400,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
 	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; Sel = -1; return; }
 	// 위쪽 띠 버튼 (D-119): 속도, 설정
-	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1; UiSound(EPDSound::Move); return; }
+	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
 	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bSettings = true; SetSel = 0; Sel = -1; return; }
 	// 조커 합치기 버튼 (같은 조커끼리, D-114): 마우스가 그 조커들 위나 버튼 자리에 있을 때만
 	if (!bRight)
@@ -581,7 +581,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::U) { bUpg = true; Sel = -1; }
-	else if (K == EKeys::F) Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1;
+	else if (K == EKeys::F) Game.Speed = NextSpeed(Game.Speed);
 	else if (K == EKeys::M) SetSound(!Settings.bSound);
 	else return FReply::Unhandled();
 	return FReply::Handled();

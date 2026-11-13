@@ -916,7 +916,7 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 	{
 		const bool bHov = InRect(Mouse, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS);
 		C.Glow(FCanvas::RoundRectPoints(SpeedBtnX, HudBtnY, HudBtnS, HudBtnS, 8.f), Cyan, bHov ? 1.6f : 1.1f, bHov ? 1.f : (G.Speed > 1 ? 0.7f : 0.3f));
-		C.TextCentered(FString::Printf(TEXT("×%d"), G.Speed), SpeedBtnX + HudBtnS / 2.f, HudBtnY + HudBtnS / 2.f, G.Speed > 1 ? FLinearColor::White : Cyan, 11.f, true);
+		C.TextCentered(FString::Printf(TEXT("×%d"), G.Speed), SpeedBtnX + HudBtnS / 2.f, HudBtnY + HudBtnS / 2.f, G.Speed > 1 ? FLinearColor::White : Cyan, G.Speed >= 10 ? 11.f : 13.f, true, HudBtnS - 2.f);
 	}
 	{
 		const bool bHov = InRect(Mouse, SetOpenX, HudBtnY, HudBtnS, HudBtnS);
@@ -1008,8 +1008,20 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		{
 			C.Glow(FCanvas::RoundRectPoints(RBtnX, StartBtnY, RBtnW, StartBtnH, 12.f), Dim, 1.2f, 0.2f);
 			C.TextCentered(G.Phase == EPDPhase::Wave ? FString::Printf(TEXT("웨이브 %d 진행 중"), G.Wave) : FString(TEXT("웨이브 시작")), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH / 2.f - 5.f, Grey, 14.f, true, RBtnW - 20.f);
-			if (G.Phase == EPDPhase::Wave) C.TextCentered(FString::Printf(TEXT("속도 ×%d (F)"), G.Speed), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH - 10.f, Dim, 9.f, false);
+			if (G.Phase == EPDPhase::Wave) C.TextCentered(FString::Printf(TEXT("배속 ×%d (F)"), G.Speed), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH - 10.f, G.Speed > 1 ? Cyan : Dim, 10.f, true);
 		}
+	}
+	// ---- 배속 표시 (D-124): 2배속 이상이면 판 오른쪽 위에 크게 (빠를수록 주황 → 빨강)
+	if (G.Speed > 1 && (G.Phase == EPDPhase::Wave || G.Phase == EPDPhase::Build))
+	{
+		const FLinearColor SC = G.Speed >= 10 ? Hex(TEXT("ff6a6a")) : G.Speed >= 5 ? Hex(TEXT("ffa86a")) : Cyan;
+		const float RXb = FX + Cols * CS - 16.f, Yb = FY + 30.f, A = G.Phase == EPDPhase::Wave ? 0.75f + 0.25f * Pulse : 0.5f;
+		const FString St = FString::Printf(TEXT("×%d 배속"), G.Speed);
+		C.Text(St, RXb, Yb, WithAlpha(SC, A), 26.f, 2, true);
+		const float Ax = RXb - FCanvas::Measure(St, FCanvas::Font(26.f, true)).X - 30.f, Ay = Yb - 9.f; // 빨리 감기 꺾쇠 둘
+		for (int32 K = 0; K < 2; ++K)
+			C.Glow({FVector2f(Ax + K * 11.f, Ay - 9.f), FVector2f(Ax + K * 11.f + 10.f, Ay), FVector2f(Ax + K * 11.f, Ay + 9.f)}, WithAlpha(SC, A), 2.f, 0.8f);
+		C.Text(TEXT("F: 배속 바꾸기"), RXb, Yb + 18.f, WithAlpha(SC, 0.5f), 10.f, 2);
 	}
 	// ---- 2×2 버튼: 트리 K · 강화 U / 도감 J · 메뉴 Esc
 	{

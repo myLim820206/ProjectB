@@ -477,6 +477,8 @@ inline FString ShortNum(float V)
 	if (V >= 1e3f) return FString::Printf(TEXT("%.1fk"), V / 1e3f);
 	return FString::FromInt(FMath::Max(1, FMath::RoundToInt(V)));
 }
+// 배속 차례 (D-124): 1 → 2 → 3 → 5 → 10 → 1
+inline int NextSpeed(int S) { return S < 2 ? 2 : S < 3 ? 3 : S < 5 ? 5 : S < 10 ? 10 : 1; }
 // 천 단위 쉼표: 12345 → 12,345
 inline FString CommaNum(int64 V)
 {
