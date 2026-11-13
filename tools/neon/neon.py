@@ -654,7 +654,165 @@ def render_bloom(src, out, box=None):
     img.save(out)
 
 
+# ---------------------------------------------------------------- 나이아가라 이펙트 모양 미리보기 (D-111): 효과마다 다른 모양, 절반쯤 지난 순간
+def render_fxshapes(out, S=3):
+    import random
+    rnd = random.Random(7)
+    cell, cols = 230, 4
+    names = [('Hit', '맞음 (그대로)', 'white'), ('Death', '죽음: 섬광 + 충격파 고리 + 파편', 'pink'),
+             ('ImpSpark', '방향 불꽃: 가늘고 긴 줄무늬 원뿔', 'spade'), ('ImpBlast', '폭발: 큰 섬광 + 굵은 불똥', 'heart'),
+             ('ImpFrost', '서리: 천천히 퍼지는 점 고리', 'club'), ('ImpZap', '전기: 지그재그 번개 가닥', 'pink2'),
+             ('ImpGlitter', '반짝이: 네 갈래 반짝임이 내려앉음', 'gold'), ('ImpStarburst', '별빛: 곧게 뻗는 긴 빛살', 'pink'),
+             ('Muzzle', '총구: 짧은 줄무늬 셋', 'spade'), ('Crit', '치명타: 십자 빛살 + 작은 고리', 'white'),
+             ('Splash', '범위: 고르게 퍼지는 점 고리', 'diamond'), ('Place', '놓기: 작은 고리 + 위로 오르는 불티', 'club'),
+             ('Synergy', '족보: 고리 + 솟는 줄무늬', 'pink2'), ('Fuse', '합성: 섬광 + 고리 + 휘는 꼬리', 'gold'),
+             ('JokerFuse', '조커: 큰 섬광 + 이중 고리 + 빛살', 'pink'), ('Leak', '새어 나감: 붉은 고리 + 오르는 연기', 'red')]
+    COLX = dict(COL, pink2=(180, 140, 255))
+    W, H = cell * cols, (cell + 30) * ((len(names) + cols - 1) // cols)
+    img = Image.new('RGB', (W * S, H * S), BG)
+    for k, (key, label, col) in enumerate(names):
+        cx, cy = (k % cols) * cell + cell / 2, (k // cols) * (cell + 30) + cell / 2
+        c = COLX[col]
+        layer = Image.new('RGB', img.size, (0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        P = lambda x, y: ((cx + x) * S, (cy + y) * S)
+        def dot(x, y, r=1.6): d.ellipse([P(x - r, y - r), P(x + r, y + r)], fill=c)
+        def line(pts, w=1.4): d.line([P(*q) for q in pts], fill=c, width=max(1, int(w * S)))
+        def ring(r, n=0, w=1.4):
+            if n: [dot(math.cos(a) * r, math.sin(a) * r, 1.8) for a in [i / n * 2 * math.pi for i in range(n)]]
+            else: line([(math.cos(a) * r, math.sin(a) * r) for a in [i / 48 * 2 * math.pi for i in range(49)]], w)
+        def flash(r):
+            for rr, a in [(r, 0.18), (r * 0.6, 0.35), (r * 0.3, 0.8)]:
+                d.ellipse([P(-rr, -rr), P(rr, rr)], fill=tuple(int(v * a) for v in c))
+        def radial(n, r0, r1, jitter=0.3, w=1.4, a0=0.0, spread=2 * math.pi):
+            for i in range(n):
+                a = a0 + (i / n - 0.5) * spread + rnd.uniform(-jitter, jitter) * spread / n if spread < 6 else a0 + i / n * 2 * math.pi + rnd.uniform(-jitter, jitter)
+                line([(math.cos(a) * r0, math.sin(a) * r0), (math.cos(a) * r1, math.sin(a) * r1)], w)
+        def sparkle(x, y, s):
+            line([(x - s, y), (x + s, y)], 1.1); line([(x, y - s), (x, y + s)], 1.1)
+        if key == 'Hit':
+            for _ in range(12): a = rnd.uniform(0, 6.28); r = rnd.uniform(8, 34); dot(math.cos(a) * r, math.sin(a) * r, 1.3)
+            line(bez((0, 0), (14, -18), (34, -26)), 1.2)
+        elif key == 'Death':
+            flash(26); ring(62, 28)
+            for _ in range(18): a = rnd.uniform(0, 6.28); r = rnd.uniform(20, 80); dot(math.cos(a) * r, math.sin(a) * r, 2.2)
+        elif key == 'ImpSpark':
+            radial(7, 10, 70, 0.4, 1.2, 0.0, 0.9)
+        elif key == 'ImpBlast':
+            flash(34)
+            for _ in range(16): a = rnd.uniform(0, 6.28); r = rnd.uniform(30, 75); dot(math.cos(a) * r, math.sin(a) * r, 3.0)
+            for a in (0.6, 2.6, 4.4): line(bez((0, 0), (math.cos(a) * 40, math.sin(a) * 40 - 20), (math.cos(a) * 70, math.sin(a) * 70)), 1.3)
+        elif key == 'ImpFrost':
+            ring(40, 22)
+            for _ in range(8): dot(rnd.uniform(-30, 30), rnd.uniform(-55, -10), 1.4)
+        elif key == 'ImpZap':
+            for i in range(5):
+                a = i / 5 * 6.28 + rnd.uniform(-0.3, 0.3); pts = [(0, 0)]; r = 0
+                while r < 70:
+                    r += rnd.uniform(9, 15); aa = a + rnd.uniform(-0.45, 0.45); pts.append((math.cos(aa) * r, math.sin(aa) * r))
+                line(pts, 1.3)
+        elif key == 'ImpGlitter':
+            for _ in range(10): sparkle(rnd.uniform(-55, 55), rnd.uniform(-20, 70), rnd.uniform(3, 7))
+        elif key == 'ImpStarburst':
+            radial(8, 16, 95, 0.0, 1.6)
+        elif key == 'Muzzle':
+            radial(3, 6, 34, 0.2, 1.2, 0.0, 0.5)
+        elif key == 'Crit':
+            for a in (0.79, 2.36, 3.93, 5.5): line([(math.cos(a) * 6, math.sin(a) * 6), (math.cos(a) * 60, math.sin(a) * 60)], 1.6)
+            ring(18)
+        elif key == 'Splash':
+            ring(80, 36)
+        elif key == 'Place':
+            ring(26, 14)
+            for _ in range(10): dot(rnd.uniform(-22, 22), rnd.uniform(-75, -20), 1.5)
+        elif key == 'Synergy':
+            ring(54, 26)
+            for x in (-36, -18, 0, 18, 36): line([(x, -10 - abs(x) * 0.3), (x, -70 - abs(x) * 0.3)], 1.3)
+        elif key == 'Fuse':
+            flash(30); ring(70, 30)
+            for i in range(8):
+                a = i / 8 * 6.28; line(bez((0, 0), (math.cos(a + 0.5) * 50, math.sin(a + 0.5) * 50), (math.cos(a + 0.9) * 95, math.sin(a + 0.9) * 95)), 1.3)
+        elif key == 'JokerFuse':
+            flash(44); ring(70, 30); ring(100, 40); radial(12, 30, 105, 0.0, 1.3)
+        elif key == 'Leak':
+            ring(50, 24)
+            for i in range(6): r = 6 + i * 2; y = -20 - i * 14; x = rnd.uniform(-14, 14); d.ellipse([P(x - r, y - r), P(x + r, y + r)], outline=c, width=max(1, S))
+        img = ImageChops.add(img, layer.filter(ImageFilter.GaussianBlur(6 * S)).point(lambda v: int(v * 0.9)))
+        img = ImageChops.add(img, layer)
+        dd = ImageDraw.Draw(img)
+        dd.text((cx * S, (cy + cell / 2 + 6) * S), key, fill=c, font=FONT(12 * S), anchor='mm')
+        dd.text((cx * S, (cy + cell / 2 + 22) * S), label, fill=(138, 148, 166), font=KFONT(10 * S), anchor='mm')
+    img.resize((W, H), Image.LANCZOS).save(out)
+
+
+# ---------------------------------------------------------------- 보스 13종 미리보기 (D-112): 기존 3 + 새 10. 모두 가운데 작은 원(보스 표시) + 고유 모양
+def render_bosses(out, S=4):
+    HEX = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+    bosses = [('방패 거인', '9fc3e8', '방어력', 'shield'), ('분열 군주', 'ff9ad5', '죽으면 탱크 넷', 'split'), ('재생 왕', 'b6ff6a', '체력 재생', 'regen'),
+              ('돌진 기사', 'ffa86a', '4초마다 0.8초 돌진 ×3', 'charger'), ('소환사', 'c49aff', '3초마다 졸개 둘', 'summoner'),
+              ('유령', 'cfe4ff', '4초마다 1.2초 무적', 'phantom'), ('군단장', 'ffd96a', '주변 적 빠르고 단단하게', 'warlord'),
+              ('분노 거인', 'ff6a6a', '체력이 줄수록 빨라짐', 'berserker'), ('공간 도약자', '7fd6ff', '5초마다 앞으로 순간이동', 'blinker'),
+              ('흡수자', 'e07aff', '주변 적이 죽으면 회복', 'devourer'), ('수호자', 'a8f0ff', '6초마다 보호막', 'warden'),
+              ('저주술사', '9a7aff', '주변 타워 공격력 ↓', 'hexer'), ('파괴자', 'ffcf5a', '6초마다 가까운 타워 기절', 'breaker')]
+    cell, cols = 200, 5
+    rows = (len(bosses) + cols - 1) // cols
+    W, H = cell * cols, (cell + 34) * rows
+    img = Image.new('RGB', (W * S, H * S), BG)
+    for k, (name, col, ability, key) in enumerate(bosses):
+        cx, cy = (k % cols) * cell + cell / 2, (k // cols) * (cell + 34) + cell / 2 - 6
+        c = HEX(col)
+        R = 44.0  # 판 위 반지름 22 의 2배로 그림
+        lines = []
+        P = lambda x, y: ((cx + x) * S, (cy + y) * S)
+        poly = lambda n, r, rot=0.0: [P(math.cos(rot + i / n * 2 * math.pi) * r, math.sin(rot + i / n * 2 * math.pi) * r) for i in range(n + 1)]
+        circ = lambda x, y, r, n=40: [P(x + math.cos(i / n * 2 * math.pi) * r, y + math.sin(i / n * 2 * math.pi) * r) for i in range(n + 1)]
+        core = circ(0, 0, 24)
+        if key == 'shield': lines += [poly(4, R, 0.3), core]
+        elif key == 'split': lines += [poly(8, R, 0.2), core]
+        elif key == 'regen': lines += [poly(6, R, 0.1), core]
+        elif key == 'charger':
+            lines += [[P(R + 6, 0), P(-R * 0.6, -R * 0.8), P(-R * 0.2, 0), P(-R * 0.6, R * 0.8), P(R + 6, 0)], circ(4, 0, 16)]
+            lines += [[P(-R - 4, -14), P(-R - 26, -14)], [P(-R - 8, 0), P(-R - 34, 0)], [P(-R - 4, 14), P(-R - 26, 14)]]
+        elif key == 'summoner':
+            lines += [circ(0, 0, 30), circ(0, 0, 14)] + [circ(math.cos(a) * 44, math.sin(a) * 44, 8) for a in (0.4, 2.5, 4.6)]
+        elif key == 'phantom':
+            body = [P(-30, 30)] + [P(math.cos(math.pi + i / 20 * math.pi) * 30, -6 + math.sin(math.pi + i / 20 * math.pi) * 36) for i in range(21)]
+            body += [P(30, 30), P(20, 22), P(10, 30), P(0, 22), P(-10, 30), P(-20, 22), P(-30, 30)]
+            lines += [body, circ(-11, -8, 4, 16), circ(11, -8, 4, 16)]
+        elif key == 'warlord':
+            star = [P(math.cos(-math.pi / 2 + i / 10 * 2 * math.pi) * (R + 4 if i % 2 == 0 else R * 0.45), math.sin(-math.pi / 2 + i / 10 * 2 * math.pi) * (R + 4 if i % 2 == 0 else R * 0.45)) for i in range(11)]
+            lines += [star, circ(0, 0, 13)]
+        elif key == 'berserker':
+            lines += [[P(math.cos(i / 24 * 2 * math.pi) * (R if i % 2 == 0 else R * 0.68), math.sin(i / 24 * 2 * math.pi) * (R if i % 2 == 0 else R * 0.68)) for i in range(25)], core]
+        elif key == 'blinker':
+            dia = lambda ox, s: [P(ox, -s), P(ox + s * 0.7, 0), P(ox, s), P(ox - s * 0.7, 0), P(ox, -s)]
+            lines += [dia(10, R), dia(-18, R * 0.75), dia(-40, R * 0.5), circ(10, 0, 12)]
+        elif key == 'devourer':
+            lines += [[P(math.cos(i / 60 * 5 * math.pi) * (4 + i * 0.68), math.sin(i / 60 * 5 * math.pi) * (4 + i * 0.68)) for i in range(61)], circ(0, 0, R + 2)]
+        elif key == 'warden':
+            lines += [poly(6, 30, math.pi / 6), circ(0, 0, 12)]
+            lines += [circ(0, 0, R + 4, 60)[i:i + 4] for i in range(0, 60, 6)]  # 점선 보호막
+        elif key == 'hexer':
+            eye = [P(-R, 0)] + [P(-R + i / 20 * 2 * R, -math.sin(i / 20 * math.pi) * 26) for i in range(21)] + [P(R - i / 20 * 2 * R, math.sin(i / 20 * math.pi) * 26) for i in range(1, 21)]
+            lines += [eye, circ(0, 0, 13), circ(0, 0, 5, 16)]
+        elif key == 'breaker':
+            lines += [poly(4, R, math.pi / 4), [P(-20, -20), P(20, 20)], [P(20, -20), P(-20, 20)]]
+            lines += [[P(math.cos(a) * (R - 2), math.sin(a) * (R - 2)), P(math.cos(a) * (R + 14), math.sin(a) * (R + 14))] for a in (math.pi / 4, 3 * math.pi / 4, 5 * math.pi / 4, 7 * math.pi / 4)]
+        glow = Image.new('RGB', img.size, (0, 0, 0)); gd = ImageDraw.Draw(glow)
+        for ln in lines: gd.line(ln, fill=c, width=int(2.4 * S * 3))
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(6 * S)).point(lambda v: int(v * 0.8)))
+        d = ImageDraw.Draw(img)
+        for ln in lines: d.line(ln, fill=c, width=int(2.4 * S))
+        d.text((cx * S, (cy + 72) * S), f'{(k + 1) * 5}웨이브 · {name}', fill=c, font=KFONT(12 * S), anchor='mm')
+        d.text((cx * S, (cy + 90) * S), ability, fill=(138, 148, 166), font=KFONT(10 * S), anchor='mm')
+    img.resize((W, H), Image.LANCZOS).save(out)
+
+
 if __name__ == '__main__':
+    if len(sys.argv) >= 3 and sys.argv[1] == 'bosses':  # python neon.py bosses 출력.png
+        render_bosses(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
+    if len(sys.argv) >= 3 and sys.argv[1] == 'fxshapes':  # python neon.py fxshapes 출력.png
+        render_fxshapes(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 4 and sys.argv[1] == 'bloom':  # python neon.py bloom 캡처.png 출력.png [x0 y0 x1 y1]
         render_bloom(sys.argv[2], sys.argv[3], tuple(int(v) for v in sys.argv[4:8]) if len(sys.argv) >= 8 else None)
         print('saved', sys.argv[3])
