@@ -461,6 +461,9 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
+	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
+	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
+	if (SwapFrom >= 0 && !Game.Towers.count(SwapFrom)) SwapFrom = -1;
 	// 족보 필터 (D-148): 판에서 그 족보가 없어지면 (합성 등) 끈다
 	if (HandFilter >= 0 && std::none_of(Game.Synergies.begin(), Game.Synergies.end(), [this](const FPDSynergy& S) { return (int32)S.Kind == HandFilter; })) HandFilter = -1;
 #if !UE_BUILD_SHIPPING
@@ -725,6 +728,28 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else PickCells.clear();
 		return;
 	}
+	// 자리바꿈 모드 (D-149): 타워 클릭 → 바꿀 칸 클릭 (타워면 서로 바꾸고 빈 칸이면 옮김). 같은 타워 다시 = 고르기 취소, 판 밖·오른쪽 클릭 = 끄기
+	if (bSwapMode)
+	{
+		const int32 Cell = CellAt(P);
+		if (!bRight && Cell >= 0)
+		{
+			if (SwapFrom < 0) { if (Game.Towers.count(Cell)) { SwapFrom = Cell; UiSound(EPDSound::Move); } else UiSound(EPDSound::Denied); }
+			else if (Cell == SwapFrom) SwapFrom = -1;
+			else if (Game.SwapTowers(SwapFrom, Cell)) { bSwapMode = false; SwapFrom = -1; }
+			else UiSound(EPDSound::Denied);
+			return;
+		}
+		bSwapMode = false;
+		SwapFrom = -1;
+		return;
+	}
+	if (!bRight && Game.Swaps > 0 && InRect(P, SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH))
+	{
+		bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1;
+		UiSound(EPDSound::Move);
+		return;
+	}
 	// 족보 필터 (D-148): 왼쪽 족보 목록 한 줄 클릭 = 그 족보만 보기, 다시 클릭 = 끄기
 	if (!bRight && InRect(P, LX + 8.f, HandRowY0, LW - 16.f, HandRowH * (int32)EPDHand::Count))
 	{
@@ -983,8 +1008,9 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 			return FReply::Handled();
 		}
 	if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave();
-	else if (K == EKeys::Escape) { if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
+	else if (K == EKeys::Escape) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::G) DoFuse(HoveredSynergy());
+	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::U) { bUpg = true; Sel = -1; }

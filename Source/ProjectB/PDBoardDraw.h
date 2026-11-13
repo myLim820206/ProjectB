@@ -29,6 +29,7 @@ constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이�
 constexpr float FY = 74.f;
 constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
 constexpr float HandY = FY + Rows * CS + 14.f;
+constexpr float SwapBtnX = FX, SwapBtnY = HandY + 54.f, SwapBtnW = 86.f, SwapBtnH = 28.f; // 자리바꿈 버튼 (D-149, 덱 글자 아래)
 constexpr float CardW = 70.f, CardH = 98.f;
 constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
 constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
@@ -233,12 +234,12 @@ inline TArray<FVector2f> ArcPts(FVector2f C, float R, float Mid, float Half, int
 }
 inline const TCHAR* InstantName(int I)
 {
-	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("골드")};
+	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("골드"), TEXT("자리바꿈")};
 	return N[I];
 }
 inline const TCHAR* InstantDesc(int I)
 {
-	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("골드 +(10 + 웨이브 × 4)")};
+	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("골드 +(10 + 웨이브 × 4)"), TEXT("타워 둘의 자리를 바꾸거나 빈 칸으로 옮기기 2번 (레벨·조커 그대로)")};
 	return N[I];
 }
 // 보상 카드 위치 (판 가운데 3장)

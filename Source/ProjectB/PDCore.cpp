@@ -775,6 +775,7 @@ void FPDGame::NewGame(bool bStart)
 	Lives = StartLives;
 	Kills = Leaks = Discarded = DeckRefills = 0;
 	Gold = Points = GoldEarned = 0;
+	Swaps = 0;
 	GoldCarry = 0.f;
 	TreeOwned = FPDTreeBits(1);
 	Upg = {};
@@ -1020,11 +1021,14 @@ std::vector<FPDReward> FPDGame::RollRewards()
 	for (int J = 0; J < (int)EPDCharm::Count; ++J) if (std::find(Charms.begin(), Charms.end(), (EPDCharm)J) == Charms.end()) Pool.push_back(J);
 	std::shuffle(Pool.begin(), Pool.end(), Rng);
 	const bool bWild = std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < WildChance;
-	const int NCharm = (int)Charms.size() < CharmMax ? std::min(bWild ? 2 : 3, (int)Pool.size()) : 0;
+	const bool bSwap = !bWild && std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < SwapChance; // 자리바꿈 (D-149)
+	const int NCharm = (int)Charms.size() < CharmMax ? std::min(bWild || bSwap ? 2 : 3, (int)Pool.size()) : 0;
 	for (int I = 0; I < NCharm; ++I) Out.push_back({true, Pool[I]});
 	std::vector<int> Inst{(int)EPDInstant::Draw2, (int)EPDInstant::Repair, (int)EPDInstant::Gold};
+	if (!bSwap) Inst.push_back((int)EPDInstant::Swap);
 	std::shuffle(Inst.begin(), Inst.end(), Rng);
 	if (bWild) Inst.insert(Inst.begin(), (int)EPDInstant::Wild);
+	if (bSwap) Inst.insert(Inst.begin(), (int)EPDInstant::Swap);
 	for (int I = 0; Out.size() < 3 && I < (int)Inst.size(); ++I) Out.push_back({false, Inst[I]});
 	return Out;
 }
@@ -1045,6 +1049,7 @@ void FPDGame::TakeReward(int Index)
 		else if (R.Id == (int)EPDInstant::Draw2) Draw(2);
 		else if (R.Id == (int)EPDInstant::Repair) Lives += 3;
 		else if (R.Id == (int)EPDInstant::Gold) { Gold += 10 + Wave * 4; GoldEarned += 10 + Wave * 4; }
+		else if (R.Id == (int)EPDInstant::Swap) Swaps += SwapPerReward;
 		Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 		FPDEvent E;
 		E.Kind = FPDEvent::EKind::Reward;
@@ -1074,6 +1079,39 @@ std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPD
 	for (const FPDSynergy& S : All) if (Chains.count(S.ChainId)) Out.push_back(S);
 	if (OutTowers) *OutTowers = std::move(Copy);
 	return Out;
+}
+
+// 자리바꿈 (D-149): From 타워를 To 로. To 에 타워가 있으면 서로 바꾸고, 빈 칸이면 옮긴다 (길 위·판 밖은 안 됨).
+// 레벨·조커·경험치 등 타워 상태는 그대로 따라가고, 족보는 다시 찾는다
+bool FPDGame::SwapTowers(int From, int To)
+{
+	if (!InPlay() || Swaps <= 0 || From == To || !Towers.count(From)) return false;
+	const int TX = To % Cols, TY = To / Cols;
+	const bool bOther = Towers.count(To) > 0;
+	if (!bOther && !Buildable(TX, TY)) return false;
+	FPDTower A = Towers[From];
+	if (bOther)
+	{
+		FPDTower B = Towers[To];
+		B.X = From % Cols; B.Y = From / Cols;
+		Towers[From] = B;
+	}
+	else Towers.erase(From);
+	A.X = TX; A.Y = TY;
+	Towers[To] = A;
+	--Swaps;
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	for (int K : {From, To})
+	{
+		if (!Towers.count(K)) continue;
+		FPDEvent P;
+		P.Kind = FPDEvent::EKind::Place;
+		P.X = K % Cols + 0.5f;
+		P.Y = K / Cols + 0.5f;
+		P.Suit = Towers[K].Card.Suit;
+		Ev(P);
+	}
+	return true;
 }
 
 bool FPDGame::Place(int HandIdx, int X, int Y)

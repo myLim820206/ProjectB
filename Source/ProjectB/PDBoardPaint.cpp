@@ -1028,13 +1028,28 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		const int32 Def = DefaultFuseCell(PickCells);
 		const int32 HoverKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 		const bool bHoverIn = std::find(PickCells.begin(), PickCells.end(), HoverKey) != PickCells.end();
+		// 눈에 띄게 (D-149): 재료가 아닌 칸은 어둡게 덮고, 재료 칸은 색이 오가는 채움 + 빗금 + 굵은 테두리
+		{
+			const int32 DL = F.NextLayer();
+			for (int32 K = 0; K < Cols * Rows; ++K)
+			{
+				if (std::find(PickCells.begin(), PickCells.end(), K) != PickCells.end()) continue;
+				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.62f));
+			}
+			F.NextLayer();
+		}
+		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 		for (int K : PickCells)
 		{
 			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 			const bool bTarget = bHoverIn ? K == HoverKey : K == Def; // 지금 클릭하면 모일 칸
-			F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(PickCol, bTarget ? 0.16f : 0.05f + 0.05f * Pulse));
-			F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 6.f), PickCol, bTarget ? 2.f : 1.f, bTarget ? 1.2f + 0.5f * Pulse : 0.4f);
-			if (K == Def) F.TextCentered(TEXT("기본"), C0.X + CS / 2.f, C0.Y + CS - 8.f, WithAlpha(PickCol, 0.8f), 9.f, true, CS - 4.f);
+			const FLinearColor Pc = FMath::Lerp(PickCol, FLinearColor::White, (bTarget ? 0.5f : 0.3f) * Wv);
+			F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pc, bTarget ? 0.3f + 0.15f * Wv : 0.14f + 0.1f * Wv));
+			if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pc, 0.4f + 0.25f * Wv));
+			F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, bTarget ? 3.4f : 2.4f, bTarget ? 1.6f + 1.f * Wv : 0.9f + 0.6f * Wv);
+			if (bTarget) F.Glow(FCanvas::RoundRectPoints(C0.X - 3.f - 3.f * Wv, C0.Y - 3.f - 3.f * Wv, CS + 6.f + 6.f * Wv, CS + 6.f + 6.f * Wv, 9.f), WithAlpha(PickCol, 0.8f - 0.5f * Wv), 2.f, 1.f);
+			if (K == Def) F.TextCentered(TEXT("기본"), C0.X + CS / 2.f, C0.Y + CS - 8.f, WithAlpha(FLinearColor::White, 0.9f), 9.f, true, CS - 4.f);
 		}
 		// 다른 칸에서 고른 칸으로 빨려 드는 선
 		const int32 Target = bHoverIn ? HoverKey : Def;
@@ -1161,8 +1176,38 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
 		}
 	}
+	// 자리바꿈 모드 (D-149): 고른 타워는 민트색으로 반짝, 마우스가 올라간 칸에 바꿀 자리 표시
+	if (bSwapMode)
+	{
+		const FLinearColor SwC = Hex(TEXT("6affc8"));
+		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 5.f);
+		const int32 HoverKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		if (SwapFrom < 0) // 옮길 수 있는 타워들에 옅은 테두리
+			for (const auto& KV : G.Towers)
+			{
+				const FVector2f C0 = CellPx((float)(KV.first % Cols), (float)(KV.first / Cols));
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 6.f), WithAlpha(SwC, KV.first == HoverKey ? 1.f : 0.45f), KV.first == HoverKey ? 2.6f : 1.2f, KV.first == HoverKey ? 1.4f : 0.4f + 0.3f * Wv);
+			}
+		else
+		{
+			const FVector2f A = CellPx((float)(SwapFrom % Cols), (float)(SwapFrom / Cols));
+			F.Box(A.X + 2.f, A.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(SwC, 0.22f + 0.15f * Wv));
+			F.Glow(FCanvas::RoundRectPoints(A.X + 2.f, A.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), SwC, 3.f, 1.4f + 0.8f * Wv);
+			if (HoverKey >= 0 && HoverKey != SwapFrom)
+			{
+				const bool bOk = G.Towers.count(HoverKey) || G.Buildable(HoverX, HoverY);
+				const FLinearColor Tc = bOk ? SwC : Hex(TEXT("ff5a6a"));
+				const FVector2f B = CellPx((float)HoverX, (float)HoverY);
+				F.Glow(FCanvas::RoundRectPoints(B.X + 2.f, B.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Tc, 2.4f, 1.2f);
+				if (bOk) F.Dashed({CellCenter(SwapFrom), CellCenter(HoverKey)}, WithAlpha(SwC, 0.8f), 1.6f, 5.f, 4.f);
+			}
+		}
+		F.Badge(SwapFrom < 0 ? FString::Printf(TEXT("자리바꿈 (%d번 남음): 옮길 타워 클릭 · 오른쪽 클릭 / Esc: 끄기"), G.Swaps)
+							 : FString(TEXT("바꿀 자리 클릭 (타워면 서로 바꾸고 빈 칸이면 옮김) · 같은 타워 다시: 다시 고르기")),
+			FX + Cols * CS / 2.f, FY + 12.f, SwC, 1.f);
+	}
 	// 족보 필터 안내 (D-148)
-	if (HandFilter >= 0 && FeedJoker < 0 && PickCells.empty())
+	if (HandFilter >= 0 && FeedJoker < 0 && PickCells.empty() && !bSwapMode)
 		F.Badge(FString::Printf(TEXT("%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기"), HandName((EPDHand)HandFilter)), FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
 	// 조커 합성 버튼 (연쇄로 이어진 족보 3개 이상, 먹이기 모드에선 숨김)
 	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0)
@@ -1351,6 +1396,15 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 	// ---- 손패 (크게) + 덱
 	C.Text(FString::Printf(TEXT("손패 %d/%d"), (int32)G.Hand.size(), G.HandMax()), FX, HandY + 22.f, Cyan, 13.f, 0, true);
 	C.Text(FString::Printf(TEXT("덱 %d장"), (int32)G.Deck.size()), FX, HandY + 42.f, Grey, 11.f);
+	if (G.Swaps > 0) // 자리바꿈 버튼 (D-149)
+	{
+		const FLinearColor SwC = Hex(TEXT("6affc8"));
+		const bool bHov = InRect(Mouse, SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH);
+		if (bSwapMode) C.Box(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, WithAlpha(SwC, 0.18f));
+		C.Glow(FCanvas::RoundRectPoints(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, 7.f), SwC, bHov || bSwapMode ? 1.7f : 1.2f, bSwapMode ? 1.2f + 0.5f * Pulse : bHov ? 1.f : 0.5f);
+		C.TextCentered(FString::Printf(TEXT("자리바꿈 ×%d"), G.Swaps), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + 11.f, SwC, 11.f, true, SwapBtnW - 6.f);
+		C.TextCentered(bSwapMode ? TEXT("끄기 X") : TEXT("X"), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + 23.f, WithAlpha(SwC, 0.7f), 8.f, false, SwapBtnW - 6.f);
+	}
 	for (int32 I = 0; I < (int32)G.Hand.size(); ++I)
 	{
 		const FPDCard& Card = G.Hand[I];

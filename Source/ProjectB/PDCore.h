@@ -74,8 +74,10 @@ inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; 
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;
 // 즉시 보상 (부적 칸을 쓰지 않음): 부적 창에서 와일드가 셋째 칸에 들거나, 부적 칸이 가득일 때 채움
-enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Gold, Count }; // 골드 = 10 + 웨이브 × 4
+enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Gold, Swap, Count }; // 골드 = 10 + 웨이브 × 4
 constexpr float WildChance = 0.5f; // 부적 창마다 와일드가 셋째 칸에 들 확률
+constexpr float SwapChance = 0.4f; // 와일드가 없을 때 자리바꿈이 셋째 칸에 들 확률 (D-149)
+constexpr int SwapPerReward = 2;    // 자리바꿈 보상 한 장 = 2번
 struct FPDReward
 {
 	bool bCharm = true;
@@ -393,6 +395,7 @@ public:
 	void NewGame(bool bStart);
 	void Tick(float Dt);                     // 0.05초로 잘라 Speed 배만큼 진행
 	bool Place(int HandIdx, int X, int Y);   // 카드 설치 (타워 위면 교체)
+	bool SwapTowers(int From, int To);       // 자리바꿈 (D-149): 타워 둘의 자리를 바꾸거나 빈 칸으로 옮김, Swaps 하나 씀
 	void Discard(int HandIdx);
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
@@ -451,6 +454,7 @@ public:
 	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
 	int Gold = 0, Points = 0, GoldEarned = 0; // 골드, 산 포인트 수, 판에서 번 골드 합
+	int Swaps = 0;                            // 남은 자리바꿈 (보상, D-149)
 	float GoldCarry = 0.f;                    // 골드 덤의 소수 부분
 	FPDTreeBits TreeOwned = FPDTreeBits(1);   // 찍은 노드 (0번 시작점은 처음부터)
 	std::array<int, (int)EPDUpgrade::Count> Upg = {}; // 골드 강화 레벨

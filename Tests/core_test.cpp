@@ -167,6 +167,21 @@ static void UnitTests()
 		Expect(!bOnPath && bP1 && bP2 && G.Synergies.size() == 1 && G.Synergies[0].Kind == EPDHand::Pair && G.Hand.size() == 1, "설치 (길 위는 불가), 페어 생김");
 		G.Place(0, 1, 0);
 		Expect(G.Towers[CellKey(1, 0)].Card.Rank == 4 && G.Synergies.empty() && G.Discarded == 1, "타워 위에 놓으면 교체");
+		// 자리바꿈 (D-149): 남은 횟수가 있어야, 타워끼리 바꾸기 / 빈 칸으로 옮기기 / 길 위는 안 됨
+		G.Hand = {C(4, He)};
+		G.Towers[CellKey(0, 0)].Level = 2;
+		const bool bNone = G.SwapTowers(CellKey(0, 0), CellKey(1, 0));
+		G.Swaps = 3;
+		const bool bSw = G.SwapTowers(CellKey(0, 0), CellKey(1, 0));
+		const bool bSwOk = bSw && G.Towers[CellKey(1, 0)].Card.Rank == 9 && G.Towers[CellKey(1, 0)].Level == 2 && G.Towers[CellKey(1, 0)].X == 1 && G.Towers[CellKey(0, 0)].Card.Rank == 4;
+		const bool bPath = G.SwapTowers(CellKey(1, 0), CellKey(PX, PY));
+		int EX = -1;
+		for (int X = 2; X < Cols && EX < 0; ++X) if (G.Buildable(X, 0) && !G.Towers.count(CellKey(X, 0))) EX = X;
+		const bool bMove = EX >= 0 && G.SwapTowers(CellKey(1, 0), CellKey(EX, 0)) && !G.Towers.count(CellKey(1, 0)) && G.Towers[CellKey(EX, 0)].Level == 2;
+		Expect(!bNone && bSwOk && !bPath && bMove && G.Swaps == 1, "자리바꿈: 횟수 필요, 바꾸기·옮기기(레벨 따라감), 길 위 불가");
+		std::map<int, int> Seen;
+		for (int I = 0; I < 400; ++I) for (const FPDReward& R : G.RollRewards()) if (!R.bCharm) Seen[R.Id]++;
+		Expect(Seen[(int)EPDInstant::Swap] > 60, "부적 창에 자리바꿈이 자주 나온다 (" + std::to_string(Seen[(int)EPDInstant::Swap]) + "/400)");
 	}
 	{ // 와일드 카드
 		const FPDCard W{0, EPDSuit::Wild};
