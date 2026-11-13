@@ -382,7 +382,15 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.2f : 0.13f) * Alpha));
 				bool bAlready = !(bFilt && &List == &G.Synergies && !G.CanFuse(Si)); // 평소 장판엔 빗금 없음. 필터로 고른 족보 중 합성 못 하는 것만 여기서 빗금 (합성 되는 건 합성 표시가 그림, D-148)
 				if (bFilt) { if (Hatched.Contains(K)) bAlready = true; else Hatched.Add(K); }
-				if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
+				if (!bAlready && bFilt && UseAtlas()) // 필터 빗금은 합성 표시와 같이: 족보 색 ↔ 흰빛으로 오가며 깜빡 (D-148)
+				{
+					const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
+					const FLinearColor Pk = FMath::Lerp(Base, FLinearColor::White, 0.6f * Wv);
+					const FVector2f C0 = CellPx((float)X, (float)Y);
+					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pk, 0.16f + 0.16f * Wv));
+					F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pk, 0.45f + 0.25f * Wv));
+				}
+				else if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
 				{
 					const int32 Lyr = FMath::Min(SynLayer(List, Si), 2), Mask = (bL ? 1 : 0) | (bR ? 2 : 0) | (bU ? 4 : 0) | (bD ? 8 : 0);
 					F.Image(F.NextLayer(), &Atlas->HatchBrushes[Lyr * 16 + Mask], X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.55f : 0.3f) * Alpha));
