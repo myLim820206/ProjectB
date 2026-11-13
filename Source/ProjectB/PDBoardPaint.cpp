@@ -1002,6 +1002,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const bool bPv = !Preview.empty(); // 고른 카드를 놓으면 생길 족보를 보여 주는 중
 	// 족보 이름표 (타워 위에)
+	TArray<FBox2f> BadgeRects; // 이번 프레임에 놓인 이름표 자리
 	auto DrawBadges = [&](const std::vector<FPDSynergy>& List, float Alpha) {
 		for (int32 Si = 0; Si < (int32)List.size(); ++Si)
 		{
@@ -1009,7 +1010,18 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			int Top = S.Cells[0];
 			for (int K : S.Cells) if (K / Cols < Top / Cols || (K / Cols == Top / Cols && K % Cols < Top % Cols)) Top = K;
 			const FVector2f P = CellPx(Top % Cols + 0.5f, (float)(Top / Cols));
-			F.Badge(HandLabel(S), P.X, P.Y + 4.f + 13.f * SynLayer(List, Si), HandColor(S.Kind), Alpha);
+			// 겹치지 않게 (D-150): 이미 놓인 이름표와 겹치면 한 줄씩 아래로
+			const FString Lb = HandLabel(S);
+			const float W = FCanvas::Measure(Lb, FCanvas::Font(11.f, true)).X + 10.f, H = 16.f;
+			float Y = P.Y + 4.f;
+			for (int32 Try = 0; Try < 12; ++Try)
+			{
+				const FBox2f R(FVector2f(P.X - W / 2.f, Y - H / 2.f), FVector2f(P.X + W / 2.f, Y + H / 2.f));
+				if (!BadgeRects.ContainsByPredicate([&](const FBox2f& O) { return O.Intersect(R); })) break;
+				Y += H + 2.f;
+			}
+			BadgeRects.Add(FBox2f(FVector2f(P.X - W / 2.f - 1.f, Y - H / 2.f - 1.f), FVector2f(P.X + W / 2.f + 1.f, Y + H / 2.f + 1.f)));
+			F.Badge(Lb, P.X, Y, HandColor(S.Kind), Alpha);
 		}
 	};
 	// 이름표는 마우스가 올라간 타워의 족보만 (장판 색으로 구분, D-099). 놓기 미리보기는 그대로 보여 줌
@@ -1261,7 +1273,23 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.TextCentered(TEXT("조커 합치기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, MergeW - 6.f);
 		}
 	}
-	// 타워 정보 (마우스를 올리면)
+	for (const FFloatText& Ft : Floats)
+	{
+		const float U = Ft.T / Ft.MaxT, A = FMath::Min(1.f, (1.f - U) * 3.f), Pop = U < 0.12f ? 1.f + (0.12f - U) * 4.f : 1.f;
+		F.TextCentered(Ft.S, Ft.P.X, Ft.P.Y - U * 30.f, WithAlpha(Ft.Col, A), Ft.Size * Pop, true);
+	}
+	// 배너 (웨이브 시작·통과)
+	if (BannerT > 0.f)
+	{
+		const float U = 1.f - BannerT / BannerMax, A = FMath::Min(1.f, FMath::Min(U * 6.f, (1.f - U) * 4.f));
+		const float CY = FY + Rows * CS * 0.42f, Sweep = (1.f - FMath::Min(1.f, U * 5.f)) * 120.f;
+		F.Box(FX, CY - 40.f, Cols * CS, 80.f, Hex(TEXT("06060b"), 0.7f * A));
+		F.Glow({{FX, CY - 40.f}, {FX + Cols * CS, CY - 40.f}}, WithAlpha(BannerCol, A), 1.5f);
+		F.Glow({{FX, CY + 40.f}, {FX + Cols * CS, CY + 40.f}}, WithAlpha(BannerCol, A), 1.5f);
+		F.TextCentered(BannerText, FX + Cols * CS / 2.f - Sweep, CY - 8.f, WithAlpha(BannerCol, A), 40.f, true, Cols * CS - 20.f);
+		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false, Cols * CS - 20.f);
+	}
+	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
 	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward)
 	{
 		auto It = G.Towers.find(CellKey(HoverX, HoverY));
@@ -1302,22 +1330,6 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			if (T.Level >= 2) F.Text(FString::Printf(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 10.f, BYp + 86.f, Gold, 10.f, 0, false, 220.f);
 			}
 		}
-	}
-	for (const FFloatText& Ft : Floats)
-	{
-		const float U = Ft.T / Ft.MaxT, A = FMath::Min(1.f, (1.f - U) * 3.f), Pop = U < 0.12f ? 1.f + (0.12f - U) * 4.f : 1.f;
-		F.TextCentered(Ft.S, Ft.P.X, Ft.P.Y - U * 30.f, WithAlpha(Ft.Col, A), Ft.Size * Pop, true);
-	}
-	// 배너 (웨이브 시작·통과)
-	if (BannerT > 0.f)
-	{
-		const float U = 1.f - BannerT / BannerMax, A = FMath::Min(1.f, FMath::Min(U * 6.f, (1.f - U) * 4.f));
-		const float CY = FY + Rows * CS * 0.42f, Sweep = (1.f - FMath::Min(1.f, U * 5.f)) * 120.f;
-		F.Box(FX, CY - 40.f, Cols * CS, 80.f, Hex(TEXT("06060b"), 0.7f * A));
-		F.Glow({{FX, CY - 40.f}, {FX + Cols * CS, CY - 40.f}}, WithAlpha(BannerCol, A), 1.5f);
-		F.Glow({{FX, CY + 40.f}, {FX + Cols * CS, CY + 40.f}}, WithAlpha(BannerCol, A), 1.5f);
-		F.TextCentered(BannerText, FX + Cols * CS / 2.f - Sweep, CY - 8.f, WithAlpha(BannerCol, A), 40.f, true, Cols * CS - 20.f);
-		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false, Cols * CS - 20.f);
 	}
 }
 
