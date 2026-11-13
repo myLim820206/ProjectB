@@ -37,6 +37,8 @@ struct FPDSoundEvent
 
 // 소리 하나를 합성한다. 모노 16비트 PCM
 std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int SampleRate = 44100);
+// 배경 음악 (D-117): 80년대 신스웨이브. 104 BPM, A 단조, Am-F-C-G 16마디(약 37초), 끝과 처음이 이어지는 반복용 PCM
+std::vector<int16_t> SynthesizeMusic(int SampleRate = 44100);
 // 캐시 키
 inline int SoundKey(EPDSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }
 } // namespace PD

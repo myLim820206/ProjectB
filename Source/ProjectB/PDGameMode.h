@@ -3,10 +3,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "PDSynth.h"
+#include "Async/Future.h"
+#include <vector>
 #include "PDGameMode.generated.h"
 
 class SPDBoardWidget;
 class UAudioComponent;
+class USoundWaveProcedural;
 class ACameraActor;
 class UNiagaraSystem;
 
@@ -43,6 +46,15 @@ private:
 	// 이펙트 종류별 나이아가라 시스템 (Content/FX/NS_PD_*). 없는 칸은 nullptr
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UNiagaraSystem>> FxSystems; // SPDBoardWidget::EWorldFx 순서
+
+	// 배경 음악 (D-117): 시작할 때 백그라운드에서 한 번 합성, 큐가 줄면 한 바퀴를 다시 넣어 이음매 없이 반복
+	void UpdateMusic();
+	TFuture<std::vector<int16_t>> MusicJob;
+	TArray<uint8> MusicPcm;
+	UPROPERTY(Transient)
+	TObjectPtr<USoundWaveProcedural> MusicWave;
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> MusicVoice;
 
 	// 합성한 PCM 캐시 (소리 종류별로 한 번만 합성)
 	TMap<int32, TArray<uint8>> PcmCache;

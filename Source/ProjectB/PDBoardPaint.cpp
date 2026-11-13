@@ -1177,7 +1177,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	C.Box(SetBoxX, SetBoxY, SetBoxW, SetBoxH, Hex(TEXT("06060b"), 0.95f));
 	C.Glow(FCanvas::RoundRectPoints(SetBoxX, SetBoxY, SetBoxW, SetBoxH, 10.f), Cyan, 1.4f, 0.7f);
 	C.TextCentered(TEXT("설정"), DesignW / 2.f, SetBoxY + 40.f, Cyan, 24.f, true);
-	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("볼륨"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		if (bOn) C.Box(X, Y, W, SetBtnH, WithAlpha(Col, 0.12f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, 6.f), Col, bOn ? 1.6f : 1.1f, bOn ? (bRowSel ? 1.f + 0.5f * Pulse : 0.9f) : 0.35f);
@@ -1207,9 +1207,10 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			break;
 		}
 		case ESetRow::Volume:
+		case ESetRow::Music:
 		{
 			const FVector2f M = SetBtnPos(Row, 0), Bar = SetBtnPos(Row, 1), Pl = SetBtnPos(Row, 2);
-			const float BarW = SetBtnW(Row, 1), V = Settings.bSound ? Settings.Volume : 0.f;
+			const float BarW = SetBtnW(Row, 1), V = Settings.bSound ? (Row == (int32)ESetRow::Music ? Settings.MusicVolume : Settings.Volume) : 0.f;
 			Button(M.X, M.Y, SetBtnW(Row, 0), TEXT("−"), Cyan, true, bRowSel);
 			Button(Pl.X, Pl.Y, SetBtnW(Row, 2), TEXT("+"), Cyan, true, bRowSel);
 			C.Box(Bar.X, Bar.Y + 6.f, BarW * V, SetBtnH - 12.f, WithAlpha(Cyan, 0.25f));

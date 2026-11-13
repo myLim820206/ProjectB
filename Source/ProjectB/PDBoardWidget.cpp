@@ -32,9 +32,11 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetBool(PDSetSection, TEXT("Shake"), Settings.bShake, GGameUserSettingsIni);
 		GConfig->GetBool(PDSetSection, TEXT("Sound"), Settings.bSound, GGameUserSettingsIni);
 		GConfig->GetFloat(PDSetSection, TEXT("Volume"), Settings.Volume, GGameUserSettingsIni);
+		GConfig->GetFloat(PDSetSection, TEXT("MusicVolume"), Settings.MusicVolume, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
 	}
 	Settings.Volume = FMath::Clamp(Settings.Volume, 0.f, 1.f);
+	Settings.MusicVolume = FMath::Clamp(Settings.MusicVolume, 0.f, 1.f);
 	if (!GIsEditor && GEngine && GEngine->GetGameUserSettings()) // 실제 화면 모드는 엔진이 저장한 값
 	{
 		switch (GEngine->GetGameUserSettings()->GetFullscreenMode())
@@ -66,6 +68,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetBool(PDSetSection, TEXT("Shake"), Settings.bShake, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Sound"), Settings.bSound, GGameUserSettingsIni);
 	GConfig->SetFloat(PDSetSection, TEXT("Volume"), Settings.Volume, GGameUserSettingsIni);
+	GConfig->SetFloat(PDSetSection, TEXT("MusicVolume"), Settings.MusicVolume, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
@@ -111,6 +114,11 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 		if (Settings.Volume > 0.f && !Settings.bSound) SetSound(true);
 		else SaveSettings();
 		break;
+	case ESetRow::Music:
+		Settings.MusicVolume = FMath::Clamp(FMath::RoundToFloat((Settings.MusicVolume + 0.1f * Delta) * 10.f) / 10.f, 0.f, 1.f);
+		if (Settings.MusicVolume > 0.f && !Settings.bSound) SetSound(true);
+		else SaveSettings();
+		break;
 	case ESetRow::Close: bSettings = false; return;
 	default: return;
 	}
@@ -127,12 +135,13 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			if (!InRect(P, B.X, B.Y, SetBtnW(Row, I), SetBtnH)) continue;
 			SetSel = Row;
 			if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
-			else if (Row == (int32)ESetRow::Volume)
+			else if (SetBarRow(Row))
 			{
 				if (I == 1) // 막대: 누른 자리로
 				{
-					Settings.Volume = FMath::Clamp(FMath::RoundToFloat((P.X - B.X) / SetBtnW(Row, 1) * 10.f) / 10.f, 0.f, 1.f);
-					if (Settings.Volume > 0.f && !Settings.bSound) SetSound(true);
+					float& Vol = Row == (int32)ESetRow::Music ? Settings.MusicVolume : Settings.Volume;
+					Vol = FMath::Clamp(FMath::RoundToFloat((P.X - B.X) / SetBtnW(Row, 1) * 10.f) / 10.f, 0.f, 1.f);
+					if (Vol > 0.f && !Settings.bSound) SetSound(true);
 					else SaveSettings();
 					UiSound(EPDSound::Move);
 				}

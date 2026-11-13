@@ -393,17 +393,18 @@ inline const TCHAR* MenuItemName(int I)
 	return N[I];
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
-enum class ESetRow : uint8_t { Window, WorldFx, Shake, Sound, Volume, Close, Count };
+enum class ESetRow : uint8_t { Window, WorldFx, Shake, Sound, Volume, Music, Close, Count };
 constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 12.f, SetLabelW = 200.f, SetBtnH = 32.f;
 constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 220.f;
 constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 80.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
-inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || Row == (int)ESetRow::Volume ? 3 : 1; }
+inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || SetBarRow(Row) ? 3 : 1; }
 inline float SetBtnW(int Row, int Idx)
 {
 	if (Row == (int)ESetRow::Window) return 112.f;
-	if (Row == (int)ESetRow::Volume) return Idx == 1 ? 220.f : 40.f;
+	if (SetBarRow(Row)) return Idx == 1 ? 220.f : 40.f;
 	if (Row == (int)ESetRow::Close) return 160.f;
 	return 120.f;
 }
@@ -411,7 +412,7 @@ inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 {
 	const float X0 = SetX + SetLabelW, Y = SetRowY(Row) + (SetRowH - SetBtnH) / 2.f;
 	if (Row == (int)ESetRow::Window) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
-	if (Row == (int)ESetRow::Volume) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
+	if (SetBarRow(Row)) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
 	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
 	return FVector2f(X0, Y);
 }

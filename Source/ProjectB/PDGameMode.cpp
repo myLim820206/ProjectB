@@ -1,5 +1,6 @@
 #include "PDGameMode.h"
 
+#include "Async/Async.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/AudioComponent.h"
@@ -36,6 +37,7 @@ void APDGameMode::Tick(float DeltaSeconds)
 	UpdateWorldView();
 	PlayWorldFx();
 	for (const PD::FPDSoundEvent& E : BoardWidget->TakeSounds()) PlayGameSound(E);
+	UpdateMusic();
 	// 끝난 소리 정리
 	for (int32 I = Voices.Num() - 1; I >= 0; --I)
 	{
@@ -85,9 +87,34 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 	}
 }
 
+void APDGameMode::UpdateMusic()
+{
+	if (MusicPcm.Num() == 0)
+	{
+		if (!MusicJob.IsValid() || !MusicJob.IsReady()) return;
+		const std::vector<int16_t> Samples = MusicJob.Get();
+		MusicPcm.SetNumUninitialized((int32)(Samples.size() * sizeof(int16_t)));
+		FMemory::Memcpy(MusicPcm.GetData(), Samples.data(), MusicPcm.Num());
+		if (MusicPcm.Num() == 0) return;
+		MusicWave = NewObject<USoundWaveProcedural>(this);
+		MusicWave->SetSampleRate(PDSampleRate);
+		MusicWave->NumChannels = 1;
+		MusicWave->Duration = INDEFINITELY_LOOPING_DURATION;
+		MusicWave->bLooping = false;
+		MusicWave->QueueAudio(MusicPcm.GetData(), MusicPcm.Num());
+		MusicWave->QueueAudio(MusicPcm.GetData(), MusicPcm.Num());
+		MusicVoice = UGameplayStatics::CreateSound2D(this, MusicWave, 1.f, 1.f, 0.f, nullptr, false, false);
+		if (MusicVoice) { MusicVoice->bIsUISound = true; MusicVoice->Play(); }
+	}
+	if (!MusicWave || !MusicVoice || !BoardWidget.IsValid()) return;
+	if (MusicWave->GetAvailableAudioByteCount() < MusicPcm.Num() / 2) MusicWave->QueueAudio(MusicPcm.GetData(), MusicPcm.Num()); // 반 바퀴 남으면 한 바퀴 더
+	MusicVoice->SetVolumeMultiplier(FMath::Max(0.001f, BoardWidget->GetMusicVolume()));
+}
+
 void APDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	MusicJob = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMusic(PDSampleRate); }); // 배경 음악 합성 (D-117)
 	if (!GEngine || !GEngine->GameViewport) return;
 
 	SAssignNew(BoardWidget, SPDBoardWidget);
@@ -222,5 +249,7 @@ void APDGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	for (UAudioComponent* V : Voices)
 		if (V) V->DestroyComponent();
 	Voices.Empty();
+	if (MusicVoice) { MusicVoice->Stop(); MusicVoice->DestroyComponent(); MusicVoice = nullptr; }
+	MusicWave = nullptr;
 	Super::EndPlay(EndPlayReason);
 }
