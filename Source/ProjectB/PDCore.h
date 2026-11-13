@@ -1,13 +1,14 @@
 // 포커 디펜스 규칙 코어
 // 언리얼 의존성이 없는 순수 C++17. 언리얼 모듈 안에서 그대로 컴파일되고,
-// Tests/core_test.cpp 가 이 파일만 g++ 로 컴파일해 단위 시험과 봇 시험을 돌린다.
-// 웹 프로토타입(prototype/poker-defense/index.html, v1.2)의 규칙을 옮겼다.
+// Tests/core_test.cpp 가 이 파일과 PDSynth.cpp 만 컴파일해 단위 시험과 봇 시험을 돌린다 (Tests/run.sh).
+// 처음 규칙은 웹 프로토타입(prototype/poker-defense/index.html, v1.2)에서 옮겼고, 그 뒤 기능은 여기에만 있다.
 // 좌표는 모두 칸 단위 (칸 중심 = x + 0.5). 화면 픽셀 변환은 위젯이 한다.
 #pragma once
 
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <random>
 #include <vector>
@@ -20,7 +21,7 @@ constexpr int Cols = 16;
 constexpr int Rows = 10;
 constexpr int HandMaxBase = 7;
 constexpr int CharmMax = 5;
-constexpr int NumWaves = 15; // 1회차 기준 (보스 3종이 한 바퀴). 진행은 무한, 목숨이 0이 되면 끝
+constexpr int NumWaves = 15; // 1회차 (보스 3종이 한 바퀴). 진행은 무한이고 목숨이 0이 되면 끝. 이 뒤로는 적 체력이 더 천천히 오른다
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
 constexpr int DrawPerWave = 3;
@@ -236,8 +237,14 @@ struct FPDTowerStats
 	float CritFactor() const { return 1.f + Crit * (CritMult - 1.f); } // 기대 배율
 };
 FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
-// 판 위력 어림 (D-107): 타워마다 피해 × 연사 × 치명타 기대 × (1 + 범위 × 0.8) 의 합. 조커 능력은 어림 배율
-// (희비극 ×1.8, 스타 ×4, 방울 ×1.3, 웃는 가면은 따라 하는 타워). 사거리·적 위치는 보지 않는다 (화면 비교용)
+// 타워 하나의 어림 위력: 피해 × 연사 × 치명타 기대 × (1 + 범위 × 0.8)
+double TowerPower(const FPDTowerStats& S);
+// 판 위력 어림의 합: 타워마다 TowerPower × Weight(타워, 사거리). 조커 능력은 어림 배율
+// (희비극 ×1.8, 스타 ×4, 방울 ×1.3, 웃는 가면은 따라 하는 타워). Towers 는 ApplyEffects 를 마친 판. Weight 가 없으면 1
+// 봇(Tests/core_test.cpp)은 Weight 로 사거리 안 길 칸 수를 곱한다
+using FPDPowerWeight = std::function<double(const FPDTower& T, float Range)>;
+double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
+// 판 위력 어림 (D-107, 화면 비교용): 사거리·적 위치는 보지 않는다
 float BoardPower(FPDTowerMap Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
 
 // ---------------------------------------------------------------- 길
@@ -316,7 +323,7 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Win, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact } Kind = EKind::Shot;
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
@@ -326,7 +333,7 @@ struct FPDEvent
 	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: A=새 레벨, B=오른 레벨 수, R=얻은 경험치 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도
 };
 
-enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Win }; // Reward: 웨이브 보상 고르는 중
+enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over }; // Reward: 부적 창에서 고르는 중
 
 class FPDGame
 {
@@ -407,7 +414,9 @@ private:
 	void EndWave();
 	void Hit(FPDEnemy& E, float Dmg, float Slow);
 	int AddGold(float Amount);
-	void Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits, bool bMain);
+	void Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits);
+	bool InPlay() const { return Phase == EPDPhase::Build || Phase == EPDPhase::Wave; } // 설치·합성·구매를 할 수 있는 단계
+	void AddFreshDeck(); // 52장 한 벌을 덱에 넣고 섞는다
 	void Explode(const FPDProjectile& P, FPDEnemy* Target);
 	void UpdateProjectiles(float Dt);
 	void Ev(const FPDEvent& E) { Events.push_back(E); }

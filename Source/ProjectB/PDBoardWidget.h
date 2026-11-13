@@ -6,8 +6,9 @@
 #include "PDCore.h"
 
 // 포커 디펜스 화면 전체. 1280 x 720 기준 좌표로 그리고 창 크기에 맞춰 확대한다.
-// 그래픽은 도형과 선뿐이고, 네온 빛번짐은 굵고 옅은 선 위에 가늘고 밝은 선을 겹쳐 흉내 낸다.
-// 이펙트(레이저, 불꽃, 충격파, 파편, 족보 섬광, 연쇄 번개, 화면 흔들림, 배너)는 이 위젯이 직접 만든다.
+// 그래픽은 도형과 선뿐이고, 네온 빛번짐은 굵고 옅은 선 위에 가늘고 밝은 선을 겹쳐 흉내 낸다 (docs/15-art-style.md).
+// Slate 이펙트(빛줄기, 파티클, 파동, 별빛, 몸 조각, 흔들림, 배너)는 이 위젯이 그리고, 나이아가라 월드 이펙트는 요청만 쌓는다.
+// 파일: PDBoardWidget.cpp 틱·입력 / PDBoardFx.cpp 이펙트 / PDBoardPaint.cpp 그리기 / PDBoardDraw.h 그리기 도우미
 class SPDBoardWidget : public SCompoundWidget
 {
 public:
@@ -58,8 +59,15 @@ public:
 	TFunction<void()> OnQuit;
 
 private:
-	struct FCanvas; // 그리기 도우미 (cpp 안에 정의)
-	void PaintAll(FCanvas& C, FCanvas& F) const;
+	struct FCanvas; // 그리기 도우미 (PDBoardDraw.h)
+	void PaintAll(FCanvas& C, FCanvas& F) const; // C = 고정 화면, F = 흔들림을 받는 판
+	void PaintField(FCanvas& F) const;     // 판, 족보 장판, 타워, 적
+	void PaintShots(FCanvas& F) const;     // 날아가는 발사체
+	void PaintEffects(FCanvas& F) const;   // 빛줄기, 별빛, 몸 조각, 파동, 파티클
+	void PaintBoardUi(FCanvas& F) const;   // 족보 이름표, 합성·먹이기·조커 버튼, 타워 정보, 떠오르는 글자, 배너
+	void PaintPanels(FCanvas& C) const;    // 손패, 오른쪽 상태 패널, 부적
+	void PaintScreens(FCanvas& C) const;   // 부적 고르기, 조커 도감, 골드 강화 창
+	void PaintTree(FCanvas& C) const;      // 스킬 트리 창
 	void PaintHandGuide(FCanvas& C) const; // 왼쪽 족보 패널
 	void PaintMenu(FCanvas& C) const;      // Esc 메뉴 창
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
@@ -74,6 +82,7 @@ private:
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
 	int32 MenuSel = 0;                     // 키보드로 고른 메뉴 항목
 	void HandleEvents();
+	void UiSound(PD::EPDSound S);           // 화면 조작 소리 (음소거면 안 냄)
 	void UpdateFx(float Dt);
 	void UpdatePreview();
 	FVector2f ToDesign(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
@@ -150,6 +159,8 @@ private:
 	void DeathFx(FVector2f P, PD::EPDEnemy Type);                                   // 죽는 순간
 	void CritFx(FVector2f P, int32 N); // 치명타 흰 불꽃
 	void Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak = false, float Gravity = 0.f);
+	// PendingFuseCells 에서 P 로 빨려 드는 입자 (합성·조커 합성·먹이기). 색은 I % Every 가 0 이면 ColB, 아니면 ColA
+	void SuckIn(FVector2f P, int PerCell, float Jitter, float Life, float SizeMin, float SizeMax, const FLinearColor& ColA, const FLinearColor& ColB, int Every);
 
 	PD::FPDGame Game;
 	FSlateColorBrush WhiteBrush = FSlateColorBrush(FLinearColor::White);

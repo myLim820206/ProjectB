@@ -175,6 +175,18 @@ std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 
 // ---------------------------------------------------------------- 시너지
 static const int GPDN4[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+// 칸 K 의 상하좌우 이웃 칸 키마다 Fn (판 밖은 건너뜀)
+template <class F> static void PDForNeighbors(int K, F&& Fn)
+{
+	const int X = K % Cols, Y = K / Cols;
+	for (const auto& D : GPDN4)
+	{
+		const int NX = X + D[0], NY = Y + D[1];
+		if (NX >= 0 && NY >= 0 && NX < Cols && NY < Rows) Fn(CellKey(NX, NY));
+	}
+}
+// 두 칸의 맨해튼 거리 (1 = 맞닿음)
+static int PDCellDist(int A, int B) { return std::abs(A % Cols - B % Cols) + std::abs(A / Cols - B / Cols); }
 
 // ESU 방식으로 연결 묶음(2~KMax칸)을 한 번씩만 만든다: 시작점보다 번호가 큰 칸으로만 넓힌다
 static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& Sub, const std::vector<int>& Ext, int Root, int KMax, std::vector<std::vector<int>>& Out)
@@ -205,11 +217,10 @@ static bool PDOrderedStraight(const std::vector<int>& Cells, const std::vector<F
 	const int N = (int)Cells.size();
 	std::vector<int> P(N);
 	for (int I = 0; I < N; ++I) P[I] = I;
-	auto Adjacent = [](int A, int B) { return std::abs(A % Cols - B % Cols) + std::abs(A / Cols - B / Cols) == 1; };
 	do
 	{
 		bool bPath = true;
-		for (int I = 1; I < N && bPath; ++I) bPath = Adjacent(Cells[P[I - 1]], Cells[P[I]]);
+		for (int I = 1; I < N && bPath; ++I) bPath = PDCellDist(Cells[P[I - 1]], Cells[P[I]]) == 1;
 		if (!bPath) continue;
 		for (const bool bAceLow : {false, true})
 		{
@@ -244,14 +255,9 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			const int K = Stack.back();
 			Stack.pop_back();
 			Comp.push_back(K);
-			const int X = K % Cols, Y = K / Cols;
-			for (const auto& D : GPDN4)
-			{
-				const int NX = X + D[0], NY = Y + D[1];
-				if (NX < 0 || NY < 0 || NX >= Cols || NY >= Rows) continue;
-				const int NK = CellKey(NX, NY);
+			PDForNeighbors(K, [&](int NK) {
 				if (Towers.count(NK) && !Seen.count(NK) && (Towers.at(NK).Level == Towers.at(K).Level || Towers.at(NK).IsJoker() || Towers.at(K).IsJoker())) { Seen.insert(NK); Stack.push_back(NK); } // 같은 레벨끼리만 이어짐 (조커는 아무 레벨과)
-			}
+			});
 		}
 		if (Comp.size() < 2) continue;
 		std::sort(Comp.begin(), Comp.end());
@@ -259,16 +265,10 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 		for (int I = 0; I < (int)Comp.size(); ++I) Idx[Comp[I]] = I;
 		std::vector<std::vector<int>> Nb(Comp.size());
 		for (int I = 0; I < (int)Comp.size(); ++I)
-		{
-			const int X = Comp[I] % Cols, Y = Comp[I] / Cols;
-			for (const auto& D : GPDN4)
-			{
-				const int NX = X + D[0], NY = Y + D[1];
-				if (NX < 0 || NY < 0 || NX >= Cols || NY >= Rows) continue;
-				auto It = Idx.find(CellKey(NX, NY));
+			PDForNeighbors(Comp[I], [&](int NK) {
+				auto It = Idx.find(NK);
 				if (It != Idx.end()) Nb[I].push_back(It->second);
-			}
-		}
+			});
 		std::vector<std::vector<int>> Subs;
 		for (int V = 0; V < (int)Comp.size(); ++V)
 		{
@@ -332,14 +332,10 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 		for (int K : Picked[I].Cells)
 		{
 			for (int J : Owner[K]) if (J != I) Adj[I].insert(J);
-			const int X = K % Cols, Y = K / Cols;
-			for (const auto& D : GPDN4)
-			{
-				const int NX = X + D[0], NY = Y + D[1];
-				if (NX < 0 || NY < 0 || NX >= Cols || NY >= Rows) continue;
-				auto It = Owner.find(CellKey(NX, NY));
+			PDForNeighbors(K, [&](int NK) {
+				auto It = Owner.find(NK);
 				if (It != Owner.end()) for (int J : It->second) if (J != I) Adj[I].insert(J);
-			}
+			});
 		}
 	int Cid = 0;
 	for (int I = 0; I < (int)Picked.size(); ++I)
@@ -361,13 +357,38 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 	return Picked;
 }
 
+// 족보 효과 (공격력·연사·사거리 배율, 범위). 합성 타워는 부적 없이(Charms = 0) 구한 값을 특성으로 물려받는다
+struct FPDTrait
+{
+	float Dmg = 1.f, Rate = 1.f, Range = 1.f, Splash = 0.f;
+};
+static FPDTrait HandTrait(EPDHand H, int N, uint32_t Charms = 0)
+{
+	const float PairK = HasCharm(Charms, EPDCharm::Twins) ? 2.f : 1.5f;
+	FPDTrait T;
+	switch (H)
+	{
+	case EPDHand::Pair: T.Dmg = PairK; break;
+	case EPDHand::TwoPair: T.Dmg = PairK; T.Range = 1.25f; break;
+	case EPDHand::Triple: T.Dmg = 2.f; break;
+	case EPDHand::Straight: T.Rate = 1.f + (HasCharm(Charms, EPDCharm::LineLover) ? 0.5f : 0.25f) * (N - 1); break;
+	case EPDHand::Flush: T.Splash = 0.5f + 0.25f * N + (HasCharm(Charms, EPDCharm::WideFlush) ? 0.75f : 0.f); break;
+	case EPDHand::FullHouse: T.Dmg = 1.5f; T.Rate = 1.5f; T.Splash = 1.5f; break;
+	case EPDHand::Four: T.Dmg = 3.5f; break;
+	case EPDHand::StraightFlush: T.Dmg = 2.f; T.Rate = 2.f; T.Splash = 2.f; break;
+	case EPDHand::Five: T.Dmg = 5.f; break;
+	case EPDHand::RoyalFlush: T.Dmg = 2.5f; T.Rate = 2.5f; T.Splash = 2.5f; break;
+	default: break;
+	}
+	return T;
+}
+
 std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree)
 {
 	static const FPDTreeMods NoTree;
 	const FPDTreeMods& Tm = Tree ? *Tree : NoTree;
 	std::vector<FPDSynergy> Syn = ComputeSynergies(Towers);
 	const float Step = (HasCharm(Charms, EPDCharm::ChainLink) ? 0.45f : ChainStep) + Tm.ChainAdd + (Tm.Key(EPDKeystone::Crowd) ? 0.15f : 0.f);
-	const float PairK = HasCharm(Charms, EPDCharm::Twins) ? 2.f : 1.5f;
 	for (auto& KV : Towers) KV.second.Eff = FPDEffects{};
 	for (int I = 0; I < (int)Syn.size(); ++I)
 		for (int K : Syn[I].Cells)
@@ -377,19 +398,14 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 			if (E.Hand < 0) { E.Hand = I; E.Kind = (int)Syn[I].Kind; E.N = N; } // 대표 족보: 가장 큰 것 (Syn 은 큰 족보부터)
 			E.Kinds |= 1u << (int)Syn[I].Kind;
 			const bool bSkip = Tm.Key(EPDKeystone::BigTable) && N == 2; // 큰 판: 2장 족보는 효과 없음
-			if (!bSkip) switch (Syn[I].Kind)
+			const bool bOmniFlush = Tm.Key(EPDKeystone::Omni) && Syn[I].Kind == EPDHand::Flush; // 잡식가: 플러시 효과 없음
+			if (!bSkip && !bOmniFlush)
 			{
-			case EPDHand::Pair: E.Dmg *= PairK; break;
-			case EPDHand::TwoPair: E.Dmg *= PairK; E.Range *= 1.25f; break;
-			case EPDHand::Triple: E.Dmg *= 2.f; break;
-			case EPDHand::Straight: E.Rate *= 1.f + (HasCharm(Charms, EPDCharm::LineLover) ? 0.5f : 0.25f) * (N - 1); break;
-			case EPDHand::Flush: if (!Tm.Key(EPDKeystone::Omni)) E.Splash = std::max(E.Splash, 0.5f + 0.25f * N + (HasCharm(Charms, EPDCharm::WideFlush) ? 0.75f : 0.f)); break; // 잡식가: 플러시 효과 없음
-			case EPDHand::FullHouse: E.Dmg *= 1.5f; E.Rate *= 1.5f; E.Splash = std::max(E.Splash, 1.5f); break;
-			case EPDHand::Four: E.Dmg *= 3.5f; break;
-			case EPDHand::StraightFlush: E.Dmg *= 2.f; E.Rate *= 2.f; E.Splash = std::max(E.Splash, 2.f); break;
-			case EPDHand::Five: E.Dmg *= 5.f; break;
-			case EPDHand::RoyalFlush: E.Dmg *= 2.5f; E.Rate *= 2.5f; E.Splash = std::max(E.Splash, 2.5f); break;
-			default: break;
+				const FPDTrait H = HandTrait(Syn[I].Kind, N, Charms);
+				E.Dmg *= H.Dmg;
+				E.Rate *= H.Rate;
+				E.Range *= H.Range;
+				E.Splash = std::max(E.Splash, H.Splash);
 			}
 			const bool bNoChain = bSkip || Tm.Key(EPDKeystone::Lone) || (Tm.Key(EPDKeystone::SmallTable) && N == 5); // 고독한 저격수·작은 판(5장)은 연쇄 덤 없음
 			if (Syn[I].Chain >= 2 && E.Chain < 2) { if (!bNoChain) E.Dmg *= 1.f + Step * (Syn[I].Chain - 1); E.Chain = Syn[I].Chain; } // 연쇄 덤은 타워마다 한 번 (족보를 나눠 쓰면 같은 연쇄)
@@ -568,32 +584,6 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	return St;
 }
 
-// ---------------------------------------------------------------- 합성
-// 족보 효과를 특성으로 (부적과 무관한 기본값)
-struct FPDTrait
-{
-	float Dmg = 1.f, Rate = 1.f, Range = 1.f, Splash = 0.f;
-};
-static FPDTrait HandTrait(EPDHand H, int N)
-{
-	FPDTrait T;
-	switch (H)
-	{
-	case EPDHand::Pair: T.Dmg = 1.5f; break;
-	case EPDHand::TwoPair: T.Dmg = 1.5f; T.Range = 1.25f; break;
-	case EPDHand::Triple: T.Dmg = 2.f; break;
-	case EPDHand::Straight: T.Rate = 1.f + 0.25f * (N - 1); break;
-	case EPDHand::Flush: T.Splash = 0.5f + 0.25f * N; break;
-	case EPDHand::FullHouse: T.Dmg = 1.5f; T.Rate = 1.5f; T.Splash = 1.5f; break;
-	case EPDHand::Four: T.Dmg = 3.5f; break;
-	case EPDHand::StraightFlush: T.Dmg = 2.f; T.Rate = 2.f; T.Splash = 2.f; break;
-	case EPDHand::Five: T.Dmg = 5.f; break;
-	case EPDHand::RoyalFlush: T.Dmg = 2.5f; T.Rate = 2.5f; T.Splash = 2.5f; break;
-	default: break;
-	}
-	return T;
-}
-
 // ---------------------------------------------------------------- 길
 void FPDPath::Build(const std::vector<std::array<int, 2>>& InCorners)
 {
@@ -697,8 +687,7 @@ void FPDGame::NewGame(bool bStart)
 	Charms.clear();
 	Rewards.clear();
 	Projectiles.clear();
-	for (int S = 0; S < 4; ++S) for (int R = 2; R <= 14; ++R) Deck.push_back({R, (EPDSuit)S});
-	std::shuffle(Deck.begin(), Deck.end(), Rng);
+	AddFreshDeck();
 	Path.Build(GeneratePath(Rng));
 	Draw(StartHand);
 }
@@ -744,7 +733,7 @@ int FPDGame::UpgradeBatchCost(EPDUpgrade U, int N) const
 
 int FPDGame::Upgrade(EPDUpgrade U, int N)
 {
-	if (Phase != EPDPhase::Build && Phase != EPDPhase::Wave) return 0;
+	if (!InPlay()) return 0;
 	int Done = 0;
 	int& L = Upg[(int)U];
 	while (Done < N && L < UpgradeMax && Gold >= UpgradeCost(L))
@@ -777,7 +766,7 @@ bool FPDGame::TreeSealed(int Id) const
 
 FPDGame::EBuy FPDGame::CanBuy(int Id) const
 {
-	if (Phase != EPDPhase::Build && Phase != EPDPhase::Wave) return EBuy::Closed;
+	if (!InPlay()) return EBuy::Closed;
 	if (Id < 0 || Id >= TreeNodeCount()) return EBuy::Closed;
 	if (TreeOwnedNode(Id)) return EBuy::Owned;
 	if (TreeSealed(Id)) return EBuy::Sealed;
@@ -812,6 +801,12 @@ uint32_t FPDGame::CharmMask() const
 	return M;
 }
 
+void FPDGame::AddFreshDeck()
+{
+	for (int S = 0; S < 4; ++S) for (int R = 2; R <= 14; ++R) Deck.push_back({R, (EPDSuit)S});
+	std::shuffle(Deck.begin(), Deck.end(), Rng);
+}
+
 void FPDGame::Draw(int N, int* OutGot)
 {
 	int Got = 0;
@@ -819,8 +814,7 @@ void FPDGame::Draw(int N, int* OutGot)
 	{
 		if (Deck.empty()) // 무한 진행: 덱이 비면 새 덱 한 벌을 섞어 채운다
 		{
-			for (int S = 0; S < 4; ++S) for (int R = 2; R <= 14; ++R) Deck.push_back({R, (EPDSuit)S});
-			std::shuffle(Deck.begin(), Deck.end(), Rng);
+			AddFreshDeck();
 			DeckRefills++;
 		}
 		Hand.push_back(Deck.back());
@@ -852,8 +846,8 @@ float WaveScale(int W) { return (8.f + 2.f * W) / (float)WaveCount(W); }
 std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
-	// 무한 진행: 15웨이브까지 ×1.45, 그 뒤로는 ×1.3씩
-	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, 15) - 1)) * std::pow(1.3f, (float)std::max(0, W - 15)) * EarlyHpK(W); // 초반 완화 (D-106)
+	// 무한 진행: NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 ×1.3씩
+	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(1.3f, (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
 	const float Hp = BossHp * WaveScale(W) * MobHpBonus; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
 	const int N = WaveCount(W);
 	for (int I = 0; I < N; ++I)
@@ -902,7 +896,7 @@ void FPDGame::EndWave()
 		Phase = EPDPhase::Reward;
 		Rewards = RollRewards();
 	}
-	else // 그 사이는 창 없이 5초 뒤 다음 웨이브
+	else // 그 사이는 창 없이 AutoStartDelayFor 초(초반 12초, 그 뒤 5초) 뒤 다음 웨이브
 	{
 		Rewards.clear();
 		Phase = EPDPhase::Build;
@@ -982,7 +976,7 @@ std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPD
 
 bool FPDGame::Place(int HandIdx, int X, int Y)
 {
-	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return false;
+	if (!InPlay()) return false;
 	if (HandIdx < 0 || HandIdx >= (int)Hand.size() || !Buildable(X, Y)) return false;
 	const int Key = CellKey(X, Y);
 	auto Sig = [](const FPDSynergy& S) { std::vector<int> V = S.Cells; std::sort(V.begin(), V.end()); V.push_back((int)S.Kind); return V; };
@@ -1027,29 +1021,43 @@ bool FPDGame::Place(int HandIdx, int X, int Y)
 	return true;
 }
 
-float BoardPower(FPDTowerMap Towers, uint32_t Charms, const FPDTreeMods* Tree)
+double TowerPower(const FPDTowerStats& S) { return (double)(S.Dmg * S.Rate * S.CritFactor()) * (1 + S.Splash * 0.8); }
+
+double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
 {
-	ApplyEffects(Towers, Charms, Tree);
-	auto Base = [&](const FPDTower& T) { const FPDTowerStats S = TowerStats(T, Charms, Tree); return S.Dmg * S.Rate * S.CritFactor() * (1.f + S.Splash * 0.8f); };
-	float Sum = 0.f;
+	auto W = [&](const FPDTower& At, float Range) { return Weight ? Weight(At, Range) : 1.0; };
+	double Sum = 0;
 	for (const auto& KV : Towers)
 	{
 		const FPDTower& T = KV.second;
-		float V = Base(T);
+		const FPDTowerStats S = TowerStats(T, Charms, Tree);
+		double V = TowerPower(S) * W(T, S.Range);
 		if (T.IsJoker())
 		{
 			switch ((EPDJoker)T.Joker)
 			{
-			case EPDJoker::Comedy: V *= 1.8f; break; // 두 발
-			case EPDJoker::Star: V *= 4.f; break;    // 모든 적
-			case EPDJoker::Bell: V *= 1.3f; break;   // 멈춤
-			case EPDJoker::Mask: if (T.Eff.CopyKey >= 0 && Towers.count(T.Eff.CopyKey)) V = std::max(V, Base(Towers.at(T.Eff.CopyKey))); break; // 옆 타워 따라 함
+			case EPDJoker::Comedy: V *= 1.8; break; // 두 발
+			case EPDJoker::Star: V *= 4.0; break;   // 모든 적 (한 번에 적 여럿)
+			case EPDJoker::Bell: V *= 1.3; break;   // 멈춤
+			case EPDJoker::Mask:                    // 옆 타워 따라 함 (가면 자리에서 그 타워의 사거리로)
+				if (T.Eff.CopyKey >= 0 && Towers.count(T.Eff.CopyKey))
+				{
+					const FPDTowerStats O = TowerStats(Towers.at(T.Eff.CopyKey), Charms, Tree);
+					V = std::max(V, TowerPower(O) * W(T, O.Range));
+				}
+				break;
 			default: break;
 			}
 		}
 		Sum += V;
 	}
 	return Sum;
+}
+
+float BoardPower(FPDTowerMap Towers, uint32_t Charms, const FPDTreeMods* Tree)
+{
+	ApplyEffects(Towers, Charms, Tree);
+	return (float)SumBoardPower(Towers, Charms, Tree);
 }
 
 FPDGame::FPowerPreview FPDGame::PreviewPower(EPowerAction Action, int Idx) const
@@ -1071,7 +1079,7 @@ FPDGame::FPowerPreview FPDGame::PreviewPower(EPowerAction Action, int Idx) const
 
 bool FPDGame::CanFuse(int SynergyIdx) const
 {
-	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return false;
+	if (!InPlay()) return false;
 	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return false;
 	for (int K : Synergies[SynergyIdx].Cells) if (Towers.at(K).IsJoker()) return false; // 조커가 든 족보는 합성하지 않는다
 	return Towers.at(Synergies[SynergyIdx].Cells[0]).Level < (Mods.Key(EPDKeystone::ClownPath) ? 2 : MaxLevel); // 광대의 길: 합성은 레벨 2까지
@@ -1080,7 +1088,7 @@ bool FPDGame::CanFuse(int SynergyIdx) const
 std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 {
 	std::vector<FPDJokerGroup> Out;
-	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return Out;
+	if (!InPlay()) return Out;
 	if (Mods.Key(EPDKeystone::Smith)) return Out; // 대장장이: 조커 포탑을 만들 수 없다
 	// 재료 후보: 조커가 없는 족보 + 족보에 안 든 합성 타워
 	struct FNode
@@ -1100,7 +1108,7 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 	for (const auto& KV : Towers)
 		if (KV.second.Level >= 2 && !KV.second.IsJoker() && !InSyn.count(KV.first)) Nodes.push_back({-1, KV.first, {KV.first}});
 	auto Touch = [](const FNode& A, const FNode& B) {
-		for (int P : A.Cells) for (int Q : B.Cells) if (std::abs(P % Cols - Q % Cols) + std::abs(P / Cols - Q / Cols) <= 1) return true; // 맞닿거나 카드를 나눠 씀
+		for (int P : A.Cells) for (int Q : B.Cells) if (PDCellDist(P, Q) <= 1) return true; // 맞닿거나 카드를 나눠 씀
 		return false;
 	};
 	std::vector<int> GroupOf(Nodes.size(), -1);
@@ -1210,7 +1218,7 @@ bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 std::vector<FPDFeed> FPDGame::FeedTargets() const
 {
 	std::vector<FPDFeed> Out;
-	if (Phase == EPDPhase::Title || Phase == EPDPhase::Over || Phase == EPDPhase::Win || Phase == EPDPhase::Reward) return Out;
+	if (!InPlay()) return Out;
 	for (int I = 0; I < (int)Synergies.size(); ++I)
 	{
 		const FPDSynergy& S = Synergies[I];
@@ -1224,14 +1232,10 @@ std::vector<FPDFeed> FPDGame::FeedTargets() const
 			if (T.IsJoker()) { if (Inside < 0 || T.JLevel > Towers.at(Inside).JLevel) Inside = K; continue; }
 			MultSum += T.Mult;
 			Fed++;
-			const int X = K % Cols, Y = K / Cols;
-			for (const auto& D : GPDN4)
-			{
-				const int NX = X + D[0], NY = Y + D[1];
-				if (NX < 0 || NY < 0 || NX >= Cols || NY >= Rows) continue;
-				auto It = Towers.find(CellKey(NX, NY));
+			PDForNeighbors(K, [&](int NK) {
+				auto It = Towers.find(NK);
 				if (It != Towers.end() && It->second.IsJoker() && (Best < 0 || It->second.JLevel > Towers.at(Best).JLevel)) Best = It->first;
-			}
+			});
 		}
 		if (Inside >= 0) Best = Inside;
 		if (Best < 0 || Fed == 0 || Towers.at(Best).JLevel >= JokerMaxLevel) continue;
@@ -1377,8 +1381,8 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 		}
 }
 
-// 쏘기: 레이저는 바로 맞히고, 나머지는 발사체를 띄운다
-void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits, bool bMain)
+// 쏘기: 즉시 발사체(ShotSpeed 0: 레이저·번개·로열·체셔)는 바로 맞히고, 나머지는 발사체를 띄운다
+void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits)
 {
 	const float TX = T.X + 0.5f, TY = T.Y + 0.5f;
 	const FPDPoint P = Path.At(Target.D);
@@ -1406,10 +1410,10 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	Sh.A = Pr.bHand;
 	Sh.B = Crits;
 	Sh.Lv = T.Level;
-	Sh.Dmg = ShotSpeed(Pr.Kind) <= 0.f ? Dmg : 0.f;
+	const float Spd = ShotSpeed(Pr.Kind);
+	Sh.Dmg = Spd <= 0.f ? Dmg : 0.f;
 	Sh.R = (float)(int)Pr.Kind;
 	Ev(Sh);
-	const float Spd = ShotSpeed(Pr.Kind);
 	if (Spd <= 0.f) { Explode(Pr, &Target); return; }
 	const float DX = P.X - TX, DY = P.Y - TY, Len = std::max(0.01f, std::hypot(DX, DY));
 	if (Pr.Kind == EPDShot::Missile) // 미사일: 옆으로 튀어 나갔다가 휘어 들어간다
@@ -1425,7 +1429,6 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	}
 	Target.Incoming += Dmg;
 	Projectiles.push_back(Pr);
-	(void)bMain;
 }
 
 // 닿음: 목표(살아 있으면)에 피해, 범위 공격은 닿은 자리 둘레에
@@ -1627,10 +1630,10 @@ void FPDGame::Update(float Dt)
 			if (Second)
 			{
 				Shot2[Extra] = Second;
-				Fire(T, *Second, St.Dmg, 0.f, St.Slow, Crits, false);
+				Fire(T, *Second, St.Dmg, 0.f, St.Slow, Crits);
 			}
 		}
-		Fire(T, *Target, St.Dmg, St.Splash, St.Slow, Crits, true);
+		Fire(T, *Target, St.Dmg, St.Splash, St.Slow, Crits);
 	}
 	UpdateProjectiles(Dt);
 	Enemies.erase(std::remove_if(Enemies.begin(), Enemies.end(), [](const FPDEnemy& E) { return E.bDead; }), Enemies.end());

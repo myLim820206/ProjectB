@@ -84,7 +84,7 @@
 - 가는 선을 배경 없이 글자 위에 겹치기
 
 ## 8. 도구
-- 언리얼: `Source/ProjectB/PDBoardWidget.cpp` 의 `FCanvas` (Glow, Lines, Shape, CardShape, Badge ...)가 이 규칙대로 그린다. 새 그림은 여기에 함수로 더한다.
+- 언리얼: `Source/ProjectB/PDBoardDraw.h` 의 `FCanvas` (Glow, Lines, Shape, CardShape, Badge ...)가 이 규칙대로 그린다. 새 그림은 여기에 함수로 더한다.
 - 미리보기: `tools/neon/neon.py` — 언리얼 빌드 없이 같은 화풍으로 PNG를 그려 확인한다 (`towers`, `suits`, `joker`). 새 그림은 여기서 먼저 그려 보고 언리얼로 옮긴다.
 
 ## 9. 저장된 그림: 조커 10종 (2026-11-10)

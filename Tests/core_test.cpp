@@ -1,12 +1,14 @@
 // 포커 디펜스 규칙 코어 시험 (언리얼 없이 실행)
 //   ./Tests/run.sh [봇 판 수]
-// 족보·연쇄·길·설치에 더해 콘텐츠 1차(와일드 카드, 방패·분열·재생, 부적, 보상)를 확인하고, 봇으로 밸런스를 본다.
+// 족보·연쇄·길·설치·적·부적·발사체·합성·조커·스킬 트리·골드 강화를 확인하고, 봇으로 밸런스를 본다.
+//   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만
 #include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <set>
 #include <string>
 #include <tuple>
@@ -30,15 +32,36 @@ static std::string Names(std::vector<EPDHand> V)
 	for (auto& X : S) O += (O.empty() ? "" : ",") + X;
 	return O.empty() ? "none" : O;
 }
-static void Put(FPDTowerMap& M, int X, int Y, FPDCard Card)
+static void Put(FPDTowerMap& M, int X, int Y, FPDCard Card, int Level = 1)
 {
 	FPDTower T;
 	T.Card = Card;
 	T.X = X;
 	T.Y = Y;
+	T.Level = Level;
 	M[CellKey(X, Y)] = T;
 }
 
+// 판 왼쪽 N칸이 모두 비어 설치할 수 있는 첫 줄
+static int FreeRow(const FPDGame& G, int N)
+{
+	for (int Y = 0; Y < Rows; ++Y)
+	{
+		bool bFree = true;
+		for (int X = 0; X < N; ++X) bFree = bFree && G.Buildable(X, Y);
+		if (bFree) return Y;
+	}
+	return -1;
+}
+// 길 바로 옆(왼쪽·오른쪽)에 설치할 수 있는 첫 칸과, 그 칸에 가장 가까운 길 위 거리
+static void NearPathCell(const FPDGame& G, int& JX, int& JY, float& NearD)
+{
+	JX = JY = -1;
+	NearD = 0.f;
+	for (int Y = 0; Y < Rows && JX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && ((X > 0 && G.Path.IsPath(X - 1, Y)) || (X + 1 < Cols && G.Path.IsPath(X + 1, Y)))) { JX = X; JY = Y; break; }
+	float BestDist = 1e9f;
+	for (float D = 0.f; D < G.Path.Length; D += 0.1f) { const FPDPoint P = G.Path.At(D); const float Dist = std::hypot(P.X - JX - 0.5f, P.Y - JY - 0.5f); if (Dist < BestDist) { BestDist = Dist; NearD = D; } }
+}
 static void UnitTests()
 {
 	const EPDSuit He = EPDSuit::Heart, Di = EPDSuit::Diamond, Cl = EPDSuit::Club;
@@ -253,9 +276,8 @@ static void UnitTests()
 		G.NewGame(true);
 		G.bMuted = true;
 		int JX = -1, JY = -1;
-		for (int Y = 0; Y < Rows && JX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && ((X > 0 && G.Path.IsPath(X - 1, Y)) || (X + 1 < Cols && G.Path.IsPath(X + 1, Y)))) { JX = X; JY = Y; break; }
-		float NearD = 0.f, BestDist = 1e9f;
-		for (float D = 0.f; D < G.Path.Length; D += 0.1f) { const FPDPoint P = G.Path.At(D); const float Dist = std::hypot(P.X - JX - 0.5f, P.Y - JY - 0.5f); if (Dist < BestDist) { BestDist = Dist; NearD = D; } }
+		float NearD = 0.f;
+		NearPathCell(G, JX, JY, NearD);
 		auto Try = [&](EPDSuit Su) {
 			G.Towers.clear();
 			G.Projectiles.clear();
@@ -328,10 +350,8 @@ static void UnitTests()
 		G.NewGame(true);
 		G.bMuted = true;
 		G.Towers.clear();
-		auto PutT = [&](int X, int Y, FPDCard Cd) { FPDTower T; T.Card = Cd; T.X = X; T.Y = Y; G.Towers[CellKey(X, Y)] = T; };
-		int Row = -1;
-		for (int Y = 0; Y < Rows && Row < 0; ++Y) { bool bFree = true; for (int X = 0; X < 6; ++X) bFree = bFree && G.Buildable(X, Y); if (bFree) Row = Y; }
-		PutT(0, Row, C(9)); PutT(1, Row, C(9, He));
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(9)); Put(G.Towers, 1, Row, C(9, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		const bool bFused = G.Fuse(0);
 		const FPDTower& F = G.Towers.begin()->second;
@@ -339,12 +359,12 @@ static void UnitTests()
 			"합성: 9 페어 → 레벨 2 타워 하나 (위력 3배, 공격력 특성 ×1.5)");
 		// 레벨 2 옆에 레벨 1 같은 숫자 → 족보 아님
 		const int FX0 = F.X;
-		PutT(FX0 + 1, Row, C(9, Di));
+		Put(G.Towers, FX0 + 1, Row, C(9, Di));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Expect(G.Synergies.empty(), "레벨이 다르면 족보가 안 됨");
 		// 레벨 1 두 장을 또 합쳐 레벨 2 를 만들고, 레벨 2 둘이 붙으면 페어 → 레벨 3
-		PutT(FX0 + 2, Row, C(9, Di));
-		PutT(FX0 + 1, Row, C(9, Cl));
+		Put(G.Towers, FX0 + 2, Row, C(9, Di));
+		Put(G.Towers, FX0 + 1, Row, C(9, Cl));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		int Lv1Pair = -1;
 		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Towers[G.Synergies[I].Cells[0]].Level == 1) Lv1Pair = I;
@@ -404,11 +424,9 @@ static void UnitTests()
 		G.NewGame(true);
 		G.bMuted = true;
 		G.Towers.clear();
-		auto PutT = [&](int X, int Y, FPDCard Cd, int Lv = 1) { FPDTower T; T.Card = Cd; T.X = X; T.Y = Y; T.Level = Lv; G.Towers[CellKey(X, Y)] = T; };
-		int Row = -1;
-		for (int Y = 0; Y < Rows && Row < 0; ++Y) { bool bFree = true; for (int X = 0; X < 7; ++X) bFree = bFree && G.Buildable(X, Y); if (bFree) Row = Y; }
+		const int Row = FreeRow(G, 7);
 		// 페어 + 스트레이트(7 8) + 페어 (페어 둘이 바로 붙으면 투 페어 하나가 되므로 사이에 스트레이트)
-		PutT(0, Row, C(2)); PutT(1, Row, C(2, He)); PutT(2, Row, C(7)); PutT(3, Row, C(8, He)); PutT(4, Row, C(5)); PutT(5, Row, C(5, He));
+		Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(2, He)); Put(G.Towers, 2, Row, C(7)); Put(G.Towers, 3, Row, C(8, He)); Put(G.Towers, 4, Row, C(5)); Put(G.Towers, 5, Row, C(5, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		auto Groups = G.JokerGroups();
 		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Baton && Groups[0].Cells.size() == 6;
@@ -420,7 +438,7 @@ static void UnitTests()
 		{
 			const int JKey = G.Towers.begin()->first, JX = JKey % Cols;
 			const float D0 = TowerStats(G.Towers.at(JKey)).Dmg; // 족보에 안 든 조커 혼자
-			PutT(JX + 1, Row, C(9)); PutT(JX + 2, Row, C(9, He)); // 조커(와일드)가 끼어 트리플
+			Put(G.Towers, JX + 1, Row, C(9)); Put(G.Towers, JX + 2, Row, C(9, He)); // 조커(와일드)가 끼어 트리플
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			auto Fd = G.FeedTargets();
 			const int SV = Fd.empty() ? 0 : G.Synergies[Fd[0].Syn].Value;
@@ -433,7 +451,7 @@ static void UnitTests()
 				"조커 옆 족보 먹이기: 경험치만큼 레벨 업 (레벨마다 위력 +10%), 먹인 칸은 사라짐");
 			G.Towers.at(JKey).JLevel = JokerUpLevel - 1;
 			G.Towers.at(JKey).JXp = JokerXpNeed(JokerUpLevel - 1) - 1.f;
-			PutT(JX + 1, Row, C(4)); PutT(JX + 2, Row, C(5, He));
+			Put(G.Towers, JX + 1, Row, C(4)); Put(G.Towers, JX + 2, Row, C(5, He));
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			auto Fd2 = G.FeedTargets();
 			Expect(!Fd2.empty() && G.Feed(Fd2[0].Syn) && G.Towers.at(JKey).JLevel >= JokerUpLevel && G.Mods.Up(G.Towers.at(JKey)), "레벨 10 이 되면 강화 능력");
@@ -446,25 +464,25 @@ static void UnitTests()
 		Jk.Y = Row;
 		Jk.Joker = (int)EPDJoker::Clown;
 		G.Towers[CellKey(0, Row)] = Jk;
-		PutT(1, Row, C(9), 2);
+		Put(G.Towers, 1, Row, C(9), 2);
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Expect(G.Synergies.size() == 1 && !G.CanFuse(0), "조커는 레벨 2 타워와도 족보 (와일드), 조커가 든 족보는 합성 불가");
 		// 포카드를 기억하는 합성 타워(따로 선 레벨 3) + 족보 둘 → 체셔
 		G.Towers.clear();
-		PutT(0, Row, C(13), 3); PutT(1, Row, C(2)); PutT(2, Row, C(2, He)); PutT(3, Row, C(7)); PutT(4, Row, C(8, He));
+		Put(G.Towers, 0, Row, C(13), 3); Put(G.Towers, 1, Row, C(2)); Put(G.Towers, 2, Row, C(2, He)); Put(G.Towers, 3, Row, C(7)); Put(G.Towers, 4, Row, C(8, He));
 		G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::Four;
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Groups = G.JokerGroups();
 		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Cheshire && Groups[0].FusedCells.size() == 1, "포카드를 기억한 합성 타워 + 족보 둘 → 포카드 대장 체셔");
 		// 합성 타워는 족보를 기억한다
 		G.Towers.clear();
-		PutT(0, Row, C(6)); PutT(1, Row, C(6, He));
+		Put(G.Towers, 0, Row, C(6)); Put(G.Towers, 1, Row, C(6, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		G.Fuse(0);
 		Expect(G.Towers.size() == 1 && G.Towers.begin()->second.FuseHand == (int)EPDHand::Pair, "합성 타워가 원 페어를 기억");
 		// 합성 위치 고르기: 재료 칸 중 고른 칸으로, 재료 밖 칸이면 실패하고 판은 그대로
 		G.Towers.clear();
-		PutT(0, Row, C(4)); PutT(1, Row, C(4, He)); PutT(2, Row, C(4, Di));
+		Put(G.Towers, 0, Row, C(4)); Put(G.Towers, 1, Row, C(4, He)); Put(G.Towers, 2, Row, C(4, Di));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		const bool bBad = G.Fuse(0, CellKey(5, Row));
 		const size_t AfterBad = G.Towers.size();
@@ -472,19 +490,19 @@ static void UnitTests()
 		Expect(!bBad && AfterBad == 3 && bPicked && G.Towers.size() == 1 && G.Towers.count(CellKey(2, Row)) == 1 && G.Towers.at(CellKey(2, Row)).X == 2,
 			"합성 위치: 트리플을 오른쪽 끝 칸에 모음, 재료 밖 칸은 거절");
 		G.Towers.clear();
-		PutT(0, Row, C(4)); PutT(1, Row, C(4, He)); PutT(2, Row, C(4, Di));
+		Put(G.Towers, 0, Row, C(4)); Put(G.Towers, 1, Row, C(4, He)); Put(G.Towers, 2, Row, C(4, Di));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Expect(DefaultFuseCell(G.Synergies[0].Cells) == CellKey(1, Row) && G.Fuse(0) && G.Towers.count(CellKey(1, Row)) == 1, "합성 위치를 안 고르면 가운데 칸 (예전과 같음)");
 		// 조커도 고른 칸에 (페어 + 스트레이트 + 페어 → 지휘봉을 맨 왼쪽에)
 		G.Towers.clear();
-		PutT(0, Row, C(2)); PutT(1, Row, C(2, He)); PutT(2, Row, C(7)); PutT(3, Row, C(8, He)); PutT(4, Row, C(5)); PutT(5, Row, C(5, He));
+		Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(2, He)); Put(G.Towers, 2, Row, C(7)); Put(G.Towers, 3, Row, C(8, He)); Put(G.Towers, 4, Row, C(5)); Put(G.Towers, 5, Row, C(5, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		const bool bJBad = G.JokerFuse(0, CellKey(6, Row));
 		const bool bJOk = G.JokerFuse(0, CellKey(0, Row));
 		Expect(!bJBad && bJOk && G.Towers.size() == 1 && G.Towers.count(CellKey(0, Row)) == 1 && G.Towers.at(CellKey(0, Row)).IsJoker(), "조커 합성 위치: 고른 재료 칸에, 재료 밖은 거절");
 		// 대장 지휘: 자기 족보 타워 +30%, 겹친다
 		G.Towers.clear();
-		PutT(3, Row, C(9)); PutT(4, Row, C(9, He));
+		Put(G.Towers, 3, Row, C(9)); Put(G.Towers, 4, Row, C(9, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		const float P0 = G.Towers[CellKey(3, Row)].Eff.Dmg;
 		FPDTower Cm;
@@ -516,9 +534,8 @@ static void UnitTests()
 		Expect(std::fabs(M[CellKey(6, 6)].Eff.Rate - 1.4f) < 1e-4f, "지휘봉: 주변 타워 연사 +40%");
 		// 길 옆 칸에 조커 하나만 두고 적을 넣어 본다
 		int JX = -1, JY = -1;
-		for (int Y = 0; Y < Rows && JX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Buildable(X, Y) && ((X > 0 && G.Path.IsPath(X - 1, Y)) || (X + 1 < Cols && G.Path.IsPath(X + 1, Y)))) { JX = X; JY = Y; break; }
-		float NearD = 0.f, BestDist = 1e9f;
-		for (float D = 0.f; D < G.Path.Length; D += 0.1f) { const FPDPoint P = G.Path.At(D); const float Dist = std::hypot(P.X - JX - 0.5f, P.Y - JY - 0.5f); if (Dist < BestDist) { BestDist = Dist; NearD = D; } }
+		float NearD = 0.f;
+		NearPathCell(G, JX, JY, NearD);
 		auto Setup = [&](EPDJoker K) {
 			G.Towers.clear();
 			G.Towers[CellKey(JX, JY)] = MakeJ(JX, JY, K);
@@ -690,8 +707,7 @@ static void UnitTests()
 		FPDGame G(8);
 		G.NewGame(true);
 		G.Towers.clear();
-		int Row = -1;
-		for (int Y = 0; Y < Rows && Row < 0; ++Y) { bool bFree = true; for (int X = 0; X < 7; ++X) bFree = bFree && G.Buildable(X, Y); if (bFree) Row = Y; }
+		const int Row = FreeRow(G, 7);
 		Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(2, EPDSuit::Heart)); Put(G.Towers, 2, Row, C(7)); Put(G.Towers, 3, Row, C(8, EPDSuit::Heart)); Put(G.Towers, 4, Row, C(5)); Put(G.Towers, 5, Row, C(5, EPDSuit::Heart));
 		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
 		Expect(!G.JokerGroups().empty(), "조커 재료 있음");
@@ -736,39 +752,19 @@ static void UnitTests()
 	}
 }
 
-// ---------------------------------------------------------------- 봇 (test.js 와 같은 평가)
+// ---------------------------------------------------------------- 봇 (웹 프로토타입 test.js 의 평가에서 시작)
 static int Coverage(const FPDGame& G, int X, int Y, float Range)
 {
 	int N = 0;
 	for (float D = 0.f; D < G.Path.Length; D += 0.5f) { const FPDPoint P = G.Path.At(D); if (std::hypot(P.X - X - 0.5f, P.Y - Y - 0.5f) <= Range) N++; }
 	return N;
 }
+// 판 위력: 코어의 판 위력 어림 × 타워마다 사거리 안 길 칸 수
 static double Power(FPDGame& G, FPDTowerMap& Tw)
 {
 	const uint32_t M = G.CharmMask();
 	ApplyEffects(Tw, M, &G.Mods);
-	double Sum = 0;
-	for (auto& KV : Tw)
-	{
-		const FPDTower& T = KV.second;
-		const FPDTowerStats S = TowerStats(T, M, &G.Mods);
-		double V = S.Dmg * S.Rate * S.CritFactor() * (1 + S.Splash * 0.8) * Coverage(G, T.X, T.Y, S.Range);
-		if (T.IsJoker()) // 조커 능력 어림값
-		{
-			switch ((EPDJoker)T.Joker)
-			{
-			case EPDJoker::Comedy: V *= 1.8; break;                       // 두 발
-			case EPDJoker::Star: V *= 4.0; break;                         // 모든 적 (한 번에 적 여럿)
-			case EPDJoker::Bell: V *= 1.3; break;                         // 멈춤
-			case EPDJoker::Mask:                                          // 옆 타워 따라 함
-				if (T.Eff.CopyKey >= 0 && Tw.count(T.Eff.CopyKey)) { const FPDTowerStats O = TowerStats(Tw.at(T.Eff.CopyKey), M, &G.Mods); V = std::max(V, O.Dmg * O.Rate * O.CritFactor() * (1 + O.Splash * 0.8) * Coverage(G, T.X, T.Y, O.Range)); }
-				break;
-			default: break;
-			}
-		}
-		Sum += V;
-	}
-	return Sum;
+	return SumBoardPower(Tw, M, &G.Mods, [&G](const FPDTower& T, float Range) { return (double)Coverage(G, T.X, T.Y, Range); });
 }
 // 트리: 골드가 되는 만큼 찍는다. 지금 판 위력이 가장 많이 오르는 노드 (한 걸음 더 내다봄, 살림 노드는 어림값)
 static std::map<int, int> GKeysTaken;

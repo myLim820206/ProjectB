@@ -24,9 +24,9 @@ APDGameMode::APDGameMode()
 
 namespace
 {
-constexpr int32 TPSampleRate = 44100;
-constexpr int32 TPMaxVoices = 24;
-constexpr float TPMasterVolume = 0.8f;
+constexpr int32 PDSampleRate = 44100;
+constexpr int32 PDMaxVoices = 24;   // 동시에 나는 소리 최대 (넘으면 오래된 것부터 끔)
+constexpr float PDMasterVolume = 0.8f;
 }
 
 void APDGameMode::Tick(float DeltaSeconds)
@@ -53,7 +53,7 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 	const int32 Key = PD::SoundKey(Event.Sound, Event.A, Event.B);
 	if (!PcmCache.Contains(Key))
 	{
-		const std::vector<int16_t> Samples = PD::SynthesizeSound(Event.Sound, Event.A, Event.B, TPSampleRate);
+		const std::vector<int16_t> Samples = PD::SynthesizeSound(Event.Sound, Event.A, Event.B, PDSampleRate);
 		TArray<uint8> Bytes;
 		Bytes.SetNumUninitialized((int32)(Samples.size() * sizeof(int16_t)));
 		FMemory::Memcpy(Bytes.GetData(), Samples.data(), Bytes.Num());
@@ -63,18 +63,18 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 	if (Pcm.Num() == 0) return;
 
 	USoundWaveProcedural* Wave = NewObject<USoundWaveProcedural>(this);
-	Wave->SetSampleRate(TPSampleRate);
+	Wave->SetSampleRate(PDSampleRate);
 	Wave->NumChannels = 1;
-	Wave->Duration = (float)Pcm.Num() / (sizeof(int16_t) * TPSampleRate);
+	Wave->Duration = (float)Pcm.Num() / (sizeof(int16_t) * PDSampleRate);
 	Wave->bLooping = false;
 	Wave->QueueAudio(Pcm.GetData(), Pcm.Num());
 
-	UAudioComponent* Voice = UGameplayStatics::CreateSound2D(this, Wave, TPMasterVolume * Event.Volume, 1.f, 0.f, nullptr, false, false);
+	UAudioComponent* Voice = UGameplayStatics::CreateSound2D(this, Wave, PDMasterVolume * Event.Volume, 1.f, 0.f, nullptr, false, false);
 	if (!Voice) return;
 	Voice->bIsUISound = true;
 	Voice->Play();
 	Voices.Add(Voice);
-	while (Voices.Num() > TPMaxVoices)
+	while (Voices.Num() > PDMaxVoices)
 	{
 		if (UAudioComponent* Old = Voices[0])
 		{
@@ -197,9 +197,9 @@ void APDGameMode::PlayWorldFx()
 	{
 		const int32 K = (int32)Fx.Kind;
 		UNiagaraSystem* Sys = FxSystems.IsValidIndex(K) ? FxSystems[K].Get() : nullptr;
-		FLinearColor Col = Fx.Col * PDFxGlow[FMath::Clamp(K, 0, (int32)SPDBoardWidget::EWorldFx::Count - 1)];
-		Col.A = 1.f;
 		if (!Sys) continue;
+		FLinearColor Col = Fx.Col * PDFxGlow[K];
+		Col.A = 1.f;
 		const FVector Loc(0.f, Fx.Pos.X, -Fx.Pos.Y);
 		UNiagaraComponent* NC = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, Sys, Loc, FRotator::ZeroRotator, FVector(1.f),
 			true, true, ENCPoolMethod::AutoRelease);

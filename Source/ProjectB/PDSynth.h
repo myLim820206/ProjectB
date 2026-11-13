@@ -1,7 +1,7 @@
 // 효과음 합성기
 // 사운드 파일 없이 코드로 효과음을 만든다 (네온 화풍에 맞춘 신스 소리).
 // 언리얼 의존성 없는 순수 C++. 언리얼에서는 이 PCM을 USoundWaveProcedural로 재생하고,
-// 웹 프로토타입용 소리(prototype/tetris-poker/sounds.js)도 같은 코드로 뽑는다 (Tests/render_sounds.cpp).
+// Tests/render_sounds.cpp 로 소리를 WAV 로 뽑아 들어 볼 수 있다. 이름은 처음 만든 테트리스 포커 때 것이 남아 있다.
 #pragma once
 
 #include <cstdint>
@@ -11,19 +11,19 @@ namespace PD
 {
 enum class EPDSound : uint8_t
 {
-	Move,       // 좌우 이동
-	Rotate,     // 회전
-	HardDrop,   // 즉시 떨어뜨리기
-	Lock,       // 자연스럽게 내려앉음 (터짐 없음)
-	Hold,       // 보관
-	Denied,     // 보관 금지 등 거부
-	Burst,      // 족보 터짐. A = 연쇄 단계(1~), B = 크기(0 트리플·투 페어, 1 풀하우스·포카드, 2 파이브 카드)
-	Straight,   // 연쇄 스트레이트. A = 이어진 단계 수
-	Flush,      // 플러시
-	Clear,      // 라운드 통과
-	GameOver,   // 실패
-	Win,        // 8라운드 전부 통과
-	Start,      // 시작, 다음 라운드
+	Move,       // 카드 고르기, 합성 위치 고르기 시작
+	Rotate,     // 적 처치, 골드 강화, 트리 노드 찍기
+	HardDrop,   // 카드 버리기
+	Lock,       // 족보 없이 카드 설치
+	Hold,       // (지금은 안 씀)
+	Denied,     // 안 됨 (설치 불가, 골드 부족), 적이 빠져나감
+	Burst,      // 족보 생김·합성·먹이기·보상. A = 세기 단계(1~8), B = 크기(0 작음, 1 중간, 2 큼)
+	Straight,   // 3장 이상 스트레이트. A = 장수
+	Flush,      // 플러시·스트레이트 플러시
+	Clear,      // 웨이브 통과, 보스 처치, 합성, 조커 레벨 업
+	GameOver,   // 게임 오버
+	Win,        // 조커 합성, 키스톤·조커 노드 찍기
+	Start,      // 게임 시작, 웨이브 시작
 	Count
 };
 

@@ -36,7 +36,10 @@ Config/                        시작 맵(/Engine/Maps/Entry), 게임 모드 PDG
 Source/ProjectB/
   PDCore.h / .cpp              규칙 코어: 카드·덱·손패, 무작위 길, 족보 판정(모양 상관없는 연결 묶음, 와일드 카드), 연쇄,
                                타워 공격, 적 10종(보스 3), 웨이브, 보상·부적, 합성, 조커 포탑, 골드·스킬 트리. 언리얼 의존성 없는 순수 C++
-  PDBoardWidget.h / .cpp       Slate 위젯: 그리기, 마우스·키 입력, 이펙트
+  PDBoardWidget.h / .cpp       Slate 위젯: 틱, 마우스·키 입력, 메뉴, 합성 위치 고르기
+  PDBoardFx.cpp                게임 사건 → Slate 이펙트(파티클·파동·별빛)와 월드 이펙트(나이아가라) 요청
+  PDBoardPaint.cpp             그리기: 판, 적, 발사체, 이펙트, 버튼, 패널, 창
+  PDBoardDraw.h                그리기 도우미: 배치 상수, 색, 글자 표, 붓(FCanvas: 네온 선, 무늬·카드·조커 그림)
   PDGameMode.h / .cpp          게임 시작 시 위젯을 화면에 붙이고 효과음 재생
   PDSynth.h / .cpp             효과음 합성기 (사운드 파일 없음)
   PDTreeData.inl, PDTreeText.inl  스킬 트리 표 (생성됨: tools/tree/gen_tree.py)

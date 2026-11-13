@@ -135,4 +135,4 @@ PoE 트리가 덜 엉켜 보이는 까닭은 노드가 많아서이기도 하지
 
 - `tools/tree/gen_tree.py`: 트리 배치와 효과의 원본. 실행하면 `Source/ProjectB/PDTreeData.inl`(코어), `PDTreeText.inl`(화면 이름, UTF-8 BOM), `tools/tree/tree.json`(미리보기)을 만든다
 - `PDCore.h/.cpp`: `TreeNode()`·`TreeLinks()`, `BuildTreeMods()`, `FPDGame::BuyNode()`·`CanBuy()`·`TreeSealed()`, 골드 강화 `Upgrade()`·`UpgradeCost()`·`ApplyUpgrades()`, 치명타는 `FPDTowerStats::Crit`·`CritMult` 와 `Update()` 의 굴림
-- `PDBoardWidget.cpp`: 트리 창 (K), 강화 창 (U), 글자 표
+- `PDBoardPaint.cpp`: 트리 창 (K) `PaintTree`, 강화 창 (U) `PaintScreens` / `PDBoardDraw.h`: 글자 표 / `PDBoardWidget.cpp`: 클릭

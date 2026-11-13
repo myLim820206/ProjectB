@@ -1,0 +1,776 @@
+﻿// 포커 디펜스 화면의 그리기 도우미 (PDBoardWidget·PDBoardFx·PDBoardPaint 가 같이 쓴다)
+// - PDDraw: 1280 x 720 설계 좌표의 배치 상수, 색, 글자 표, 버튼 위치
+// - SPDBoardWidget::FCanvas: Slate 그리기 요소를 만드는 붓 (네온 선, 글자, 무늬·카드·조커 그림)
+// 화풍은 docs/15-art-style.md (거의 검은 바탕, 채우지 않은 한 색 가는 선, 넓고 부드러운 번짐)
+#pragma once
+
+#include "PDBoardWidget.h"
+
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/SlateRenderer.h"
+#include "Styling/CoreStyle.h"
+
+#include <algorithm>
+
+using namespace PD;
+
+namespace PDDraw
+{
+constexpr float DesignW = 1280.f;
+constexpr float DesignH = 720.f;
+// 화면 세 칸: 왼쪽 족보 패널 | 가운데 판과 손패 | 오른쪽 상태 패널
+constexpr float LX = 16.f, LW = 232.f; // 왼쪽 족보 패널
+constexpr float CS = 48.f;          // 칸 크기
+constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
+constexpr float FY = 24.f;
+constexpr float HandY = FY + Rows * CS + 26.f;
+constexpr float CardW = 66.f, CardH = 92.f;
+constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
+constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
+constexpr float RBtnX = RX + 12.f, RBtnW = PW - 24.f; // 오른쪽 패널 버튼 줄
+constexpr float StartBtnY = FY + 92.f, StartBtnH = 38.f;
+constexpr float TwoPi = 6.2831853f;
+
+inline FLinearColor Hex(const TCHAR* InHex, float Alpha = 1.f)
+{
+	FLinearColor C(FColor::FromHex(InHex));
+	C.A = Alpha;
+	return C;
+}
+inline FLinearColor WithAlpha(FLinearColor C, float Alpha)
+{
+	C.A *= Alpha;
+	return C;
+}
+inline FLinearColor SuitColor(EPDSuit S)
+{
+	switch (S)
+	{
+	case EPDSuit::Heart: return Hex(TEXT("ff6a8a"));
+	case EPDSuit::Diamond: return Hex(TEXT("ffd96a"));
+	case EPDSuit::Club: return Hex(TEXT("8affc4"));
+	case EPDSuit::Wild: return Hex(TEXT("ffffff"));
+	default: return Hex(TEXT("7fb8ff"));
+	}
+}
+inline const TCHAR* SuitName(EPDSuit S)
+{
+	static const TCHAR* N[] = {TEXT("저격"), TEXT("폭발"), TEXT("연사"), TEXT("둔화"), TEXT("와일드")};
+	return N[(int)S];
+}
+inline FLinearColor HandColor(EPDHand H)
+{
+	// 족보마다 다른 색 (D-099, 장판·테두리·패널 공통). 로열은 판 위 장판에서 무지개로 돈다
+	static const TCHAR* C[] = {TEXT("fff4d6"), TEXT("ffd96a"), TEXT("ff9ad5"), TEXT("ff6a6a"), TEXT("ffa86a"), TEXT("b48cff"), TEXT("6a8cff"), TEXT("9cffb0"), TEXT("7fd6ff"), TEXT("cfd8e6")};
+	return Hex(C[(int)H]);
+}
+inline const TCHAR* HandName(EPDHand H)
+{
+	static const TCHAR* N[] = {TEXT("로열 스트레이트 플러시"), TEXT("파이브 카드"), TEXT("스트레이트 플러시"), TEXT("포카드"), TEXT("풀하우스"), TEXT("플러시"), TEXT("스트레이트"), TEXT("트리플"), TEXT("투 페어"), TEXT("원 페어")};
+	return N[(int)H];
+}
+inline const TCHAR* HandEffect(EPDHand H)
+{
+	static const TCHAR* N[] = {TEXT("공격력 ×2.5 · 연사 ×2.5 · 넓은 범위"), TEXT("공격력 ×5 (와일드·조커가 있어야)"), TEXT("공격력 ×2 · 연사 ×2 · 범위"), TEXT("공격력 ×3.5"), TEXT("공격력 ×1.5 · 연사 ×1.5 · 범위"), TEXT("범위 공격 (장수만큼 넓게)"),
+		TEXT("연사 ×1.25 / ×1.5 / ×1.75 / ×2"), TEXT("공격력 ×2"), TEXT("공격력 ×1.5 · 사거리 ×1.25"), TEXT("공격력 ×1.5")};
+	return N[(int)H];
+}
+inline FString HandLabel(const FPDSynergy& S)
+{
+	FString L = HandName(S.Kind);
+	if (S.Kind == EPDHand::Flush || S.Kind == EPDHand::Straight) L += FString::FromInt(S.N);
+	if (S.Chain >= 2) L += FString::Printf(TEXT(" 연쇄×%s"), *FString::SanitizeFloat(1.f + ChainStep * (S.Chain - 1)));
+	return L;
+}
+inline FString RankText(int R)
+{
+	switch (R)
+	{
+	case 11: return TEXT("J");
+	case 12: return TEXT("Q");
+	case 13: return TEXT("K");
+	case 14: return TEXT("A");
+	default: return FString::FromInt(R);
+	}
+}
+inline FLinearColor EnemyColor(EPDEnemy T)
+{
+	switch (T)
+	{
+	case EPDEnemy::Fast: return Hex(TEXT("ffa86a"));
+	case EPDEnemy::Tank: return Hex(TEXT("c49aff"));
+	case EPDEnemy::Armored: case EPDEnemy::ShieldBoss: return Hex(TEXT("9fc3e8"));
+	case EPDEnemy::Splitter: case EPDEnemy::Mini: case EPDEnemy::SplitBoss: return Hex(TEXT("ff9ad5"));
+	case EPDEnemy::Regen: case EPDEnemy::RegenBoss: return Hex(TEXT("b6ff6a"));
+	default: return Hex(TEXT("e8f0ff"));
+	}
+}
+inline const TCHAR* BossName(EPDEnemy T)
+{
+	switch (T)
+	{
+	case EPDEnemy::ShieldBoss: return TEXT("방패 거인");
+	case EPDEnemy::SplitBoss: return TEXT("분열 군주");
+	case EPDEnemy::RegenBoss: return TEXT("재생 왕");
+	default: return TEXT("");
+	}
+}
+inline const TCHAR* CharmName(int J)
+{
+	static const TCHAR* N[] = {TEXT("하트 애호가"), TEXT("스페이드 애호가"), TEXT("다이아 애호가"), TEXT("클로버 애호가"), TEXT("연결고리"), TEXT("쌍둥이"), TEXT("일직선"),
+		TEXT("넓은 물결"), TEXT("그림 카드"), TEXT("작은 수"), TEXT("행운의 7"), TEXT("큰 손"), TEXT("보급"), TEXT("재활용"), TEXT("조준경"), TEXT("서리"), TEXT("연쇄 폭발"), TEXT("관통탄")};
+	return N[J];
+}
+inline const TCHAR* CharmDesc(int J)
+{
+	static const TCHAR* N[] = {TEXT("♥ 타워 공격력 +40%"), TEXT("♠ 타워 공격력 +40%"), TEXT("♦ 타워 공격력 +40%"), TEXT("♣ 타워 공격력 +40%"), TEXT("연쇄 보너스 +25% → +45%"),
+		TEXT("원 페어·투 페어 ×1.5 → ×2"), TEXT("스트레이트 연사 한 장마다 +0.25 더"), TEXT("플러시 범위 +0.75칸"), TEXT("J·Q·K 타워 공격력 +60%"), TEXT("2~6 타워 연사 +60%"),
+		TEXT("숫자 7 타워 공격력 ×2.5"), TEXT("손패 최대 +2"), TEXT("웨이브마다 카드 +1"), TEXT("카드를 버리면 1장 뽑기"), TEXT("모든 타워 사거리 +15%"),
+		TEXT("둔화 더 강하게, ♣ 주변도 둔화"), TEXT("처치 시 주변 적에게 최대 체력 15% 피해"), TEXT("적의 방패를 무시")};
+	return N[J];
+}
+inline const TCHAR* JokerName(int K)
+{
+	static const TCHAR* N[] = {TEXT("광대"), TEXT("모자 장수"), TEXT("웃는 가면"), TEXT("희비극"), TEXT("할리퀸"), TEXT("지휘봉"), TEXT("잭"), TEXT("체셔"), TEXT("방울"), TEXT("스타")};
+	return N[K];
+}
+inline const TCHAR* JokerAbility(int K)
+{
+	static const TCHAR* N[] = {TEXT("무늬 4종 공격을 번갈아 씀"), TEXT("주변 8칸 타워 공격력 +25%·사거리 +10%"), TEXT("주변 가장 강한 타워의 공격을 따라 함"),
+		TEXT("두 적을 동시에 공격"), TEXT("판 위 같은 무늬 타워 전부 공격력 +30%"), TEXT("주변 8칸 타워 연사 +40%"), TEXT("아주 강한 한 방 (공격력 ×3, 연사 ×0.5)"),
+		TEXT("사거리 무한: 가장 앞선 적 저격"), TEXT("8초마다 종: 사거리 안 적 1.5초 멈춤"), TEXT("판 전체 레이저: 모든 적에게 피해")};
+	return N[K];
+}
+// 조커 조합법. 대장 순위는 코어(MatchJokerRecipe)와 같이 족보 기본값(HandBaseValue)으로 매긴다
+// (트리플·투 페어가 플러시·스트레이트보다 높다)
+inline EPDHand NextLowerHand(EPDHand H) // H 바로 아래 족보, 없으면 H
+{
+	int Best = -1;
+	for (int I = 0; I < (int)EPDHand::Count; ++I)
+		if (HandBaseValue((EPDHand)I) < HandBaseValue(H) && (Best < 0 || HandBaseValue((EPDHand)I) > HandBaseValue((EPDHand)Best))) Best = I;
+	return Best < 0 ? H : (EPDHand)Best;
+}
+inline const TCHAR* HandShort(EPDHand H) { return H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H); } // 도감 칸이 좁아서
+inline FString JokerRecipe(int K)
+{
+	const EPDHand H = CaptainHand((EPDJoker)K);
+	if (NextLowerHand(H) == H) return FString::Printf(TEXT("%s 3개"), HandShort(H));
+	return FString::Printf(TEXT("%s + 같거나 낮은 족보 2개"), HandShort(H));
+}
+inline FString JokerRecipeExample(int K)
+{
+	const EPDHand H = CaptainHand((EPDJoker)K), Low = NextLowerHand(H);
+	if (Low == H) return TEXT("가장 낮은 족보라 셋 다 원 페어");
+	return FString::Printf(TEXT("예) %s + %s + 원 페어"), HandShort(H), HandShort(Low));
+}
+inline FString JokerRankText() // 대장 순위 한 줄
+{
+	TArray<int32> Order;
+	for (int32 I = 0; I < (int32)EPDHand::Count; ++I) Order.Add(I);
+	Order.Sort([](int32 A, int32 B) { return HandBaseValue((EPDHand)A) > HandBaseValue((EPDHand)B); });
+	FString Out = TEXT("대장 순위: ");
+	for (int32 I = 0; I < Order.Num(); ++I) Out += (I ? TEXT(" > ") : TEXT("")) + FString(HandName((EPDHand)Order[I]));
+	return Out;
+}
+inline FString JokerCommand(int K) { return FString::Printf(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
+const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
+// 발사체 색: 무늬 기본형은 무늬 색, 족보 발사체는 족보 색, 조커는 분홍
+inline FLinearColor ShotColor(EPDShot K, EPDSuit S)
+{
+	switch (K)
+	{
+	case EPDShot::Arrow: return HandColor(EPDHand::Straight);
+	case EPDShot::Arc: return Hex(TEXT("c9a2ff"));
+	case EPDShot::Cluster: return HandColor(EPDHand::FullHouse);
+	case EPDShot::Shell: return HandColor(EPDHand::Four);
+	case EPDShot::Comet: return HandColor(EPDHand::StraightFlush);
+	case EPDShot::Nova: return HandColor(EPDHand::Five);
+	case EPDShot::Crown: return Hex(TEXT("ffe39a"));
+	case EPDShot::Grin: return Hex(TEXT("d59aff"));
+	default: return IsJokerShot(K) ? JokerPink : SuitColor(S);
+	}
+}
+inline FVector2f Rot2(FVector2f V, float A) { const float C = FMath::Cos(A), S = FMath::Sin(A); return FVector2f(V.X * C - V.Y * S, V.X * S + V.Y * C); }
+// 원호 점들: 중심 C, 반지름 R, 가운데 각 Mid, 양쪽 반폭 Half (라디안)
+inline TArray<FVector2f> ArcPts(FVector2f C, float R, float Mid, float Half, int32 N = 12)
+{
+	TArray<FVector2f> P;
+	for (int32 I = 0; I <= N; ++I) { const float A = Mid - Half + 2.f * Half * I / N; P.Add(C + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R); }
+	return P;
+}
+inline const TCHAR* InstantName(int I)
+{
+	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("골드")};
+	return N[I];
+}
+inline const TCHAR* InstantDesc(int I)
+{
+	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("골드 +(10 + 웨이브 × 4)")};
+	return N[I];
+}
+// 보상 카드 위치 (판 가운데 3장)
+inline FVector2f RewardPos(int I) { return FVector2f(FX + Cols * CS / 2.f - 360.f + I * 250.f, FY + 160.f); }
+constexpr float RewardW = 220.f, RewardH = 170.f;
+inline FVector2f CellPx(float X, float Y) { return FVector2f(FX + X * CS, FY + Y * CS); } // 칸 좌표(실수) → 화면
+inline FVector2f CellCenter(int Key) { return CellPx(Key % Cols + 0.5f, Key / Cols + 0.5f); }
+// 조커 합성 버튼: 묶음 맨 위 칸(같으면 왼쪽)의 위 변 가운데
+constexpr float JokerBtnW = 84.f, JokerBtnH = 18.f;
+inline FVector2f JokerButtonCenter(const FPDJokerGroup& G)
+{
+	int Top = G.Cells[0];
+	for (int K : G.Cells) if (K / Cols < Top / Cols || (K / Cols == Top / Cols && K % Cols < Top % Cols)) Top = K;
+	return CellPx(Top % Cols + 0.5f, (float)(Top / Cols)) - FVector2f(0.f, 2.f);
+}
+// 합성 버튼: 족보 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
+constexpr float FuseW = 46.f, FuseH = 16.f;
+// 겹 번호: 카드를 나눠 쓰는 앞선 족보 수 (0~2). 테두리를 안쪽으로 들이고 이름표·합성 버튼을 아래로 민다
+inline int SynLayer(const std::vector<FPDSynergy>& L, int I)
+{
+	int N = 0;
+	for (int J = 0; J < I && J < (int)L.size(); ++J)
+	{
+		bool bShare = false;
+		for (int A : L[I].Cells) bShare = bShare || std::find(L[J].Cells.begin(), L[J].Cells.end(), A) != L[J].Cells.end();
+		N += bShare;
+	}
+	return FMath::Min(N, 2);
+}
+inline FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
+{
+	const FPDSynergy& S = L[I];
+	int Bottom = S.Cells[0];
+	for (int K : S.Cells) if (K / Cols > Bottom / Cols || (K / Cols == Bottom / Cols && K % Cols < Bottom % Cols)) Bottom = K;
+	return CellPx(Bottom % Cols + 0.5f, Bottom / Cols + 1.f) - FVector2f(0.f, 4.f) + FVector2f(0.f, SynLayer(L, I) * (FuseH + 2.f));
+}
+
+// 먹이기 버튼: 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
+inline FVector2f FeedButtonCenter(const std::vector<FPDSynergy>& L, int I, bool bCanFuse)
+{
+	return FuseButtonCenter(L, I) + FVector2f(bCanFuse ? FuseW + 4.f : 0.f, 0.f);
+}
+
+// ---- 스킬 트리 글자와 위치 (docs/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
+inline FVector2f TreeNodePos(int Id) { return FVector2f(TreeNode(Id).X, TreeNode(Id).Y); }
+inline const TCHAR* KeystoneName(int K)
+{
+	static const TCHAR* N[] = {TEXT("외골수"), TEXT("잡식가"), TEXT("큰 판"), TEXT("작은 판"), TEXT("대장장이"), TEXT("광대의 길"), TEXT("고독한 저격수"), TEXT("군중")};
+	return N[K];
+}
+inline const TCHAR* KeystoneDesc(int K)
+{
+	static const TCHAR* N[] = {TEXT("플러시 타워 위력 ×2 / 다른 족보 타워 위력 ×0.5"), TEXT("플러시 아닌 족보 위력 ×1.3 / 플러시 범위 효과 없음"),
+		TEXT("5장 족보 위력 ×1.6 / 2장 족보는 효과·연쇄 없음"), TEXT("원 페어·투 페어 위력 ×1.8 / 5장 족보는 연쇄 덤 없음"),
+		TEXT("합성 배율 1.5 → 2.0 / 조커 포탑을 만들 수 없음"), TEXT("조커 배율 1.2 → 1.6 / 합성은 레벨 2까지"),
+		TEXT("족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음"), TEXT("연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5")};
+	return N[K];
+}
+inline const TCHAR* JokerUpDesc(int K)
+{
+	static const TCHAR* N[] = {TEXT("연사 +50%"), TEXT("오라 공격력 +25% → +50%, 범위 주변 24칸"), TEXT("따라 한 공격 위력 ×1.3"), TEXT("셋째 적까지 함께 공격"),
+		TEXT("같은 무늬 공격력 +30% → +60%"), TEXT("주변 연사 +40% → +70%"), TEXT("공격력 ×3 → ×5"), TEXT("위력 ×1.5"), TEXT("5초마다 2초 멈춤 (원래 8초마다 1.5초)"),
+		TEXT("레이저 위력 ×0.5 → ×0.8")};
+	return N[K];
+}
+inline FString HandGroupName(int Mask)
+{
+	auto B = [](EPDHand H) { return 1 << (int)H; };
+	if (Mask == (B(EPDHand::Pair) | B(EPDHand::TwoPair))) return TEXT("원 페어·투 페어");
+	if (Mask == (B(EPDHand::Triple) | B(EPDHand::Four) | B(EPDHand::Five))) return TEXT("트리플·포카드·파이브 카드");
+	if (Mask == (B(EPDHand::Flush) | B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return TEXT("플러시 계열");
+	if (Mask == (B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return TEXT("스트레이트 플러시·로열");
+	if (Mask == (B(EPDHand::Straight) | B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return TEXT("스트레이트 계열");
+	if (Mask == (B(EPDHand::Pair) | B(EPDHand::TwoPair) | B(EPDHand::Triple) | B(EPDHand::FullHouse) | B(EPDHand::Four) | B(EPDHand::Five))) return TEXT("같은 숫자 족보");
+	FString Out;
+	for (int H = 0; H < (int)EPDHand::Count; ++H) if (Mask & (1 << H)) Out += (Out.IsEmpty() ? TEXT("") : TEXT("·")) + FString(HandName((EPDHand)H));
+	return Out;
+}
+inline FString TreeFxText(const FPDNodeFx& F)
+{
+	static const TCHAR* Sym[] = {TEXT("♠"), TEXT("♥"), TEXT("♦"), TEXT("♣"), TEXT("★")};
+	const int Pct = FMath::RoundToInt(F.Value * 100.f);
+	switch (F.Stat)
+	{
+	case EPDStat::SuitDmg: return FString::Printf(TEXT("%s 위력 +%d%%"), Sym[F.Param], Pct);
+	case EPDStat::SuitRate: return FString::Printf(TEXT("%s 연사 +%d%%"), Sym[F.Param], Pct);
+	case EPDStat::SuitRange: return FString::Printf(TEXT("%s 사거리 +%d%%"), Sym[F.Param], Pct);
+	case EPDStat::SuitSplash: return FString::Printf(TEXT("%s 폭발 범위 +%.1f칸"), Sym[F.Param], F.Value);
+	case EPDStat::SuitSlow: return FString::Printf(TEXT("%s 둔화 +%d%%p"), Sym[F.Param], Pct);
+	case EPDStat::HandDmg: return FString::Printf(TEXT("%s 위력 +%d%%"), *HandGroupName(F.Param), Pct);
+	case EPDStat::HandRate: return FString::Printf(TEXT("%s 연사 +%d%%"), *HandGroupName(F.Param), Pct);
+	case EPDStat::HandSplash: return FString::Printf(TEXT("%s 범위 +%.2f칸"), *HandGroupName(F.Param), F.Value);
+	case EPDStat::AllDmg: return FString::Printf(TEXT("모든 타워 위력 +%d%%"), Pct);
+	case EPDStat::ChainAdd: return FString::Printf(TEXT("연쇄 덤 +%d%%p"), Pct);
+	case EPDStat::FuseAdd: return FString::Printf(TEXT("합성 배율 +%.2f"), F.Value);
+	case EPDStat::FusedDmg: return FString::Printf(TEXT("합성 타워 위력 +%d%%"), Pct);
+	case EPDStat::JokerDmg: return FString::Printf(TEXT("조커 포탑 위력 +%d%%"), Pct);
+	case EPDStat::JokerAdd: return FString::Printf(TEXT("조커 배율 +%.2f"), F.Value);
+	case EPDStat::AllRate: return FString::Printf(TEXT("모든 타워 공격 속도 +%d%%"), Pct);
+	case EPDStat::CritChance: return FString::Printf(TEXT("치명타 확률 +%d%%p"), Pct);
+	case EPDStat::CritMult: return FString::Printf(TEXT("치명타 배율 +%.2f"), F.Value);
+	case EPDStat::GoldPct: return FString::Printf(TEXT("골드 +%d%%"), Pct);
+	case EPDStat::HandMax: return FString::Printf(TEXT("손패 최대 +%d"), (int)F.Value);
+	case EPDStat::Draw: return FString::Printf(TEXT("웨이브마다 카드 +%d"), (int)F.Value);
+	case EPDStat::Lives: return FString::Printf(TEXT("목숨 +%d (찍을 때)"), (int)F.Value);
+	case EPDStat::Keystone: return KeystoneDesc(F.Param);
+	case EPDStat::Joker: return JokerUpDesc(F.Param);
+	default: return FString();
+	}
+}
+inline FLinearColor TreeNodeColor(int Id)
+{
+	const FPDTreeNode& N = TreeNode(Id);
+	if (N.Kind == EPDNode::Keystone) return Hex(TEXT("ffd26e"));
+	if (N.Theme < 4) return SuitColor((EPDSuit)N.Theme);
+	if (N.Theme == 4) return Hex(TEXT("7fd6ff"));
+	if (N.Theme == 6) return JokerPink;
+	return Hex(TEXT("e8f0ff"));
+}
+// ---- 골드 강화 (U)
+inline const TCHAR* UpgradeName(int U)
+{
+	static const TCHAR* N[] = {TEXT("공격"), TEXT("공격 속도"), TEXT("치명타 확률"), TEXT("치명타 배율"), TEXT("♠ 스페이드 강화"), TEXT("♥ 하트 강화"), TEXT("♦ 다이아 강화"), TEXT("♣ 클로버 강화")};
+	return N[U];
+}
+inline FString UpgradeEffect(int U, int Level)
+{
+	const float V = UpgradeStep((EPDUpgrade)U) * Level;
+	switch ((EPDUpgrade)U)
+	{
+	case EPDUpgrade::Attack: return FString::Printf(TEXT("모든 타워 공격력 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
+	case EPDUpgrade::Speed: return FString::Printf(TEXT("모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
+	case EPDUpgrade::Crit: return FString::Printf(TEXT("치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)"), (BaseCrit + V) * 100.f);
+	case EPDUpgrade::CritMult: return FString::Printf(TEXT("치명타 배율 ×%.2f  (레벨당 +0.01)"), BaseCritMult + V);
+	default: return FString::Printf(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)"), V * 100.f);
+	}
+}
+inline FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? SuitColor((EPDSuit)(U - (int)EPDUpgrade::Spade)) : U >= (int)EPDUpgrade::Crit ? Hex(TEXT("ff9a6a")) : Hex(TEXT("ffd96a")); }
+constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.f;
+constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
+const int32 UpgSteps[4] = {1, 10, 100, UpgradeMax};
+inline FVector2f UpgButtonPos(int Row, int K) { return FVector2f(UpgRowX + UpgRowW - 4 * (UpgBtnW + 8.f) + K * (UpgBtnW + 8.f), UpgRowY + Row * UpgRowH + (UpgRowH - UpgBtnH) / 2.f); }
+// 트리·강화 버튼 (오른쪽 패널, 웨이브 시작 버튼 아래 나란히), 메뉴 버튼 (그 아래)
+constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 30.f;
+constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = 30.f;
+constexpr float MenuBtnX = RBtnX, MenuBtnY = TreeBtnY + TreeBtnH + 8.f, MenuBtnW = RBtnW, MenuBtnH = 28.f;
+constexpr float RTopH = MenuBtnY + MenuBtnH + 12.f - FY; // 오른쪽 위 패널 높이
+// 메뉴 창 (Esc): 가운데 세로 버튼
+enum class EMenuItem : uint8_t { Resume, NewGame, Quit, Count };
+constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
+constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
+inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
+inline const TCHAR* MenuItemName(int I)
+{
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("게임 종료")};
+	return N[I];
+}
+// 손패 카드 왼쪽 X. 카드가 많으면 판 너비 안에 들어오게 간격을 좁힌다
+inline float HandCardX(int I, int N)
+{
+	const float Avail = Cols * CS - 96.f - CardW;
+	const float Step = N > 1 ? FMath::Min(CardW + 10.f, Avail / (N - 1)) : 0.f;
+	return FX + 96.f + I * Step;
+}
+inline bool InRect(FVector2f P, float X, float Y, float W, float H) { return P.X >= X && P.X <= X + W && P.Y >= Y && P.Y <= Y + H; }
+// 가운데 C, 크기 W x H 인 상자 안인가 (판 위 합성·먹이기·조커 버튼)
+inline bool InBox(FVector2f P, FVector2f C, float W, float H) { return FMath::Abs(P.X - C.X) <= W / 2.f && FMath::Abs(P.Y - C.Y) <= H / 2.f; }
+// 설계 좌표 → 판 칸 키 (판 밖이면 -1)
+inline int CellAt(FVector2f P)
+{
+	const int X = FMath::FloorToInt((P.X - FX) / CS), Y = FMath::FloorToInt((P.Y - FY) / CS);
+	return X >= 0 && Y >= 0 && X < Cols && Y < Rows ? CellKey(X, Y) : -1;
+}
+// 큰 수 줄여 쓰기: 1234 → 1.2k, 34567 → 35k, 3456789 → 3.5M
+inline FString ShortNum(float V)
+{
+	if (V >= 1e9f) return FString::Printf(TEXT("%.1fB"), V / 1e9f);
+	if (V >= 1e6f) return FString::Printf(TEXT("%.1fM"), V / 1e6f);
+	if (V >= 1e4f) return FString::Printf(TEXT("%.0fk"), V / 1e3f);
+	if (V >= 1e3f) return FString::Printf(TEXT("%.1fk"), V / 1e3f);
+	return FString::FromInt(FMath::Max(1, FMath::RoundToInt(V)));
+}
+} // namespace PDDraw
+
+using namespace PDDraw;
+
+// ---------------------------------------------------------------- 그리기 도우미
+struct SPDBoardWidget::FCanvas
+{
+	FSlateWindowElementList& Out;
+	FGeometry Geo;
+	int32* Layer;
+	const FSlateBrush* White;
+
+	int32 NextLayer() { return ++(*Layer); }
+
+	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
+	{
+		FSlateDrawElement::MakeLines(Out, NextLayer(), Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
+	}
+	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
+	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
+	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
+	{
+		if (Strength > 0.f)
+		{
+			Lines(P, WithAlpha(Col, 0.04f * Strength), Thick * 10.f);
+			Lines(P, WithAlpha(Col, 0.07f * Strength), Thick * 6.f);
+			Lines(P, WithAlpha(Col, 0.14f * Strength), Thick * 3.2f);
+		}
+		Lines(P, Col, Thick * 0.8f);
+	}
+	void Dashed(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Dash = 6.f, float Gap = 6.f)
+	{
+		bool bOn = true;
+		float Left = Dash;
+		for (int32 I = 0; I + 1 < P.Num(); ++I)
+		{
+			FVector2f A = P[I];
+			const FVector2f B = P[I + 1];
+			float SegLen = FVector2f::Distance(A, B);
+			const FVector2f Dir = SegLen > 0.f ? (B - A) / SegLen : FVector2f::ZeroVector;
+			while (SegLen > 0.f)
+			{
+				const float Step = FMath::Min(Left, SegLen);
+				const FVector2f E = A + Dir * Step;
+				if (bOn) Lines({A, E}, Col, Thick);
+				A = E;
+				SegLen -= Step;
+				Left -= Step;
+				if (Left <= 0.f)
+				{
+					bOn = !bOn;
+					Left = bOn ? Dash : Gap;
+				}
+			}
+		}
+	}
+	void Box(float X, float Y, float W, float H, const FLinearColor& Col)
+	{
+		BoxAt(NextLayer(), X, Y, W, H, Col);
+	}
+	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
+	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
+	{
+		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))), White, ESlateDrawEffect::None, Col);
+	}
+	static TArray<FVector2f> RectPoints(float X, float Y, float W, float H) { return {{X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X, Y}}; }
+	static TArray<FVector2f> CirclePoints(FVector2f C, float R, int32 Seg = 32)
+	{
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= Seg; ++I)
+		{
+			const float A = I / (float)Seg * TwoPi;
+			P.Add(C + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R);
+		}
+		return P;
+	}
+	static TArray<FVector2f> RoundRectPoints(float X, float Y, float W, float H, float R)
+	{
+		TArray<FVector2f> P;
+		const FVector2f Centers[4] = {{X + W - R, Y + R}, {X + W - R, Y + H - R}, {X + R, Y + H - R}, {X + R, Y + R}};
+		const float Start[4] = {-0.25f, 0.f, 0.25f, 0.5f};
+		for (int32 K = 0; K < 4; ++K)
+			for (int32 S = 0; S <= 5; ++S)
+			{
+				const float A = (Start[K] + S / 5.f * 0.25f) * TwoPi;
+				P.Add(Centers[K] + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R);
+			}
+		const FVector2f First = P[0]; // 같은 배열 원소를 Add 하면 재할당 중 잘못된 참조가 된다
+		P.Add(First);
+		return P;
+	}
+	static FSlateFontInfo Font(float Px, bool bBold)
+	{
+		// Slate 글자 크기는 포인트(96 DPI) 단위. 웹 캔버스 px 크기 x 0.75
+		return FCoreStyle::GetDefaultFontStyle(bBold ? "Bold" : "Regular", FMath::Max(1, FMath::RoundToInt(Px * 0.75f)));
+	}
+	static FVector2f Measure(const FString& S, const FSlateFontInfo& F)
+	{
+		const TSharedRef<FSlateFontMeasure> M = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+		return FVector2f(M->Measure(S, F));
+	}
+	// Y는 웹 캔버스처럼 글자 기준선. Align: 0 왼쪽, 1 가운데, 2 오른쪽
+	// 칸 너비 MaxW 를 넘으면 글씨를 줄이고(70%까지), 그래도 넘치면 끝을 "…"로 자른다
+	static void FitText(FString& S, FSlateFontInfo& F, FVector2f& Sz, float Px, bool bBold, float MaxW)
+	{
+		if (MaxW <= 0.f || Sz.X <= MaxW) return;
+		F = Font(FMath::Max(Px * 0.7f, Px * MaxW / Sz.X), bBold);
+		Sz = Measure(S, F);
+		FString Base = S;
+		while (Sz.X > MaxW && Base.Len() > 1)
+		{
+			Base.LeftChopInline(1);
+			Base.TrimEndInline();
+			S = Base + TEXT("…");
+			Sz = Measure(S, F);
+		}
+	}
+	void Text(const FString& InS, float X, float Y, const FLinearColor& Col, float Px = 13.f, int32 Align = 0, bool bBold = false, float MaxW = 0.f)
+	{
+		FString S = InS;
+		FSlateFontInfo F = Font(Px, bBold);
+		FVector2f Sz = Measure(S, F);
+		FitText(S, F, Sz, Px, bBold, MaxW);
+		const float Left = Align == 1 ? X - Sz.X / 2.f : Align == 2 ? X - Sz.X : X;
+		const float Top = Y - Sz.Y * 0.8f;
+		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(Left, Top))), S, F, ESlateDrawEffect::None, Col);
+	}
+	void TextCentered(const FString& InS, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float MaxW = 0.f)
+	{
+		FString S = InS;
+		FSlateFontInfo F = Font(Px, bBold);
+		FVector2f Sz = Measure(S, F);
+		FitText(S, F, Sz, Px, bBold, MaxW);
+		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(CX - Sz.X / 2.f, CY - Sz.Y / 2.f))), S, F,
+			ESlateDrawEffect::None, Col);
+	}
+	void Panel(float X, float Y, float W, float H) { Lines(RectPoints(X, Y, W, H), Hex(TEXT("7fd6ff"), 0.3f), 1.f); }
+
+	// 무늬 도형: ♠ 삼각형, ♥ 원, ♦ 마름모, ♣ 사각형
+	// 하트 곡선 (Flip -1 이면 뒤집어서 스페이드 몸통)
+	static TArray<FVector2f> HeartPoints(float CX, float CY, float R, float Flip, float OffY)
+	{
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= 48; ++I)
+		{
+			const float T = I / 48.f * TwoPi, St = FMath::Sin(T);
+			const float HX = 16.f * St * St * St;
+			const float HY = -(13.f * FMath::Cos(T) - 5.f * FMath::Cos(2.f * T) - 2.f * FMath::Cos(3.f * T) - FMath::Cos(4.f * T));
+			P.Add(FVector2f(CX + HX / 17.f * R, CY + (HY / 17.f - 0.15f) * R * Flip + OffY));
+		}
+		return P;
+	}
+	// 클로버 잎 세 개의 바깥 테두리 하나 (가운데 숫자 위로 원 선이 지나가지 않게)
+	static TArray<FVector2f> ClubPoints(float CX, float CY, float R)
+	{
+		const FVector2f O(CX, CY - 0.06f * R);
+		const FVector2f Cs[3] = {FVector2f(CX, CY - 0.44f * R), FVector2f(CX - 0.46f * R, CY + 0.1f * R), FVector2f(CX + 0.46f * R, CY + 0.1f * R)};
+		const float Rad = 0.4f * R;
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= 72; ++I)
+		{
+			const float A = I / 72.f * TwoPi;
+			const FVector2f U(FMath::Cos(A), FMath::Sin(A));
+			float Far = 0.f;
+			for (const FVector2f& C0 : Cs)
+			{
+				const FVector2f D = C0 - O;
+				const float B = D.X * U.X + D.Y * U.Y, Disc = B * B - (D.X * D.X + D.Y * D.Y - Rad * Rad);
+				if (Disc >= 0.f) Far = FMath::Max(Far, B + FMath::Sqrt(Disc));
+			}
+			P.Add(O + U * Far);
+		}
+		return P;
+	}
+	// 무늬 도형: 실제 무늬 모양 (♠ ♥ ♦ ♣), 와일드는 별
+	void Shape(EPDSuit S, float CX, float CY, float R, const FLinearColor& Col, float Thick, float GlowK)
+	{
+		switch (S)
+		{
+		case EPDSuit::Spade:
+			Glow(HeartPoints(CX, CY, R, -1.f, -R * 0.12f), Col, Thick, GlowK);
+			Glow({{CX, CY + R * 0.42f}, {CX + R * 0.3f, CY + R}, {CX - R * 0.3f, CY + R}, {CX, CY + R * 0.42f}}, Col, Thick, GlowK);
+			break;
+		case EPDSuit::Heart: Glow(HeartPoints(CX, CY, R, 1.f, 0.f), Col, Thick, GlowK); break;
+		case EPDSuit::Diamond: Glow({{CX, CY - R}, {CX + R * 0.72f, CY}, {CX, CY + R}, {CX - R * 0.72f, CY}, {CX, CY - R}}, Col, Thick, GlowK); break;
+		case EPDSuit::Club:
+			Glow(ClubPoints(CX, CY, R), Col, Thick, GlowK);
+			Glow({{CX, CY + R * 0.5f}, {CX + R * 0.28f, CY + R}, {CX - R * 0.28f, CY + R}, {CX, CY + R * 0.5f}}, Col, Thick, GlowK);
+			break;
+		case EPDSuit::Wild:
+		{
+			TArray<FVector2f> Star;
+			for (int32 K = 0; K <= 10; ++K) { const float A = -TwoPi / 4.f + K * TwoPi / 10.f, Rr = K % 2 ? R * 0.45f : R; Star.Add(FVector2f(CX + FMath::Cos(A) * Rr, CY + FMath::Sin(A) * Rr)); }
+			Glow(Star, Col, Thick, GlowK);
+			break;
+		}
+		}
+	}
+	// 카드(=타워): 둥근 사각 틀 안에 숫자와 작은 무늬 기호 (docs/15-art-style.md: 판 위 물체는 둥근 사각 틀 안에 작은 기호)
+	// bFrame=false 면 틀 없이 안쪽만 (손패 카드는 카드 테두리가 틀 역할)
+	void CardShape(const FPDCard& Card, float CX, float CY, float R, float Alpha, bool bStrong, float Pulse = 0.f, bool bFrame = true)
+	{
+		const FLinearColor Col = WithAlpha(SuitColor(Card.Suit), Alpha);
+		if (bFrame)
+		{
+			const float H = R * 0.98f;
+			if (bStrong) Box(CX - H, CY - H, H * 2.f, H * 2.f, WithAlpha(Col, 0.08f + 0.05f * Pulse)); // 족보에 든 타워는 옅게 차오름
+			Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Col, bStrong ? 2.f : 1.5f, bStrong ? 1.3f + 0.4f * Pulse : 0.8f);
+		}
+		if (Card.IsWild()) { Shape(Card.Suit, CX, CY, R * 0.6f, Col, 1.6f, 0.9f); return; }
+		TextCentered(RankText(Card.Rank), CX, CY - R * 0.24f, Col, R * (Card.Rank == 10 ? 0.62f : 0.74f), true);
+		Shape(Card.Suit, CX, CY + R * 0.5f, R * 0.3f, Col, 1.4f, 0.8f);
+	}
+	// ---- 조커 그림 10종 (docs/15-art-style.md 9절, tools/neon/neon.py 와 같은 좌표)
+	static void AddBez(TArray<FVector2f>& Out, FVector2f A, FVector2f B, FVector2f C, int32 N = 14)
+	{
+		for (int32 I = Out.Num() ? 1 : 0; I <= N; ++I)
+		{
+			const float T = I / (float)N, U = 1.f - T;
+			Out.Add(A * (U * U) + B * (2.f * U * T) + C * (T * T));
+		}
+	}
+	static TArray<FVector2f> Ellipse(FVector2f C, float R, float Sx = 1.f, int32 Seg = 24)
+	{
+		TArray<FVector2f> P;
+		for (int32 I = 0; I <= Seg; ++I) { const float A = I / (float)Seg * TwoPi; P.Add(C + FVector2f(FMath::Cos(A) * R * Sx, FMath::Sin(A) * R)); }
+		return P;
+	}
+	void JesterHat(float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk)
+	{
+		auto P = [&](float X, float Y) { return FVector2f(CX + X * R, CY + Y * R); };
+		const float By = -0.12f;
+		TArray<FVector2f> Hat;
+		AddBez(Hat, P(-0.5f, By), P(-0.95f, -0.95f), P(-1.f, -0.22f));
+		AddBez(Hat, P(-1.f, -0.22f), P(-0.6f, -0.5f), P(-0.22f, By - 0.22f));
+		AddBez(Hat, P(-0.22f, By - 0.22f), P(-0.2f, -0.75f), P(0.f, -1.05f));
+		AddBez(Hat, P(0.f, -1.05f), P(0.2f, -0.75f), P(0.22f, By - 0.22f));
+		AddBez(Hat, P(0.22f, By - 0.22f), P(0.6f, -0.5f), P(1.f, -0.22f));
+		AddBez(Hat, P(1.f, -0.22f), P(0.95f, -0.95f), P(0.5f, By));
+		AddBez(Hat, P(0.5f, By), P(0.f, By + 0.14f), P(-0.5f, By));
+		Glow(Hat, Col, Th, Gk);
+		const FVector2f Tips[3] = {P(-1.f, -0.12f), P(0.f, -0.95f), P(1.f, -0.12f)};
+		for (const FVector2f& T0 : Tips) Glow(Ellipse(T0, 0.1f * R, 1.f, 14), Col, Th, Gk);
+	}
+	void JesterHead(float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk)
+	{
+		auto P = [&](float X, float Y) { return FVector2f(CX + X * R, CY + Y * R); };
+		JesterHat(CX, CY, R, Col, Th, Gk);
+		Glow(Ellipse(P(0.f, 0.3f), 0.34f * R, 0.92f, 28), Col, Th, Gk);
+		for (float Ex : {-0.13f, 0.13f}) { TArray<FVector2f> E; AddBez(E, P(Ex - 0.07f, 0.26f), P(Ex, 0.17f), P(Ex + 0.07f, 0.26f), 6); Glow(E, Col, Th, Gk); }
+		TArray<FVector2f> M;
+		AddBez(M, P(-0.16f, 0.4f), P(0.f, 0.57f), P(0.16f, 0.4f), 8);
+		Glow(M, Col, Th, Gk);
+		TArray<FVector2f> Z;
+		for (int32 I = 0; I <= 10; ++I) Z.Add(P(-0.55f + I * 0.11f, 0.6f + (I % 2 ? 0.24f : 0.f)));
+		Glow(Z, Col, Th, Gk);
+	}
+	// K = 조커 종류(0~9), 틀 반 너비 R 안에 그린다
+	void JokerArt(int32 K, float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk)
+	{
+		auto P = [&](float X, float Y) { return FVector2f(CX + X * R, CY + Y * R); };
+		switch (K)
+		{
+		case 0: JesterHead(CX, CY + 0.04f * R, R * 0.6f, Col, Th, Gk); break;          // 광대
+		case 1: JesterHat(CX, CY + 0.38f * R, R * 0.72f, Col, Th, Gk); break;          // 모자 장수
+		case 2:                                                                          // 웃는 가면
+		{
+			TArray<FVector2f> Mask;
+			AddBez(Mask, P(-0.68f, -0.12f), P(0.f, -0.52f), P(0.68f, -0.12f));
+			AddBez(Mask, P(0.68f, -0.12f), P(0.35f, 0.22f), P(0.f, 0.02f));
+			AddBez(Mask, P(0.f, 0.02f), P(-0.35f, 0.22f), P(-0.68f, -0.12f));
+			Glow(Mask, Col, Th, Gk);
+			for (float Sx : {-1.f, 1.f})
+			{
+				TArray<FVector2f> E;
+				AddBez(E, P(Sx * 0.45f, -0.12f), P(Sx * 0.3f, -0.26f), P(Sx * 0.15f, -0.12f), 6);
+				AddBez(E, P(Sx * 0.15f, -0.12f), P(Sx * 0.3f, -0.04f), P(Sx * 0.45f, -0.12f), 6);
+				Glow(E, Col, Th, Gk);
+				Glow({P(Sx * 0.68f, -0.12f), P(Sx * 0.82f, 0.12f)}, Col, Th, Gk);
+				Glow({P(Sx * 0.68f, -0.12f), P(Sx * 0.88f, -0.02f)}, Col, Th, Gk);
+			}
+			TArray<FVector2f> Sm;
+			AddBez(Sm, P(-0.3f, 0.32f), P(0.f, 0.6f), P(0.3f, 0.32f), 10);
+			Glow(Sm, Col, Th, Gk);
+			break;
+		}
+		case 3:                                                                          // 희비극
+		{
+			Glow(Ellipse(P(-0.24f, -0.1f), 0.38f * R, 1.f, 28), Col, Th, Gk);
+			Glow(Ellipse(P(0.26f, 0.14f), 0.38f * R, 1.f, 28), Col, Th, Gk);
+			const float Eyes[4][2] = {{-0.38f, -0.2f}, {-0.18f, -0.2f}, {0.14f, 0.06f}, {0.32f, 0.06f}};
+			for (int32 I = 0; I < 4; ++I) { TArray<FVector2f> E; AddBez(E, P(Eyes[I][0], Eyes[I][1]), P(Eyes[I][0] + 0.06f, Eyes[I][1] - 0.08f), P(Eyes[I][0] + 0.12f, Eyes[I][1]), 5); Glow(E, Col, Th, Gk); }
+			TArray<FVector2f> Happy, Sad;
+			AddBez(Happy, P(-0.42f, 0.f), P(-0.24f, 0.18f), P(-0.06f, 0.f), 8);
+			AddBez(Sad, P(0.12f, 0.34f), P(0.28f, 0.18f), P(0.44f, 0.34f), 8);
+			Glow(Happy, Col, Th, Gk);
+			Glow(Sad, Col, Th, Gk);
+			break;
+		}
+		case 4:                                                                          // 할리퀸
+		{
+			auto Dia = [&](float X, float Y, float W, float H) { return TArray<FVector2f>{P(X, Y - H), P(X + W, Y), P(X, Y + H), P(X - W, Y), P(X, Y - H)}; };
+			Glow(Dia(0.f, 0.02f, 0.24f, 0.42f), Col, Th, Gk);
+			Glow(Dia(-0.42f, 0.08f, 0.17f, 0.3f), Col, Th, Gk);
+			Glow(Dia(0.42f, 0.08f, 0.17f, 0.3f), Col, Th, Gk);
+			Glow(Ellipse(P(0.f, -0.52f), 0.08f * R, 1.f, 12), Col, Th, Gk);
+			Glow(Ellipse(P(-0.42f, -0.34f), 0.07f * R, 1.f, 12), Col, Th, Gk);
+			Glow(Ellipse(P(0.42f, -0.34f), 0.07f * R, 1.f, 12), Col, Th, Gk);
+			break;
+		}
+		case 5:                                                                          // 지휘봉
+			Glow({P(0.f, -0.05f), P(0.f, 0.72f)}, Col, Th, Gk);
+			Glow({P(-0.12f, 0.72f), P(0.12f, 0.72f)}, Col, Th, Gk);
+			JesterHead(CX, CY - 0.32f * R, R * 0.36f, Col, Th, Gk);
+			break;
+		case 6:                                                                          // 잭
+			JesterHat(CX, CY - 0.22f * R, R * 0.48f, Col, Th, Gk);
+			TextCentered(TEXT("J"), CX, CY + 0.26f * R, Col, R * 0.78f, true);
+			break;
+		case 7:                                                                          // 체셔
+		{
+			TArray<FVector2f> Grin;
+			AddBez(Grin, P(-0.66f, 0.f), P(0.f, 0.62f), P(0.66f, 0.f));
+			AddBez(Grin, P(0.66f, 0.f), P(0.f, 0.3f), P(-0.66f, 0.f));
+			Glow(Grin, Col, Th, Gk);
+			for (float X : {-0.34f, -0.17f, 0.f, 0.17f, 0.34f}) Glow({P(X, 0.13f), P(X, 0.27f - FMath::Abs(X) * 0.25f)}, Col, Th, Gk);
+			for (float Sx : {-1.f, 1.f}) { TArray<FVector2f> E; AddBez(E, P(Sx * 0.42f, -0.32f), P(Sx * 0.28f, -0.46f), P(Sx * 0.14f, -0.32f), 6); Glow(E, Col, Th, Gk); }
+			break;
+		}
+		case 8:                                                                          // 방울
+		{
+			TArray<FVector2f> Bell, Rim, Tip;
+			AddBez(Bell, P(-0.42f, 0.34f), P(-0.38f, -0.36f), P(0.f, -0.36f));
+			AddBez(Bell, P(0.f, -0.36f), P(0.38f, -0.36f), P(0.42f, 0.34f));
+			AddBez(Rim, P(-0.52f, 0.34f), P(0.f, 0.48f), P(0.52f, 0.34f));
+			AddBez(Tip, P(0.f, -0.36f), P(0.05f, -0.62f), P(0.34f, -0.62f), 8);
+			Glow(Bell, Col, Th, Gk);
+			Glow(Rim, Col, Th, Gk);
+			Glow({P(-0.52f, 0.34f), P(0.52f, 0.34f)}, Col, Th, Gk);
+			Glow(Ellipse(P(0.f, 0.52f), 0.08f * R, 1.f, 12), Col, Th, Gk);
+			Glow(Tip, Col, Th, Gk);
+			Glow(Ellipse(P(0.42f, -0.6f), 0.07f * R, 1.f, 12), Col, Th, Gk);
+			break;
+		}
+		default:                                                                         // 스타
+			Shape(EPDSuit::Wild, CX, CY + 0.22f * R, R * 0.52f, Col, Th, Gk);
+			JesterHat(CX, CY - 0.24f * R, R * 0.4f, Col, Th, Gk);
+			break;
+		}
+	}
+	// 조커 포탑: 분홍 둥근 사각 틀 + 조커 그림
+	void JokerTower(int32 K, float CX, float CY, float R, float Alpha, float Pulse)
+	{
+		const FLinearColor Col = WithAlpha(JokerPink, Alpha);
+		const float H = R * 0.98f;
+		Box(CX - H, CY - H, H * 2.f, H * 2.f, WithAlpha(Col, 0.08f + 0.06f * Pulse));
+		Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Col, 2.f, 1.4f + 0.5f * Pulse);
+		JokerArt(K, CX, CY, R, Col, 1.3f, 0.8f);
+	}
+	void Badge(const FString& S, float CX, float CY, const FLinearColor& Col, float Alpha)
+	{
+		const FSlateFontInfo F = Font(11.f, true);
+		const FVector2f Sz = Measure(S, F);
+		const float W = Sz.X + 10.f, H = 16.f;
+		Box(CX - W / 2.f, CY - H / 2.f, W, H, Hex(TEXT("06060b"), 0.88f * Alpha));
+		Lines(RectPoints(CX - W / 2.f, CY - H / 2.f, W, H), WithAlpha(Col, Alpha), 1.f);
+		TextCentered(S, CX, CY, WithAlpha(Col, Alpha), 11.f, true);
+	}
+	void Overlay(const FString& Title, const FLinearColor& Col, const TArray<FString>& Body, const FString& Foot)
+	{
+		Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.86f));
+		Text(Title, DesignW / 2.f, 240.f, Col, 34.f, 1, true);
+		for (int32 I = 0; I < Body.Num(); ++I) Text(Body[I], DesignW / 2.f, 290.f + I * 26.f, Hex(TEXT("cfd8e6")), 14.f, 1);
+		Text(Foot, DesignW / 2.f, 300.f + Body.Num() * 26.f + 50.f, Hex(TEXT("ffd96a")), 18.f, 1);
+	}
+	// 버튼 위 판 위력 비교 (D-107): "판 위력 1.2k → 1.6k (+27%)" 오르면 초록, 내리면 빨강. 누를 수 없으면 안 그림
+	void PowerBadge(const FPDGame::FPowerPreview& P, float X, float Y)
+	{
+		if (P.After < 0.f || P.Before <= 0.f) return;
+		const float Pct = (P.After / P.Before - 1.f) * 100.f;
+		const FLinearColor Col = Pct >= 0.5f ? Hex(TEXT("9cffb0")) : Pct <= -0.5f ? Hex(TEXT("ff6a6a")) : Hex(TEXT("cfd8e6"));
+		Badge(FString::Printf(TEXT("판 위력 %s → %s (%s%.0f%%)"), *ShortNum(P.Before), *ShortNum(P.After), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct), X, Y, Col, 1.f);
+	}
+};
