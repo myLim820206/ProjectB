@@ -298,7 +298,7 @@ bool SPDBoardWidget::SynRevealed(int32 I) const
 	const std::vector<int>& Cells = Game.Synergies[I].Cells;
 	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
 	const bool bFuse = Game.CanFuse(I);
-	if (bFuse && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseW, FuseH)) return true;
+	if (bFuse && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseBtnW(Game.Synergies[I]), FuseH)) return true;
 	return InBox(Mouse, FeedButtonCenter(Game.Synergies, I, bFuse), FuseW, FuseH); // 먹이기 버튼 위 (먹일 수 없으면 그리지도 않음)
 }
 
@@ -389,7 +389,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		const int32 Key = CellAt(P);
 		bool bSameBtn = false;
 		if (bPickJoker) { FPDJokerGroup Tmp; Tmp.Cells = PickCells; const FVector2f B = JokerButtonCenter(Tmp); bSameBtn = InBox(P, B, JokerBtnW, JokerBtnH); }
-		else if (const int32 Pi = FindPickIndex(); Pi >= 0) { const FVector2f B = FuseButtonCenter(Game.Synergies, Pi); bSameBtn = InBox(P, B, FuseW, FuseH); }
+		else if (const int32 Pi = FindPickIndex(); Pi >= 0) { const FVector2f B = FuseButtonCenter(Game.Synergies, Pi); bSameBtn = InBox(P, B, FuseBtnW(Game.Synergies[Pi]), FuseH); }
 		if (!bRight && bSameBtn) FinishPick(-1);
 		else if (!bRight && Key >= 0 && std::find(PickCells.begin(), PickCells.end(), Key) != PickCells.end()) FinishPick(Key);
 		else PickCells.clear();
@@ -431,7 +431,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		{
 			if (!Game.CanFuse(I) || !SynRevealed(I)) continue;
 			const FVector2f B = FuseButtonCenter(Game.Synergies, I);
-			if (InBox(P, B, FuseW, FuseH)) { StartPick(Game.Synergies[I].Cells, false); return; }
+			if (InBox(P, B, FuseBtnW(Game.Synergies[I]), FuseH)) { StartPick(Game.Synergies[I].Cells, false); return; }
 		}
 	// 먹이기 버튼 (조커에 맞닿은 족보)
 	if (!bRight)
