@@ -150,6 +150,10 @@ void APDGameMode::SetupWorldView()
 	UCameraComponent* Cam = WorldCamera->GetCameraComponent();
 	Cam->SetProjectionMode(ECameraProjectionMode::Orthographic);
 	Cam->SetConstraintAspectRatio(false);
+	// 정사영 폭은 가로 기준. 프로젝트 기본이 세로 기준(MaintainYFOV)이면 폭이 높이로 쓰여
+	// 월드가 화면 비율(약 2배)만큼 작게 보이고 이펙트가 가운데 쪽으로 끌려간다
+	Cam->bOverrideAspectRatioAxisConstraint = true;
+	Cam->SetAspectRatioAxisConstraint(EAspectRatioAxisConstraint::AspectRatio_MaintainXFOV);
 	Cam->SetOrthoNearClipPlane(1.f);
 	Cam->SetOrthoFarClipPlane(PDCameraDistance * 2.f);
 
