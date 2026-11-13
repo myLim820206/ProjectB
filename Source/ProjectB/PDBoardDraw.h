@@ -430,6 +430,11 @@ enum class EMenuItem : uint8_t { Resume, NewGame, Settings, Quit, Count };
 constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
 constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
+// 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
+enum class ETitleItem : uint8_t { Start, Settings, Quit, Count };
+constexpr float TitleBtnW = 300.f, TitleBtnH = 50.f, TitleBtnGap = 16.f, TitleBtnY0 = 380.f;
+inline FVector2f TitleBtnPos(int I) { return FVector2f(DesignW / 2.f - TitleBtnW / 2.f, TitleBtnY0 + I * (TitleBtnH + TitleBtnGap)); }
+constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
 	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("설정"), TEXT("게임 종료")};

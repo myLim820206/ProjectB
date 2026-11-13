@@ -461,6 +461,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
+	if (LoadT > 0.f) { LoadT -= InDeltaTime; if (LoadT <= 0.f) { LoadT = -1.f; RestartRun(); } } // 로딩 화면이 끝나면 새 판 (D-153)
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
 	if (SwapFrom >= 0 && !Game.Towers.count(SwapFrom)) SwapFrom = -1;
@@ -476,6 +477,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 			if (StressT < 0.f && Clock > 2.f)
 			{
 				Game.Phase = EPDPhase::Build;
+				LoadT = -1.f;
 				PDDebugStress(Game);
 				GPDDebug.bShow = true;
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔
@@ -662,6 +664,11 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 		const int32 Item = MenuHoverAt(Mouse);
 		if (Item >= 0) MenuSel = Item;
 	}
+	else if (Game.Phase == EPDPhase::Title && LoadT <= 0.f) // 시작 화면: 마우스가 올라간 버튼
+	{
+		for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
+			if (InRect(Mouse, TitleBtnPos(I).X, TitleBtnPos(I).Y, TitleBtnW, TitleBtnH)) TitleSel = I;
+	}
 	const int32 Cell = CellAt(Mouse);
 	HoverX = Cell >= 0 ? Cell % Cols : -1;
 	HoverY = Cell >= 0 ? Cell / Cols : -1;
@@ -670,6 +677,7 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
+	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
 	if (bSettings) { if (bRight) bSettings = false; else SettingsClick(P); return; }
 	if (bMenu)
 	{
@@ -678,7 +686,12 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else if (!InRect(P, MenuX - 30.f, MenuItemY0 - 80.f, MenuW + 60.f, (int32)EMenuItem::Count * (MenuItemH + MenuGap) + 110.f)) bMenu = false; // 창 바깥 클릭 = 닫기
 		return;
 	}
-	if (Game.Phase == EPDPhase::Title) { Game.Phase = EPDPhase::Build; UiSound(EPDSound::Start); return; }
+	if (Game.Phase == EPDPhase::Title) // 시작 화면 (D-153): 버튼 클릭
+	{
+		for (int32 I = 0; I < (int32)ETitleItem::Count && !bRight; ++I)
+			if (InRect(P, TitleBtnPos(I).X, TitleBtnPos(I).Y, TitleBtnW, TitleBtnH)) { TitleSelect(I); break; }
+		return;
+	}
 	if (Game.Phase == EPDPhase::Over) { RestartRun(); return; }
 	if (Game.Phase == EPDPhase::Reward)
 	{
@@ -883,6 +896,20 @@ int32 SPDBoardWidget::MenuHoverAt(FVector2f P) const
 	return -1;
 }
 
+void SPDBoardWidget::TitleSelect(int32 Item)
+{
+	switch ((ETitleItem)Item)
+	{
+	case ETitleItem::Start: LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
+	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
+	case ETitleItem::Quit:
+		if (OnQuit) OnQuit();
+		else FPlatformMisc::RequestExit(false);
+		break;
+	default: break;
+	}
+}
+
 void SPDBoardWidget::MenuSelect(int32 Item)
 {
 	switch ((EMenuItem)Item)
@@ -959,6 +986,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); }
 #endif
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
+	if (LoadT > 0.f) return FReply::Handled(); // 로딩 중 (D-153)
 	if (bSettings) { SettingsKey(K); return FReply::Handled(); }
 	if (bMenu)
 	{
@@ -973,9 +1001,12 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	auto OpenMenu = [this]() { bMenu = true; MenuSel = 0; Sel = -1; };
 	if (Game.Phase == EPDPhase::Title)
 	{
-		if (K == EKeys::Enter || K == EKeys::SpaceBar) { Game.Phase = EPDPhase::Build; UiSound(EPDSound::Start); return FReply::Handled(); }
-		if (K == EKeys::Escape) { OpenMenu(); return FReply::Handled(); }
-		return FReply::Unhandled();
+		const int32 N = (int32)ETitleItem::Count; // 시작 화면 (D-153): 위아래 고르기, Enter 결정
+		if (K == EKeys::Up || K == EKeys::W) { TitleSel = (TitleSel + N - 1) % N; UiSound(EPDSound::Move); }
+		else if (K == EKeys::Down || K == EKeys::S) { TitleSel = (TitleSel + 1) % N; UiSound(EPDSound::Move); }
+		else if (K == EKeys::Enter || K == EKeys::SpaceBar) TitleSelect(TitleSel);
+		else return FReply::Unhandled();
+		return FReply::Handled();
 	}
 	if (Game.Phase == EPDPhase::Over)
 	{

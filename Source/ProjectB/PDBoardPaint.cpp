@@ -291,15 +291,12 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	const FPDGame& G = Game;
 	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Red = Hex(TEXT("ff6a6a"));
 	if (FlashT > 0.f) C.Box(0.f, 0.f, DesignW, DesignH, WithAlpha(FlashCol, FlashT * 0.45f));
-	if (G.Phase == EPDPhase::Title)
-		C.Overlay(TEXT("POKER DEFENSE"), Cyan,
-			{TEXT("카드 한 장이 타워 하나. 무늬는 공격 방식, 숫자는 공격력"), TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이). 족보끼리 맞닿으면 연쇄 보너스"),
-				FString::Printf(TEXT("웨이브를 막을 때마다 카드 %d장. 족보는 합성해서 레벨을 올린다. 끝없이 몰려오는 적을 얼마나 버틸까!"), DrawPerWave)},
-			TEXT("Enter 키 또는 화면을 눌러 시작"));
+	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) PaintTitle(C);
 	else if (G.Phase == EPDPhase::Over)
 		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), FString::Printf(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? TEXT("  (갱신!)") : TEXT(""))}, TEXT("R 키 또는 화면을 눌러 다시"));
 	if (bMenu) PaintMenu(C);
 	if (bSettings) PaintSettings(C);
+	if (LoadT > 0.f) PaintLoading(C);
 	// 디버그 표시 (D-133, F3): 맨 위 왼쪽 아래 구석에
 	if (GPDDebug.bShow)
 	{
@@ -1919,6 +1916,59 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			C.TextCentered(TEXT("클릭해서 찍기"), X + 79.f, Ly + 5.f, Green, 10.f, true);
 		}
 	}
+}
+
+// 시작 화면 (D-153): 제목 + 게임 시작 · 환경 설정 · 게임 종료
+void SPDBoardWidget::PaintTitle(FCanvas& C) const
+{
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f), CX = DesignW / 2.f;
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.97f));
+	// 무늬 넷이 천천히 떠다닌다
+	for (int32 I = 0; I < 4; ++I)
+		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
+	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
+	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
+	static const TCHAR* Labels[] = {TEXT("게임 시작"), TEXT("환경 설정"), TEXT("게임 종료")};
+	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
+	{
+		const FVector2f P = TitleBtnPos(I);
+		const bool bSel = TitleSel == I;
+		const FLinearColor Col = I == 0 ? Gold : Cyan;
+		C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, Hex(TEXT("0a0b14"), 0.92f));
+		if (bSel) C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, WithAlpha(Col, 0.12f + 0.06f * Pulse));
+		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, 10.f), Col, bSel ? 2.2f : 1.3f, bSel ? 1.2f + 0.5f * Pulse : 0.5f);
+		C.TextCentered(Labels[I], CX, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Col, 18.f, true);
+	}
+	const float FootY = TitleBtnPos((int32)ETitleItem::Count).Y + 14.f;
+	if (Game.BestWave > 0) C.TextCentered(FString::Printf(TEXT("최고 기록 %d웨이브"), Game.BestWave), CX, FootY, Grey, 12.f, false);
+	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), CX, DesignH - 30.f, Dim, 11.f, false);
+}
+
+// 로딩 화면 (D-153): 게임 시작을 누르면 잠깐. 무늬 넷이 돌고 채워지는 막대 + 도움말 한 줄, 끝나면 새 판
+void SPDBoardWidget::PaintLoading(FCanvas& C) const
+{
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Fg = Hex(TEXT("cfd8e6"));
+	const float CX = DesignW / 2.f, U = FMath::Clamp(1.f - LoadT / LoadDur, 0.f, 1.f);
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b")));
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const float A = Clock * 2.4f + I * HALF_PI;
+		C.Shape((EPDSuit)I, CX + FMath::Cos(A) * 46.f, 290.f + FMath::Sin(A) * 46.f, 12.f, SuitColor((EPDSuit)I), 1.5f, 0.9f);
+	}
+	C.TextCentered(TEXT("판을 준비하는 중"), CX, 390.f, Cyan, 20.f, true);
+	const float BX = CX - 200.f, BY = 418.f, BW = 400.f, BH = 6.f;
+	C.Box(BX, BY, BW, BH, Hex(TEXT("1a1d2a")));
+	C.Box(BX, BY, BW * U, BH, WithAlpha(Cyan, 0.85f));
+	C.Glow(FCanvas::RectPoints(BX - 3.f, BY - 3.f, BW + 6.f, BH + 6.f), Cyan, 1.f, 0.4f);
+	static const TCHAR* Tips[] = {
+		TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)"),
+		TEXT("족보끼리 맞닿으면 연쇄 보너스가 붙는다"),
+		TEXT("왼쪽 족보 목록을 클릭하면 그 족보만 펼쳐 보고 바로 합성할 수 있다"),
+		TEXT("맞닿은 족보 3개(또는 2개)로 조커를 만들 수 있다"),
+		TEXT("자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다"),
+		TEXT("무늬는 공격 방식, 숫자는 공격력")};
+	C.TextCentered(Tips[FMath::Clamp(LoadTip, 0, 5)], CX, 466.f, Fg, 13.f, false, 760.f);
 }
 
 // 왼쪽 족보 안내 (D-119): 이름 + 효과 한 줄. 판 위에 있는 족보는 밝게, 개수 표시

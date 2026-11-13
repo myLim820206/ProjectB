@@ -79,6 +79,9 @@ private:
 	void PaintCloseButton(FCanvas& C, const FLinearColor& Col) const; // 도감·트리 창 닫기 버튼
 	void PaintMenu(FCanvas& C) const;      // Esc 메뉴 창
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
+	void TitleSelect(int32 Item);          // 시작 화면 항목 실행 (D-153)
+	void PaintTitle(FCanvas& C) const;     // 시작 화면
+	void PaintLoading(FCanvas& C) const;   // 로딩 화면
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
 	void RestartRun();                     // 새 판 시작 (게임 오버·메뉴 공통)
 	// 합성 위치 고르기: [합성]·[조커] 버튼을 누르면 재료 칸 중 하나를 클릭해 결과가 놓일 칸을 고른다
@@ -116,6 +119,9 @@ private:
 	uint32 SavedDiscovered = 0;
 	int32 SavedBest = 0;
 	int32 MenuSel = 0;                     // 키보드로 고른 메뉴 항목
+	int32 TitleSel = 0;                    // 시작 화면에서 고른 항목 (D-153)
+	float LoadT = -1.f;                    // 로딩 화면 남은 시간 (음수 = 없음). 끝나면 새 판
+	int32 LoadTip = 0;                     // 로딩 화면 도움말 번호
 	void HandleEvents();
 	void UiSound(PD::EPDSound S);           // 화면 조작 소리 (음소거면 안 냄)
 	void UpdateFx(float Dt);
