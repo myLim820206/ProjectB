@@ -906,7 +906,177 @@ def render_ui_mock(out, S=2):
     img.resize((W, H), Image.LANCZOS).save(out)
 
 
+# ---------------------------------------------------------------- 도감·트리 화면 시안 (D-119)
+class _Mock:
+    """시안용 그리기 도우미: 선(빛번짐), 글자, 옅은 채움을 모았다가 한 번에 그린다"""
+    def __init__(self, S=2, W=1280, H=720):
+        self.S, self.W, self.H = S, W, H
+        self.lines, self.texts, self.fills = [], [], []
+
+    @staticmethod
+    def hx(h): return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+    def rr(self, x, y, w, h, r, c, wd=1.6):
+        P = []
+        for (cx, cy, a0) in ((x + w - r, y + r, -90), (x + w - r, y + h - r, 0), (x + r, y + h - r, 90), (x + r, y + r, 180)):
+            for k in range(7):
+                a = math.radians(a0 + k * 15)
+                P.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
+        P.append(P[0])
+        self.lines.append((P, c, wd))
+
+    def ln(self, pts, c, wd=1.6): self.lines.append((pts, c, wd))
+    def tx(self, x, y, s, c, px=12, anchor='lm'): self.texts.append((x, y, s, c, px, anchor))
+    def box(self, x, y, w, h, c, a): self.fills.append((x, y, w, h, c, a))
+
+    def draw(self, img=None):
+        S = self.S
+        if img is None: img = Image.new('RGB', (self.W * S, self.H * S), BG)
+        base = ImageDraw.Draw(img)
+        for (x, y, w, h, c, a) in self.fills: base.rectangle([x * S, y * S, (x + w) * S, (y + h) * S], fill=tuple(int(v * a) for v in c))
+        glow = Image.new('RGB', img.size, (0, 0, 0))
+        gd = ImageDraw.Draw(glow)
+        for (pts, c, wd) in self.lines: gd.line([(x * S, y * S) for x, y in pts], fill=c, width=max(1, int(wd * S * 3)))
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S)).point(lambda v: int(v * 0.6)))
+        d = ImageDraw.Draw(img)
+        for (pts, c, wd) in self.lines: d.line([(x * S, y * S) for x, y in pts], fill=c, width=max(1, int(wd * S)))
+        for (x, y, s, c, px, anchor) in self.texts:
+            if s: d.text((x * S, y * S), s, fill=c, font=KFONT(px * S), anchor=anchor)
+        return img
+
+
+_HAND_COL = {'로열': 'fff4d6', '파이브': 'ffd96a', '스티플': 'ff9ad5', '포카드': 'ff6a6a', '풀하우스': 'ffa86a', '플러시': 'b48cff',
+             '스트레이트': '6a8cff', '트리플': '9cffb0', '투 페어': '7fd6ff', '원 페어': 'cfd8e6'}
+_JOKERS = [  # 이름, 등급, 능력, 3개 레시피, 2개 레시피 (D-118)
+    ('광대', 3.0, '무늬 4종 공격을 번갈아', ['파이브', '스트레이트', '플러시'], ['파이브', '스트레이트']),
+    ('모자 장수', 3.0, '주변 타워 공격 +25%', ['스티플', '스트레이트', '플러시'], ['스티플', '플러시']),
+    ('웃는 가면', 2.0, '옆 타워 공격을 따라 함', ['투 페어', '원 페어', '스트레이트'], ['투 페어', '원 페어']),
+    ('희비극', 2.0, '두 적을 동시에', ['원 페어', '스트레이트', '플러시'], ['원 페어', '스트레이트']),
+    ('할리퀸', 2.5, '같은 무늬 타워 +30%', ['플러시', '플러시', '플러시'], ['플러시', '플러시']),
+    ('지휘봉', 2.0, '주변 타워 연사 +40%', ['스트레이트', '스트레이트', '스트레이트'], ['스트레이트', '스트레이트']),
+    ('잭', 2.0, '공격 ×3, 연사 ×0.5', ['트리플', '스트레이트', '플러시'], ['트리플', '스트레이트']),
+    ('체셔', 2.5, '사거리 무한', ['포카드', '스트레이트', '플러시'], ['포카드', '스트레이트']),
+    ('방울', 2.5, '8초마다 적을 멈춤', ['풀하우스', '스트레이트', '플러시'], ['풀하우스', '플러시']),
+    ('스타', 3.0, '1초마다 모든 적에게', ['로열', '스티플', '플러시'], ['로열', '스티플'])]
+
+
+_HAND_SHORT = {'스트레이트': '스트', '원 페어': '페어', '투 페어': '투페어', '풀하우스': '풀하'}
+def _chips(M, x, y, hands, px=9, h=16, gap=4, short=False):
+    """족보 이름을 색 알약으로 나란히. 끝 x 를 돌려준다 (short: 작은 칸용 줄임말)"""
+    for full in hands:
+        c = M.hx(_HAND_COL[full])
+        n = _HAND_SHORT.get(full, full) if short else full
+        w = 12 + len(n.replace(' ', '')) * px * 1.36 + n.count(' ') * px * 0.5
+        M.rr(x, y, w, h, h / 2, c, 1.1)
+        M.box(x, y, w, h, c, 0.1)
+        M.tx(x + w / 2, y + h / 2, n, c, px, 'mm')
+        x += w + gap
+    return x
+
+
+def render_codex_mock(out, S=2):
+    M = _Mock(S)
+    PNK, GOLD, DIM, FG, GRY, CY = M.hx('ff9ad5'), M.hx('ffd96a'), M.hx('5f6878'), M.hx('cfd8e6'), M.hx('8a94a6'), M.hx('7fd6ff')
+    found = {0, 2, 3, 4, 5, 6, 8}
+    sel = 5
+    M.rr(16, 12, 1248, 50, 10, PNK, 1.2)
+    M.tx(34, 37, '조커 도감', PNK, 20); M.tx(170, 37, '7 / 10 발견', FG, 13)
+    M.tx(420, 37, '맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커. 3개 쪽이 카드가 많아 세다', GRY, 11)
+    M.rr(1180, 22, 70, 30, 10, GRY, 1.2); M.tx(1215, 37, '닫기 J', GRY, 11, 'mm')
+    designs = joker_cards()
+    S2 = S
+    icon_jobs = []
+    for k, (name, tier, abil, r3, r2) in enumerate(_JOKERS):
+        col, row = k % 5, k // 5
+        x, y = 16 + col * 172, 76 + row * 316
+        on = k in found
+        c = PNK if on else DIM
+        if k == sel: M.box(x, y, 164, 304, PNK, 0.07)
+        M.rr(x, y, 164, 304, 10, c, 2.0 if k == sel else 1.2)
+        icon_jobs.append((designs[k][0], x + 82, y + 70, 40, on))
+        M.tx(x + 82, y + 132, name if on else '???', c if on else GRY, 15, 'mm')
+        tc = M.hx('ffd96a') if tier >= 3 else M.hx('ffa86a') if tier >= 2.5 else CY
+        M.rr(x + 52, y + 146, 60, 18, 9, tc, 1.1); M.tx(x + 82, y + 155, '위력 ×%g' % tier, tc, 9, 'mm')
+        M.tx(x + 82, y + 180, abil if on else '만들면 열림', FG if on else DIM, 10, 'mm')
+        M.tx(x + 10, y + 206, '3개', GRY, 9); _chips(M, x + 10, y + 216, r3, 9, 17, 4, True)
+        M.tx(x + 10, y + 250, '2개', GRY, 9); _chips(M, x + 10, y + 260, r2, 9, 17, 4, True)
+    # 오른쪽 자세히
+    X0 = 884
+    name, tier, abil, r3, r2 = _JOKERS[sel]
+    M.rr(X0, 76, 380, 620, 12, PNK, 1.6)
+    icon_jobs.append((designs[sel][0], X0 + 190, 170, 70, True))
+    M.tx(X0 + 190, 270, name, PNK, 24, 'mm')
+    M.tx(X0 + 190, 300, '스트레이트 대장 · 위력 ×%g' % tier, GOLD, 12, 'mm')
+    M.tx(X0 + 24, 340, '능력', GRY, 10); M.tx(X0 + 24, 360, abil, FG, 13)
+    M.tx(X0 + 24, 388, '지휘: 스트레이트 타워 위력 +30% (겹침)', FG, 11)
+    M.tx(X0 + 24, 430, '3개 레시피', GRY, 10); _chips(M, X0 + 24, 442, r3, 10, 22, 6)
+    M.tx(X0 + 24, 486, '2개 레시피', GRY, 10); _chips(M, X0 + 24, 498, r2, 10, 22, 6)
+    M.tx(X0 + 24, 548, '스트레이트끼리는 숫자가 이어지지 않게', DIM, 10)
+    M.rr(X0 + 24, 572, 332, 100, 10, M.hx('9cffb0'), 1.1)
+    M.tx(X0 + 40, 594, '위력 계산', M.hx('9cffb0'), 11)
+    M.tx(X0 + 40, 616, '재료 위력 합 × 1.2 × 등급 ×2', FG, 11)
+    M.tx(X0 + 40, 636, '× 카드 수 덤 (한 장마다 +10%)', FG, 11)
+    M.tx(X0 + 40, 656, '3개 레시피(6장)는 2개(4장)보다 약 15% 셈', DIM, 10)
+    img = M.draw()
+    # 조커 그림 (켜진 것만 분홍, 꺼진 건 어둡게)
+    for fn, cx, cy, R, on in icon_jobs:
+        col = (255, 154, 213) if on else (70, 76, 92)
+        glow = Image.new('RGB', img.size, (0, 0, 0)); gd = ImageDraw.Draw(glow)
+        L = fn(cx * S2, cy * S2, R * S2)
+        for l in L:
+            if l and l[0] == 'text': continue
+            gd.line(l, fill=col, width=int(3 * S2 * 2))
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(5 * S2)).point(lambda v: int(v * 0.7)))
+        d = ImageDraw.Draw(img)
+        for l in L:
+            if l and l[0] == 'text': continue
+            d.line(l, fill=col, width=max(1, int(1.6 * S2)))
+    img.resize((1280, 720), Image.LANCZOS).save(out)
+
+
+def render_tree_mock(out, path, S=2):
+    import json, tempfile, os as _os
+    tmp = _os.path.join(tempfile.gettempdir(), 'pd_tree_base.png')
+    render_tree(tmp, path, S=S)
+    base = Image.open(tmp).convert('RGB').resize((1280 * S, 720 * S))
+    # 기존 왼쪽 위 글자 지우기
+    ImageDraw.Draw(base).rectangle([0, 0, 400 * S, 70 * S], fill=BG)
+    nodes = json.load(open(path, encoding='utf-8'))
+    M = _Mock(S)
+    GOLD, DIM, FG, GRY, CY, GRN, RED, PRP = M.hx('ffd96a'), M.hx('5f6878'), M.hx('cfd8e6'), M.hx('8a94a6'), M.hx('7fd6ff'), M.hx('9cffb0'), M.hx('ff6a6a'), M.hx('b48cff')
+    M.box(0, 0, 1280, 64, BG, 1.0)
+    M.rr(16, 12, 1248, 46, 10, PRP, 1.2)
+    M.tx(34, 35, '스킬 트리', PRP, 20)
+    M.tx(170, 35, '포인트 2', GRN, 15); M.tx(270, 35, '다음 포인트 1,240 골드', GOLD, 12)
+    M.tx(470, 35, '키스톤 1 / 3', M.hx('ffd96a'), 12); M.tx(590, 35, '찍은 노드 18', FG, 12)
+    M.rr(1180, 20, 70, 30, 10, GRY, 1.2); M.tx(1215, 35, '닫기 K', GRY, 11, 'mm')
+    # 범례
+    M.rr(16, 640, 560, 64, 10, DIM, 1.0)
+    for k, (n, c, a) in enumerate((('찍음', CY, 1.0), ('찍을 수 있음', GRN, 1.0), ('아직 못 찍음', DIM, 1.0), ('봉인 (짝 키스톤)', RED, 1.0))):
+        x = 34 + k * 130
+        M.rr(x, 664, 16, 16, 8, c, 1.6); M.tx(x + 24, 672, n, c, 10)
+    M.tx(34, 694, '키스톤은 둘씩 짝: 하나를 찍으면 짝은 이 판 동안 봉인', DIM, 9)
+    # 마우스가 올라간 노드 (찍을 수 있는 키스톤 하나를 고름)
+    keys = [n for n in nodes if n['k'] == 3]
+    hov = keys[2] if len(keys) > 2 else nodes[1]
+    hx_, hy_ = hov['x'], hov['y']
+    M.rr(hx_ - 24, hy_ - 24, 48, 48, 24, GRN, 2.2)
+    bx = hx_ + 34 if hx_ < 900 else hx_ - 34 - 300
+    by = min(max(hy_ - 60, 80), 520)
+    M.box(bx, by, 300, 132, BG, 1.0); M.rr(bx, by, 300, 132, 10, GRN, 1.6)
+    M.tx(bx + 14, by + 20, '고독한 저격수', GOLD, 14)
+    M.tx(bx + 14, by + 44, '키스톤 · 찍을 수 있음', GRN, 10)
+    M.tx(bx + 14, by + 68, '혼자 선 타워 위력 ×1.6', FG, 12)
+    M.tx(bx + 14, by + 90, '짝: 군중의 힘 (봉인됨)', RED, 10)
+    M.rr(bx + 14, by + 102, 120, 22, 8, GRN, 1.2); M.tx(bx + 74, by + 113, '찍기 · 포인트 1', GRN, 10, 'mm')
+    img = M.draw(base)
+    img.resize((1280, 720), Image.LANCZOS).save(out)
+
 if __name__ == '__main__':
+    if len(sys.argv) >= 3 and sys.argv[1] == 'codexmock':  # python neon.py codexmock 출력.png
+        render_codex_mock(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
+    if len(sys.argv) >= 4 and sys.argv[1] == 'treemock':  # python neon.py treemock 출력.png tools/tree/tree.json
+        render_tree_mock(sys.argv[2], sys.argv[3]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 3 and sys.argv[1] == 'uimock':  # python neon.py uimock 출력.png
         render_ui_mock(sys.argv[2]); print('saved', sys.argv[2]); sys.exit(0)
     if len(sys.argv) >= 3 and sys.argv[1] == 'bosses':  # python neon.py bosses 출력.png
