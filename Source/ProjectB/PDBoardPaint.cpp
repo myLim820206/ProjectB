@@ -1789,9 +1789,10 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			const bool bOa = G.TreeOwnedNode(A), bOb = G.TreeOwnedNode(B);
 			const FVector2f PA0 = TreeNodePos(A), PB0 = TreeNodePos(B), U = (PB0 - PA0).GetSafeNormal();
 			const FVector2f PA = PA0 + U * (NodeR(A) + 1.5f), PB = PB0 - U * (NodeR(B) + 1.5f);
-			if (bOa && bOb) C.Glow({PA, PB}, TreeNodeColor(bOa && A != 0 ? A : B), 1.6f, 0.8f);
-			else if (bOa || bOb) C.Lines({PA, PB}, Hex(TEXT("7fd6ff"), 0.35f), 1.2f);
-			else C.Lines({PA, PB}, Hex(TEXT("7fd6ff"), 0.12f), 1.f);
+			// 검은 바탕에 묻히지 않게 (D-151): 찍은 길은 노드 색으로 굵고 밝게, 다음에 찍을 수 있는 길은 하늘색으로 숨 쉬듯, 먼 길도 또렷한 회청색
+			if (bOa && bOb) C.Glow({PA, PB}, TreeNodeColor(bOa && A != 0 ? A : B), 2.2f, 1.2f);
+			else if (bOa || bOb) C.Glow({PA, PB}, Hex(TEXT("7fd6ff"), 0.75f + 0.25f * FMath::Sin(Clock * 3.f)), 1.6f, 0.7f);
+			else C.Glow({PA, PB}, Hex(TEXT("8ea6c8"), 0.45f), 1.2f, 0.25f);
 		}
 	// 노드 아이콘은 자리가 고정이라 한 번만 만든다
 	static TArray<PDIcon::FIcon> IconCache;
