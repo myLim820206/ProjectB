@@ -380,17 +380,8 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
 				// 장판 (D-099, D-144): 족보 색 옅은 채움 13%. 빗금은 합성할 때만 (합성 버튼이 뜬 족보의 재료 칸)
 				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.2f : 0.13f) * Alpha));
-				bool bAlready = !(bFilt && &List == &G.Synergies && !G.CanFuse(Si)); // 평소 장판엔 빗금 없음. 필터로 고른 족보 중 합성 못 하는 것만 여기서 빗금 (합성 되는 건 합성 표시가 그림, D-148)
-				if (bFilt) { if (Hatched.Contains(K)) bAlready = true; else Hatched.Add(K); }
-				if (!bAlready && bFilt && UseAtlas()) // 필터 빗금은 합성 표시와 같이: 족보 색 ↔ 흰빛으로 오가며 깜빡 (D-148)
-				{
-					const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
-					const FLinearColor Pk = FMath::Lerp(Base, FLinearColor::White, 0.6f * Wv);
-					const FVector2f C0 = CellPx((float)X, (float)Y);
-					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pk, 0.16f + 0.16f * Wv));
-					F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pk, 0.45f + 0.25f * Wv));
-				}
-				else if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
+				const bool bAlready = true; // 평소 장판엔 빗금 없음 (필터 빗금은 판 위 UI 에서 합성 표시와 같이, D-148)
+				if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
 				{
 					const int32 Lyr = FMath::Min(SynLayer(List, Si), 2), Mask = (bL ? 1 : 0) | (bR ? 2 : 0) | (bU ? 4 : 0) | (bD ? 8 : 0);
 					F.Image(F.NextLayer(), &Atlas->HatchBrushes[Lyr * 16 + Mask], X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, (bFilt ? 0.55f : 0.3f) * Alpha));
@@ -1089,6 +1080,28 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			const FLinearColor Big = WithAlpha(PickCol, 0.55f + 0.3f * Pulse);
 			F.TextCentered(bPickJoker ? TEXT("조커 자리를 고르세요") : TEXT("합성 타워 자리를 고르세요"), MX, MY - 14.f, Big, 34.f, true, Cols * CS - 40.f);
 			F.TextCentered(TEXT("빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소"), MX, MY + 22.f, WithAlpha(Fg, 0.75f), 13.f, false, Cols * CS - 40.f);
+		}
+	}
+	// 족보 필터 (D-148): 합성 못 하는 족보도 합성 표시와 똑같이 칸을 밝힌다 (타워 위에 그려야 보인다). 합성 되는 족보는 아래 합성 표시가 그림
+	if (HandFilter >= 0 && !bPv && PickCells.empty() && G.Phase != EPDPhase::Reward && FeedJoker < 0 && !bSwapMode)
+	{
+		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
+		TSet<int32> Done;
+		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
+		{
+			const FPDSynergy& S = G.Synergies[I];
+			if ((int32)S.Kind != HandFilter || G.CanFuse(I)) continue;
+			const FLinearColor Pick = FMath::Lerp(HandColor(S.Kind), FLinearColor::White, 0.6f * Wv);
+			for (int K : S.Cells)
+			{
+				if (Done.Contains(K)) continue;
+				Done.Add(K);
+				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+				F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, 0.22f + 0.22f * Wv));
+				if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pick, 0.45f + 0.25f * Wv));
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, 2.8f, 1.4f + 1.4f * Wv);
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
+			}
 		}
 	}
 	// 합성 버튼 (먹이기 모드에선 숨김)
