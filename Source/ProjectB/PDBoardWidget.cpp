@@ -202,6 +202,7 @@ void SPDBoardWidget::UpdatePreview()
 void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
 	if (!bTree && !bUpg && !bMenu) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
@@ -528,6 +529,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 {
 	if (InKeyEvent.IsRepeat()) return FReply::Handled();
 	const FKey K = InKeyEvent.GetKey();
+	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	if (bSettings) { SettingsKey(K); return FReply::Handled(); }
 	if (bMenu)

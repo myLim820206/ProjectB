@@ -479,6 +479,24 @@ inline FString ShortNum(float V)
 	if (V >= 1e3f) return FString::Printf(TEXT("%.1fk"), V / 1e3f);
 	return FString::FromInt(FMath::Max(1, FMath::RoundToInt(V)));
 }
+// 디버그 표시 (D-133, F3): 프레임 수·프레임 시간·최저 프레임·개수. 위젯 헤더를 건드리지 않으려고 전역 (화면 하나뿐)
+struct FPDDebugStats
+{
+	bool bShow = false;
+	float Fps = 0.f, Ms = 0.f;          // 부드럽게 한 값
+	float WorstMs = 0.f, WorstShown = 0.f; // 1초 동안 가장 느린 프레임
+	float Acc = 0.f;
+	void Add(float RawDt)
+	{
+		const float Ms0 = RawDt * 1000.f;
+		Ms = Ms <= 0.f ? Ms0 : FMath::Lerp(Ms, Ms0, 0.1f);
+		Fps = Ms > 0.f ? 1000.f / Ms : 0.f;
+		WorstMs = FMath::Max(WorstMs, Ms0);
+		Acc += RawDt;
+		if (Acc >= 1.f) { WorstShown = WorstMs; WorstMs = 0.f; Acc = 0.f; }
+	}
+};
+inline FPDDebugStats GPDDebug;
 // 배속 차례 (D-124): 1 → 2 → 3 → 5 → 10 → 1
 inline int NextSpeed(int S) { return S < 2 ? 2 : S < 3 ? 3 : S < 5 ? 5 : S < 10 ? 10 : 1; }
 // 천 단위 쉼표: 12345 → 12,345

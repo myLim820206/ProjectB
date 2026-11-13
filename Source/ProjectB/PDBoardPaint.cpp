@@ -78,6 +78,21 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), FString::Printf(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? TEXT("  (갱신!)") : TEXT(""))}, TEXT("R 키 또는 화면을 눌러 다시"));
 	if (bMenu) PaintMenu(C);
 	if (bSettings) PaintSettings(C);
+	// 디버그 표시 (D-133, F3): 맨 위 왼쪽 아래 구석에
+	if (GPDDebug.bShow)
+	{
+		const FLinearColor Good = Hex(TEXT("9cffb0")), Warn = Hex(TEXT("ffd96a")), Bad = Hex(TEXT("ff6a6a"));
+		const float Fps = GPDDebug.Fps, Low = GPDDebug.WorstShown > 0.f ? 1000.f / GPDDebug.WorstShown : 0.f;
+		const FLinearColor Fc = Fps >= 55.f ? Good : Fps >= 30.f ? Warn : Bad;
+		const float X = 24.f, Y = DesignH - 118.f, W = 216.f, H = 92.f;
+		C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.92f));
+		C.Lines(FCanvas::RectPoints(X, Y, W, H), WithAlpha(Fc, 0.7f), 1.f);
+		C.Text(FString::Printf(TEXT("FPS %.0f"), Fps), X + 10.f, Y + 24.f, Fc, 18.f, 0, true);
+		C.Text(FString::Printf(TEXT("%.1f ms"), GPDDebug.Ms), X + W - 10.f, Y + 22.f, Fc, 12.f, 2, true);
+		C.Text(FString::Printf(TEXT("1초 최저 %.0f fps (%.1f ms)"), Low, GPDDebug.WorstShown), X + 10.f, Y + 44.f, Low >= 50.f ? Good : Low >= 25.f ? Warn : Bad, 10.f, 0, false, W - 20.f);
+		C.Text(FString::Printf(TEXT("적 %d · 발사체 %d · 타워 %d"), (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size()), X + 10.f, Y + 62.f, Hex(TEXT("cfd8e6")), 10.f, 0, false, W - 20.f);
+		C.Text(FString::Printf(TEXT("입자 %d · 고리 %d · 배속 ×%d · F3 닫기"), Particles.Num(), Rings.Num(), Game.Speed), X + 10.f, Y + 80.f, Hex(TEXT("8a94a6")), 10.f, 0, false, W - 20.f);
+	}
 }
 
 // 판: 격자·길, 족보 장판·테두리·연쇄 번개, 타워, 놓기 미리보기, 적
@@ -1132,7 +1147,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		if (bHov)
 		{
 			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
-				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리"), TEXT("K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴")};
+				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴")};
 			const float W = 400.f, Hh = 24.f + UE_ARRAY_COUNT(Lines) * 18.f, X = DesignW - 16.f - W, Y = HelpY - 6.f - Hh;
 			C.Box(X, Y, W, Hh, Hex(TEXT("0a0b14"), 0.96f));
 			C.Glow(FCanvas::RoundRectPoints(X, Y, W, Hh, 8.f), Cyan, 1.f, 0.4f);
