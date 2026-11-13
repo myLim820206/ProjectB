@@ -10,12 +10,70 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Slate/SRetainerWidget.h"
+#include "Widgets/SLeafWidget.h"
 
 // ---------------------------------------------------------------- 위젯
+// 판 정적 층 (D-137): 주인 위젯의 PaintStatic 을 부르기만 하는 잎 위젯. 리테이너가 텍스처로 들고 있다가 무효화될 때만 다시 그린다
+class SPDBoardStatic : public SLeafWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SPDBoardStatic) {}
+	SLATE_ARGUMENT(const SPDBoardWidget*, Owner)
+	SLATE_END_ARGS()
+	void Construct(const FArguments& A) { Owner = A._Owner; }
+	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(PDDraw::DesignW, PDDraw::DesignH); }
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
+		int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
+	{
+		return Owner ? Owner->PaintStatic(AllottedGeometry, OutDrawElements, LayerId) : LayerId;
+	}
+private:
+	const SPDBoardWidget* Owner = nullptr;
+};
+
 void SPDBoardWidget::Construct(const FArguments& InArgs)
 {
 	SetCanTick(true);
 	LoadUserData();
+	ChildSlot
+	[
+		SAssignNew(StaticRetainer, SRetainerWidget)
+		.RenderOnPhase(false)
+		.RenderOnInvalidation(true)
+		.Visibility(EVisibility::HitTestInvisible)
+		[
+			SAssignNew(StaticLayer, SPDBoardStatic).Owner(this)
+		]
+	];
+}
+
+// 정적 층 서명: 이것이 바뀔 때만 정적 층을 다시 그린다
+uint64 SPDBoardWidget::ComputeStaticSig() const
+{
+	uint64 S = 1469598103934665603ull;
+	auto Mix = [&](uint64 V) { S = (S ^ V) * 1099511628211ull; };
+	const bool bPv = !Preview.empty();
+	for (const auto& KV : Game.Towers)
+	{
+		const FPDTower& T = KV.second;
+		Mix((uint64)KV.first);
+		Mix((uint64)T.Card.Rank << 8 | (uint64)T.Card.Suit);
+		Mix((uint64)T.Level << 8 | (uint64)(T.Joker + 1));
+		Mix((uint64)(T.Eff.Hand >= 0) << 1 | (uint64)(T.Age < PDDraw::YoungAge));
+	}
+	for (const FPDSynergy& Sy : Game.Synergies)
+	{
+		Mix((uint64)Sy.Kind << 8 | (uint64)Sy.N);
+		for (int K : Sy.Cells) Mix((uint64)K);
+		for (int L : Sy.Links) Mix((uint64)L + 7777);
+	}
+	Mix(bPv ? (uint64)(CellKey(FMath::Max(0, HoverX), FMath::Max(0, HoverY)) + 1) : 0ull);
+	Mix((uint64)Game.Path.Points.size());
+	Mix((uint64)FMath::RoundToInt(ViewSize.X) << 16 | (uint64)FMath::RoundToInt(ViewSize.Y));
+	// 로열은 장판이 무지개로 돈다: 로열이 있으면 0.1초마다 다시
+	for (const FPDSynergy& Sy : Game.Synergies) if (Sy.Kind == EPDHand::RoyalFlush) { Mix((uint64)(Clock * 10.f)); break; }
+	return S;
 }
 
 // ---------------------------------------------------------------- 설정·진행 저장 (D-110)
@@ -218,10 +276,27 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (FeedJoker >= 0 && (!Game.Towers.count(FeedJoker) || !Game.Towers.at(FeedJoker).IsJoker() || Game.Phase == EPDPhase::Reward || Sel >= 0)) FeedJoker = -1; // 조커가 없어졌거나 카드를 고름
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
+	// 판 흔들림과 정적 층 캐시 (D-137)
+	{
+		const float SK = Shake * 14.f;
+		ShakeOff = FVector2f(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
+		static FVector2f LastShake(0.f, 0.f);
+		if (StaticRetainer.IsValid() && !ShakeOff.Equals(LastShake, 0.01f)) { LastShake = ShakeOff; StaticRetainer->SetRenderTransform(FSlateRenderTransform(FVector2f(ShakeOff * ViewScale))); }
+		const uint64 Sig = ComputeStaticSig();
+		if (Sig != StaticSig && StaticLayer.IsValid())
+		{
+			StaticSig = Sig;
+			StaticLayer->Invalidate(EInvalidateWidgetReason::Paint);
+			StaticRetainer->RequestRender();
+		}
+	}
 	GPDDebug.TickMs = FMath::Lerp(GPDDebug.TickMs, (float)((FPlatformTime::Seconds() - TickT0) * 1000.0), 0.1f);
 	if (GPDDebug.bShow && GPDDebug.Acc < Dt) // 디버그 표시가 켜져 있으면 1초마다 로그에도 (Saved/Logs, D-135)
-		UE_LOG(LogTemp, Log, TEXT("PDPERF fps=%.1f ms=%.1f low=%.1f paint=%.2f tick=%.2f lines=%d points=%d enemies=%d shots=%d towers=%d particles=%d rings=%d speed=%d parts=%d/%d/%d/%d/%d/%d"),
-			GPDDebug.Fps, GPDDebug.Ms, GPDDebug.WorstShown, GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points, (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size(), Particles.Num(), Rings.Num(), Game.Speed, GPDDebug.PartLines[0], GPDDebug.PartLines[1], GPDDebug.PartLines[2], GPDDebug.PartLines[3], GPDDebug.PartLines[4], GPDDebug.PartLines[5]);
+	{
+		UE_LOG(LogTemp, Log, TEXT("PDPERF fps=%.1f ms=%.1f low=%.1f paint=%.2f tick=%.2f lines=%d points=%d enemies=%d shots=%d towers=%d particles=%d rings=%d speed=%d parts=%d/%d/%d/%d/%d/%d static=%d"),
+			GPDDebug.Fps, GPDDebug.Ms, GPDDebug.WorstShown, GPDDebug.PaintMs, GPDDebug.TickMs, GPDDebug.Lines, GPDDebug.Points, (int32)Game.Enemies.size(), (int32)Game.Projectiles.size(), (int32)Game.Towers.size(), Particles.Num(), Rings.Num(), Game.Speed, GPDDebug.PartLines[0], GPDDebug.PartLines[1], GPDDebug.PartLines[2], GPDDebug.PartLines[3], GPDDebug.PartLines[4], GPDDebug.PartLines[5], GPDDebug.StaticPaints);
+		GPDDebug.StaticPaints = 0;
+	}
 	Invalidate(EInvalidateWidgetReason::Paint);
 }
 

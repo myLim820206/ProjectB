@@ -37,6 +37,7 @@ constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 46.f;
 constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 22.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
 constexpr float HelpX = DesignW - 110.f, HelpY = DesignH - 22.f, HelpW = 94.f, HelpH = 18.f; // "? 도움말" (마우스를 올리면 키 안내)
 constexpr float TwoPi = 6.2831853f;
+constexpr float YoungAge = 0.35f; // 막 놓인 타워 (커졌다 줄어드는 동안은 움직이는 층에서 그림, D-137)
 
 inline FLinearColor Hex(const TCHAR* InHex, float Alpha = 1.f)
 {
@@ -488,6 +489,7 @@ struct FPDDebugStats
 	float Acc = 0.f;
 	int32 Lines = 0, Points = 0, Texts = 0, Boxes = 0; // 이번 프레임 그리기 요소 (D-135)
 	int32 PartLines[6] = {}; // 판·발사체·이펙트·판 위 UI·패널·창 별 선 수
+	int32 StaticPaints = 0;  // 1초 동안 정적 층을 다시 그린 횟수 (D-137)
 	float PaintMs = 0.f, TickMs = 0.f;                 // 그리기·갱신 CPU 시간 (부드럽게)
 	void Add(float RawDt)
 	{

@@ -27,6 +27,23 @@ void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 	C.TextCentered(bTree ? TEXT("닫기  K") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
 }
 
+// 정적 층 그리기 (D-137): 흔들림 없이 (흔들림은 리테이너의 렌더 변환으로)
+int32 SPDBoardWidget::PaintStatic(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+{
+	const auto LocalSize = AllottedGeometry.GetLocalSize();
+	const float SizeX = (float)LocalSize.X, SizeY = (float)LocalSize.Y;
+	const float Scale = FMath::Max(0.01f, FMath::Min(SizeX / DesignW, SizeY / DesignH));
+	const FVector2f Offset((SizeX - DesignW * Scale) / 2.f, (SizeY - DesignH * Scale) / 2.f);
+	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
+	int32 Layer = LayerId;
+	FCanvas F{OutDrawElements, Design, &Layer, &WhiteBrush};
+	const int32 L0 = GPDDebug.Lines;
+	PaintField(F, true);
+	GPDDebug.Lines = L0; // 정적 층 선은 프레임 선 수에 넣지 않는다 (가끔만 그림)
+	++GPDDebug.StaticPaints;
+	return Layer;
+}
+
 int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
 	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
@@ -40,10 +57,9 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	ViewSize = FVector2f(SizeX, SizeY);
 	const FGeometry Design = AllottedGeometry.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(Scale, Offset));
 	// 판은 흔들림을 받고, 패널은 고정
-	const float SK = Shake * 14.f;
-	const FVector2f ShakeOff(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
-	const FGeometry Field = Design.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(ShakeOff));
-	int32 Layer = LayerId;
+	const FGeometry Field = Design.MakeChild(FVector2f(DesignW, DesignH), FSlateLayoutTransform(ShakeOff)); // 흔들림은 틱에서 정함
+	// 맨 아래: 정적 층 (리테이너가 캐시한 텍스처, D-137)
+	int32 Layer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1;
 	FCanvas C{OutDrawElements, Design, &Layer, &WhiteBrush};
 	FCanvas F{OutDrawElements, Field, &Layer, &WhiteBrush};
 	const double T0 = FPlatformTime::Seconds();
@@ -80,7 +96,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	// 판 쪽(F, 흔들림을 받음): 판·적 → 발사체 → 이펙트 → 판 위 UI. 그 위에 고정 패널과 창(C)
 	int32 L0 = GPDDebug.Lines;
 	auto Part = [&](int32 I) { GPDDebug.PartLines[I] = GPDDebug.Lines - L0; L0 = GPDDebug.Lines; };
-	PaintField(F); Part(0);
+	PaintField(F, false); Part(0);
 	PaintShots(F); Part(1);
 	PaintEffects(F); Part(2);
 	PaintBoardUi(F); Part(3);
@@ -119,22 +135,27 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 }
 
 // 판: 격자·길, 족보 장판·테두리·연쇄 번개, 타워, 놓기 미리보기, 적
-void SPDBoardWidget::PaintField(FCanvas& F) const
+void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 {
 	const FPDGame& G = Game;
-	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+	const float Pulse = bStatic ? 0.5f : 0.5f + 0.5f * FMath::Sin(Clock * 4.f); // 정적 층은 맥박 없이 가운데 값
 	const bool bPv = !Preview.empty(); // 고른 카드를 놓으면 생길 족보를 보여 주는 중
-	// 격자, 길, 길 위를 흐르는 에너지
+	// 격자, 길 (정적 층)
+	if (bStatic)
+	{
 	for (int Y = 0; Y < Rows; ++Y)
 		for (int X = 0; X < Cols; ++X)
 		{
 			const FVector2f P = CellPx((float)X, (float)Y);
 			if (G.Path.IsPath(X, Y)) F.Box(P.X, P.Y, CS, CS, Hex(TEXT("7fd6ff"), 0.05f));
-			else F.Lines(FCanvas::RectPoints(P.X + 0.5f, P.Y + 0.5f, CS - 1.f, CS - 1.f), Hex(TEXT("788cb4"), 0.06f + 0.02f * FMath::Sin(Clock * 1.5f + X * 0.4f + Y * 0.3f)), 1.f);
+			else F.Lines(FCanvas::RectPoints(P.X + 0.5f, P.Y + 0.5f, CS - 1.f, CS - 1.f), Hex(TEXT("788cb4"), 0.07f), 1.f);
 		}
 	TArray<FVector2f> PathPts;
 	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
 	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
+	F.Glow(FCanvas::RectPoints(FX, FY, Cols * CS, Rows * CS), Hex(TEXT("7fd6ff"), 0.5f), 1.5f, 0.6f);
+	}
+	if (!bStatic) // 길 위를 흐르는 에너지 (움직이는 층)
 	{
 		const int32 L = F.NextLayer();
 		F.NextLayer();
@@ -147,7 +168,6 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 			F.BoxAt(L, P.X - 1.5f, P.Y - 1.5f, 3.f, 3.f, Hex(TEXT("bfeaff"), 0.8f));
 		}
 	}
-	F.Glow(FCanvas::RectPoints(FX, FY, Cols * CS, Rows * CS), Hex(TEXT("7fd6ff"), 0.5f), 1.5f, 0.6f);
 
 	// ---- 족보 테두리 (칸 모양대로 바깥 변만) + 연쇄 번개
 	TSet<int32> Hatched; // 빗금은 칸마다 한 번만 (카드를 나눠 쓰는 족보가 겹쳐 그리던 것, D-135)
@@ -223,10 +243,11 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 						bDone = true;
 						const FVector2f PA = CellCenter(A), PB = CellCenter(B);
 						TArray<FVector2f> Bolt{PA};
+						FRandomStream Rs(A * 977 + B * 131); // 정적 층: 칸마다 정해진 꺾임
 						for (int Seg = 1; Seg < 5; ++Seg)
 						{
 							const FVector2f Mid = PA + (PB - PA) * (Seg / 5.f);
-							Bolt.Add(Mid + FVector2f(FMath::FRandRange(-6.f, 6.f), FMath::FRandRange(-6.f, 6.f)));
+							Bolt.Add(Mid + FVector2f(Rs.FRandRange(-6.f, 6.f), Rs.FRandRange(-6.f, 6.f)));
 						}
 						Bolt.Add(PB);
 						F.Glow(Bolt, WithAlpha(FLinearColor::White, Alpha * (0.5f + 0.5f * Pulse)), 1.4f, 1.2f);
@@ -234,13 +255,14 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 			}
 		}
 	};
-	DrawSyn(G.Synergies, bPv ? 0.35f : 1.f, true);
-	if (bPv) DrawSyn(Preview, 0.6f + 0.4f * Pulse, true);
-	for (const FCellFlash& Fl : CellFlashes)
-	{
-		const FVector2f P = CellPx((float)(Fl.Key % Cols), (float)(Fl.Key / Cols));
-		F.Box(P.X + 2.f, P.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Fl.Col, Fl.T * 0.5f));
-	}
+	if (bStatic) DrawSyn(G.Synergies, bPv ? 0.35f : 1.f, true);
+	if (!bStatic && bPv) DrawSyn(Preview, 0.6f + 0.4f * Pulse, true);
+	if (!bStatic)
+		for (const FCellFlash& Fl : CellFlashes)
+		{
+			const FVector2f P = CellPx((float)(Fl.Key % Cols), (float)(Fl.Key / Cols));
+			F.Box(P.X + 2.f, P.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Fl.Col, Fl.T * 0.5f));
+		}
 
 	// ---- 타워
 	for (const auto& KV : G.Towers)
@@ -248,10 +270,12 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 		const FPDTower& T = KV.second;
 		if (bPv && T.X == HoverX && T.Y == HoverY) continue;
 		const FVector2f P = CellCenter(KV.first);
+		const bool bYoung = T.Age < YoungAge; // 막 놓인 타워는 움직이는 층에서
 		const float Pop = T.Age < 0.3f ? 1.f + 0.5f * (1.f - T.Age / 0.3f) : 1.f; // 놓는 순간 커졌다 줄어듦
 		if (T.IsJoker())
 		{
-			F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
+			if (bStatic != bYoung) F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
+			if (bStatic) continue; // 레벨·경험치는 자주 바뀌어 움직이는 층에서
 			// 레벨 (위 오른쪽) + 경험치 막대 (아래), 레벨업 순간 막대가 번쩍 (D-125)
 			F.Text(FString::Printf(TEXT("Lv%d"), T.JLevel), P.X + CS * 0.5f - 3.f, P.Y - CS * 0.5f + 10.f, JokerPink, 9.f, 2, true, CS - 6.f);
 			if (T.JLevel < JokerMaxLevel)
@@ -264,6 +288,7 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 			}
 			continue;
 		}
+		if (bStatic == bYoung) continue;
 		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
 		// 레벨: 틀을 한 겹씩 더 (안쪽으로), 위쪽에 레벨 점
 		for (int L = 2; L <= T.Level; ++L)
@@ -274,6 +299,7 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 		if (T.Level >= 2)
 			for (int L = 0; L < T.Level; ++L) F.Box(P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, Hex(TEXT("ffd96a")));
 	}
+	if (bStatic) return; // 아래는 모두 움직이는 층
 	// 미리보기: 고른 카드를 마우스 칸에
 	if (Sel >= 0 && Sel < (int32)G.Hand.size() && HoverX >= 0 && G.Buildable(HoverX, HoverY))
 	{

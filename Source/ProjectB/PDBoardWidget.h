@@ -5,6 +5,8 @@
 #include "Widgets/SCompoundWidget.h"
 #include "PDCore.h"
 
+class SRetainerWidget;
+
 // 포커 디펜스 화면 전체. 1280 x 720 기준 좌표로 그리고 창 크기에 맞춰 확대한다.
 // 그래픽은 도형과 선뿐이고, 네온 빛번짐은 굵고 옅은 선 위에 가늘고 밝은 선을 겹쳐 흉내 낸다 (docs/15-art-style.md).
 // Slate 이펙트(빛줄기, 파티클, 파동, 별빛, 몸 조각, 흔들림, 배너)는 이 위젯이 그리고, 나이아가라 월드 이펙트는 요청만 쌓는다.
@@ -65,7 +67,7 @@ public:
 private:
 	struct FCanvas; // 그리기 도우미 (PDBoardDraw.h)
 	void PaintAll(FCanvas& C, FCanvas& F) const; // C = 고정 화면, F = 흔들림을 받는 판
-	void PaintField(FCanvas& F) const;     // 판, 족보 장판, 타워, 적
+	void PaintField(FCanvas& F, bool bStatic) const; // 판, 족보 장판, 타워, 적. bStatic: 캐시되는 정적 층만 / 아니면 움직이는 층만 (D-137)
 	void PaintShots(FCanvas& F) const;     // 날아가는 발사체
 	void PaintEffects(FCanvas& F) const;   // 빛줄기, 별빛, 몸 조각, 파동, 파티클
 	void PaintBoardUi(FCanvas& F) const;   // 족보 이름표, 합성·먹이기·조커 버튼, 타워 정보, 떠오르는 글자, 배너
@@ -208,6 +210,15 @@ private:
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
+	// 판 정적 층 캐시 (D-137): 격자·족보 장판·테두리·연쇄 번개·타워를 텍스처에 그려 두고 판이 바뀔 때만 다시 그린다
+	TSharedPtr<SRetainerWidget> StaticRetainer;
+	TSharedPtr<SWidget> StaticLayer;
+	uint64 StaticSig = 0;
+	uint64 ComputeStaticSig() const;
+	FVector2f ShakeOff = FVector2f(0.f, 0.f); // 판 흔들림 (틱에서 정해 정적 층·움직이는 층이 같이 흔들림)
+public:
+	int32 PaintStatic(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+private:
 	int32 FeedJoker = -1;                  // 먹이기 모드 (D-131): 클릭한 조커 칸. 이 조커에 먹일 족보만 버튼이 뜬다
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)
 	float PowerRef = 0.f;                  // 이번 웨이브 시작 때 판 위력 (위쪽 띠의 ±%)
