@@ -1132,6 +1132,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.4f : 2.8f, 1.4f + 1.4f * Wv);
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
 				}
+			BadgeRects.Add(FBox2f(FVector2f(B.X - BW / 2.f, B.Y - FuseH / 2.f), FVector2f(B.X - BW / 2.f + BW, B.Y - FuseH / 2.f + FuseH))); // 툴팁이 피할 자리 (D-150)
 			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
 			F.TextCentered(FuseLabel(FS), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
@@ -1187,6 +1188,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Badge(FString::Printf(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), JC.X, JC.Y - CS * 0.75f, JokerPink, 1.f);
 					F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
 				}
+				BadgeRects.Add(FBox2f(FVector2f(B.X - BW / 2.f, B.Y - FuseH / 2.f), FVector2f(B.X - BW / 2.f + BW, B.Y - FuseH / 2.f + FuseH))); // 툴팁이 피할 자리 (D-150)
 				F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
 				F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), JokerPink, bHov ? 1.8f : 1.3f, bHov ? 1.2f + 0.5f * Pulse : 0.7f);
 				F.TextCentered(FeedLabel(FdS), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.9f), 10.f, true, BW - 4.f);
@@ -1252,6 +1254,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			const bool bKnown = (G.Discovered >> (int)Gr.Result) & 1u;
 			if (bHov) for (int K : Gr.Cells) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f)); }
 			if (bHov && PickCells.empty()) F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::JokerFuse, (int)(&Gr - JGroups.data())), B.X, B.Y - JokerBtnH - 6.f);
+			BadgeRects.Add(FBox2f(FVector2f(B.X - JokerBtnW / 2.f, B.Y - JokerBtnH / 2.f), FVector2f(B.X - JokerBtnW / 2.f + JokerBtnW, B.Y - JokerBtnH / 2.f + JokerBtnH))); // 툴팁이 피할 자리 (D-150)
 			F.Box(B.X - JokerBtnW / 2.f, B.Y - JokerBtnH / 2.f, JokerBtnW, JokerBtnH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - JokerBtnW / 2.f, B.Y - JokerBtnH / 2.f, JokerBtnW, JokerBtnH, 7.f), JokerPink, bHov ? 1.8f : 1.3f, 1.f + 0.8f * Pulse);
 			F.TextCentered(FString::Printf(TEXT("조커: %s"), bKnown ? JokerName((int)Gr.Result) : TEXT("???")), B.X, B.Y, JokerPink, 10.f, true, JokerBtnW - 6.f);
@@ -1276,6 +1279,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				for (int K : Ms[I].Cells) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f)); }
 				F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::JokerMerge, I), B.X, B.Y - MergeH - 6.f);
 			}
+			BadgeRects.Add(FBox2f(FVector2f(B.X - MergeW / 2.f, B.Y - MergeH / 2.f), FVector2f(B.X - MergeW / 2.f + MergeW, B.Y - MergeH / 2.f + MergeH))); // 툴팁이 피할 자리 (D-150)
 			F.Box(B.X - MergeW / 2.f, B.Y - MergeH / 2.f, MergeW, MergeH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - MergeW / 2.f, B.Y - MergeH / 2.f, MergeW, MergeH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.6f);
 			F.TextCentered(TEXT("조커 합치기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, MergeW - 6.f);
@@ -1309,10 +1313,30 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			for (const auto& KV : PowerList) if (KV.first == It->first) Pw = KV.second;
 			const FString PowLine = FString::Printf(TEXT("위력 %s/초 (판의 %d%%)"), *ShortNum(Pw), PowerSum > 0.f ? FMath::RoundToInt(Pw / PowerSum * 100.f) : 0);
 			const FLinearColor PowCol = Hex(TEXT("9cffb0"));
+			// 툴팁 자리 (D-150): 칸의 오른쪽·왼쪽·위·아래·대각선 중 판 안에서 이름표·버튼·그 칸을 가장 덜 가리는 곳
+			auto PlaceTip = [&](float TW, float TH) {
+				const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
+				const FBox2f Cell(C0 - FVector2f(4.f, 4.f), C0 + FVector2f(CS + 4.f, CS + 4.f));
+				const float G = 8.f, MidY = C0.Y + CS / 2.f - TH / 2.f, MidX = C0.X + CS / 2.f - TW / 2.f;
+				const FVector2f Cand[8] = {{C0.X + CS + G, MidY}, {C0.X - G - TW, MidY}, {C0.X + CS + G, C0.Y - TH + CS * 0.3f}, {C0.X - G - TW, C0.Y - TH + CS * 0.3f},
+					{MidX, C0.Y - G - TH}, {MidX, C0.Y + CS + G}, {C0.X + CS + G, C0.Y + CS * 0.7f}, {C0.X - G - TW, C0.Y + CS * 0.7f}};
+				FVector2f Best = Cand[0];
+				float BestScore = TNumericLimits<float>::Max();
+				for (const FVector2f& Cn : Cand)
+				{
+					const FVector2f Pp(FMath::Clamp(Cn.X, FX + 2.f, FX + Cols * CS - TW - 2.f), FMath::Clamp(Cn.Y, FY + 2.f, FY + Rows * CS - TH - 2.f));
+					const FBox2f Tb(Pp, Pp + FVector2f(TW, TH));
+					auto Over = [&](const FBox2f& O) { return FMath::Max(0.f, FMath::Min(Tb.Max.X, O.Max.X) - FMath::Max(Tb.Min.X, O.Min.X)) * FMath::Max(0.f, FMath::Min(Tb.Max.Y, O.Max.Y) - FMath::Max(Tb.Min.Y, O.Min.Y)); };
+					float Score = Over(Cell) * 20.f;
+					for (const FBox2f& O : BadgeRects) Score += Over(O) * 4.f;
+					if (Score < BestScore - 0.5f) { BestScore = Score; Best = Pp; }
+				}
+				return Best;
+			};
 			if (T.IsJoker())
 			{
-				const FVector2f Pj = CellCenter(It->first) + FVector2f(CS * 0.6f, -CS * 0.6f);
-				const float JX = FMath::Min(Pj.X, FX + Cols * CS - 250.f), JY = FMath::Max(Pj.Y - 76.f, FY + 4.f);
+				const FVector2f Pj = PlaceTip(246.f, 108.f);
+				const float JX = Pj.X, JY = Pj.Y;
 				F.Box(JX, JY, 246.f, 108.f, Hex(TEXT("06060b"), 0.94f));
 				F.Glow(FCanvas::RoundRectPoints(JX, JY, 246.f, 108.f, 8.f), JokerPink, 1.2f, 0.4f);
 				F.Text(FString::Printf(TEXT("%s 대장: %s"), HandName(CaptainHand((EPDJoker)T.Joker)), JokerName(T.Joker)), JX + 10.f, JY + 18.f, JokerPink, 12.f, 0, true, 226.f);
@@ -1326,9 +1350,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 			else
 			{
-			const FVector2f P = CellCenter(It->first) + FVector2f(CS * 0.6f, -CS * 0.6f);
 			const float BH = T.Level >= 2 ? 92.f : 76.f;
-			const float BX = FMath::Min(P.X, FX + Cols * CS - 244.f), BYp = FMath::Max(P.Y - BH, FY + 4.f);
+			const FVector2f P = PlaceTip(240.f, BH);
+			const float BX = P.X, BYp = P.Y;
 			F.Box(BX, BYp, 240.f, BH, Hex(TEXT("06060b"), 0.94f));
 			F.Glow(FCanvas::RoundRectPoints(BX, BYp, 240.f, BH, 8.f), SuitColor(T.Card.Suit), 1.2f, 0.4f);
 			F.Text(FString::Printf(TEXT("%s %s · 레벨 %d"), T.Card.IsWild() ? TEXT("와일드") : *RankText(T.Card.Rank), SuitName(T.Card.Suit), T.Level), BX + 10.f, BYp + 18.f, SuitColor(T.Card.Suit), 12.f, 0, true, 220.f);
