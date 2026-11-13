@@ -127,8 +127,11 @@ const FName PDFxScale(TEXT("User.Scale")); // 크기·세기 배율
 const FName PDFxDir(TEXT("User.Dir"));     // 튀는 방향 (월드, 단위 벡터)
 // SPDBoardWidget::EWorldFx 순서대로 에셋 이름과 HDR 밝기 배율
 const TCHAR* const PDFxNames[] = {TEXT("NS_PD_Hit"), TEXT("NS_PD_Death"), TEXT("NS_PD_ImpSpark"), TEXT("NS_PD_ImpBlast"),
-	TEXT("NS_PD_ImpFrost"), TEXT("NS_PD_ImpZap"), TEXT("NS_PD_ImpGlitter"), TEXT("NS_PD_ImpStarburst")};
-const float PDFxGlow[] = {2.f, 4.f, 3.f, 3.f, 2.5f, 3.f, 2.5f, 3.f}; // 맞음: 흰 불꽃, 죽음: 적 색 크게, 타격: 발사체 색
+	TEXT("NS_PD_ImpFrost"), TEXT("NS_PD_ImpZap"), TEXT("NS_PD_ImpGlitter"), TEXT("NS_PD_ImpStarburst"),
+	TEXT("NS_PD_Muzzle"), TEXT("NS_PD_Crit"), TEXT("NS_PD_Splash"), TEXT("NS_PD_Place"), TEXT("NS_PD_Synergy"), TEXT("NS_PD_Fuse"),
+	TEXT("NS_PD_JokerFuse"), TEXT("NS_PD_Leak")};
+// 맞음: 흰 불꽃, 죽음: 적 색 크게, 타격: 발사체 색, 그 밖의 사건: 사건 색
+const float PDFxGlow[] = {2.f, 4.f, 3.f, 3.f, 2.5f, 3.f, 2.5f, 3.f, 2.5f, 2.5f, 2.5f, 2.5f, 3.f, 3.5f, 4.f, 3.f};
 static_assert(UE_ARRAY_COUNT(PDFxNames) == (int32)SPDBoardWidget::EWorldFx::Count, "FX name table out of sync");
 static_assert(UE_ARRAY_COUNT(PDFxGlow) == (int32)SPDBoardWidget::EWorldFx::Count, "FX glow table out of sync");
 

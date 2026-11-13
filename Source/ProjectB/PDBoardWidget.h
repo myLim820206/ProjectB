@@ -34,14 +34,15 @@ public:
 
 	// 월드 이펙트 층 (D-092): 판 뒤 3D 월드에서 나이아가라로 재생할 이펙트 요청.
 	// 위치는 "화면 가운데를 0으로 한 판 좌표(px)", 아래가 +Y. 게임 모드가 정사영 카메라로 1 월드 단위 = 판 1px 로 맞춘다
-	// Hit·Death 는 공통, Imp* 는 발사체 무리별 타격 (D-094). 순서는 게임 모드의 에셋 이름 표와 같다
-	enum class EWorldFx : uint8 { Hit, Death, ImpSpark, ImpBlast, ImpFrost, ImpZap, ImpGlitter, ImpStarburst, Count };
+	// Hit·Death 는 공통, Imp* 는 발사체 무리별 타격 (D-094), 그 뒤는 그 밖의 사건 (D-100). 순서는 게임 모드의 에셋 이름 표와 같다
+	enum class EWorldFx : uint8 { Hit, Death, ImpSpark, ImpBlast, ImpFrost, ImpZap, ImpGlitter, ImpStarburst,
+		Muzzle, Crit, Splash, Place, Synergy, Fuse, JokerFuse, Leak, Count };
 	struct FWorldFx
 	{
 		EWorldFx Kind;
 		FVector2f Pos;
 		FLinearColor Col;
-		float Scale; // 맞음·타격: 위력 (1~6), 죽음: 몸 크기 (작은 적 0.7, 보스 4)
+		float Scale; // 맞음·타격: 위력 (1~6), 죽음: 몸 크기 (작은 적 0.7, 보스 4), 총구: 레벨, 치명타: 횟수, 범위: 반지름 칸, 족보: 1 + 점수/40, 합성: 새 레벨
 		FVector2f Dir; // 판 좌표 방향 (단위 벡터, 아래가 +Y). 원뿔로 튀는 이펙트가 쓴다
 	};
 	TArray<FWorldFx> TakeWorldFx()

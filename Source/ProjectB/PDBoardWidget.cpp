@@ -806,6 +806,7 @@ void SPDBoardWidget::HandleEvents()
 			// 총구: 고리 + 쏘는 쪽으로 튀는 섬광 (레벨이 높을수록 크게)
 			Rings.Add({P, 4.f, 12.f + 3.f * Lv, 0.f, 0.15f, 1.5f, Col});
 			Burst(P + Dir * 10.f, 1 + Lv, Col, 40.f, 110.f, 0.14f, 1.6f, true);
+			PushWorldFx(EWorldFx::Muzzle, P + Dir * 10.f, Col, (float)Lv, Dir);
 			switch (K) // 즉시 발사체는 쏘는 순간 빛줄기가 닿는다 (날아가는 것은 Impact 에서)
 			{
 			case EPDShot::Laser: Beams.Add({P, To, 0.f, 0.12f + 0.03f * Lv, W + 0.5f * (Lv - 1), Col, Lv >= 3 ? 1 : 0, Lv}); break;
@@ -841,6 +842,7 @@ void SPDBoardWidget::HandleEvents()
 			const FLinearColor Col = SuitColor(E.Suit);
 			Rings.Add({P, 6.f, E.R * CS, 0.f, 0.35f, 2.f, Col, EWave::Broken, 10, FMath::FRandRange(0.f, TwoPi), 2.f}); // 범위: 도는 점선 고리
 			Burst(P, 10, Col, 60.f, 200.f, 0.35f, 2.2f, true);
+			PushWorldFx(EWorldFx::Splash, P, Col, FMath::Max(0.5f, E.R));
 			break;
 		}
 		case FPDEvent::EKind::Kill:
@@ -853,6 +855,7 @@ void SPDBoardWidget::HandleEvents()
 			Shake = FMath::Max(Shake, 0.35f);
 			FlashT = 0.4f;
 			FlashCol = Hex(TEXT("ff3a4a"));
+			PushWorldFx(EWorldFx::Leak, P, Hex(TEXT("ff3a4a")), 1.f);
 			Floats.Add({FString::Printf(TEXT("목숨 -%d"), E.A), FVector2f(FX + Cols * CS - 60.f, FY + 40.f), 0.f, 1.2f, 20.f, Hex(TEXT("ff6a6a"))});
 			break;
 		case FPDEvent::EKind::Place:
@@ -860,6 +863,7 @@ void SPDBoardWidget::HandleEvents()
 			const FLinearColor Col = SuitColor(E.Suit);
 			Rings.Add({P, 8.f, 46.f, 0.f, 0.4f, 2.f, Col});
 			Burst(P, 14, Col, 40.f, 160.f, 0.45f, 2.2f);
+			PushWorldFx(EWorldFx::Place, P, Col, 1.f);
 			break;
 		}
 		case FPDEvent::EKind::Synergy:
@@ -894,6 +898,7 @@ void SPDBoardWidget::HandleEvents()
 			}
 			Rings.Add({P, 10.f, 70.f + Val * 0.6f, 0.f, 0.55f, 3.f, Col});
 			Burst(P, 18 + Val / 3, Col, 80.f, 260.f, 0.7f, 2.6f, true);
+			PushWorldFx(EWorldFx::Synergy, P, Col, 1.f + Val / 40.f);
 			FString Label = HandName(E.Hand);
 			if (E.Hand == EPDHand::Flush || E.Hand == EPDHand::Straight) Label += FString::FromInt(E.A);
 			Floats.Add({Label + TEXT("!"), P - FVector2f(0.f, 24.f), 0.f, 1.4f, Val >= 80 ? 30.f : 22.f, Col});
@@ -924,6 +929,7 @@ void SPDBoardWidget::HandleEvents()
 			FlashCol = Hex(TEXT("ff3a4a"));
 			break;
 		case FPDEvent::EKind::Win:
+			for (int I = 0; I < 6; ++I) PushWorldFx(EWorldFx::Fuse, FVector2f(FX + FMath::FRandRange(100.f, Cols * CS - 100.f), FY + FMath::FRandRange(80.f, Rows * CS - 80.f)), HandColor((EPDHand)(I % (int)EPDHand::Count)), 2.f);
 			for (int I = 0; I < 6; ++I) Burst(FVector2f(FX + FMath::FRandRange(100.f, Cols * CS - 100.f), FY + FMath::FRandRange(80.f, Rows * CS - 80.f)), 40, HandColor((EPDHand)(I % (int)EPDHand::Count)), 60.f, 300.f, 1.4f, 3.f, false, 120.f);
 			FlashT = 0.5f;
 			FlashCol = Hex(TEXT("ffd96a"));
@@ -950,6 +956,7 @@ void SPDBoardWidget::HandleEvents()
 			Rings.Add({P, 10.f, 160.f, 0.3f, 1.1f, 3.4f, JokerPink});
 			Rings.Add({P, 10.f, 240.f, 0.4f, 1.4f, 2.f, FLinearColor::White});
 			Burst(P, 90, JokerPink, 100.f, 380.f, 1.1f, 3.2f, true);
+			PushWorldFx(EWorldFx::JokerFuse, P, JokerPink, 1.f);
 			Burst(P, 40, FLinearColor::White, 60.f, 240.f, 0.9f, 2.4f, false, 60.f);
 			Floats.Add({FString::Printf(TEXT("조커: %s!"), JokerName(E.A)), P - FVector2f(0.f, 36.f), 0.f, 2.f, 30.f, JokerPink});
 			if (E.B) Floats.Add({TEXT("새로 발견! (J: 도감)"), P + FVector2f(0.f, 2.f), 0.f, 2.f, 16.f, FLinearColor::White});
@@ -984,6 +991,7 @@ void SPDBoardWidget::HandleEvents()
 			{
 				Rings.Add({P, 10.f, 110.f, 0.3f, 0.9f, 3.f, JokerPink});
 				Burst(P, 40, JokerPink, 80.f, 260.f, 0.8f, 2.6f, true);
+				PushWorldFx(EWorldFx::Synergy, P, JokerPink, 2.f);
 				Floats.Add({FString::Printf(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
 				Shake = FMath::Max(Shake, 0.25f);
 			}
@@ -994,6 +1002,7 @@ void SPDBoardWidget::HandleEvents()
 			Rings.Add({P, 10.f, E.R * CS, 0.f, 0.6f, 3.f, Hex(TEXT("cfe4ff"))});
 			Rings.Add({P, 10.f, E.R * CS * 0.7f, 0.1f, 0.6f, 2.f, JokerPink});
 			Burst(P, 20, Hex(TEXT("cfe4ff")), 60.f, 200.f, 0.5f, 2.f, true);
+			PushWorldFx(EWorldFx::Splash, P, Hex(TEXT("cfe4ff")), FMath::Max(0.5f, E.R));
 			break;
 		case FPDEvent::EKind::Star:
 			for (const FPDEnemy& En : Game.Enemies)
@@ -1001,6 +1010,7 @@ void SPDBoardWidget::HandleEvents()
 				const FPDPoint Q = Game.Path.At(En.D);
 				Beams.Add({P, CellPx(Q.X, Q.Y), 0.f, 0.18f, 1.6f, FLinearColor::White});
 				Burst(CellPx(Q.X, Q.Y), 3, JokerPink, 40.f, 120.f, 0.25f, 2.f, true);
+				PushWorldFx(EWorldFx::ImpGlitter, CellPx(Q.X, Q.Y), JokerPink, 1.f);
 			}
 			Rings.Add({P, 6.f, 40.f, 0.f, 0.3f, 2.f, FLinearColor::White});
 			break;
@@ -1026,6 +1036,7 @@ void SPDBoardWidget::HandleEvents()
 			Rings.Add({P, 70.f, 6.f, 0.f, 0.35f, 2.4f, HC});   // 안으로 모이는 고리
 			Rings.Add({P, 8.f, 90.f, 0.15f, 0.75f, 3.f, Col}); // 터져 나가는 고리
 			Burst(P, 50, Col, 80.f, 300.f, 0.8f, 2.8f, true);
+			PushWorldFx(EWorldFx::Fuse, P, Col, (float)E.A);
 			Floats.Add({FString::Printf(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.5f, 28.f, Hex(TEXT("ffd96a"))});
 			FlashT = FMath::Max(FlashT, 0.2f);
 			FlashCol = Col;
@@ -1348,6 +1359,7 @@ void SPDBoardWidget::CritFx(FVector2f P, int32 N)
 {
 	// 치명타: 흰 불꽃과 고리 (여러 번이면 더 크게)
 	Burst(P, 6 + 3 * FMath::Min(N, 4), FLinearColor::White, 80.f, 240.f, 0.3f, 2.2f, true);
+	PushWorldFx(EWorldFx::Crit, P, FLinearColor::White, (float)FMath::Min(N, 4));
 	Rings.Add({P, 4.f, 18.f + 6.f * FMath::Min(N, 4), 0.f, 0.22f, 2.f, FLinearColor::White, EWave::Star, 4, FMath::FRandRange(0.f, TwoPi), 6.f}); // 도는 네 뿔 별
 }
 
