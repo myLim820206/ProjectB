@@ -4,11 +4,155 @@
 #include "PDBoardDraw.h"
 
 #include "InputCoreTypes.h"
+#include "Engine/Engine.h"
+#include "GameFramework/GameUserSettings.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 // ---------------------------------------------------------------- 위젯
 void SPDBoardWidget::Construct(const FArguments& InArgs)
 {
 	SetCanTick(true);
+	LoadUserData();
+}
+
+// ---------------------------------------------------------------- 설정·진행 저장 (D-110)
+namespace
+{
+const TCHAR* const PDSetSection = TEXT("ProjectB.Settings");
+FString PDProgressPath() { return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), TEXT("Progress.txt")); }
+}
+
+void SPDBoardWidget::LoadUserData()
+{
+	if (GConfig)
+	{
+		GConfig->GetBool(PDSetSection, TEXT("WorldFx"), Settings.bWorldFx, GGameUserSettingsIni);
+		GConfig->GetBool(PDSetSection, TEXT("Shake"), Settings.bShake, GGameUserSettingsIni);
+		GConfig->GetBool(PDSetSection, TEXT("Sound"), Settings.bSound, GGameUserSettingsIni);
+		GConfig->GetFloat(PDSetSection, TEXT("Volume"), Settings.Volume, GGameUserSettingsIni);
+		GConfig->GetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
+	}
+	Settings.Volume = FMath::Clamp(Settings.Volume, 0.f, 1.f);
+	if (!GIsEditor && GEngine && GEngine->GetGameUserSettings()) // 실제 화면 모드는 엔진이 저장한 값
+	{
+		switch (GEngine->GetGameUserSettings()->GetFullscreenMode())
+		{
+		case EWindowMode::Fullscreen: Settings.WindowMode = 1; break;
+		case EWindowMode::WindowedFullscreen: Settings.WindowMode = 2; break;
+		default: Settings.WindowMode = 0; break;
+		}
+	}
+	Game.bMuted = !Settings.bSound;
+	// 진행: 도감(만들어 본 조커)과 최고 기록
+	TArray<FString> Lines;
+	if (FFileHelper::LoadFileToStringArray(Lines, *PDProgressPath()))
+		for (const FString& L : Lines)
+		{
+			FString Key, Val;
+			if (!L.Split(TEXT("="), &Key, &Val)) continue;
+			if (Key == TEXT("Discovered")) Game.Discovered |= (uint32)FCString::Strtoui64(*Val, nullptr, 10);
+			else if (Key == TEXT("BestWave")) Game.BestWave = FMath::Max(Game.BestWave, FCString::Atoi(*Val));
+		}
+	SavedDiscovered = Game.Discovered;
+	SavedBest = Game.BestWave;
+}
+
+void SPDBoardWidget::SaveSettings() const
+{
+	if (!GConfig) return;
+	GConfig->SetBool(PDSetSection, TEXT("WorldFx"), Settings.bWorldFx, GGameUserSettingsIni);
+	GConfig->SetBool(PDSetSection, TEXT("Shake"), Settings.bShake, GGameUserSettingsIni);
+	GConfig->SetBool(PDSetSection, TEXT("Sound"), Settings.bSound, GGameUserSettingsIni);
+	GConfig->SetFloat(PDSetSection, TEXT("Volume"), Settings.Volume, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
+	GConfig->Flush(false, GGameUserSettingsIni);
+}
+
+void SPDBoardWidget::SaveProgress()
+{
+	SavedDiscovered = Game.Discovered;
+	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\n"), SavedDiscovered, SavedBest), *PDProgressPath());
+}
+
+void SPDBoardWidget::ApplyWindowMode(int32 Mode)
+{
+	Settings.WindowMode = (Mode % 3 + 3) % 3;
+	SaveSettings();
+	if (GIsEditor || !GEngine) return; // 에디터(PIE)에서는 창 모드를 바꾸지 않는다. 패키지 빌드에서만
+	UGameUserSettings* U = GEngine->GetGameUserSettings();
+	if (!U) return;
+	const EWindowMode::Type M = Settings.WindowMode == 1 ? EWindowMode::Fullscreen : Settings.WindowMode == 2 ? EWindowMode::WindowedFullscreen : EWindowMode::Windowed;
+	U->SetFullscreenMode(M);
+	U->SetScreenResolution(M == EWindowMode::Windowed ? FIntPoint(1280, 720) : U->GetDesktopResolution());
+	U->ApplySettings(false);
+	U->SaveSettings();
+}
+
+void SPDBoardWidget::SetSound(bool bOn)
+{
+	Settings.bSound = bOn;
+	Game.bMuted = !bOn;
+	SaveSettings();
+}
+
+void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
+{
+	switch ((ESetRow)Row)
+	{
+	case ESetRow::Window: ApplyWindowMode(Settings.WindowMode + (Delta == 0 ? 1 : Delta)); break;
+	case ESetRow::WorldFx: Settings.bWorldFx = !Settings.bWorldFx; SaveSettings(); break;
+	case ESetRow::Shake: Settings.bShake = !Settings.bShake; SaveSettings(); break;
+	case ESetRow::Sound: SetSound(!Settings.bSound); break;
+	case ESetRow::Volume:
+		Settings.Volume = FMath::Clamp(FMath::RoundToFloat((Settings.Volume + 0.1f * Delta) * 10.f) / 10.f, 0.f, 1.f);
+		if (Settings.Volume > 0.f && !Settings.bSound) SetSound(true);
+		else SaveSettings();
+		break;
+	case ESetRow::Close: bSettings = false; return;
+	default: return;
+	}
+	UiSound(EPDSound::Move);
+}
+
+void SPDBoardWidget::SettingsClick(FVector2f P)
+{
+	if (!InRect(P, SetBoxX, SetBoxY, SetBoxW, SetBoxH)) { bSettings = false; return; } // 창 바깥 = 닫기
+	for (int32 Row = 0; Row < (int32)ESetRow::Count; ++Row)
+		for (int32 I = 0; I < SetBtnCount(Row); ++I)
+		{
+			const FVector2f B = SetBtnPos(Row, I);
+			if (!InRect(P, B.X, B.Y, SetBtnW(Row, I), SetBtnH)) continue;
+			SetSel = Row;
+			if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
+			else if (Row == (int32)ESetRow::Volume)
+			{
+				if (I == 1) // 막대: 누른 자리로
+				{
+					Settings.Volume = FMath::Clamp(FMath::RoundToFloat((P.X - B.X) / SetBtnW(Row, 1) * 10.f) / 10.f, 0.f, 1.f);
+					if (Settings.Volume > 0.f && !Settings.bSound) SetSound(true);
+					else SaveSettings();
+					UiSound(EPDSound::Move);
+				}
+				else SettingsChange(Row, I == 0 ? -1 : 1);
+			}
+			else SettingsChange(Row, 0);
+			return;
+		}
+}
+
+void SPDBoardWidget::SettingsKey(const FKey& K)
+{
+	const int32 N = (int32)ESetRow::Count;
+	if (K == EKeys::Escape) bSettings = false;
+	else if (K == EKeys::Up || K == EKeys::W) SetSel = (SetSel + N - 1) % N;
+	else if (K == EKeys::Down || K == EKeys::S) SetSel = (SetSel + 1) % N;
+	else if (K == EKeys::Left || K == EKeys::A) SettingsChange(SetSel, -1);
+	else if (K == EKeys::Right || K == EKeys::D) SettingsChange(SetSel, 1);
+	else if (K == EKeys::Enter || K == EKeys::SpaceBar) SettingsChange(SetSel, 0);
+	else if (K == EKeys::M) SetSound(!Settings.bSound);
 }
 
 void SPDBoardWidget::UpdatePreview()
@@ -29,6 +173,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
 	UpdateFx(Dt);
+	if (!Settings.bShake) { Shake = 0.f; FlashT = 0.f; } // 설정: 화면 흔들림·번쩍임 끔
+	if (Game.Discovered != SavedDiscovered || FMath::Max(Game.BestWave, Game.Wave) > SavedBest) SaveProgress(); // 도감·최고 기록이 바뀌면 바로 저장
 	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
 	UpdatePreview();
 	JGroups = Game.JokerGroups();
@@ -118,7 +264,12 @@ FVector2f SPDBoardWidget::ToDesign(const FGeometry& MyGeometry, const FPointerEv
 FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	Mouse = ToDesign(MyGeometry, MouseEvent);
-	if (bMenu)
+	if (bSettings)
+	{
+		for (int32 Row = 0; Row < (int32)ESetRow::Count; ++Row)
+			if (InRect(Mouse, SetX, SetRowY(Row), SetW, SetRowH)) SetSel = Row;
+	}
+	else if (bMenu)
 	{
 		const int32 Item = MenuHoverAt(Mouse);
 		if (Item >= 0) MenuSel = Item;
@@ -131,6 +282,7 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
+	if (bSettings) { if (bRight) bSettings = false; else SettingsClick(P); return; }
 	if (bMenu)
 	{
 		const int32 Item = MenuHoverAt(P);
@@ -240,7 +392,7 @@ void SPDBoardWidget::RestartRun()
 {
 	Game.NewGame(true);
 	Sel = -1;
-	bTree = bUpg = bCodex = bMenu = false;
+	bTree = bUpg = bCodex = bMenu = bSettings = false;
 	PickCells.clear();
 	Particles.Empty();
 	Flares.Empty();
@@ -264,6 +416,7 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 	{
 	case EMenuItem::Resume: bMenu = false; break;
 	case EMenuItem::NewGame: RestartRun(); break;
+	case EMenuItem::Settings: bSettings = true; SetSel = 0; break;
 	case EMenuItem::Quit:
 		bMenu = false;
 		if (OnQuit) OnQuit();
@@ -284,6 +437,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (InKeyEvent.IsRepeat()) return FReply::Handled();
 	const FKey K = InKeyEvent.GetKey();
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
+	if (bSettings) { SettingsKey(K); return FReply::Handled(); }
 	if (bMenu)
 	{
 		const int32 N = (int32)EMenuItem::Count;
@@ -308,8 +462,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		return FReply::Unhandled();
 	}
 	if (bCodex) { if (K == EKeys::J || K == EKeys::Escape) bCodex = false; return FReply::Handled(); }
-	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) Game.bMuted = !Game.bMuted; return FReply::Handled(); }
-	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) Game.bMuted = !Game.bMuted; return FReply::Handled(); }
+	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
+	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
 	if (!PickCells.empty())
 	{
 		if (K == EKeys::Escape) { PickCells.clear(); return FReply::Handled(); }
@@ -335,7 +489,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::U) { bUpg = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = Game.Speed == 1 ? 2 : Game.Speed == 2 ? 3 : 1;
-	else if (K == EKeys::M) Game.bMuted = !Game.bMuted;
+	else if (K == EKeys::M) SetSound(!Settings.bSound);
 	else return FReply::Unhandled();
 	return FReply::Handled();
 }

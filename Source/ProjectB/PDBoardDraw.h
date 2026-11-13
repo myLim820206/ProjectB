@@ -356,14 +356,37 @@ constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW
 constexpr float MenuBtnX = RBtnX, MenuBtnY = TreeBtnY + TreeBtnH + 8.f, MenuBtnW = RBtnW, MenuBtnH = 28.f;
 constexpr float RTopH = MenuBtnY + MenuBtnH + 12.f - FY; // 오른쪽 위 패널 높이
 // 메뉴 창 (Esc): 가운데 세로 버튼
-enum class EMenuItem : uint8_t { Resume, NewGame, Quit, Count };
+enum class EMenuItem : uint8_t { Resume, NewGame, Settings, Quit, Count };
 constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
 constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 inline const TCHAR* MenuItemName(int I)
 {
-	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("게임 종료")};
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("설정"), TEXT("게임 종료")};
 	return N[I];
+}
+// 설정 창 (D-110): 줄마다 이름 + 버튼
+enum class ESetRow : uint8_t { Window, WorldFx, Shake, Sound, Volume, Close, Count };
+constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 12.f, SetLabelW = 200.f, SetBtnH = 32.f;
+constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 220.f;
+constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 80.f, SetBoxW = SetW + 60.f;
+constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
+inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || Row == (int)ESetRow::Volume ? 3 : 1; }
+inline float SetBtnW(int Row, int Idx)
+{
+	if (Row == (int)ESetRow::Window) return 112.f;
+	if (Row == (int)ESetRow::Volume) return Idx == 1 ? 220.f : 40.f;
+	if (Row == (int)ESetRow::Close) return 160.f;
+	return 120.f;
+}
+inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
+{
+	const float X0 = SetX + SetLabelW, Y = SetRowY(Row) + (SetRowH - SetBtnH) / 2.f;
+	if (Row == (int)ESetRow::Window) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
+	if (Row == (int)ESetRow::Volume) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
+	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
+	return FVector2f(X0, Y);
 }
 // 손패 카드 왼쪽 X. 카드가 많으면 판 너비 안에 들어오게 간격을 좁힌다
 inline float HandCardX(int I, int N)

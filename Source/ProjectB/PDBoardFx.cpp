@@ -477,6 +477,7 @@ void SPDBoardWidget::ImpactFx(EPDShot K, FVector2f P, FVector2f Dir, FLinearColo
 // 월드 이펙트 요청을 쌓는다 (D-092). 게임 모드가 매 프레임 꺼내 나이아가라로 재생
 void SPDBoardWidget::PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLinearColor& Col, float Scale, FVector2f Dir)
 {
+	if (!Settings.bWorldFx) return; // 설정: 월드 이펙트 끔 (D-110)
 	if (WorldFx.Num() >= 64) return; // 한 프레임에 너무 많이 쌓이면 버린다 (나이아가라 폭주 방지)
 	// 판 좌표 → 화면 가운데를 0으로 한 판 좌표. 판은 창 가운데에 맞춰 그리므로 (Offset - 창/2) / 배율 만큼 민다
 	const FVector2f Center = (ViewOffset - ViewSize * 0.5f) / FMath::Max(0.01f, ViewScale);

@@ -55,6 +55,9 @@ public:
 	// 정사영 카메라 폭 (월드 단위 = 판 px). 창 전체 폭을 판 배율로 나눈 값
 	float GetWorldViewWidth() const { return ViewSize.X / FMath::Max(0.01f, ViewScale); }
 
+	// 소리 크기 0~1 (설정에서 끄면 0). 게임 모드가 소리마다 곱한다 (D-110)
+	float GetVolume() const { return Settings.bSound ? Settings.Volume : 0.f; }
+
 	// 메뉴의 [게임 종료]. 게임 모드가 채운다 (월드가 있어야 PIE·패키지 모두 바르게 끝낼 수 있어서)
 	TFunction<void()> OnQuit;
 
@@ -80,6 +83,29 @@ private:
 	void FinishPick(int32 Cell);           // 고른 칸으로 합성 (-1 = 기본 칸)
 	int32 FindPickIndex() const;           // 고르는 재료와 같은 족보·조커 묶음 번호 (-1 = 사라짐)
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
+	// ---- 설정 (D-110): GameUserSettings.ini [ProjectB.Settings]. 화면 모드는 엔진 GameUserSettings 가 저장
+	struct FSettings
+	{
+		int32 WindowMode = 0; // 0 창, 1 전체화면, 2 테두리 없는 전체화면
+		bool bWorldFx = true; // 나이아가라 월드 이펙트
+		bool bShake = true;   // 화면 흔들림·번쩍임
+		bool bSound = true;
+		float Volume = 0.8f;
+	};
+	FSettings Settings;
+	bool bSettings = false;                // 설정 창 (메뉴에서 연다, 여는 동안 메뉴도 열려 있어 게임은 멈춤)
+	int32 SetSel = 0;                      // 키보드로 고른 설정 줄
+	void LoadUserData();                   // 설정 + 진행(도감·최고 기록) 불러오기
+	void SaveSettings() const;
+	void SaveProgress();                   // 도감·최고 기록 저장 (Saved/SaveGames/Progress.txt)
+	void ApplyWindowMode(int32 Mode);
+	void SetSound(bool bOn);
+	void SettingsClick(FVector2f P);
+	void SettingsKey(const FKey& K);
+	void SettingsChange(int32 Row, int32 Delta); // 줄 값 바꾸기 (Delta: -1/+1, 0 = 켜기·끄기 뒤집기)
+	void PaintSettings(FCanvas& C) const;
+	uint32 SavedDiscovered = 0;
+	int32 SavedBest = 0;
 	int32 MenuSel = 0;                     // 키보드로 고른 메뉴 항목
 	void HandleEvents();
 	void UiSound(PD::EPDSound S);           // 화면 조작 소리 (음소거면 안 냄)

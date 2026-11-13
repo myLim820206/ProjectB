@@ -64,6 +64,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	else if (G.Phase == EPDPhase::Over)
 		C.Overlay(TEXT("GAME OVER"), Red, {FString::Printf(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), FString::Printf(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? TEXT("  (갱신!)") : TEXT(""))}, TEXT("R 키 또는 화면을 눌러 다시"));
 	if (bMenu) PaintMenu(C);
+	if (bSettings) PaintSettings(C);
 }
 
 // 판: 격자·길, 족보 장판·테두리·연쇄 번개, 타워, 놓기 미리보기, 적
@@ -1024,4 +1025,66 @@ void SPDBoardWidget::PaintMenu(FCanvas& C) const
 		C.TextCentered(MenuItemName(I), B.X + MenuW / 2.f, B.Y + MenuItemH / 2.f, bSel ? FLinearColor::White : Fg, 16.f, true);
 	}
 	C.TextCentered(TEXT("↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, BoxY + BoxH - 18.f, Dim, 11.f, false);
+}
+
+// 설정 창 (D-110): 화면 모드, 월드 이펙트, 흔들림·번쩍임, 소리, 볼륨
+void SPDBoardWidget::PaintSettings(FCanvas& C) const
+{
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("5f6878")), Good = Hex(TEXT("9cffb0")), Grey = Hex(TEXT("8a94a6"));
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.6f));
+	C.Box(SetBoxX, SetBoxY, SetBoxW, SetBoxH, Hex(TEXT("06060b"), 0.95f));
+	C.Glow(FCanvas::RoundRectPoints(SetBoxX, SetBoxY, SetBoxW, SetBoxH, 10.f), Cyan, 1.4f, 0.7f);
+	C.TextCentered(TEXT("설정"), DesignW / 2.f, SetBoxY + 40.f, Cyan, 24.f, true);
+	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("볼륨"), TEXT("")};
+	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
+		if (bOn) C.Box(X, Y, W, SetBtnH, WithAlpha(Col, 0.12f));
+		C.Glow(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, 6.f), Col, bOn ? 1.6f : 1.1f, bOn ? (bRowSel ? 1.f + 0.5f * Pulse : 0.9f) : 0.35f);
+		C.TextCentered(S, X + W / 2.f, Y + SetBtnH / 2.f, bOn ? FLinearColor::White : Grey, 13.f, true, W - 8.f);
+	};
+	for (int32 Row = 0; Row < (int32)ESetRow::Count; ++Row)
+	{
+		const float Y = SetRowY(Row);
+		const bool bRowSel = Row == SetSel;
+		if (bRowSel) C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(Cyan, 0.06f));
+		if (Row != (int32)ESetRow::Close) C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? FLinearColor::White : Fg, 14.f, 0, true, SetLabelW - 10.f);
+		switch ((ESetRow)Row)
+		{
+		case ESetRow::Window:
+		{
+			static const TCHAR* Modes[] = {TEXT("창"), TEXT("전체화면"), TEXT("테두리 없음")};
+			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Modes[I], Cyan, Settings.WindowMode == I, bRowSel); }
+			break;
+		}
+		case ESetRow::WorldFx:
+		case ESetRow::Shake:
+		case ESetRow::Sound:
+		{
+			const bool bOn = Row == (int32)ESetRow::WorldFx ? Settings.bWorldFx : Row == (int32)ESetRow::Shake ? Settings.bShake : Settings.bSound;
+			const FVector2f B = SetBtnPos(Row, 0);
+			Button(B.X, B.Y, SetBtnW(Row, 0), bOn ? TEXT("켜짐") : TEXT("꺼짐"), bOn ? Good : Grey, bOn, bRowSel);
+			break;
+		}
+		case ESetRow::Volume:
+		{
+			const FVector2f M = SetBtnPos(Row, 0), Bar = SetBtnPos(Row, 1), Pl = SetBtnPos(Row, 2);
+			const float BarW = SetBtnW(Row, 1), V = Settings.bSound ? Settings.Volume : 0.f;
+			Button(M.X, M.Y, SetBtnW(Row, 0), TEXT("−"), Cyan, true, bRowSel);
+			Button(Pl.X, Pl.Y, SetBtnW(Row, 2), TEXT("+"), Cyan, true, bRowSel);
+			C.Box(Bar.X, Bar.Y + 6.f, BarW * V, SetBtnH - 12.f, WithAlpha(Cyan, 0.25f));
+			C.Glow(FCanvas::RoundRectPoints(Bar.X, Bar.Y + 6.f, BarW, SetBtnH - 12.f, 4.f), Cyan, 1.f, 0.4f);
+			C.TextCentered(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(V * 100.f)), Bar.X + BarW / 2.f, Bar.Y + SetBtnH / 2.f, FLinearColor::White, 13.f, true);
+			break;
+		}
+		case ESetRow::Close:
+		{
+			const FVector2f B = SetBtnPos(Row, 0);
+			Button(B.X, B.Y, SetBtnW(Row, 0), TEXT("닫기"), Cyan, bRowSel, bRowSel);
+			break;
+		}
+		default: break;
+		}
+	}
+	if (GIsEditor) C.TextCentered(TEXT("화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)"), DesignW / 2.f, SetRowY((int32)ESetRow::Window) + SetRowH + 2.f, Dim, 10.f, false);
+	C.TextCentered(TEXT("↑↓ 고르기 · ←→ 바꾸기 · Enter 켜기/끄기 · Esc 메뉴로"), DesignW / 2.f, SetBoxY + SetBoxH - 18.f, Dim, 11.f, false);
 }

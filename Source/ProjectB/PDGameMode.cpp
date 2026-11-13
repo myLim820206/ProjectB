@@ -69,7 +69,7 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 	Wave->bLooping = false;
 	Wave->QueueAudio(Pcm.GetData(), Pcm.Num());
 
-	UAudioComponent* Voice = UGameplayStatics::CreateSound2D(this, Wave, PDMasterVolume * Event.Volume, 1.f, 0.f, nullptr, false, false);
+	UAudioComponent* Voice = UGameplayStatics::CreateSound2D(this, Wave, (BoardWidget.IsValid() ? BoardWidget->GetVolume() : PDMasterVolume) * Event.Volume, 1.f, 0.f, nullptr, false, false);
 	if (!Voice) return;
 	Voice->bIsUISound = true;
 	Voice->Play();
