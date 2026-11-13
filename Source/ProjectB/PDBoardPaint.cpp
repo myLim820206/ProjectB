@@ -283,8 +283,8 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintShots(F); Part(1);
 	if (!bNoFx) PaintEffects(F);
 	Part(2);
-	PaintBoardUi(F); Part(3);
 	PaintPanels(C); Part(4);
+	PaintBoardUi(F); Part(3); // 판 위 UI 를 패널 뒤에 그려 툴팁이 패널 위로 나갈 수 있게 (D-150)
 	PaintScreens(C); Part(5);
 	PaintTree(C);
 	// 화면 번쩍임과 덮개 화면 (제목, 게임 오버), 메뉴
@@ -1318,17 +1318,21 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
 				const FBox2f Cell(C0 - FVector2f(4.f, 4.f), C0 + FVector2f(CS + 4.f, CS + 4.f));
 				const float G = 8.f, MidY = C0.Y + CS / 2.f - TH / 2.f, MidX = C0.X + CS / 2.f - TW / 2.f;
-				const FVector2f Cand[8] = {{C0.X + CS + G, MidY}, {C0.X - G - TW, MidY}, {C0.X + CS + G, C0.Y - TH + CS * 0.3f}, {C0.X - G - TW, C0.Y - TH + CS * 0.3f},
-					{MidX, C0.Y - G - TH}, {MidX, C0.Y + CS + G}, {C0.X + CS + G, C0.Y + CS * 0.7f}, {C0.X - G - TW, C0.Y + CS * 0.7f}};
+				const float Far = 20.f; // 이름표 한 줄만큼 더 떨어진 자리
+				const FVector2f Cand[12] = {{C0.X + CS + G, MidY}, {C0.X - G - TW, MidY}, {C0.X + CS + G, C0.Y - TH + CS * 0.3f}, {C0.X - G - TW, C0.Y - TH + CS * 0.3f},
+					{MidX, C0.Y - G - TH}, {MidX, C0.Y + CS + G}, {C0.X + CS + G, C0.Y + CS * 0.7f}, {C0.X - G - TW, C0.Y + CS * 0.7f},
+					{MidX, C0.Y - G - TH - Far}, {MidX, C0.Y + CS + G + Far}, {C0.X + CS + G + Far, MidY}, {C0.X - G - TW - Far, MidY}};
+				const FBox2f Board(FVector2f(FX, FY), FVector2f(FX + Cols * CS, FY + Rows * CS));
 				FVector2f Best = Cand[0];
 				float BestScore = TNumericLimits<float>::Max();
 				for (const FVector2f& Cn : Cand)
 				{
-					const FVector2f Pp(FMath::Clamp(Cn.X, FX + 2.f, FX + Cols * CS - TW - 2.f), FMath::Clamp(Cn.Y, FY + 2.f, FY + Rows * CS - TH - 2.f));
+					// 화면 안이면 판 밖(패널 위)도 된다. 판 밖으로 나간 넓이는 조금만 벌점
+					const FVector2f Pp(FMath::Clamp(Cn.X, 8.f, DesignW - TW - 8.f), FMath::Clamp(Cn.Y, HudY + HudH + 4.f, DesignH - TH - 8.f));
 					const FBox2f Tb(Pp, Pp + FVector2f(TW, TH));
 					auto Over = [&](const FBox2f& O) { return FMath::Max(0.f, FMath::Min(Tb.Max.X, O.Max.X) - FMath::Max(Tb.Min.X, O.Min.X)) * FMath::Max(0.f, FMath::Min(Tb.Max.Y, O.Max.Y) - FMath::Max(Tb.Min.Y, O.Min.Y)); };
-					float Score = Over(Cell) * 20.f;
-					for (const FBox2f& O : BadgeRects) Score += Over(O) * 4.f;
+					float Score = Over(Cell) * 20.f + (TW * TH - Over(Board)) * 0.5f;
+					for (const FBox2f& O : BadgeRects) { const float A = Over(O); if (A > 0.f) Score += 30000.f + A * 4.f; } // 이름표·버튼을 조금이라도 가리면 판 밖으로 나가는 것보다 나쁘다
 					if (Score < BestScore - 0.5f) { BestScore = Score; Best = Pp; }
 				}
 				return Best;
