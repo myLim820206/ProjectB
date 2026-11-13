@@ -1359,20 +1359,21 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			C.Glow(FCanvas::CirclePoints(P, 14.f + 40.f * U, 40), WithAlpha(Col, 1.f - U), 2.f, 1.f);
 		}
 	}
-	// 범례
+	// 범례: 오른쪽 위 빈자리 (노드가 없는 곳, D-130). 예전 왼쪽 아래 자리는 노드를 가렸다
 	{
-		const float X = 16.f, Y = DesignH - 80.f, W = 560.f, H = 64.f;
+		const float X = 1016.f, Y = 72.f, W = 248.f, H = 126.f;
 		C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.85f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), Dim, 1.f, 0.3f);
 		const TCHAR* Names[] = {TEXT("찍음"), TEXT("찍을 수 있음"), TEXT("아직 못 찍음"), TEXT("봉인 (짝 키스톤)")};
 		const FLinearColor LegCol[] = {Cyan, Green, Dim, Red};
 		for (int32 K = 0; K < 4; ++K)
 		{
-			const float Lx = X + 18.f + K * 130.f;
-			C.Glow(FCanvas::CirclePoints(FVector2f(Lx + 8.f, Y + 24.f), 8.f, 20), LegCol[K], 1.4f, 0.6f);
-			C.Text(Names[K], Lx + 22.f, Y + 28.f, LegCol[K], 10.f, 0, true, 104.f);
+			const float Ly = Y + 20.f + K * 20.f;
+			C.Glow(FCanvas::CirclePoints(FVector2f(X + 22.f, Ly), 7.f, 20), LegCol[K], 1.4f, 0.6f);
+			C.Text(Names[K], X + 38.f, Ly + 4.f, LegCol[K], 10.f, 0, true, W - 50.f);
 		}
-		C.Text(TEXT("키스톤은 둘씩 짝: 하나를 찍으면 짝은 이 판 동안 봉인 · 판마다 3개까지"), X + 18.f, Y + 52.f, Grey, 9.f, 0, false, W - 36.f);
+		C.Text(TEXT("키스톤은 둘씩 짝: 하나를 찍으면"), X + 14.f, Y + 102.f, Grey, 9.f, 0, false, W - 28.f);
+		C.Text(TEXT("짝은 이 판 동안 봉인 · 판마다 3개까지"), X + 14.f, Y + 116.f, Grey, 9.f, 0, false, W - 28.f);
 	}
 	// 설명
 	if (Hov >= 0)
