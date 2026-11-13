@@ -170,7 +170,7 @@ void SPDBoardWidget::HandleEvents()
 		}
 		case FPDEvent::EKind::WaveStart:
 			BannerText = E.B ? FString::Printf(TEXT("BOSS WAVE %d"), E.A) : FString::Printf(TEXT("WAVE %d"), E.A);
-			BannerSub = E.B ? FString::Printf(TEXT("보스: %s"), BossName(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(TEXT("최고 기록 갱신 중!")) : FString::Printf(TEXT("최고 %d웨이브"), Game.BestWave));
+			BannerSub = E.B ? FString::Printf(TEXT("보스: %s · %s"), BossName(E.Enemy), BossSkillText(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(TEXT("최고 기록 갱신 중!")) : FString::Printf(TEXT("최고 %d웨이브"), Game.BestWave));
 			BannerCol = E.B ? Hex(TEXT("ff6a6a")) : Hex(TEXT("7fd6ff"));
 			BannerT = BannerMax = 1.6f;
 			if (E.B) { FlashT = 0.25f; FlashCol = BannerCol; }
@@ -228,6 +228,30 @@ void SPDBoardWidget::HandleEvents()
 			Burst(P, 20, Hex(TEXT("cfe4ff")), 60.f, 200.f, 0.5f, 2.f, true);
 			PushWorldFx(EWorldFx::Splash, P, Hex(TEXT("cfe4ff")), FMath::Max(0.5f, E.R));
 			break;
+		case FPDEvent::EKind::BossSkill: // 보스 능력이 터지는 순간 (D-112)
+		{
+			const FLinearColor Col = EnemyColor(E.Enemy);
+			const float Rnd = FMath::FRandRange(0.f, TwoPi);
+			switch (E.Enemy)
+			{
+			case EPDEnemy::Charger: Rings.Add({P, 8.f, 40.f, 0.f, 0.3f, 2.f, Col, EWave::Poly, 3, 0.f, 0.f}); Burst(P, 10, Col, 80.f, 220.f, 0.3f, 2.f, true); break;
+			case EPDEnemy::Summoner: Rings.Add({P, 30.f, 6.f, 0.f, 0.35f, 2.f, Col}); Burst(P, 12, Col, 40.f, 140.f, 0.5f, 2.f); break;
+			case EPDEnemy::Phantom: Rings.Add({P, 30.f, 4.f, 0.f, 0.3f, 1.6f, Col, EWave::Broken, 6, Rnd, 4.f}); break;
+			case EPDEnemy::Blinker: Rings.Add({P, 4.f, 30.f, 0.f, 0.3f, 2.f, Col, EWave::Poly, 4, 0.f, 3.f}); Flares.Add({P, 0.f, 0.2f, 20.f, Rnd, Col, 4}); break;
+			case EPDEnemy::Warden: Rings.Add({P, 10.f, 34.f, 0.f, 0.4f, 2.4f, Col, EWave::Poly, 6, PI / 6.f, 0.f}); break;
+			case EPDEnemy::Breaker:
+			{
+				const FVector2f T = CellPx(E.X2, E.Y2);
+				Beams.Add({P, T, 0.f, 0.25f, 2.4f, Col, 2, 1});
+				Rings.Add({T, 4.f, 26.f, 0.f, 0.3f, 2.f, Col, EWave::Star, 4, Rnd, 0.f});
+				Floats.Add({TEXT("기절!"), T - FVector2f(0.f, 24.f), 0.f, 1.f, 14.f, Col});
+				Shake = FMath::Max(Shake, 0.12f);
+				break;
+			}
+			default: Rings.Add({P, 6.f, 30.f, 0.f, 0.3f, 2.f, Col}); break;
+			}
+			break;
+		}
 		case FPDEvent::EKind::Star:
 			for (const FPDEnemy& En : Game.Enemies)
 			{
@@ -531,6 +555,12 @@ void SPDBoardWidget::DeathFx(FVector2f P, EPDEnemy Type)
 	case EPDEnemy::Regen: case EPDEnemy::RegenBoss: BodyShape = EWave::Poly; BodyN = Type == EPDEnemy::RegenBoss ? 6 : 4; break;
 	case EPDEnemy::ShieldBoss: BodyShape = EWave::Poly; BodyN = 4; break;
 	case EPDEnemy::SplitBoss: BodyShape = EWave::Poly; BodyN = 8; break;
+	case EPDEnemy::Charger: BodyShape = EWave::Poly; BodyN = 3; break;
+	case EPDEnemy::Warlord: BodyShape = EWave::Star; BodyN = 5; break;
+	case EPDEnemy::Berserker: BodyShape = EWave::Star; BodyN = 12; break;
+	case EPDEnemy::Blinker: case EPDEnemy::Breaker: BodyShape = EWave::Poly; BodyN = 4; break;
+	case EPDEnemy::Warden: BodyShape = EWave::Poly; BodyN = 6; break;
+	case EPDEnemy::Devourer: BodyShape = EWave::Broken; BodyN = 6; break;
 	default: break;
 	}
 	const float Rot0 = FMath::FRandRange(0.f, TwoPi);

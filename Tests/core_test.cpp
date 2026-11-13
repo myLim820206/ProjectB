@@ -259,6 +259,109 @@ static void UnitTests()
 		Expect(G.Synergies.size() == 1 && P.Before > 0.f && P.After > 0.f && std::fabs(P.Before - G.Power()) < 1e-3f && Bad.After < 0.f && G.Towers.size() == 2,
 			"합성 전 판 위력 비교: " + std::to_string((int)P.Before) + " → " + std::to_string((int)P.After) + " (원본 판은 그대로)");
 	}
+	{ // 보스 13종 (D-112): 순서와 능력
+		auto BossOf = [](int W) {
+			FPDGame G(40);
+			G.NewGame(true);
+			G.bMuted = true;
+			G.Wave = W - 1;
+			G.Phase = EPDPhase::Build;
+			G.StartWave();
+			for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.B == 1) return Ev.Enemy;
+			return EPDEnemy::Count;
+		};
+		Expect(BossOf(5) == EPDEnemy::ShieldBoss && BossOf(20) == EPDEnemy::Charger && BossOf(65) == EPDEnemy::Breaker && BossOf(70) == EPDEnemy::ShieldBoss,
+			"보스 순서: 5 방패 거인, 20 돌진 기사, 65 파괴자, 70 다시 방패 거인");
+		auto Fresh = [](EPDEnemy T, float D) {
+			FPDGame G(41);
+			G.NewGame(true);
+			G.bMuted = true;
+			G.Towers.clear();
+			G.Phase = EPDPhase::Wave;
+			FPDEnemy E = G.SpawnTestEnemy(T, 1000.f, 20);
+			E.D = D;
+			G.Enemies = {E};
+			return G;
+		};
+		{ // 돌진 기사: 4초마다 0.8초 동안 3배
+			FPDGame G = Fresh(EPDEnemy::Charger, 0.5f);
+			float D0 = G.Enemies[0].D; G.Update(0.05f); const float Step1 = G.Enemies[0].D - D0;
+			for (int K = 0; K < 79; ++K) G.Update(0.05f);
+			D0 = G.Enemies[0].D; G.Update(0.05f); const float Step2 = G.Enemies[0].D - D0;
+			Expect(Step2 > Step1 * 2.5f, "돌진 기사: 4초 뒤 한 틱 이동 " + std::to_string(Step2 / Step1) + "배");
+		}
+		{ // 소환사: 3초마다 졸개 둘
+			FPDGame G = Fresh(EPDEnemy::Summoner, 3.f);
+			G.Enemies[0].AbilT = 2.99f;
+			G.Update(0.05f);
+			int Minis = 0;
+			for (const FPDEnemy& E : G.Enemies) Minis += E.Type == EPDEnemy::Mini;
+			Expect(Minis == 2, "소환사: 3초에 졸개 둘");
+		}
+		{ // 유령: 무적 1.2초
+			FPDGame G = Fresh(EPDEnemy::Phantom, 1.f);
+			G.Enemies[0].AbilT = 3.99f;
+			G.Update(0.05f);
+			const float Hp0 = G.Enemies[0].Hp;
+			G.HitTest(G.Enemies[0], 100.f);
+			const bool bImmune = G.Enemies[0].Hp == Hp0 && G.Enemies[0].Untargetable();
+			for (int K = 0; K < 26; ++K) G.Update(0.05f);
+			G.HitTest(G.Enemies[0], 100.f);
+			Expect(bImmune && G.Enemies[0].Hp < Hp0, "유령: 무적인 동안 안 맞고, 1.2초 뒤엔 맞음");
+		}
+		{ // 군단장: 주변 적만
+			FPDGame G = Fresh(EPDEnemy::Warlord, 3.f);
+			FPDEnemy Near = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 20); Near.D = 4.f;
+			FPDEnemy Far = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 20); Far.D = 9.f;
+			G.Enemies.push_back(Near);
+			G.Enemies.push_back(Far);
+			Expect(G.InWarlordAura(G.Enemies[1]) && !G.InWarlordAura(G.Enemies[2]) && !G.InWarlordAura(G.Enemies[0]), "군단장: 1칸 옆 적은 오라 안, 6칸 떨어진 적과 자신은 밖");
+		}
+		{ // 분노 거인: 체력이 줄수록 빨라짐
+			FPDGame G = Fresh(EPDEnemy::Berserker, 1.f);
+			float D0 = G.Enemies[0].D; G.Update(0.05f); const float Full = G.Enemies[0].D - D0;
+			G.Enemies[0].Hp = G.Enemies[0].MaxHp * 0.2f;
+			D0 = G.Enemies[0].D; G.Update(0.05f); const float Low = G.Enemies[0].D - D0;
+			Expect(std::fabs(Low / Full - 2.2f) < 0.05f, "분노 거인: 체력 20%면 2.2배 빠름 (" + std::to_string(Low / Full) + ")");
+		}
+		{ // 공간 도약자: 5초마다 2.5칸 앞으로
+			FPDGame G = Fresh(EPDEnemy::Blinker, 1.f);
+			G.Enemies[0].AbilT = 4.99f;
+			G.Update(0.05f);
+			Expect(G.Enemies[0].D > 3.4f, "공간 도약자: 순간이동 (D " + std::to_string(G.Enemies[0].D) + ")");
+		}
+		{ // 흡수자: 주변 적이 죽으면 그 적 최대 체력의 20% 회복
+			FPDGame G = Fresh(EPDEnemy::Devourer, 3.f);
+			G.Enemies[0].Hp = G.Enemies[0].MaxHp * 0.5f;
+			FPDEnemy N = G.SpawnTestEnemy(EPDEnemy::Tank, 100.f, 20); N.D = 3.5f;
+			G.Enemies.push_back(N);
+			const float Hp0 = G.Enemies[0].Hp, Heal = G.Enemies[1].MaxHp * 0.2f;
+			G.HitTest(G.Enemies[1], 1e9f);
+			Expect(std::fabs(G.Enemies[0].Hp - (Hp0 + Heal)) < 1e-2f, "흡수자: 옆 적이 죽으면 회복");
+		}
+		{ // 수호자: 보호막이 먼저 받음
+			FPDGame G = Fresh(EPDEnemy::Warden, 1.f);
+			G.Enemies[0].AbilT = 5.99f;
+			G.Update(0.05f);
+			const float Sh = G.Enemies[0].Shield, Hp0 = G.Enemies[0].Hp;
+			G.HitTest(G.Enemies[0], Sh * 0.5f);
+			Expect(std::fabs(Sh - G.Enemies[0].MaxHp * 0.15f) < 1e-2f && G.Enemies[0].Hp == Hp0, "수호자: 최대 체력 15% 보호막이 피해를 먼저 받음");
+		}
+		{ // 저주술사·파괴자: 근처 타워
+			FPDGame G = Fresh(EPDEnemy::Hexer, 3.f);
+			const FPDPoint P = G.Path.At(3.f);
+			Put(G.Towers, (int)P.X, (int)P.Y, C(9));
+			Put(G.Towers, 0, 0, C(9));
+			const FPDPoint Q0 = G.Path.At(3.f);
+			const bool bFarOk = std::hypot(0.5f - Q0.X, 0.5f - Q0.Y) > Boss::HexRange;
+			Expect(G.Hexed(G.Towers.at(CellKey((int)P.X, (int)P.Y))) && (!bFarOk || !G.Hexed(G.Towers.at(CellKey(0, 0)))), "저주술사: 3칸 안 타워만 약해짐");
+			FPDGame B = Fresh(EPDEnemy::Breaker, 3.f);
+			Put(B.Towers, (int)P.X, (int)P.Y, C(9));
+			B.Enemies[0].AbilT = 5.99f;
+			B.Update(0.05f);
+			Expect(B.Towers.at(CellKey((int)P.X, (int)P.Y)).StunT > 2.f, "파괴자: 가까운 타워 기절");
+		}
+	}
 	{ // 부적 창은 5웨이브마다 (D-101): 그 사이 웨이브는 창 없이 5초 뒤 다음 웨이브
 		FPDGame G(12);
 		G.NewGame(true);
@@ -397,8 +500,8 @@ static void UnitTests()
 		G.Wave = 19;
 		G.Phase = EPDPhase::Build;
 		G.StartWave();
-		for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.A == 20) bBoss20 = Ev.B == 1 && Ev.Enemy == EPDEnemy::ShieldBoss;
-		Expect(bNoWin && bBoss20, "15웨이브 뒤에도 계속, 20웨이브에 방패 거인이 다시");
+		for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.A == 20) bBoss20 = Ev.B == 1 && Ev.Enemy == EPDEnemy::Charger;
+		Expect(bNoWin && bBoss20, "15웨이브 뒤에도 계속, 20웨이브에 새 보스 돌진 기사");
 		FPDGame G2(11);
 		G2.NewGame(true);
 		G2.Deck.clear();

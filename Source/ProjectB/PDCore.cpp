@@ -25,7 +25,19 @@ static const FPDEnemyDef GPDEnemies[(int)EPDEnemy::Count] = {
 	{12.f, 0.55f, 0.f, 0, true, true},     // 보스: 방패 거인
 	{12.f, 0.55f, 0.f, 4, false, true},    // 보스: 분열 군주 (탱크 넷으로)
 	{16.f, 0.5f, 0.015f, 0, false, true},  // 보스: 재생 왕
+	{10.f, 0.6f, 0.f, 0, false, true},     // 보스: 돌진 기사
+	{11.f, 0.5f, 0.f, 0, false, true},     // 보스: 소환사
+	{10.f, 0.6f, 0.f, 0, false, true},     // 보스: 유령
+	{12.f, 0.55f, 0.f, 0, false, true},    // 보스: 군단장
+	{12.f, 0.5f, 0.f, 0, false, true},     // 보스: 분노 거인
+	{10.f, 0.55f, 0.f, 0, false, true},    // 보스: 공간 도약자
+	{13.f, 0.5f, 0.f, 0, false, true},     // 보스: 흡수자
+	{12.f, 0.55f, 0.f, 0, false, true},    // 보스: 수호자
+	{11.f, 0.55f, 0.f, 0, false, true},    // 보스: 저주술사
+	{13.f, 0.5f, 0.f, 0, false, true},     // 보스: 파괴자
 };
+const EPDEnemy BossOrder[13] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss, EPDEnemy::Charger, EPDEnemy::Summoner,
+	EPDEnemy::Phantom, EPDEnemy::Warlord, EPDEnemy::Berserker, EPDEnemy::Blinker, EPDEnemy::Devourer, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Breaker};
 const FPDEnemyDef& EnemyDef(EPDEnemy T) { return GPDEnemies[(int)T]; }
 const FPDSuitDef& SuitDef(EPDSuit S) { return GPDSuits[(int)S]; }
 
@@ -860,12 +872,8 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 		if (W >= 8 && I % 6 == 2) T = EPDEnemy::Regen;
 		List.push_back(MakeEnemy(T, Hp, W));
 	}
-	// 보스: 5웨이브마다 방패 거인 → 분열 군주 → 재생 왕 순서로 돌아온다
-	if (W % 5 == 0)
-	{
-		static const EPDEnemy Bosses[3] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss};
-		List.push_back(MakeEnemy(Bosses[(W / 5 - 1) % 3], BossHp, W));
-	}
+	// 보스: 5웨이브마다 BossOrder 13종이 차례로 돌아온다 (D-112)
+	if (W % 5 == 0) List.push_back(MakeEnemy(BossOrder[(W / 5 - 1) % 13], BossHp, W));
 	return List;
 }
 
@@ -1348,8 +1356,10 @@ void FPDGame::Discard(int HandIdx)
 
 void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 {
-	if (E.bDead) return;
-	if (E.Armor > 0.f && !Has(EPDCharm::Pierce)) Dmg = std::max(Dmg * 0.25f, Dmg - E.Armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
+	if (E.bDead || E.Untargetable()) return; // 유령: 무적인 동안은 안 맞음
+	const float Armor = E.Armor + (InWarlordAura(E) ? Boss::AuraArmor : 0.f);
+	if (Armor > 0.f && !Has(EPDCharm::Pierce)) Dmg = std::max(Dmg * 0.25f, Dmg - Armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
+	if (E.Shield > 0.f) { const float A = std::min(E.Shield, Dmg); E.Shield -= A; Dmg -= A; } // 수호자 보호막이 먼저 받는다
 	E.Hp -= Dmg;
 	if (Slow > 0.f) { E.SlowT = 1.2f; E.SlowAmt = std::max(E.SlowAmt, Slow); }
 	if (E.Hp > 0.f) return;
@@ -1363,6 +1373,12 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	K.Enemy = E.Type;
 	K.A = AddGold(KillGold(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave))); // 마리 수가 늘어도 웨이브당 골드는 그대로
 	Ev(K);
+	for (FPDEnemy& O : Enemies) // 흡수자: 주변에서 적이 죽으면 회복
+		if (&O != &E && !O.bDead && O.Type == EPDEnemy::Devourer)
+		{
+			const FPDPoint Q = Path.At(O.D);
+			if (std::hypot(Q.X - P.X, Q.Y - P.Y) <= Boss::DevourRange) O.Hp = std::min(O.MaxHp, O.Hp + E.MaxHp * Boss::DevourHeal);
+		}
 	const FPDEnemyDef& D = EnemyDef(E.Type);
 	if (KillSfxT <= 0.f || D.bBoss) { Sfx(D.bBoss ? EPDSound::Clear : EPDSound::Rotate); KillSfxT = 0.08f; }
 	// 분열: 작은 적(보스는 탱크)으로 갈라진다
@@ -1507,6 +1523,98 @@ void FPDGame::UpdateProjectiles(float Dt)
 	Projectiles.erase(std::remove_if(Projectiles.begin(), Projectiles.end(), [](const FPDProjectile& P) { return P.Life < 0.f; }), Projectiles.end());
 }
 
+// ---------------------------------------------------------------- 보스 능력 (D-112)
+bool FPDGame::InWarlordAura(const FPDEnemy& E) const
+{
+	if (E.Type == EPDEnemy::Warlord) return false;
+	const FPDPoint P = Path.At(E.D);
+	for (const FPDEnemy& O : Enemies)
+		if (!O.bDead && O.Type == EPDEnemy::Warlord)
+		{
+			const FPDPoint Q = Path.At(O.D);
+			if (std::hypot(Q.X - P.X, Q.Y - P.Y) <= Boss::AuraRange) return true;
+		}
+	return false;
+}
+
+bool FPDGame::Hexed(const FPDTower& T) const
+{
+	for (const FPDEnemy& O : Enemies)
+		if (!O.bDead && O.Type == EPDEnemy::Hexer)
+		{
+			const FPDPoint Q = Path.At(O.D);
+			if (std::hypot(Q.X - (T.X + 0.5f), Q.Y - (T.Y + 0.5f)) <= Boss::HexRange) return true;
+		}
+	return false;
+}
+
+void FPDGame::BossEvent(const FPDEnemy& E, float X2, float Y2)
+{
+	const FPDPoint P = Path.At(E.D);
+	FPDEvent B;
+	B.Kind = FPDEvent::EKind::BossSkill;
+	B.Enemy = E.Type;
+	B.X = P.X;
+	B.Y = P.Y;
+	B.X2 = X2;
+	B.Y2 = Y2;
+	Ev(B);
+}
+
+float FPDGame::BossTick(FPDEnemy& E, float Dt)
+{
+	if (!EnemyDef(E.Type).bBoss) return 1.f;
+	E.AbilT += Dt;
+	E.StateT = std::max(0.f, E.StateT - Dt);
+	auto Every = [&](float Period) { if (E.AbilT < Period) return false; E.AbilT -= Period; return true; };
+	switch (E.Type)
+	{
+	case EPDEnemy::Charger:
+		if (Every(Boss::ChargeEvery)) { E.StateT = Boss::ChargeTime; BossEvent(E); }
+		return E.StateT > 0.f ? Boss::ChargeSpeed : 1.f;
+	case EPDEnemy::Summoner:
+		if (Every(Boss::SummonEvery))
+		{
+			for (int I = 0; I < Boss::SummonCount; ++I)
+			{
+				FPDEnemy M = MakeEnemy(EPDEnemy::Mini, E.BaseHp * Boss::SummonHp, E.Wave);
+				M.D = std::max(0.f, E.D - 0.3f - 0.25f * I);
+				Born.push_back(M);
+			}
+			BossEvent(E);
+		}
+		return 1.f;
+	case EPDEnemy::Phantom:
+		if (Every(Boss::PhaseEvery)) { E.StateT = Boss::PhaseTime; BossEvent(E); }
+		return 1.f;
+	case EPDEnemy::Berserker:
+		return 1.f + Boss::RageSpeed * (1.f - std::max(0.f, E.Hp / E.MaxHp));
+	case EPDEnemy::Blinker:
+		if (Every(Boss::BlinkEvery)) { BossEvent(E); E.D = std::min(Path.Length - 0.5f, E.D + Boss::BlinkDist); BossEvent(E); }
+		return 1.f;
+	case EPDEnemy::Warden:
+		if (Every(Boss::WardEvery)) { E.StateT = Boss::WardTime; E.Shield = E.MaxHp * Boss::WardShield; BossEvent(E); }
+		if (E.StateT <= 0.f) E.Shield = 0.f;
+		return 1.f;
+	case EPDEnemy::Breaker:
+		if (Every(Boss::BreakEvery))
+		{
+			const FPDPoint P = Path.At(E.D);
+			FPDTower* Best = nullptr;
+			float BestD = Boss::BreakRange;
+			for (auto& KV : Towers)
+			{
+				const float Dd = std::hypot(KV.second.X + 0.5f - P.X, KV.second.Y + 0.5f - P.Y);
+				if (Dd <= BestD) { BestD = Dd; Best = &KV.second; }
+			}
+			if (Best) { Best->StunT = Boss::BreakStun; BossEvent(E, Best->X + 0.5f, Best->Y + 0.5f); }
+		}
+		return 1.f;
+	default:
+		return 1.f;
+	}
+}
+
 void FPDGame::Update(float Dt)
 {
 	Time += Dt;
@@ -1526,7 +1634,8 @@ void FPDGame::Update(float Dt)
 		E.SlowT = std::max(0.f, E.SlowT - Dt);
 		const float Rg = EnemyDef(E.Type).Regen;
 		if (Rg > 0.f && !E.bDead) E.Hp = std::min(E.MaxHp, E.Hp + E.MaxHp * Rg * Dt);
-		E.D += E.Speed * (E.SlowT > 0.f ? 1.f - E.SlowAmt : 1.f) * Dt;
+		const float SpeedK = E.bDead ? 1.f : BossTick(E, Dt) * (InWarlordAura(E) ? Boss::AuraSpeed : 1.f);
+		E.D += E.Speed * SpeedK * (E.SlowT > 0.f ? 1.f - E.SlowAmt : 1.f) * Dt;
 		if (E.D >= Path.Length && !E.bDead)
 		{
 			E.bDead = true;
@@ -1545,9 +1654,11 @@ void FPDGame::Update(float Dt)
 	for (auto& KV : Towers)
 	{
 		FPDTower& T = KV.second;
+		if (T.StunT > 0.f) { T.StunT -= Dt; continue; } // 파괴자에게 기절
 		T.Cd -= Dt;
 		if (T.Cd > 0.f) continue;
 		FPDTowerStats St = TowerStats(T, Mask, Tm);
+		if (Hexed(T)) St.Dmg *= Boss::HexDmg; // 저주술사 근처
 		const bool bUp = T.IsJoker() && Mods.Up(T);
 		const float TX = T.X + 0.5f, TY = T.Y + 0.5f;
 		const EPDJoker JK = T.IsJoker() ? (EPDJoker)T.Joker : EPDJoker::Count;
@@ -1606,7 +1717,7 @@ void FPDGame::Update(float Dt)
 		bool bTargetDoomed = true;
 		for (FPDEnemy& E : Enemies)
 		{
-			if (E.bDead) continue;
+			if (E.bDead || E.Untargetable()) continue;
 			const FPDPoint P = Path.At(E.D);
 			if (std::hypot(P.X - TX, P.Y - TY) > St.Range) continue;
 			const bool bDoomed = E.Incoming >= E.Hp;
@@ -1623,7 +1734,7 @@ void FPDGame::Update(float Dt)
 			FPDEnemy* Second = nullptr;
 			for (FPDEnemy& E : Enemies)
 			{
-				if (E.bDead || &E == Target || &E == Shot2[0]) continue;
+				if (E.bDead || E.Untargetable() || &E == Target || &E == Shot2[0]) continue;
 				const FPDPoint P = Path.At(E.D);
 				if (std::hypot(P.X - TX, P.Y - TY) <= St.Range && (!Second || E.D > Second->D)) Second = &E;
 			}

@@ -200,12 +200,31 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 		const TArray<FVector2f>& T = KV.Value;
 		for (int I = 1; I < T.Num(); ++I) F.Lines({T[I - 1], T[I]}, Hex(TEXT("ffa86a"), 0.35f * (1.f - I / (float)T.Num())), 4.f * (1.f - I / (float)T.Num()));
 	}
+	// 보스 오라 (D-112): 군단장(주변 적 강화)·저주술사(주변 타워 약화) 범위를 옅은 점선으로
+	for (const FPDEnemy& E : G.Enemies)
+	{
+		if (E.Type != EPDEnemy::Warlord && E.Type != EPDEnemy::Hexer) continue;
+		const FPDPoint Pt = G.Path.At(E.D);
+		const float R = (E.Type == EPDEnemy::Warlord ? PD::Boss::AuraRange : PD::Boss::HexRange) * CS;
+		F.Dashed(FCanvas::CirclePoints(CellPx(Pt.X, Pt.Y), R, 48), WithAlpha(EnemyColor(E.Type), 0.35f), 1.2f, 5.f, 7.f);
+	}
+	// 기절한 타워 (파괴자): 노란 X + 남은 시간만큼 옅어짐
+	for (const auto& KV : G.Towers)
+	{
+		if (KV.second.StunT <= 0.f) continue;
+		const FVector2f C0 = CellCenter(KV.first);
+		const FLinearColor Sc = WithAlpha(Hex(TEXT("ffcf5a")), 0.5f + 0.5f * FMath::Min(1.f, KV.second.StunT));
+		F.Box(C0.X - CS / 2.f + 3.f, C0.Y - CS / 2.f + 3.f, CS - 6.f, CS - 6.f, Hex(TEXT("06060b"), 0.55f));
+		F.Glow({C0 + FVector2f(-12.f, -12.f), C0 + FVector2f(12.f, 12.f)}, Sc, 2.f, 0.8f);
+		F.Glow({C0 + FVector2f(12.f, -12.f), C0 + FVector2f(-12.f, 12.f)}, Sc, 2.f, 0.8f);
+	}
 	for (const FPDEnemy& E : G.Enemies)
 	{
 		const FPDPoint Pt = G.Path.At(E.D);
 		const float HF = HitFlash.FindRef(E.Id); // 맞은 순간: 흔들리며 하얗게 번쩍
 		const FVector2f P = CellPx(Pt.X, Pt.Y) + (HF > 0.f ? FVector2f(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f)) * HF * 22.f : FVector2f(0.f, 0.f));
-		const FLinearColor Col = HF > 0.f ? FMath::Lerp(EnemyColor(E.Type), FLinearColor::White, FMath::Min(1.f, HF * 7.f)) : EnemyColor(E.Type);
+		FLinearColor Col = HF > 0.f ? FMath::Lerp(EnemyColor(E.Type), FLinearColor::White, FMath::Min(1.f, HF * 7.f)) : EnemyColor(E.Type);
+		if (E.Untargetable()) Col.A = 0.25f + 0.1f * Pulse; // 유령: 무적인 동안 흐릿하게
 		const bool bBoss = EnemyDef(E.Type).bBoss;
 		if (HF > 0.f) F.Box(P.X - (bBoss ? 26.f : 13.f), P.Y - (bBoss ? 26.f : 13.f), bBoss ? 52.f : 26.f, bBoss ? 52.f : 26.f, WithAlpha(FLinearColor::White, HF * 1.2f));
 		auto Poly = [&](int N, float R, float Rot) {
@@ -234,6 +253,87 @@ void SPDBoardWidget::PaintField(FCanvas& F) const
 		case EPDEnemy::ShieldBoss: case EPDEnemy::SplitBoss: case EPDEnemy::RegenBoss:
 			F.Glow(Poly(E.Type == EPDEnemy::ShieldBoss ? 4 : E.Type == EPDEnemy::SplitBoss ? 8 : 6, 22.f + 2.f * Pulse, Clock * 0.8f), Col, 2.4f, 1.4f);
 			F.Glow(FCanvas::CirclePoints(P, 12.f), Col, 2.f);
+			break;
+		// 새 보스 (D-112): docs/images/bosses_preview.png 의 절반 크기
+		case EPDEnemy::Charger:
+		{
+			F.Glow({P + FVector2f(25.f, 0.f), P + FVector2f(-13.f, -18.f), P + FVector2f(-4.f, 0.f), P + FVector2f(-13.f, 18.f), P + FVector2f(25.f, 0.f)}, Col, 2.4f, 1.4f);
+			F.Glow(FCanvas::CirclePoints(P + FVector2f(2.f, 0.f), 8.f), Col, 2.f);
+			const float L = E.StateT > 0.f ? 20.f : 10.f; // 돌진 중이면 속도선이 길어짐
+			for (const float Yy : {-7.f, 0.f, 7.f}) F.Lines({P + FVector2f(-24.f, Yy), P + FVector2f(-24.f - L, Yy)}, WithAlpha(Col, 0.7f), 1.6f);
+			break;
+		}
+		case EPDEnemy::Summoner:
+			F.Glow(FCanvas::CirclePoints(P, 15.f), Col, 2.4f, 1.4f);
+			F.Glow(FCanvas::CirclePoints(P, 7.f), Col, 2.f);
+			for (int32 K = 0; K < 3; ++K) F.Glow(FCanvas::CirclePoints(P + Rot2(FVector2f(22.f, 0.f), Clock * 1.5f + K * TwoPi / 3.f), 4.f, 12), Col, 1.6f);
+			break;
+		case EPDEnemy::Phantom:
+		{
+			TArray<FVector2f> Body;
+			Body.Add(P + FVector2f(-15.f, 15.f));
+			for (int32 K = 0; K <= 20; ++K) { const float A = PI + K / 20.f * PI; Body.Add(P + FVector2f(FMath::Cos(A) * 15.f, -3.f + FMath::Sin(A) * 18.f)); }
+			for (const FVector2f Q : {FVector2f(15.f, 15.f), FVector2f(10.f, 11.f), FVector2f(5.f, 15.f), FVector2f(0.f, 11.f), FVector2f(-5.f, 15.f), FVector2f(-10.f, 11.f), FVector2f(-15.f, 15.f)}) Body.Add(P + Q);
+			F.Glow(Body, Col, 2.2f, 1.2f);
+			F.Glow(FCanvas::CirclePoints(P + FVector2f(-5.5f, -4.f), 2.f, 10), Col, 1.4f);
+			F.Glow(FCanvas::CirclePoints(P + FVector2f(5.5f, -4.f), 2.f, 10), Col, 1.4f);
+			break;
+		}
+		case EPDEnemy::Warlord:
+		{
+			TArray<FVector2f> Star;
+			for (int32 K = 0; K <= 10; ++K) { const float A = -PI / 2.f + K / 10.f * TwoPi, R = K % 2 == 0 ? 24.f : 10.f; Star.Add(P + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R); }
+			F.Glow(Star, Col, 2.4f, 1.4f);
+			F.Glow(FCanvas::CirclePoints(P, 6.5f, 16), Col, 2.f);
+			break;
+		}
+		case EPDEnemy::Berserker:
+		{
+			const float Rage = 1.f - FMath::Max(0.f, E.Hp / E.MaxHp); // 체력이 줄수록 가시가 길어짐
+			TArray<FVector2f> Spikes;
+			for (int32 K = 0; K <= 24; ++K) { const float A = Clock * (1.f + 3.f * Rage) + K / 24.f * TwoPi, R = K % 2 == 0 ? 22.f + 6.f * Rage : 15.f; Spikes.Add(P + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R); }
+			F.Glow(Spikes, Col, 2.4f, 1.4f + Rage);
+			F.Glow(FCanvas::CirclePoints(P, 12.f), Col, 2.f);
+			break;
+		}
+		case EPDEnemy::Blinker:
+		{
+			auto Dia = [&](float Ox, float S) { return TArray<FVector2f>{P + FVector2f(Ox, -S), P + FVector2f(Ox + S * 0.7f, 0.f), P + FVector2f(Ox, S), P + FVector2f(Ox - S * 0.7f, 0.f), P + FVector2f(Ox, -S)}; };
+			F.Glow(Dia(5.f, 22.f), Col, 2.4f, 1.4f);
+			F.Lines(Dia(-9.f, 16.f), WithAlpha(Col, 0.5f), 1.6f);
+			F.Lines(Dia(-20.f, 11.f), WithAlpha(Col, 0.25f), 1.4f);
+			F.Glow(FCanvas::CirclePoints(P + FVector2f(5.f, 0.f), 6.f, 14), Col, 1.8f);
+			break;
+		}
+		case EPDEnemy::Devourer:
+		{
+			TArray<FVector2f> Sp;
+			for (int32 K = 0; K <= 60; ++K) { const float A = -Clock * 2.f + K / 60.f * 5.f * PI; Sp.Add(P + FVector2f(FMath::Cos(A), FMath::Sin(A)) * (2.f + K * 0.34f)); }
+			F.Glow(Sp, Col, 2.f, 1.2f);
+			F.Glow(FCanvas::CirclePoints(P, 23.f), Col, 2.2f, 1.2f);
+			break;
+		}
+		case EPDEnemy::Warden:
+			F.Glow(Poly(6, 15.f, PI / 6.f), Col, 2.4f, 1.4f);
+			F.Glow(FCanvas::CirclePoints(P, 6.f, 14), Col, 1.8f);
+			if (E.Shield > 0.f) F.Glow(FCanvas::CirclePoints(P, 26.f + 2.f * Pulse, 40), Col, 2.2f, 1.6f); // 보호막 켜짐
+			else F.Dashed(FCanvas::CirclePoints(P, 24.f, 40), WithAlpha(Col, 0.5f), 1.4f, 4.f, 5.f);
+			break;
+		case EPDEnemy::Hexer:
+		{
+			TArray<FVector2f> Eye;
+			for (int32 K = 0; K <= 20; ++K) Eye.Add(P + FVector2f(-22.f + K / 20.f * 44.f, -FMath::Sin(K / 20.f * PI) * 13.f));
+			for (int32 K = 1; K <= 20; ++K) Eye.Add(P + FVector2f(22.f - K / 20.f * 44.f, FMath::Sin(K / 20.f * PI) * 13.f));
+			F.Glow(Eye, Col, 2.2f, 1.3f);
+			F.Glow(FCanvas::CirclePoints(P, 6.5f, 16), Col, 2.f);
+			F.Lines(FCanvas::CirclePoints(P, 2.5f, 10), Col, 1.6f);
+			break;
+		}
+		case EPDEnemy::Breaker:
+			F.Glow(Poly(4, 22.f, PI / 4.f), Col, 2.4f, 1.4f);
+			F.Lines({P + FVector2f(-10.f, -10.f), P + FVector2f(10.f, 10.f)}, Col, 2.f);
+			F.Lines({P + FVector2f(10.f, -10.f), P + FVector2f(-10.f, 10.f)}, Col, 2.f);
+			for (int32 K = 0; K < 4; ++K) { const FVector2f Dd = Rot2(FVector2f(1.f, 0.f), PI / 4.f + K * PI / 2.f); F.Lines({P + Dd * 21.f, P + Dd * 28.f}, Col, 1.8f); }
 			break;
 		default: F.Glow(FCanvas::CirclePoints(P, 9.f, 20), Col, 2.f); break;
 		}

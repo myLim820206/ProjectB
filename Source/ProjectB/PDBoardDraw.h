@@ -104,6 +104,17 @@ inline FLinearColor EnemyColor(EPDEnemy T)
 	case EPDEnemy::Armored: case EPDEnemy::ShieldBoss: return Hex(TEXT("9fc3e8"));
 	case EPDEnemy::Splitter: case EPDEnemy::Mini: case EPDEnemy::SplitBoss: return Hex(TEXT("ff9ad5"));
 	case EPDEnemy::Regen: case EPDEnemy::RegenBoss: return Hex(TEXT("b6ff6a"));
+	// 새 보스 (D-112, 미리보기 docs/images/bosses_preview.png)
+	case EPDEnemy::Charger: return Hex(TEXT("ffa86a"));
+	case EPDEnemy::Summoner: return Hex(TEXT("c49aff"));
+	case EPDEnemy::Phantom: return Hex(TEXT("cfe4ff"));
+	case EPDEnemy::Warlord: return Hex(TEXT("ffd96a"));
+	case EPDEnemy::Berserker: return Hex(TEXT("ff6a6a"));
+	case EPDEnemy::Blinker: return Hex(TEXT("7fd6ff"));
+	case EPDEnemy::Devourer: return Hex(TEXT("e07aff"));
+	case EPDEnemy::Warden: return Hex(TEXT("a8f0ff"));
+	case EPDEnemy::Hexer: return Hex(TEXT("9a7aff"));
+	case EPDEnemy::Breaker: return Hex(TEXT("ffcf5a"));
 	default: return Hex(TEXT("e8f0ff"));
 	}
 }
@@ -114,6 +125,37 @@ inline const TCHAR* BossName(EPDEnemy T)
 	case EPDEnemy::ShieldBoss: return TEXT("방패 거인");
 	case EPDEnemy::SplitBoss: return TEXT("분열 군주");
 	case EPDEnemy::RegenBoss: return TEXT("재생 왕");
+	case EPDEnemy::Charger: return TEXT("돌진 기사");
+	case EPDEnemy::Summoner: return TEXT("소환사");
+	case EPDEnemy::Phantom: return TEXT("유령");
+	case EPDEnemy::Warlord: return TEXT("군단장");
+	case EPDEnemy::Berserker: return TEXT("분노 거인");
+	case EPDEnemy::Blinker: return TEXT("공간 도약자");
+	case EPDEnemy::Devourer: return TEXT("흡수자");
+	case EPDEnemy::Warden: return TEXT("수호자");
+	case EPDEnemy::Hexer: return TEXT("저주술사");
+	case EPDEnemy::Breaker: return TEXT("파괴자");
+	default: return TEXT("");
+	}
+}
+// 보스 능력 한 줄 (배너)
+inline const TCHAR* BossSkillText(EPDEnemy T)
+{
+	switch (T)
+	{
+	case EPDEnemy::ShieldBoss: return TEXT("두꺼운 방패: 한 방 피해를 깎는다");
+	case EPDEnemy::SplitBoss: return TEXT("죽으면 탱크 넷으로 갈라진다");
+	case EPDEnemy::RegenBoss: return TEXT("체력이 계속 차오른다");
+	case EPDEnemy::Charger: return TEXT("4초마다 3배 속도로 돌진");
+	case EPDEnemy::Summoner: return TEXT("3초마다 졸개 둘을 부른다");
+	case EPDEnemy::Phantom: return TEXT("4초마다 1.2초 동안 무적");
+	case EPDEnemy::Warlord: return TEXT("주변 적이 빠르고 단단해진다");
+	case EPDEnemy::Berserker: return TEXT("체력이 줄수록 빨라진다");
+	case EPDEnemy::Blinker: return TEXT("5초마다 앞으로 순간이동");
+	case EPDEnemy::Devourer: return TEXT("주변 적이 죽으면 회복");
+	case EPDEnemy::Warden: return TEXT("6초마다 보호막");
+	case EPDEnemy::Hexer: return TEXT("주변 타워 공격력 -35%");
+	case EPDEnemy::Breaker: return TEXT("6초마다 가까운 타워를 기절시킨다");
 	default: return TEXT("");
 	}
 }

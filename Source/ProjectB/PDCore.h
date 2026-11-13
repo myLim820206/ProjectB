@@ -177,6 +177,7 @@ struct FPDTower
 	float Timer = 0.f;              // 방울: 종 주기
 	int Cycle = 0;                  // 광대: 공격 무늬 순환
 	int JLevel = 1;                 // 조커 레벨 (족보 먹이기 경험치로 오름, 최대 JokerMaxLevel)
+	float StunT = 0.f;              // 파괴자 보스에게 기절한 남은 시간 (D-112)
 	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
 	bool IsJoker() const { return Joker >= 0; }
 };
@@ -269,7 +270,25 @@ std::vector<std::array<int, 2>> GeneratePath(std::mt19937& Rng);
 
 // ---------------------------------------------------------------- 적
 // 보통, 빠름, 탱크, 방패병(한 방 피해 감소), 분열체(죽으면 둘), 재생자(체력 회복), 분열 조각, 보스 3종
-enum class EPDEnemy : uint8_t { Normal, Fast, Tank, Armored, Splitter, Regen, Mini, ShieldBoss, SplitBoss, RegenBoss, Count };
+// 보스 13종 (D-112): 5웨이브마다 BossOrder 순서로 돌아온다 (65웨이브에 한 바퀴)
+enum class EPDEnemy : uint8_t { Normal, Fast, Tank, Armored, Splitter, Regen, Mini, ShieldBoss, SplitBoss, RegenBoss,
+	Charger, Summoner, Phantom, Warlord, Berserker, Blinker, Devourer, Warden, Hexer, Breaker, Count };
+// 보스 능력 수치 (D-112)
+namespace Boss
+{
+constexpr float ChargeEvery = 4.f, ChargeTime = 0.8f, ChargeSpeed = 3.f;   // 돌진 기사
+constexpr float SummonEvery = 3.f; constexpr int SummonCount = 2;           // 소환사: 졸개(분열 조각) 둘
+constexpr float SummonHp = 0.12f;                                          //   졸개 체력 = 보스 기준 체력 × 이 값
+constexpr float PhaseEvery = 4.f, PhaseTime = 1.2f;                        // 유령: 무적·조준 안 됨
+constexpr float AuraRange = 2.5f, AuraSpeed = 1.35f, AuraArmor = 4.f;       // 군단장: 주변 적 빠르고 단단하게
+constexpr float RageSpeed = 1.5f;                                          // 분노 거인: 속도 × (1 + 1.5 × 잃은 체력 비율)
+constexpr float BlinkEvery = 5.f, BlinkDist = 2.5f;                        // 공간 도약자
+constexpr float DevourRange = 2.5f, DevourHeal = 0.2f;                     // 흡수자: 죽은 적 최대 체력의 20% 회복
+constexpr float WardEvery = 6.f, WardTime = 3.f, WardShield = 0.15f;       // 수호자: 최대 체력 15% 보호막
+constexpr float HexRange = 3.f, HexDmg = 0.65f;                            // 저주술사: 주변 타워 공격력 ×0.65
+constexpr float BreakEvery = 6.f, BreakRange = 2.5f, BreakStun = 2.5f;     // 파괴자: 가까운 타워 기절
+}
+extern const EPDEnemy BossOrder[13];
 struct FPDEnemyDef
 {
 	float Hp, Speed, Regen;
@@ -289,6 +308,11 @@ struct FPDEnemy
 	bool bDead = false;
 	int Id = 0;
 	float Incoming = 0.f; // 날아가는 중인 발사체 피해 합 (겹쳐 쏘지 않게)
+	// 보스 능력 (D-112)
+	float AbilT = 0.f;  // 능력 주기 타이머
+	float StateT = 0.f; // 능력이 켜져 있는 남은 시간 (돌진·무적·보호막)
+	float Shield = 0.f; // 수호자 보호막 남은 양
+	bool Untargetable() const { return Type == EPDEnemy::Phantom && StateT > 0.f; }
 };
 
 // ---------------------------------------------------------------- 발사체 (미리보기: tools/neon/neon.py shots / shots_level / shots_hand / shots_joker)
@@ -323,7 +347,7 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact } Kind = EKind::Shot;
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
@@ -373,6 +397,9 @@ public:
 	EBuy CanBuy(int Id) const;
 	bool BuyNode(int Id);
 	int KillGold(EPDEnemy T, int W) const; // 골드 덤 적용 전
+	// 보스 능력 (D-112)
+	bool InWarlordAura(const FPDEnemy& E) const; // 군단장 주변 (군단장 자신은 아님)
+	bool Hexed(const FPDTower& T) const;          // 저주술사 근처 타워
 	float FuseMult() const;              // 합성 배율 (기본 1.5)
 	float JokerMult() const;             // 조커 배율 (기본 1.2)
 	int UpgradeBatchCost(EPDUpgrade U, int N) const; // N레벨 올리는 값 (최대치에서 잘림)
@@ -425,6 +452,8 @@ private:
 	std::mt19937 Rng;
 	std::vector<FPDEnemy> Pending;
 	std::vector<FPDEnemy> Born; // 분열로 새로 생긴 적 (갱신 끝에 합친다)
+	float BossTick(FPDEnemy& E, float Dt);       // 보스 능력 진행, 이번 틱 속도 배율을 돌려준다
+	void BossEvent(const FPDEnemy& E, float X2 = 0.f, float Y2 = 0.f);
 	float SpawnT = 0.f;
 	int NextId = 1;
 	float KillSfxT = 0.f;
