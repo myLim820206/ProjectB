@@ -171,13 +171,15 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 
 	// ---- 족보 테두리 (칸 모양대로 바깥 변만) + 연쇄 번개
 	TSet<int32> Hatched; // 빗금은 칸마다 한 번만 (카드를 나눠 쓰는 족보가 겹쳐 그리던 것, D-135)
-	auto DrawSyn = [&](const std::vector<FPDSynergy>& List, float Alpha, bool bLightning) {
+	auto DrawSyn = [&](const std::vector<FPDSynergy>& List, float Alpha, bool bOutline, bool bLightning) {
 		for (int32 Si = 0; Si < (int32)List.size(); ++Si)
 		{
 			const FPDSynergy& S = List[Si];
 			// 로열은 무지개로 천천히 돈다
 			const FLinearColor Base = S.Kind == EPDHand::RoyalFlush ? FLinearColor::MakeFromHSV8((uint8)FMath::Fmod(Clock * 40.f, 256.f), 110, 255) : HandColor(S.Kind);
 			const FLinearColor Col = WithAlpha(Base, Alpha);
+			if (bOutline)
+			{
 			TSet<int32> Has;
 			for (int K : S.Cells) Has.Add(K);
 			const float M = 4.f + 5.f * SynLayer(List, Si); // 카드를 나눠 쓰는 족보는 안쪽 테두리
@@ -231,6 +233,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 					F.Glow(Line, Col, 2.f, 0.8f);
 				}
 			}
+			}
 			if (!bLightning) continue;
 			for (int J : S.Links)
 			{
@@ -243,11 +246,10 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 						bDone = true;
 						const FVector2f PA = CellCenter(A), PB = CellCenter(B);
 						TArray<FVector2f> Bolt{PA};
-						FRandomStream Rs(A * 977 + B * 131); // 정적 층: 칸마다 정해진 꺾임
 						for (int Seg = 1; Seg < 5; ++Seg)
 						{
 							const FVector2f Mid = PA + (PB - PA) * (Seg / 5.f);
-							Bolt.Add(Mid + FVector2f(Rs.FRandRange(-6.f, 6.f), Rs.FRandRange(-6.f, 6.f)));
+							Bolt.Add(Mid + FVector2f(FMath::FRandRange(-6.f, 6.f), FMath::FRandRange(-6.f, 6.f)));
 						}
 						Bolt.Add(PB);
 						F.Glow(Bolt, WithAlpha(FLinearColor::White, Alpha * (0.5f + 0.5f * Pulse)), 1.4f, 1.2f);
@@ -255,8 +257,8 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			}
 		}
 	};
-	if (bStatic) DrawSyn(G.Synergies, bPv ? 0.35f : 1.f, true);
-	if (!bStatic && bPv) DrawSyn(Preview, 0.6f + 0.4f * Pulse, true);
+	DrawSyn(G.Synergies, bPv ? 0.35f : 1.f, bStatic, !bStatic); // 장판·테두리는 정적 층, 연쇄 번개는 움직이는 층 (매 프레임 꺾임이 바뀜)
+	if (!bStatic && bPv) DrawSyn(Preview, 0.6f + 0.4f * Pulse, true, true);
 	if (!bStatic)
 		for (const FCellFlash& Fl : CellFlashes)
 		{
