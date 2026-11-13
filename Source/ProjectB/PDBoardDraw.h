@@ -54,8 +54,14 @@ inline FLinearColor WithAlpha(FLinearColor C, float Alpha)
 	C.A *= Alpha;
 	return C;
 }
+// 카드 색 (D-154, 설정): 0 네온 (무늬마다 색), 1 흑백 (모두 흰빛), 2 빨강·하양 (♥♦ 빨강, ♠♣ 흰빛)
+inline int32 GPDCardTheme = 0;
+inline bool GPDBakeWhiteSuits = false; // 아틀라스에 카드를 흰색으로 굽는 동안 (그릴 때 무늬 색으로 물들인다)
 inline FLinearColor SuitColor(EPDSuit S)
 {
+	if (GPDBakeWhiteSuits) return FLinearColor::White;
+	if (GPDCardTheme == 1) return Hex(TEXT("e6ebf5"));
+	if (GPDCardTheme == 2) return S == EPDSuit::Heart || S == EPDSuit::Diamond ? Hex(TEXT("ff5a6a")) : Hex(TEXT("eef2ff"));
 	switch (S)
 	{
 	case EPDSuit::Heart: return Hex(TEXT("ff6a8a"));
@@ -441,17 +447,18 @@ inline const TCHAR* MenuItemName(int I)
 	return N[I];
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
-enum class ESetRow : uint8_t { Window, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Close, Count };
+enum class ESetRow : uint8_t { Window, CardTheme, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Close, Count };
 constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 8.f, SetLabelW = 200.f, SetBtnH = 32.f;
 constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 160.f;
 constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
-inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : 1; }
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : 1; }
+inline FLinearColor LevelDotColor() { return GPDCardTheme == 1 ? FLinearColor::White : Hex(TEXT("ffd96a")); } // 타워 레벨 점 (흑백이면 흰빛)
 inline float SetBtnW(int Row, int Idx)
 {
-	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::Frame) return 112.f;
+	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return 112.f;
 	if (SetBarRow(Row)) return Idx == 1 ? 220.f : 40.f;
 	if (Row == (int)ESetRow::Close) return 160.f;
 	return 120.f;
@@ -459,7 +466,7 @@ inline float SetBtnW(int Row, int Idx)
 inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 {
 	const float X0 = SetX + SetLabelW, Y = SetRowY(Row) + (SetRowH - SetBtnH) / 2.f;
-	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::Frame) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
+	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
 	if (SetBarRow(Row)) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
 	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
 	return FVector2f(X0, Y);
@@ -534,7 +541,7 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 4; // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+constexpr int32 AtlasVersion = 5; // 5: 카드 칸을 흰색으로 굽고 그릴 때 물들임 (D-154) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");

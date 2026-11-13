@@ -102,6 +102,7 @@ private:
 		float MusicVolume = 0.6f; // 배경 음악 (D-117)
 		int32 FrameCap = 0;       // 프레임 제한 (D-120): 0 = 60, 1 = 120, 2 = 제한 없음
 		bool bVSync = false;      // 수직 동기화
+		int32 CardTheme = 0;      // 카드 색 (D-154): 0 네온, 1 흑백, 2 빨강·하양
 	};
 	FSettings Settings;
 	bool bSettings = false;                // 설정 창 (메뉴에서 연다, 여는 동안 메뉴도 열려 있어 게임은 멈춤)

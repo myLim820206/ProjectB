@@ -294,6 +294,9 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetFloat(PDSetSection, TEXT("MusicVolume"), Settings.MusicVolume, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
+		GConfig->GetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
+		Settings.CardTheme = FMath::Clamp(Settings.CardTheme, 0, 2);
+		GPDCardTheme = Settings.CardTheme;
 		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	}
 	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
@@ -335,6 +338,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -387,6 +391,7 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 	switch ((ESetRow)Row)
 	{
 	case ESetRow::Window: ApplyWindowMode(Settings.WindowMode + (Delta == 0 ? 1 : Delta)); break;
+	case ESetRow::CardTheme: Settings.CardTheme = ((Settings.CardTheme + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; GPDCardTheme = Settings.CardTheme; SaveSettings(); break;
 	case ESetRow::Frame: Settings.FrameCap = ((Settings.FrameCap + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; SaveSettings(); ApplyFrameSettings(); break;
 	case ESetRow::VSync: Settings.bVSync = !Settings.bVSync; SaveSettings(); ApplyFrameSettings(); break;
 	case ESetRow::WorldFx: Settings.bWorldFx = !Settings.bWorldFx; SaveSettings(); break;
@@ -418,6 +423,7 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			if (!InRect(P, B.X, B.Y, SetBtnW(Row, I), SetBtnH)) continue;
 			SetSel = Row;
 			if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
+			else if (Row == (int32)ESetRow::CardTheme) { Settings.CardTheme = I; GPDCardTheme = I; SaveSettings(); UiSound(EPDSound::Move); }
 			else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
 			else if (SetBarRow(Row))
 			{

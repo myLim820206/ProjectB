@@ -39,6 +39,8 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 	F.ThickK = AtlasK / (Atlas.IsValid() ? Atlas->BakedScale : 1.f); // 화면에서 그리던 선과 같은 화면 픽셀 굵기
 	const float R = CS * 0.4f;
 	auto Vis = [&](FVector2f C) { const FVector2f A = (C - FVector2f(AtlasCell, AtlasCell) * 0.5f) * AtlasK - TO, B = A + FVector2f(AtlasCell, AtlasCell) * AtlasK; return B.X > 0.f && B.Y > 0.f && A.X < BakeTile && A.Y < BakeTile; }; // 이 조각에 걸치는 칸만
+	GPDBakeWhiteSuits = true; // 카드 칸은 흰색으로 굽고 그릴 때 카드 색 설정에 맞춰 물들인다 (D-154)
+	ON_SCOPE_EXIT { GPDBakeWhiteSuits = false; };
 	for (int32 Ci = 0; Ci < AtlasCards; ++Ci)
 		{
 			const FPDCard Card = Ci == 52 ? FPDCard{0, EPDSuit::Wild} : FPDCard{2 + Ci / 4, (EPDSuit)(Ci % 4)};
@@ -53,10 +55,10 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 						const float H = R * 0.98f + (L - 1) * 3.5f;
 						F.Glow(FCanvas::RoundRectPoints(P.X - H, P.Y - H, H * 2.f, H * 2.f, 6.f + L), WithAlpha(SuitColor(Card.Suit), 0.75f), 1.2f, 0.6f);
 					}
-					if (Lv >= 2)
-						for (int L = 0; L < Lv; ++L) F.Box(P.X - (Lv - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, Hex(TEXT("ffd96a")));
+					// 레벨 점은 물들이면 안 돼서 굽지 않고 그릴 때 따로 (D-154)
 				}
 		}
+	GPDBakeWhiteSuits = false;
 	for (int32 K = 0; K < 10; ++K)
 	{
 		const FVector2f P = AtlasCellCenter(AtlasJoker0 + K);
@@ -458,6 +460,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 	// ---- 타워 (D-140: 아틀라스가 준비되면 카드·조커는 구운 그림을 한 층에 모아 찍는다)
 	const bool bAtlas = bStatic && UseAtlas();
 	const int32 SpriteLayer = bAtlas ? F.NextLayer() : 0;
+	const int32 DotLayer = bAtlas ? F.NextLayer() : 0; // 레벨 점 (카드 그림 위)
 	if (bAtlas) F.NextLayer();
 	for (const auto& KV : G.Towers)
 	{
@@ -487,7 +490,13 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			continue;
 		}
 		if (bStatic == bYoung) continue;
-		if (bAtlas) { F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, T.Eff.Hand >= 0)], P.X, P.Y, 1.f, FLinearColor::White); continue; }
+		if (bAtlas) // 흰색으로 구운 카드를 카드 색으로 물들여 찍고, 레벨 점은 따로 (D-154)
+		{
+			F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, T.Eff.Hand >= 0)], P.X, P.Y, 1.f, SuitColor(T.Card.Suit));
+			if (T.Level >= 2)
+				for (int L = 0; L < T.Level; ++L) F.BoxAt(DotLayer, P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, LevelDotColor());
+			continue;
+		}
 		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
 		// 레벨: 틀을 한 겹씩 더 (안쪽으로), 위쪽에 레벨 점
 		for (int L = 2; L <= T.Level; ++L)
@@ -496,7 +505,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			F.Glow(FCanvas::RoundRectPoints(P.X - H, P.Y - H, H * 2.f, H * 2.f, 6.f + L), WithAlpha(SuitColor(T.Card.Suit), 0.75f), 1.2f, 0.6f);
 		}
 		if (T.Level >= 2)
-			for (int L = 0; L < T.Level; ++L) F.Box(P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, Hex(TEXT("ffd96a")));
+			for (int L = 0; L < T.Level; ++L) F.Box(P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, LevelDotColor());
 	}
 	if (bStatic) return; // 아래는 모두 움직이는 층
 	// 미리보기: 고른 카드를 마우스 칸에
@@ -2071,7 +2080,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	C.Box(SetBoxX, SetBoxY, SetBoxW, SetBoxH, Hex(TEXT("06060b"), 0.95f));
 	C.Glow(FCanvas::RoundRectPoints(SetBoxX, SetBoxY, SetBoxW, SetBoxH, 10.f), Cyan, 1.4f, 0.7f);
 	C.TextCentered(TEXT("설정"), DesignW / 2.f, SetBoxY + 40.f, Cyan, 24.f, true);
-	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		if (bOn) C.Box(X, Y, W, SetBtnH, WithAlpha(Col, 0.12f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, 6.f), Col, bOn ? 1.6f : 1.1f, bOn ? (bRowSel ? 1.f + 0.5f * Pulse : 0.9f) : 0.35f);
@@ -2089,6 +2098,13 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		{
 			static const TCHAR* Modes[] = {TEXT("창"), TEXT("전체화면"), TEXT("테두리 없음")};
 			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Modes[I], Cyan, Settings.WindowMode == I, bRowSel); }
+			break;
+		}
+		case ESetRow::CardTheme: // 카드 색 (D-154): 버튼 글자도 그 색으로
+		{
+			static const TCHAR* Themes[] = {TEXT("네온"), TEXT("흑백"), TEXT("빨강·하양")};
+			static const TCHAR* ThemeCol[] = {TEXT("8affc4"), TEXT("e6ebf5"), TEXT("ff5a6a")};
+			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Themes[I], Hex(ThemeCol[I]), Settings.CardTheme == I, bRowSel); }
 			break;
 		}
 		case ESetRow::Frame:
