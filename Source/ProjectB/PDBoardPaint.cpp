@@ -1087,12 +1087,16 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	{
 		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
 		TSet<int32> Done;
-		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
+		// 밝힐 칸 묶음: 족보 필터면 그 족보(합성 못 하는 것), 조커 필터면 조커 재료 칸 (분홍, D-152)
+		std::vector<std::pair<std::vector<int>, FLinearColor>> Sets;
+		if (HandFilter == JokerFilterId) for (const FPDJokerGroup& Gr : JGroups) Sets.push_back({Gr.Cells, JokerPink});
+		else
+			for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
+				if ((int32)G.Synergies[I].Kind == HandFilter && !G.CanFuse(I)) Sets.push_back({G.Synergies[I].Cells, HandColor(G.Synergies[I].Kind)});
+		for (const auto& St : Sets)
 		{
-			const FPDSynergy& S = G.Synergies[I];
-			if ((int32)S.Kind != HandFilter || G.CanFuse(I)) continue;
-			const FLinearColor Pick = FMath::Lerp(HandColor(S.Kind), FLinearColor::White, 0.6f * Wv);
-			for (int K : S.Cells)
+			const FLinearColor Pick = FMath::Lerp(St.second, FLinearColor::White, 0.6f * Wv);
+			for (int K : St.first)
 			{
 				if (Done.Contains(K)) continue;
 				Done.Add(K);
