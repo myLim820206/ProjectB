@@ -58,6 +58,11 @@ int main()
 	volatile size_t Sink = 0;
 	std::printf("ApplyEffects  %.3f ms\n", Ms([&] { FPDTowerMap T = G.Towers; Sink += ApplyEffects(T, G.CharmMask(), &G.Mods).size(); }, 20));
 	std::printf("Compute(only) %.3f ms\n", Ms([&] { Sink += ComputeSynergies(G.Towers).size(); }, 20));
+	{ // 카드 한 장 바꾼 판 (그 덩어리는 캐시에 없음)
+		int Rk = 2;
+		auto It = G.Towers.begin(); std::advance(It, G.Towers.size() / 2);
+		std::printf("Place-like    %.3f ms (한 장 바뀐 판, 덩어리 다시)\n", Ms([&] { It->second.Card.Rank = 2 + (Rk++ % 13); FPDTowerMap T = G.Towers; Sink += ApplyEffects(T, G.CharmMask(), &G.Mods).size(); }, 13));
+	}
 	std::printf("JokerGroups   %.3f ms\n", Ms([&] { Sink += G.JokerGroups().size(); }, 20));
 	std::printf("FeedTargets   %.3f ms\n", Ms([&] { Sink += G.FeedTargets().size(); }, 20));
 	std::printf("JokerMerges   %.3f ms\n", Ms([&] { Sink += G.JokerMerges().size(); }, 20));

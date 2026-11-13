@@ -490,6 +490,7 @@ struct FPDDebugStats
 	int32 Lines = 0, Points = 0, Texts = 0, Boxes = 0; // 이번 프레임 그리기 요소 (D-135)
 	int32 PartLines[6] = {}; // 판·발사체·이펙트·판 위 UI·패널·창 별 선 수
 	int32 StaticPaints = 0;  // 1초 동안 정적 층을 다시 그린 횟수 (D-137)
+	bool bNoAtlas = false;   // F6: 구운 그림 끄고 선으로 (비교용, D-143)
 	float ModeMs = 0.f;      // 게임 모드 틱 (소리·나이아가라, D-138)
 	float PaintMs = 0.f, TickMs = 0.f;                 // 그리기·갱신 CPU 시간 (부드럽게)
 	void Add(float RawDt)
@@ -507,7 +508,25 @@ inline FPDDebugStats GPDDebug;
 // 타워 카드: 카드 53종(2~A × 무늬 4 + 와일드) × 레벨 4 × 족보 듦 2 = 424, 조커 10 → 434칸 (23 × 19줄 = 3344px)
 constexpr float AtlasCell = 88.f, AtlasK = 2.f;
 constexpr int32 AtlasCols = 23, AtlasTex = 4096; // 23 × 88 × 2 = 4048 ≤ 4096
-constexpr int32 AtlasCards = 53, AtlasTowerN = AtlasCards * 4 * 2, AtlasJoker0 = AtlasTowerN, AtlasN = AtlasTowerN + 10;
+constexpr int32 AtlasCards = 53, AtlasTowerN = AtlasCards * 4 * 2, AtlasJoker0 = AtlasTowerN;
+// 이펙트 모양 (D-141, 흰색으로 구워 색·크기·회전을 입혀 찍는다): 반지름 AtlasFxR 로 굽는다
+// 0 원, 1~6 다각형 3~8, 7~12 별 3~8, 13~27 끊어진 호 2~16, 28~42 빛줄기 2~16, 43~47 무늬 0~4, 48~52 별빛 갈래 0·2·4·6·8
+constexpr int32 AtlasFx0 = AtlasJoker0 + 10, AtlasFxN = 53;
+// 그 밖 (D-143): 족보 빗금 칸, 합성 가능 꺾쇠 칸, 가로 빛선 (조각·입자 꼬리)
+constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1, AtlasLine = AtlasHatch + 2, AtlasN = AtlasHatch + 3;
+constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
+constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
+static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
+// 판 배경 (격자·길 점선·판 테두리, D-143): 판보다 사방 16px 크게, 2배로 굽는다 (길이 바뀌는 새 판마다 다시)
+constexpr float BgPad = 16.f, BgW = Cols * CS + BgPad * 2.f, BgH = Rows * CS + BgPad * 2.f;
+constexpr int32 BakeTile = 512; // 조각 굽기 크기 (텍스처 픽셀)
+constexpr float AtlasFxR = 36.f, AtlasFxTh = 1.6f;
+inline int32 FxPoly(int N) { return 1 + FMath::Clamp(N, 3, 8) - 3; }
+inline int32 FxStar(int N) { return 7 + FMath::Clamp(N, 3, 8) - 3; }
+inline int32 FxBroken(int N) { return 13 + FMath::Clamp(N, 2, 16) - 2; }
+inline int32 FxRays(int N) { return 28 + FMath::Clamp(N, 2, 16) - 2; }
+inline int32 FxSuit(int S) { return 43 + FMath::Clamp(S, 0, 4); }
+inline int32 FxFlare(int Spokes) { return 48 + FMath::Clamp(Spokes / 2, 0, 4); }
 static_assert((AtlasN + AtlasCols - 1) / AtlasCols * AtlasCell * AtlasK <= AtlasTex, "atlas rows overflow the texture");
 inline int32 AtlasCardIndex(const FPDCard& C) { return C.IsWild() ? 52 : (FMath::Clamp(C.Rank, 2, 14) - 2) * 4 + FMath::Clamp((int)C.Suit, 0, 3); }
 inline int32 TowerSprite(const FPDCard& C, int Level, bool bStrong)
@@ -548,10 +567,27 @@ class FWidgetRenderer;
 struct FPDAtlas
 {
 	UObject* RT = nullptr;
+	TArray<FSlateBrush> HatchBrushes;   // 빗금: 겹 3 × 네 변 들임 16가지 (D-143)
+	FSlateBrush BracketBrush, LineBrush;
+	// 판 배경 (D-143)
+	UObject* BgRT = nullptr;
+	FSlateBrush BgBrush;
+	uint64 BgSig = 0;
+	int32 BgFrames = 0;
+	TSharedPtr<FWidgetRenderer> BgRenderer;
+	TSharedPtr<SWidget> BgPainter;
+	bool BgReady(uint64 Sig) const { return BgRT && BgSig == Sig && BgFrames > 2; }
 	TSharedPtr<FWidgetRenderer> Renderer; // 구울 때 쓴 것들은 같이 들고 있는다 (뒤에서 도는 선 만들기 작업이 끝나기 전에 사라지면 터짐)
 	TSharedPtr<SWidget> Painter;
 	TArray<FSlateBrush> Brushes;
 	int32 Frames = 0; // 구운 뒤 몇 프레임 (렌더 명령이 끝난 다음부터 쓴다)
+	float BakedScale = 1.f; // 구울 때의 화면 배율: 선 굵기를 화면 픽셀로 맞춘다 (바뀌면 다시 굽는다)
+	bool bRebaked = false;  // 시작 직후 한 번 더 구웠나 (패키지에서 너무 일찍 구우면 빈 그림이 됨)
+	// 조각 굽기 (D-143): 패키지에선 화면 밖 그리기가 창 크기로 잘려 큰 텍스처를 한 번에 못 굽는다.
+	// 512 조각 텍스처에 그린 뒤 GPU 로 제자리에 복사한다. 그리는 동안 TileOrigin (텍스처 픽셀) 만큼 밀어 그린다
+	UObject* Scratch = nullptr;
+	TSharedPtr<FWidgetRenderer> ScratchRenderer;
+	FVector2f TileOrigin = FVector2f(0.f, 0.f);
 	bool Ready() const { return Frames > 2; }
 };
 
@@ -563,13 +599,14 @@ struct SPDBoardWidget::FCanvas
 	int32* Layer;
 	const FSlateBrush* White;
 	float HaloK = 1.f; // 번짐 배율 (이펙트가 많으면 0 = 심만, D-138)
+	float ThickK = 1.f; // 선 굵기 배율: Slate 선 굵기는 화면 픽셀이라 배율을 따라가지 않는다. 2배로 굽는 그림은 2 (D-143)
 
 	int32 NextLayer() { return ++(*Layer); }
 	// 층 나누기 (D-120): 선은 지금 층에 모아 그린다 (같은 층의 선은 한 번에 묶여 그려져 그리기 호출이 크게 준다).
 	// 상자·글자는 새 층을 받고, 그 뒤의 선이 그 위에 오도록 층을 하나 더 올려 둔다 (그리는 순서는 그대로)
 	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
-		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick);
+		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick * ThickK);
 		++GPDDebug.Lines; GPDDebug.Points += P.Num();
 	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
@@ -931,11 +968,32 @@ struct SPDBoardWidget::FCanvas
 		for (int32 I = 0; I < Body.Num(); ++I) Text(Body[I], DesignW / 2.f, 290.f + I * 26.f, Hex(TEXT("cfd8e6")), 14.f, 1);
 		Text(Foot, DesignW / 2.f, 300.f + Body.Num() * 26.f + 50.f, Hex(TEXT("ffd96a")), 18.f, 1);
 	}
+	// 구운 그림은 빈 바탕에 반투명으로 그려져 색에 알파가 이미 곱해져 있다 (premultiplied). 그대로 알파를 또 곱하면 옅은 선(격자·번짐)이 사라지므로
+	// 미리 곱한 알파로 섞고, 덧칠 색도 알파를 곱해 넘긴다 (D-143)
+	static FLinearColor PM(const FLinearColor& C) { return FLinearColor(C.R * C.A, C.G * C.A, C.B * C.A, C.A); }
 	// 아틀라스 칸 찍기 (D-140): 가운데 (CX, CY), 설계 크기 AtlasCell × S. 같은 층 L 에 모으면 한 번에 그려진다
 	void Sprite(int32 L, const FSlateBrush* B, float CX, float CY, float S, const FLinearColor& Tint)
 	{
 		const float H = AtlasCell * S * 0.5f;
-		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(H * 2.f, H * 2.f), FSlateLayoutTransform(FVector2f(CX - H, CY - H))), B, ESlateDrawEffect::None, Tint);
+		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(H * 2.f, H * 2.f), FSlateLayoutTransform(FVector2f(CX - H, CY - H))), B, ESlateDrawEffect::PreMultipliedAlpha, PM(Tint));
+	}
+	// 붓 찍기 (D-143): 왼쪽 위 (X, Y), 크기 W × H
+	void Image(int32 L, const FSlateBrush* B, float X, float Y, float W, float H, const FLinearColor& Tint)
+	{
+		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))), B, ESlateDrawEffect::PreMultipliedAlpha, PM(Tint));
+	}
+	// 가운데 (CX, CY), 크기 W × H, 회전 Angle 라디안
+	void ImageRot(int32 L, const FSlateBrush* B, float CX, float CY, float W, float H, float Angle, const FLinearColor& Tint)
+	{
+		FSlateDrawElement::MakeRotatedBox(Out, L, Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(CX - W / 2.f, CY - H / 2.f))), B, ESlateDrawEffect::PreMultipliedAlpha, Angle,
+			TOptional<FVector2f>(), FSlateDrawElement::RelativeToElement, PM(Tint));
+	}
+	// 회전해 찍기 (이펙트, D-141): Angle 라디안
+	void SpriteRot(int32 L, const FSlateBrush* B, float CX, float CY, float S, float Angle, const FLinearColor& Tint)
+	{
+		const float H = AtlasCell * S * 0.5f;
+		FSlateDrawElement::MakeRotatedBox(Out, L, Geo.ToPaintGeometry(FVector2f(H * 2.f, H * 2.f), FSlateLayoutTransform(FVector2f(CX - H, CY - H))), B, ESlateDrawEffect::PreMultipliedAlpha, Angle,
+			TOptional<FVector2f>(), FSlateDrawElement::RelativeToElement, PM(Tint));
 	}
 	// 트리 노드 아이콘 (D-119, PDIcons.h): 선 묶음 + 광대 모자·네 무늬는 직접 그림
 	void Icon(const PDIcon::FIcon& I, const FLinearColor& Col, float Th, float Gk)

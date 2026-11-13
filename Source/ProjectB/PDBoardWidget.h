@@ -213,9 +213,14 @@ private:
 	// 스프라이트 아틀라스 (D-140): 타워 카드·조커를 게임 시작 때 지금 네온 코드로 텍스처 한 장에 구워 두고, 판에선 사각형으로 찍는다
 	TSharedPtr<FPDAtlas> Atlas;
 	void BakeAtlas();
+	bool UseAtlas() const; // 구운 그림을 쓸 수 있고 디버그로 끄지 않았나 (F6)
+	void BakeBoardBg(uint64 Sig); // 판 배경 (격자·길) 굽기, 새 판마다 (D-143)
+	void BakeTiled(UObject* Dst, int32 W, int32 H, const TSharedRef<SWidget>& Painter); // 조각으로 나눠 굽기
+	uint64 BoardBgSig() const;
 	FVector2f ShakeOff = FVector2f(0.f, 0.f); // 판 흔들림 (틱에서 정함)
 public:
 	int32 PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 아틀라스 굽는 그림
+	int32 PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 판 배경 굽는 그림
 private:
 	int32 FeedJoker = -1;                  // 먹이기 모드 (D-131): 클릭한 조커 칸. 이 조커에 먹일 족보만 버튼이 뜬다
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)

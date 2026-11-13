@@ -1,5 +1,7 @@
 #include "PDCore.h"
 
+#include <unordered_map>
+
 #include <algorithm>
 #include <cmath>
 #include <set>
@@ -202,11 +204,12 @@ static int PDCellDist(int A, int B) { return std::abs(A % Cols - B % Cols) + std
 
 // ESU 방식으로 연결 묶음(2~KMax칸)을 한 번씩만 만든다: 시작점보다 번호가 큰 칸으로만 넓힌다
 // Viable(Sub) 가 false 면 그 묶음과 그것을 품는 더 큰 묶음은 족보가 될 수 없어 더 넓히지 않는다 (D-134: 큰 판에서 61ms → 1ms 남짓)
-template <class FViable>
-static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& Sub, const std::vector<int>& Ext, int Root, int KMax, std::vector<std::vector<int>>& Out, const FViable& Viable)
+// 찾은 묶음은 저장하지 않고 바로 OnSub 으로 넘긴다 (D-142: 묶음마다 벡터를 새로 잡던 비용)
+template <class FViable, class FOnSub>
+static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& Sub, const std::vector<int>& Ext, int Root, int KMax, const FViable& Viable, const FOnSub& OnSub)
 {
 	if (!Viable(Sub)) return;
-	if (Sub.size() >= 2) Out.push_back(Sub);
+	if (Sub.size() >= 2) OnSub(Sub);
 	if ((int)Sub.size() == KMax) return;
 	std::vector<int> E = Ext;
 	while (!E.empty())
@@ -221,7 +224,7 @@ static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& 
 			if (U > Root && std::find(Sub.begin(), Sub.end(), U) == Sub.end() && U != W && !IsNear(U) && std::find(E.begin(), E.end(), U) == E.end())
 				Next.push_back(U);
 		Sub.push_back(W);
-		PDExtend(Nb, Sub, Next, Root, KMax, Out, Viable);
+		PDExtend(Nb, Sub, Next, Root, KMax, Viable, OnSub);
 		Sub.pop_back();
 	}
 }
@@ -277,6 +280,19 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 		}
 		if (Comp.size() < 2) continue;
 		std::sort(Comp.begin(), Comp.end());
+		// 덩어리 캐시 (D-142): 덩어리마다 족보 찾기는 서로 무관하다. 칸·카드·레벨이 같으면 지난 결과를 그대로 쓴다
+		// (카드를 놓거나 미리보기하면 그 덩어리만, 조커 레벨업은 아무 덩어리도 다시 찾지 않는다). 연쇄는 아래에서 판 전체로 다시 이음
+		uint64_t CompKey = 1469598103934665603ull;
+		for (int K : Comp)
+		{
+			const FPDTower& T = Towers.at(K);
+			const uint64_t V = (uint64_t)K << 20 ^ (uint64_t)(T.IsJoker() ? 0 : T.Card.Rank) << 12 ^ (uint64_t)(T.IsJoker() ? 4 : (int)T.Card.Suit) << 8 ^ (uint64_t)(T.IsJoker() ? 15 : T.Level);
+			CompKey = (CompKey ^ V) * 1099511628211ull;
+		}
+		CompKey ^= (uint64_t)Comp.size() << 56;
+		static std::unordered_map<uint64_t, std::vector<FPDSynergy>> GCompCache;
+		if (auto Hit = GCompCache.find(CompKey); Hit != GCompCache.end()) { Picked.insert(Picked.end(), Hit->second.begin(), Hit->second.end()); continue; }
+		const size_t PickedBefore = Picked.size();
 		std::map<int, int> Idx;
 		for (int I = 0; I < (int)Comp.size(); ++I) Idx[Comp[I]] = I;
 		std::vector<std::vector<int>> Nb(Comp.size());
@@ -314,29 +330,16 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			if (NR <= 2 || bSameSuit) return true;
 			return bDistinct && (HiMax - HiMin <= 4 || LoMax - LoMin <= 4);
 		};
-		std::vector<std::vector<int>> Subs;
-		for (int V = 0; V < (int)Comp.size(); ++V)
-		{
-			std::vector<int> Sub{V}, Ext;
-			for (int U : Nb[V]) if (U > V) Ext.push_back(U);
-			PDExtend(Nb, Sub, Ext, V, 5, Subs, Viable);
-		}
 		struct FCand { EPDHand Kind; int N, Value; std::vector<int> Cells; };
 		std::vector<FCand> Cands;
-		for (const auto& Sub : Subs)
-		{
-			std::vector<FPDCard> Cards;
-			std::vector<int> Cells;
-			int Lv = -1;
-			bool bMixed = false;
-			for (int I : Sub)
-			{
-				const FPDTower& T = Towers.at(Comp[I]);
-				Cells.push_back(Comp[I]);
-				Cards.push_back(T.IsJoker() ? FPDCard{0, EPDSuit::Wild} : T.Card); // 조커는 와일드
-				if (!T.IsJoker()) { if (Lv < 0) Lv = T.Level; else if (Lv != T.Level) bMixed = true; }
-			}
-			if (bMixed) continue; // 조커가 아닌 타워는 레벨이 같아야 족보
+		std::vector<FPDCard> Cards; // 묶음마다 다시 쓰는 그릇 (레벨 섞임은 Viable 에서 이미 걸렀다)
+		std::vector<int> Cells;
+		Cards.reserve(5);
+		Cells.reserve(5);
+		auto OnSub = [&](const std::vector<int>& Sub) {
+			Cards.clear();
+			Cells.clear();
+			for (int I : Sub) { Cells.push_back(Comp[I]); Cards.push_back(CardOf[I]); } // 조커는 와일드
 			int Ordered = -1; // 스트레이트 순서 검사 (필요할 때 한 번만)
 			for (EPDHand H : ClassifyHand(Cards))
 			{
@@ -347,6 +350,14 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 				}
 				Cands.push_back({H, (int)Sub.size(), HandValue(H, (int)Sub.size()), Cells});
 			}
+		};
+		std::vector<int> Sub, Ext;
+		for (int V = 0; V < (int)Comp.size(); ++V)
+		{
+			Sub.assign(1, V);
+			Ext.clear();
+			for (int U : Nb[V]) if (U > V) Ext.push_back(U);
+			PDExtend(Nb, Sub, Ext, V, 5, Viable, OnSub);
 		}
 		std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& A, const FCand& B) { return A.Value != B.Value ? A.Value > B.Value : A.N > B.N; });
 		// 카드 한 장이 여러 족보에 같이 들 수 있다 (D-097). 큰 족보부터 고르되
@@ -368,6 +379,8 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			S.Cells = C.Cells;
 			Picked.push_back(S);
 		}
+		if (GCompCache.size() > 512) GCompCache.clear();
+		GCompCache[CompKey].assign(Picked.begin() + PickedBefore, Picked.end());
 	}
 	// 연쇄: 족보끼리 맞닿아 있거나 카드를 나눠 쓰면 하나의 연쇄
 	std::map<int, std::vector<int>> Owner;
@@ -1146,21 +1159,19 @@ double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMo
 	return Sum;
 }
 
+// 판의 타워는 바뀔 때마다 ApplyEffects 를 마쳐 두므로 족보를 다시 찾지 않는다 (D-142: 큰 판에서 카드 놓을 때마다 17ms × 2 가 더 들던 것)
 std::vector<std::pair<int, float>> FPDGame::TowerPowers() const
 {
-	FPDTowerMap T = Towers;
-	ApplyEffects(T, CharmMask(), &Mods);
 	std::vector<std::pair<int, float>> Out;
-	for (const auto& KV : T) Out.push_back({KV.first, (float)OneTowerPower(T, KV.second, CharmMask(), &Mods)});
+	for (const auto& KV : Towers) Out.push_back({KV.first, (float)OneTowerPower(Towers, KV.second, CharmMask(), &Mods)});
 	std::stable_sort(Out.begin(), Out.end(), [](const std::pair<int, float>& A, const std::pair<int, float>& B) { return A.second > B.second; });
 	return Out;
 }
 
 float FPDGame::SynergyGain() const
 {
+	const double With = SumBoardPower(Towers, CharmMask(), &Mods); // 이미 효과가 걸린 판
 	FPDTowerMap T = Towers;
-	ApplyEffects(T, CharmMask(), &Mods);
-	const double With = SumBoardPower(T, CharmMask(), &Mods);
 	for (auto& KV : T) KV.second.Eff = FPDEffects(); // 족보·연쇄·조커 오라 없이 (합성 배율·특성은 그대로)
 	const double Without = SumBoardPower(T, CharmMask(), &Mods);
 	return Without > 0 ? (float)(With / Without) : 1.f;

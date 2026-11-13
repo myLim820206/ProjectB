@@ -32,10 +32,13 @@ void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 // 아틀라스 굽기 (D-140): 칸마다 타워 카드(레벨 틀·점 포함) / 조커를 지금 코드 그대로, 맥박은 가운데 값
 int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
 {
-	const FGeometry G2 = AllottedGeometry.MakeChild(FVector2f(AtlasTex / AtlasK, AtlasTex / AtlasK), FSlateLayoutTransform(AtlasK));
+	const FVector2f TO = Atlas.IsValid() ? Atlas->TileOrigin : FVector2f(0.f, 0.f); // 조각 굽기: 이 조각 왼쪽 위만큼 밀어 그린다
+	const FGeometry G2 = AllottedGeometry.MakeChild(FVector2f(AtlasTex / AtlasK, AtlasTex / AtlasK), FSlateLayoutTransform(AtlasK, -TO));
 	int32 Layer = LayerId;
 	FCanvas F{OutDrawElements, G2, &Layer, &WhiteBrush};
+	F.ThickK = AtlasK / (Atlas.IsValid() ? Atlas->BakedScale : 1.f); // 화면에서 그리던 선과 같은 화면 픽셀 굵기
 	const float R = CS * 0.4f;
+	auto Vis = [&](FVector2f C) { const FVector2f A = (C - FVector2f(AtlasCell, AtlasCell) * 0.5f) * AtlasK - TO, B = A + FVector2f(AtlasCell, AtlasCell) * AtlasK; return B.X > 0.f && B.Y > 0.f && A.X < BakeTile && A.Y < BakeTile; }; // 이 조각에 걸치는 칸만
 	for (int32 Ci = 0; Ci < AtlasCards; ++Ci)
 		{
 			const FPDCard Card = Ci == 52 ? FPDCard{0, EPDSuit::Wild} : FPDCard{2 + Ci / 4, (EPDSuit)(Ci % 4)};
@@ -43,6 +46,7 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 				for (int32 St = 0; St < 2; ++St)
 				{
 					const FVector2f P = AtlasCellCenter(TowerSprite(Card, Lv, St != 0));
+					if (!Vis(P)) continue;
 					F.CardShape(Card, P.X, P.Y, R, 1.f, St != 0, 0.5f);
 					for (int L = 2; L <= Lv; ++L)
 					{
@@ -56,8 +60,89 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 	for (int32 K = 0; K < 10; ++K)
 	{
 		const FVector2f P = AtlasCellCenter(AtlasJoker0 + K);
-		F.JokerTower(K, P.X, P.Y, R, 1.f, 0.5f);
+		if (Vis(P)) F.JokerTower(K, P.X, P.Y, R, 1.f, 0.5f);
 	}
+	// 이펙트 모양 (D-141): 흰색, 반지름 AtlasFxR, 0도에서 시작 (그릴 때 색·크기·회전)
+	const FLinearColor W = FLinearColor::White;
+	const float RR = AtlasFxR, Th = AtlasFxTh;
+	auto At = [&](int32 I) { return AtlasCellCenter(AtlasFx0 + I); };
+	{ const FVector2f C = At(0); F.Glow(FCanvas::CirclePoints(C, RR, 36), W, Th, 1.f); }
+	for (int32 N = 3; N <= 8; ++N)
+	{
+		const FVector2f C = At(FxPoly(N));
+		TArray<FVector2f> P;
+		for (int32 K = 0; K <= N; ++K) P.Add(C + Rot2(FVector2f(RR, 0.f), K * TwoPi / N));
+		F.Glow(P, W, Th, 1.f);
+		const FVector2f C2 = At(FxStar(N));
+		TArray<FVector2f> S;
+		for (int32 K = 0; K <= N * 2; ++K) S.Add(C2 + Rot2(FVector2f(K % 2 ? RR * 0.45f : RR, 0.f), K * PI / N));
+		F.Glow(S, W, Th, 1.f);
+	}
+	for (int32 N = 2; N <= 16; ++N)
+	{
+		const FVector2f C = At(FxBroken(N));
+		for (int32 K = 0; K < N; ++K) F.Glow(ArcPts(C, RR, K * TwoPi / N, PI / N * 0.55f, 6), W, Th, 1.f);
+		const FVector2f C2 = At(FxRays(N));
+		for (int32 K = 0; K < N; ++K) { const FVector2f D = Rot2(FVector2f(1.f, 0.f), K * TwoPi / N); F.Glow({C2 + D * RR * 0.6f, C2 + D * RR}, W, Th, 1.f); }
+	}
+	for (int32 S = 0; S <= 4; ++S) { const FVector2f C = At(FxSuit(S)); F.Shape((EPDSuit)S, C.X, C.Y, RR, W, Th, 1.f); }
+	{ // 빗금 칸 (D-143): 칸 왼쪽 위 기준 x + y 가 HatchStep 의 배수인 45도 선, 흰색
+		const FVector2f C = AtlasCellCenter(AtlasHatch), O = C - FVector2f(CS / 2.f, CS / 2.f);
+		for (float D = HatchStep; D < CS * 2.f; D += HatchStep)
+		{
+			const float Ax = FMath::Max(0.f, D - CS), Bx = FMath::Min(CS, D);
+			F.Lines({O + FVector2f(Ax, D - Ax), O + FVector2f(Bx, D - Bx)}, W, 1.f);
+		}
+	}
+	{ // 합성 가능 꺾쇠 칸: 네 모서리
+		const FVector2f C0 = AtlasCellCenter(AtlasBracket) - FVector2f(CS / 2.f, CS / 2.f);
+		const float A = 3.f, B = CS - 3.f, L = 10.f;
+		F.Glow({C0 + FVector2f(A, A + L), C0 + FVector2f(A, A), C0 + FVector2f(A + L, A)}, W, 1.8f, 1.f);
+		F.Glow({C0 + FVector2f(B - L, A), C0 + FVector2f(B, A), C0 + FVector2f(B, A + L)}, W, 1.8f, 1.f);
+		F.Glow({C0 + FVector2f(B, B - L), C0 + FVector2f(B, B), C0 + FVector2f(B - L, B)}, W, 1.8f, 1.f);
+		F.Glow({C0 + FVector2f(A + L, B), C0 + FVector2f(A, B), C0 + FVector2f(A, B - L)}, W, 1.8f, 1.f);
+	}
+	{ // 가로 빛선 (조각·입자 꼬리)
+		const FVector2f C = AtlasCellCenter(AtlasLine);
+		F.Glow({C - FVector2f(LineHalf, 0.f), C + FVector2f(LineHalf, 0.f)}, W, 1.5f, 0.9f);
+	}
+	for (int32 Sp = 0; Sp <= 8; Sp += 2) // 별빛: 빛 덩어리 + 갈래 (U = 0, A = 1 일 때 모양)
+	{
+		const FVector2f C = At(FxFlare(Sp));
+		const float Sz = RR, GA = Sp == 0 ? 0.13f : 0.07f;
+		for (int32 J = 1; J <= 3; ++J) { const float H = Sz * (Sp == 0 ? 0.3f : 0.25f) * J; F.Box(C.X - H, C.Y - H, H * 2.f, H * 2.f, WithAlpha(W, GA)); }
+		if (Sp == 2) F.Glow({C - FVector2f(Sz, 0.f), C + FVector2f(Sz, 0.f)}, W, 1.8f, 1.2f);
+		else
+			for (int32 J = 0; J < Sp; ++J)
+			{
+				const bool bShort = (Sp == 4 || Sp >= 6) && (J % 2);
+				const FVector2f D = Rot2(FVector2f(1.f, 0.f), J * TwoPi / Sp) * Sz * (bShort ? 0.55f : 1.f);
+				F.Glow({C - D * 0.12f, C + D}, W, 1.8f, 1.f);
+			}
+	}
+	return Layer;
+}
+
+// 판 배경 굽기 (D-143): 격자·길 점선·판 테두리. 그림 좌표는 판 왼쪽 위에서 BgPad 만큼 바깥이 원점
+int32 SPDBoardWidget::PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
+{
+	const FVector2f TO = Atlas.IsValid() ? Atlas->TileOrigin : FVector2f(0.f, 0.f);
+	const FGeometry G2 = AllottedGeometry.MakeChild(FVector2f(BgW, BgH), FSlateLayoutTransform(AtlasK, FVector2f(-(FX - BgPad) * AtlasK, -(FY - BgPad) * AtlasK) - TO));
+	int32 Layer = LayerId;
+	FCanvas F{OutDrawElements, G2, &Layer, &WhiteBrush};
+	F.ThickK = AtlasK / (Atlas.IsValid() ? Atlas->BakedScale : 1.f);
+	const FPDGame& G = Game;
+	for (int Y = 0; Y < Rows; ++Y)
+		for (int X = 0; X < Cols; ++X)
+		{
+			const FVector2f P = CellPx((float)X, (float)Y);
+			if (G.Path.IsPath(X, Y)) F.Box(P.X, P.Y, CS, CS, Hex(TEXT("7fd6ff"), 0.05f));
+			else F.Lines(FCanvas::RectPoints(P.X + 0.5f, P.Y + 0.5f, CS - 1.f, CS - 1.f), Hex(TEXT("788cb4"), 0.07f), 1.f);
+		}
+	TArray<FVector2f> PathPts;
+	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
+	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
+	F.Glow(FCanvas::RectPoints(FX, FY, Cols * CS, Rows * CS), Hex(TEXT("7fd6ff"), 0.5f), 1.5f, 0.6f);
 	return Layer;
 }
 
@@ -164,8 +249,10 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 	const FPDGame& G = Game;
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const bool bPv = !Preview.empty(); // 고른 카드를 놓으면 생길 족보를 보여 주는 중
-	// 격자, 길 (정적 층)
-	if (bStatic)
+	// 격자, 길 (정적 층). 구운 판 배경이 있으면 사각형 하나 (D-143)
+	if (bStatic && UseAtlas() && Atlas->BgReady(BoardBgSig()))
+		F.Image(F.NextLayer(), &Atlas->BgBrush, FX - BgPad, FY - BgPad, BgW, BgH, FLinearColor::White);
+	else if (bStatic)
 	{
 	for (int Y = 0; Y < Rows; ++Y)
 		for (int X = 0; X < Cols; ++X)
@@ -214,12 +301,17 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 				const bool bL = X == 0 || !Has.Contains(K - 1), bR = X == Cols - 1 || !Has.Contains(K + 1), bU = !Has.Contains(K - Cols), bD = !Has.Contains(K + Cols);
 				const FVector2f P = CellPx((float)X, (float)Y);
 				const float X0 = P.X + (bL ? M : 0.f), X1 = P.X + CS - (bR ? M : 0.f), Y0 = P.Y + (bU ? M : 0.f), Y1 = P.Y + CS - (bD ? M : 0.f);
-				// 장판 (D-099): 족보 색 옅은 채움 13% + 45도 빗금 (x + y 가 10 의 배수인 선이라 칸끼리 이어진다)
+				// 장판 (D-099): 족보 색 옅은 채움 13% + 45도 빗금 (x + y 가 12 의 배수인 선이라 칸끼리 이어진다)
 				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.13f * Alpha));
 				bool bAlready = false;
 				Hatched.Add(K + (&List == &Preview ? 100000 : 0), &bAlready);
-				if (!bAlready)
-				for (float D = FMath::CeilToFloat((X0 + Y0) / 10.f) * 10.f; D < X1 + Y1; D += 10.f)
+				if (!bAlready && UseAtlas()) // 구운 빗금 칸 (D-143)
+				{
+					const int32 Lyr = FMath::Min(SynLayer(List, Si), 2), Mask = (bL ? 1 : 0) | (bR ? 2 : 0) | (bU ? 4 : 0) | (bD ? 8 : 0);
+					F.Image(F.NextLayer(), &Atlas->HatchBrushes[Lyr * 16 + Mask], X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.3f * Alpha));
+				}
+				else if (!bAlready)
+				for (float D = FMath::CeilToFloat((X0 + Y0) / HatchStep) * HatchStep; D < X1 + Y1; D += HatchStep)
 				{
 					const float Ax = FMath::Max(X0, D - Y1), Bx = FMath::Min(X1, D - Y0);
 					if (Bx - Ax > 0.5f) F.Lines({{Ax, D - Ax}, {Bx, D - Bx}}, WithAlpha(Col, 0.3f * Alpha), 1.f);
@@ -291,7 +383,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		}
 
 	// ---- 타워 (D-140: 아틀라스가 준비되면 카드·조커는 구운 그림을 한 층에 모아 찍는다)
-	const bool bAtlas = bStatic && Atlas.IsValid() && Atlas->Ready();
+	const bool bAtlas = bStatic && UseAtlas();
 	const int32 SpriteLayer = bAtlas ? F.NextLayer() : 0;
 	if (bAtlas) F.NextLayer();
 	for (const auto& KV : G.Towers)
@@ -705,10 +797,19 @@ void SPDBoardWidget::PaintEffects(FCanvas& F) const
 		}
 	}
 	// 별빛: 빛 덩어리(겹친 네모) + 돌며 줄어드는 빛살 (갈래 수는 발사체마다: 2 한 줄, 4 십자, 5 별, 6 눈꽃, 8 큰 별, 0 덩어리만)
+	// 별빛·고리는 아틀라스에 구운 흰 모양을 색·크기·회전을 입혀 찍는다 (D-141). 아주 큰 고리는 번질까 봐 선으로
+	const bool bFxAtlas = UseAtlas();
+	const int32 FlareLayer = bFxAtlas ? F.NextLayer() : 0;
+	if (bFxAtlas) F.NextLayer();
 	for (const FFlare& Fl : Flares)
 	{
 		if (Fl.T < 0.f) continue; // 늦게 나타나는 별빛
 		const float U = Fl.T / Fl.MaxT, A = 1.f - U, Sz = Fl.Size * (0.6f + 0.6f * FMath::Sin(FMath::Min(1.f, U * 2.f) * PI * 0.5f));
+		if (bFxAtlas && Fl.Spokes % 2 == 0 && Fl.Spokes <= 8 && Sz <= 90.f)
+		{
+			F.SpriteRot(FlareLayer, &Atlas->Brushes[AtlasFx0 + FxFlare(Fl.Spokes)], Fl.C.X, Fl.C.Y, Sz / AtlasFxR, Fl.Spokes == 2 ? Fl.Rot : Fl.Rot + U * 0.6f, WithAlpha(Fl.Col, A));
+			continue;
+		}
 		const float GA = Fl.Spokes == 0 ? 0.13f : 0.07f;
 		for (int32 J = 1; J <= 3; ++J) { const float H = Sz * (Fl.Spokes == 0 ? 0.3f : 0.25f) * J; F.Box(Fl.C.X - H, Fl.C.Y - H, H * 2.f, H * 2.f, WithAlpha(Fl.Col, GA * A)); }
 		if (Fl.Spokes == 2) // 한 줄: 양쪽으로 길게
@@ -728,15 +829,33 @@ void SPDBoardWidget::PaintEffects(FCanvas& F) const
 	for (const FShard& Sh : Shards)
 	{
 		const float A = FMath::Clamp(Sh.Life / Sh.MaxLife, 0.f, 1.f);
+		if (bFxAtlas) { F.ImageRot(FlareLayer, &Atlas->LineBrush, Sh.P.X, Sh.P.Y, Sh.Len * (LineHalf * 2.f + 12.f) / (LineHalf * 2.f), LineH, Sh.A, WithAlpha(Sh.Col, A)); continue; } // 구운 빛선 (D-143)
 		const FVector2f D = Rot2(FVector2f(Sh.Len * 0.5f, 0.f), Sh.A);
 		F.Glow({Sh.P - D, Sh.P + D}, WithAlpha(Sh.Col, A), 1.5f, 0.9f * A);
 	}
+	const int32 RingLayer = bFxAtlas ? F.NextLayer() : 0;
+	if (bFxAtlas) F.NextLayer();
 	for (const FRing& R : Rings)
 	{
 		if (R.T < 0.f) continue; // 늦게 퍼지는 파동
 		const float U = R.T / R.MaxT, Rad = R.R0 + (R.R1 - R.R0) * (1.f - (1.f - U) * (1.f - U));
 		const FLinearColor RC = WithAlpha(R.Col, 1.f - U);
 		const float Th = R.Width * (1.f - U * 0.5f), A0 = R.Rot + R.Spin * R.T;
+		if (bFxAtlas && Rad <= 80.f)
+		{
+			int32 Id = 0;
+			switch (R.Shape)
+			{
+			case EWave::Poly: Id = FxPoly(R.N); break;
+			case EWave::Star: Id = FxStar(R.N); break;
+			case EWave::Broken: Id = FxBroken(R.N); break;
+			case EWave::Rays: Id = FxRays(R.N); break;
+			case EWave::Suit: Id = FxSuit(R.N); break;
+			default: Id = 0; break;
+			}
+			if (Rad > 1.f) F.SpriteRot(RingLayer, &Atlas->Brushes[AtlasFx0 + Id], R.C.X, R.C.Y, Rad / AtlasFxR, R.Shape == EWave::Suit || R.Shape == EWave::Circle ? 0.f : A0, RC);
+			continue;
+		}
 		switch (R.Shape)
 		{
 		case EWave::Poly: // 도는 다각형
@@ -786,7 +905,12 @@ void SPDBoardWidget::PaintEffects(FCanvas& F) const
 			if (Pa.bStreak && !bDotParticles)
 			{
 				const FVector2f Tail = Pa.P - Pa.V * 0.04f;
-				F.Lines({Tail, Pa.P}, WithAlpha(Pa.Col, A), S);
+				if (bFxAtlas) // 구운 빛선 (D-143)
+				{
+					const FVector2f Mid = (Tail + Pa.P) * 0.5f, Dv = Pa.P - Tail;
+					F.ImageRot(L2, &Atlas->LineBrush, Mid.X, Mid.Y, FMath::Max(2.f, Dv.Size()) * (LineHalf * 2.f + 12.f) / (LineHalf * 2.f), LineH * FMath::Clamp(S / 1.5f, 0.6f, 2.f), FMath::Atan2(Dv.Y, Dv.X), WithAlpha(Pa.Col, A));
+				}
+				else F.Lines({Tail, Pa.P}, WithAlpha(Pa.Col, A), S);
 			}
 			else F.BoxAt(L2, Pa.P.X - S / 2.f, Pa.P.Y - S / 2.f, S, S, WithAlpha(Pa.Col, A));
 		}
@@ -854,9 +978,12 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			if (!SynRevealed(I)) // 평소 (D-113, D-126): 재료 칸 모서리에 금색 꺾쇠가 숨 쉬듯 반짝 + 아래 변에 큰 금색 점
 			{
 				const float Br = 0.55f + 0.45f * FMath::Sin(Clock * 3.f + I * 0.9f);
+				const bool bImg = UseAtlas();
+				const int32 BrL = bImg ? F.NextLayer() : 0;
 				for (int K : G.Synergies[I].Cells)
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+					if (bImg) { F.Image(BrL, &Atlas->BracketBrush, C0.X - BracketPad, C0.Y - BracketPad, CS + BracketPad * 2.f, CS + BracketPad * 2.f, WithAlpha(Gold, 0.55f + 0.45f * Br)); continue; } // 구운 꺾쇠 (D-143)
 					const float A = 3.f, B = CS - 3.f, L = 10.f;
 					const FLinearColor Cc = WithAlpha(Gold, 0.55f + 0.45f * Br);
 					F.Glow({C0 + FVector2f(A, A + L), C0 + FVector2f(A, A), C0 + FVector2f(A + L, A)}, Cc, 1.8f, 0.6f + 0.6f * Br);

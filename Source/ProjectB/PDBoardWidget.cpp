@@ -14,10 +14,13 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "UObject/StrongObjectPtr.h"
 #include "RenderingThread.h"
+#include "RHICommandList.h"
+#include "TextureResource.h"
 #include "Widgets/SLeafWidget.h"
 #include "RenderTimer.h"
 #include "DynamicRHI.h"
 #include "Misc/CommandLine.h"
+#include "UnrealClient.h"
 
 #if !UE_BUILD_SHIPPING
 static void PDDebugStress(PD::FPDGame& G);
@@ -28,33 +31,46 @@ static void PDDebugStress(PD::FPDGame& G);
 class SPDAtlasPainter : public SLeafWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SPDAtlasPainter) {}
+	SLATE_BEGIN_ARGS(SPDAtlasPainter) : _Owner(nullptr), _Mode(0) {} // 기본값 필수: 없으면 Mode 가 쓰레기 값이라 아틀라스에 판 배경이 그려졌다
 	SLATE_ARGUMENT(const SPDBoardWidget*, Owner)
+	SLATE_ARGUMENT(int32, Mode) // 0 아틀라스, 1 판 배경
 	SLATE_END_ARGS()
-	void Construct(const FArguments& A) { Owner = A._Owner; }
-	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(PDDraw::AtlasTex, PDDraw::AtlasTex); }
+	void Construct(const FArguments& A) { Owner = A._Owner; Mode = A._Mode; }
+	virtual FVector2D ComputeDesiredSize(float) const override { return Mode ? FVector2D(PDDraw::BgW * PDDraw::AtlasK, PDDraw::BgH * PDDraw::AtlasK) : FVector2D(PDDraw::AtlasTex, PDDraw::AtlasTex); }
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
 		int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
 	{
-		return Owner ? Owner->PaintAtlas(AllottedGeometry, OutDrawElements, LayerId) : LayerId;
+		if (!Owner) return LayerId;
+		return Mode ? Owner->PaintBoardBg(AllottedGeometry, OutDrawElements, LayerId) : Owner->PaintAtlas(AllottedGeometry, OutDrawElements, LayerId);
 	}
 private:
 	const SPDBoardWidget* Owner = nullptr;
+	int32 Mode = 0;
 };
+
+bool SPDBoardWidget::UseAtlas() const { return Atlas.IsValid() && Atlas->Ready() && !GPDDebug.bNoAtlas; }
 
 void SPDBoardWidget::BakeAtlas()
 {
-	Atlas = MakeShared<FPDAtlas>();
-	UTextureRenderTarget2D* RT = FWidgetRenderer::CreateTargetFor(FVector2D(AtlasTex, AtlasTex), TF_Bilinear, false);
-	if (!RT) { Atlas.Reset(); return; }
-	RT->ClearColor = FLinearColor::Transparent;
-	RT->AddToRoot(); // 게임 내내 쓴다
-	Atlas->RT = RT;
-	TSharedRef<SPDAtlasPainter> Painter = SNew(SPDAtlasPainter).Owner(this);
-	Atlas->Painter = Painter;
-	Atlas->Renderer = MakeShared<FWidgetRenderer>(false, true);
-	Atlas->Renderer->DrawWidget(RT, Painter, FVector2D(AtlasTex, AtlasTex), 0.f);
-	FlushRenderingCommands(); // 한 번만 굽는다: 끝날 때까지 기다린다
+	// 화면 배율이 바뀌면 같은 렌더 타깃에 다시 굽는다 (Slate 선 굵기는 화면 픽셀이라 배율마다 굽는 굵기가 다르다)
+	const bool bFirst = !Atlas.IsValid();
+	if (bFirst) Atlas = MakeShared<FPDAtlas>();
+	Atlas->BakedScale = FMath::Max(0.25f, ViewScale);
+	UTextureRenderTarget2D* RT = Cast<UTextureRenderTarget2D>(Atlas->RT);
+	if (!RT)
+	{
+		RT = FWidgetRenderer::CreateTargetFor(FVector2D(AtlasTex, AtlasTex), TF_Bilinear, true);
+		if (!RT) { Atlas.Reset(); return; }
+		RT->ClearColor = FLinearColor::Transparent;
+		RT->AddToRoot(); // 게임 내내 쓴다
+		Atlas->RT = RT;
+		Atlas->Painter = SNew(SPDAtlasPainter).Owner(this);
+		Atlas->Renderer = MakeShared<FWidgetRenderer>(true, true);
+	}
+	BakeTiled(RT, AtlasTex, (AtlasN + AtlasCols - 1) / AtlasCols * (int32)(AtlasCell * AtlasK), Atlas->Painter.ToSharedRef()); // 처음과 화면 크기가 바뀔 때만
+	Atlas->Frames = 0;
+	Atlas->BgSig = 0; // 판 배경도 다시
+	if (!bFirst) return;
 	Atlas->Brushes.SetNum(AtlasN);
 	for (int32 I = 0; I < AtlasN; ++I)
 	{
@@ -65,6 +81,96 @@ void SPDBoardWidget::BakeAtlas()
 		const FVector2f C = AtlasCellCenter(I) * AtlasK, H(AtlasCell * AtlasK * 0.5f, AtlasCell * AtlasK * 0.5f);
 		B.SetUVRegion(FBox2f((C - H) / (float)AtlasTex, (C + H) / (float)AtlasTex));
 	}
+	// 보조 붓 (D-143): 칸 가운데의 일부만 쓰는 붓. Wd·Hd 는 설계 크기, (Ox, Oy) 는 칸 가운데 기준 왼쪽 위
+	auto Sub = [&](int32 I, float Ox, float Oy, float Wd, float Hd) {
+		FSlateBrush B;
+		B.SetResourceObject(RT);
+		B.ImageSize = FVector2D(Wd * AtlasK, Hd * AtlasK);
+		B.DrawAs = ESlateBrushDrawType::Image;
+		const FVector2f C = AtlasCellCenter(I), A = (C + FVector2f(Ox, Oy)) * AtlasK, Bm = (C + FVector2f(Ox + Wd, Oy + Hd)) * AtlasK;
+		B.SetUVRegion(FBox2f(A / (float)AtlasTex, Bm / (float)AtlasTex));
+		return B;
+	};
+	// 빗금: 칸(48) 안에서 들인 만큼만 (겹 0~2 의 들임 4·9·14, 변마다 들이거나 말거나)
+	for (int32 Layer = 0; Layer < 3; ++Layer)
+		for (int32 Mask = 0; Mask < 16; ++Mask)
+		{
+			const float M = 4.f + 5.f * Layer;
+			const float L = Mask & 1 ? M : 0.f, R = Mask & 2 ? M : 0.f, U = Mask & 4 ? M : 0.f, D = Mask & 8 ? M : 0.f;
+			Atlas->HatchBrushes.Add(Sub(AtlasHatch, -CS / 2.f + L, -CS / 2.f + U, CS - L - R, CS - U - D));
+		}
+	Atlas->BracketBrush = Sub(AtlasBracket, -CS / 2.f - BracketPad, -CS / 2.f - BracketPad, CS + BracketPad * 2.f, CS + BracketPad * 2.f);
+	Atlas->LineBrush = Sub(AtlasLine, -LineHalf - 6.f, -LineH / 2.f, LineHalf * 2.f + 12.f, LineH);
+}
+
+// 조각 굽기 (D-143): 512 조각마다 그려서 큰 텍스처의 제자리로 복사, 조각마다 렌더가 끝날 때까지 기다린다
+void SPDBoardWidget::BakeTiled(UObject* DstObj, int32 W, int32 H, const TSharedRef<SWidget>& Painter)
+{
+	UTextureRenderTarget2D* Dst = Cast<UTextureRenderTarget2D>(DstObj);
+	if (!Atlas.IsValid() || !Dst) return;
+	if (!Atlas->Scratch)
+	{
+		UTextureRenderTarget2D* S = FWidgetRenderer::CreateTargetFor(FVector2D(BakeTile, BakeTile), TF_Bilinear, true);
+		if (!S) return;
+		S->ClearColor = FLinearColor::Transparent;
+		S->AddToRoot();
+		Atlas->Scratch = S;
+		Atlas->ScratchRenderer = MakeShared<FWidgetRenderer>(true, true);
+	}
+	UTextureRenderTarget2D* Scratch = Cast<UTextureRenderTarget2D>(Atlas->Scratch);
+	FTextureRenderTargetResource* SR = Scratch->GameThread_GetRenderTargetResource();
+	FTextureRenderTargetResource* DR = Dst->GameThread_GetRenderTargetResource();
+	for (int32 Y = 0; Y < H; Y += BakeTile)
+		for (int32 X = 0; X < W; X += BakeTile)
+		{
+			Atlas->TileOrigin = FVector2f((float)X, (float)Y);
+			Painter->Invalidate(EInvalidateWidgetReason::Paint); // 지난 조각 그림을 다시 쓰지 않게
+			Atlas->ScratchRenderer->DrawWidget(Scratch, Painter, FVector2D(BakeTile, BakeTile), 0.016f);
+			const int32 Wc = FMath::Min(BakeTile, W - X), Hc = FMath::Min(BakeTile, H - Y);
+			ENQUEUE_RENDER_COMMAND(PDCopyBakeTile)([SR, DR, X, Y, Wc, Hc](FRHICommandListImmediate& RHICmdList)
+			{
+				FRHITexture* ST = SR->TextureRHI.GetReference(); // 화면에서 쓰는 쪽 텍스처 (그리는 쪽과 다를 수 있다)
+				FRHITexture* DT = DR->TextureRHI.GetReference();
+				if (!ST || !DT) return;
+				RHICmdList.Transition({FRHITransitionInfo(ST, ERHIAccess::Unknown, ERHIAccess::CopySrc), FRHITransitionInfo(DT, ERHIAccess::Unknown, ERHIAccess::CopyDest)});
+				FRHICopyTextureInfo Info;
+				Info.Size = FIntVector(Wc, Hc, 1);
+				Info.DestPosition = FIntVector(X, Y, 0);
+				RHICmdList.CopyTexture(ST, DT, Info);
+				RHICmdList.Transition({FRHITransitionInfo(ST, ERHIAccess::CopySrc, ERHIAccess::SRVMask), FRHITransitionInfo(DT, ERHIAccess::CopyDest, ERHIAccess::SRVMask)});
+			});
+			FlushRenderingCommands(); // 다음 조각이 같은 조각 텍스처를 쓰기 전에
+		}
+	Atlas->TileOrigin = FVector2f(0.f, 0.f);
+}
+
+// 판 배경 서명: 길이 바뀌면 (새 판) 다시 굽는다
+uint64 SPDBoardWidget::BoardBgSig() const
+{
+	uint64 S = 1469598103934665603ull;
+	for (const FPDPoint& P : Game.Path.Points) S = (S ^ (uint64)(P.X * 1000.f) ^ ((uint64)(P.Y * 1000.f) << 24)) * 1099511628211ull;
+	return S ^ Game.Path.Points.size();
+}
+
+void SPDBoardWidget::BakeBoardBg(uint64 Sig)
+{
+	if (!Atlas.IsValid()) return;
+	if (!Atlas->BgRT)
+	{
+		UTextureRenderTarget2D* RT = FWidgetRenderer::CreateTargetFor(FVector2D(BgW * AtlasK, BgH * AtlasK), TF_Bilinear, true);
+		if (!RT) return;
+		RT->ClearColor = FLinearColor::Transparent;
+		RT->AddToRoot();
+		Atlas->BgRT = RT;
+		Atlas->BgBrush.SetResourceObject(RT);
+		Atlas->BgBrush.ImageSize = FVector2D(BgW * AtlasK, BgH * AtlasK);
+		Atlas->BgBrush.DrawAs = ESlateBrushDrawType::Image;
+		Atlas->BgPainter = SNew(SPDAtlasPainter).Owner(this).Mode(1);
+		Atlas->BgRenderer = MakeShared<FWidgetRenderer>(true, true);
+	}
+	BakeTiled(Atlas->BgRT, (int32)(BgW * AtlasK), (int32)(BgH * AtlasK), Atlas->BgPainter.ToSharedRef());
+	Atlas->BgSig = Sig;
+	Atlas->BgFrames = 0;
 }
 
 void SPDBoardWidget::Construct(const FArguments& InArgs)
@@ -282,6 +388,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				Game.Speed = 10;
 				if (Game.Phase == EPDPhase::Build) Game.StartWave();
 				if (Game.Phase == EPDPhase::Reward) Game.TakeReward(-1);
+				static bool bShot = false; // 게임 안 스크린샷 (Saved/Screenshots): 부하 시험 화면 확인용
+				if (!bShot && StressT > 8.f) { bShot = true; FScreenshotRequest::RequestScreenshot(TEXT("PDStress"), true, false); }
 				if (StressT > 45.f) FPlatformMisc::RequestExit(false);
 			}
 		}
@@ -316,8 +424,17 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	{
 		const float SK = Shake * 14.f;
 		ShakeOff = FVector2f(FMath::FRandRange(-SK, SK), FMath::FRandRange(-SK, SK));
-		if (!Atlas.IsValid() && Clock > 0.3f) BakeAtlas();
-		else if (Atlas.IsValid()) ++Atlas->Frames;
+		// 패키지에선 시작 직후 렌더러·글꼴이 덜 준비돼 빈 그림이 구워질 수 있다: 1초에 굽고 4초에 한 번 더 (D-143)
+		if (!Atlas.IsValid() && Clock > 1.f) BakeAtlas();
+		else if (Atlas.IsValid() && !Atlas->bRebaked && Clock > 4.f) { Atlas->bRebaked = true; BakeAtlas(); }
+		else if (Atlas.IsValid() && Atlas->Ready() && FMath::Abs(ViewScale - Atlas->BakedScale) > 0.04f) BakeAtlas(); // 화면 크기가 바뀜
+		else if (Atlas.IsValid())
+		{
+			++Atlas->Frames;
+			++Atlas->BgFrames;
+			const uint64 BgS = BoardBgSig();
+			if (Atlas->Ready() && Atlas->BgSig != BgS && !Game.Path.Points.empty()) BakeBoardBg(BgS); // 새 판: 판 배경 다시 굽기
+		}
 	}
 	GPDDebug.TickMs = FMath::Lerp(GPDDebug.TickMs, (float)((FPlatformTime::Seconds() - TickT0) * 1000.0), 0.1f);
 	if (GPDDebug.bShow && GPDDebug.Acc < Dt) // 디버그 표시가 켜져 있으면 1초마다 로그에도 (Saved/Logs, D-135)
@@ -683,6 +800,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (InKeyEvent.IsRepeat()) return FReply::Handled();
 	const FKey K = InKeyEvent.GetKey();
 	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
+	if (K == EKeys::F6) { GPDDebug.bNoAtlas = !GPDDebug.bNoAtlas; return FReply::Handled(); } // 구운 그림 ↔ 선 비교
 #if !UE_BUILD_SHIPPING
 	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); }
 #endif
