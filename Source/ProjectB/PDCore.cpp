@@ -813,7 +813,7 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
 	// 무한 진행: 15웨이브까지 ×1.45, 그 뒤로는 ×1.3씩
-	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, 15) - 1)) * std::pow(1.3f, (float)std::max(0, W - 15));
+	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, 15) - 1)) * std::pow(1.3f, (float)std::max(0, W - 15)) * EarlyHpK(W); // 초반 완화 (D-106)
 	const float Hp = BossHp * WaveScale(W) * MobHpBonus; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
 	const int N = WaveCount(W);
 	for (int I = 0; I < N; ++I)
@@ -866,7 +866,7 @@ void FPDGame::EndWave()
 	{
 		Rewards.clear();
 		Phase = EPDPhase::Build;
-		AutoStartT = AutoStartDelay;
+		AutoStartT = AutoStartDelayFor(Wave + 1);
 	}
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::WaveClear;
@@ -919,7 +919,7 @@ void FPDGame::TakeReward(int Index)
 	}
 	Rewards.clear();
 	Phase = EPDPhase::Build;
-	AutoStartT = AutoStartDelay; // 부적을 고르면 5초 뒤 다음 웨이브
+	AutoStartT = AutoStartDelayFor(Wave + 1); // 부적을 고르면 5초(초반은 12초) 뒤 다음 웨이브
 }
 
 std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers) const

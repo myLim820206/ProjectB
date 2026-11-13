@@ -2424,7 +2424,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.Glow(FCanvas::RectPoints(RBtnX, StartBtnY, RBtnW, StartBtnH), Green, 1.6f, 0.6f + 0.8f * Pulse);
 		if (G.AutoStartT >= 0.f) // 자동 시작까지 남은 시간: 버튼이 차오르고 초를 센다
 		{
-			const float U = 1.f - FMath::Clamp(G.AutoStartT / AutoStartDelay, 0.f, 1.f);
+			const float U = 1.f - FMath::Clamp(G.AutoStartT / AutoStartDelayFor(G.Wave + 1), 0.f, 1.f);
 			C.Box(RBtnX + 1.f, StartBtnY + 1.f, (RBtnW - 2.f) * U, StartBtnH - 2.f, WithAlpha(Green, 0.14f));
 			C.TextCentered(FString::Printf(TEXT("웨이브 %d · %d초 뒤 (Space: 지금)"), G.Wave + 1, FMath::CeilToInt(G.AutoStartT)), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH / 2.f, Green, 12.f, true, RBtnW - 8.f);
 			if (G.AutoStartT <= 3.f) // 마지막 3초는 판 위에 크게

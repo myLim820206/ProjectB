@@ -217,11 +217,11 @@ static void UnitTests()
 		G.bMuted = true;
 		auto EndAt = [&](int W) { G.Wave = W; G.Phase = EPDPhase::Wave; G.Enemies.clear(); G.Update(0.f); }; // 새 판이라 남은 적(Pending)도 없음
 		EndAt(3);
-		const bool bNoWindow = G.Phase == EPDPhase::Build && G.Rewards.empty() && std::fabs(G.AutoStartT - AutoStartDelay) < 1e-4f;
+		const bool bNoWindow = G.Phase == EPDPhase::Build && G.Rewards.empty() && std::fabs(G.AutoStartT - AutoStartDelayFor(4)) < 1e-4f;
 		EndAt(5);
 		int NC = 0;
 		for (const FPDReward& R : G.Rewards) NC += R.bCharm;
-		Expect(bNoWindow && G.Phase == EPDPhase::Reward && G.Rewards.size() == 3 && NC >= 2, "3웨이브는 창 없이 5초 뒤 다음, 5웨이브에 부적 창");
+		Expect(bNoWindow && G.Phase == EPDPhase::Reward && G.Rewards.size() == 3 && NC >= 2, "3웨이브는 창 없이 (초반이라 12초) 뒤 다음, 5웨이브에 부적 창");
 	}
 	{ // 발사체: ♥ 미사일은 날아가서 닿을 때 피해, ♠ 레이저는 즉시
 		FPDGame G(32);
@@ -262,13 +262,16 @@ static void UnitTests()
 		G.bMuted = true;
 		for (int K = 0; K < 200; ++K) G.Tick(0.05f);
 		const bool bFirstWaits = G.Phase == EPDPhase::Build && G.Wave == 0;
+		G.Wave = EasyWaves; // 초반 완화가 끝난 뒤 (다음 웨이브는 5초)
 		G.Phase = EPDPhase::Reward;
 		G.TakeReward(-1);
 		G.Speed = 3;
 		for (int K = 0; K < 98; ++K) G.Tick(0.05f); // 4.9초
 		const bool bNotYet = G.Phase == EPDPhase::Build;
 		for (int K = 0; K < 4; ++K) G.Tick(0.05f);   // 5.1초
-		Expect(bFirstWaits && bNotYet && G.Phase == EPDPhase::Wave && G.Wave == 1 && G.AutoStartT < 0.f, "자동 시작: 첫 웨이브는 기다림, 보상 뒤 5초(속도 ×3 이어도)에 다음 웨이브");
+		Expect(bFirstWaits && bNotYet && G.Phase == EPDPhase::Wave && G.Wave == EasyWaves + 1 && G.AutoStartT < 0.f, "자동 시작: 첫 웨이브는 기다림, 보상 뒤 5초(속도 ×3 이어도)에 다음 웨이브");
+		Expect(AutoStartDelayFor(2) == EasyAutoStartDelay && AutoStartDelayFor(EasyWaves + 1) == AutoStartDelay, "초반(5웨이브까지)은 다음 웨이브까지 12초");
+		Expect(std::fabs(EarlyHpK(1) - 0.55f) < 1e-4f && EarlyHpK(5) < 1.f && EarlyHpK(6) == 1.f, "초반 적 체력: 1웨이브 ×0.55, 6웨이브부터 ×1");
 	}
 	{ // 발사체 고르기: 조커 → 족보(스트레이트 이상) → 무늬
 		FPDTower T;
