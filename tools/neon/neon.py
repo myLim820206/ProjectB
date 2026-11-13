@@ -622,7 +622,43 @@ def render_floors(out, S=3):
     img.resize((W, H), Image.LANCZOS).save(out)
 
 
+def _bloom(img, threshold, strength, radii):
+    """밝은 부분만 골라 여러 크기로 흐려 더한다 (언리얼 블룸 흉내)"""
+    lum = img.convert('L').point(lambda v: 255 if v > threshold else int(v * v / (threshold * threshold) * 255 * 0.15))
+    bright = Image.composite(img, Image.new('RGB', img.size, (0, 0, 0)), lum)
+    acc = img.copy()
+    for r, w in radii:
+        b = bright.filter(ImageFilter.GaussianBlur(r))
+        acc = ImageChops.add(acc, b.point(lambda v, k=w * strength: min(255, int(v * k))))
+    return acc
+
+
+def render_bloom(src, out, box=None):
+    """게임 화면 캡처로 블룸 미리보기: 현재 / 네온 강화 / 네온 강화 + 블룸"""
+    base = Image.open(src).convert('RGB')
+    if box:
+        base = base.crop(box)
+    base = base.resize((base.width * 2, base.height * 2), Image.LANCZOS)
+    # 네온 강화: 선 심을 밝게 + 좁은 번짐 한 겹 더 (Slate 번짐 겹을 세게 한 것과 비슷)
+    strong = base.point(lambda v: min(255, int(255 * (v / 255) ** 0.8 * 1.1)))
+    strong = ImageChops.add(strong, strong.filter(ImageFilter.GaussianBlur(4)).point(lambda v: int(v * 0.45)))
+    bloomed = _bloom(strong, 170, 0.6, [(5, 0.45), (14, 0.35), (30, 0.25)])
+    W, H = base.size
+    pad, top = 16, 40
+    img = Image.new('RGB', (W * 3 + pad * 4, H + top + pad), BG)
+    d = ImageDraw.Draw(img)
+    for i, (im, name) in enumerate([(base, '현재'), (strong, '네온 강화'), (bloomed, '네온 강화 + 블룸')]):
+        x = pad + i * (W + pad)
+        img.paste(im, (x, top))
+        d.text((x + W / 2, top / 2), name, fill=(207, 216, 230), font=KFONT(16), anchor='mm')
+    img.save(out)
+
+
 if __name__ == '__main__':
+    if len(sys.argv) >= 4 and sys.argv[1] == 'bloom':  # python neon.py bloom 캡처.png 출력.png [x0 y0 x1 y1]
+        render_bloom(sys.argv[2], sys.argv[3], tuple(int(v) for v in sys.argv[4:8]) if len(sys.argv) >= 8 else None)
+        print('saved', sys.argv[3])
+        sys.exit(0)
     if len(sys.argv) >= 4 and sys.argv[1] == 'tree':
         render_tree(sys.argv[2], sys.argv[3])
         print('saved', sys.argv[2])

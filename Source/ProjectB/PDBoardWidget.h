@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Brushes/SlateColorBrush.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/SLeafWidget.h"
 #include "PDCore.h"
 
 // 포커 디펜스 화면 전체. 1280 x 720 기준 좌표로 그리고 창 크기에 맞춰 확대한다.
@@ -53,6 +54,11 @@ public:
 	}
 	// 정사영 카메라 폭 (월드 단위 = 판 px). 창 전체 폭을 판 배율로 나눈 값
 	float GetWorldViewWidth() const { return ViewSize.X / FMath::Max(0.01f, ViewScale); }
+	// 위젯 크기 (Slate 단위). 블룸 거울이 같은 크기로 그리려고 쓴다
+	FVector2f GetViewSize() const { return ViewSize; }
+	// 블룸 거울 (D-102): 판을 렌더 타깃에 한 번 더 그린다. 화면 좌표(View*)와 흔들림 값은 바꾸지 않는다
+	int32 PaintMirror(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
+		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
 	// 메뉴의 [게임 종료]. 게임 모드가 채운다 (월드가 있어야 PIE·패키지 모두 바르게 끝낼 수 있어서)
 	TFunction<void()> OnQuit;
@@ -186,8 +192,30 @@ private:
 	mutable float ViewScale = 1.f;
 	mutable FVector2f ViewOffset = FVector2f(0.f, 0.f);
 	mutable FVector2f ViewSize = FVector2f(1280.f, 720.f);
+	mutable FVector2f LastShakeOff = FVector2f(0.f, 0.f); // 이번 프레임 판 흔들림 (거울도 같은 값)
+	mutable bool bMirrorPaint = false;
 
 	// 월드 이펙트 요청 큐 (게임 모드가 매 프레임 꺼내 감)
 	TArray<FWorldFx> WorldFx;
 	void PushWorldFx(EWorldFx Kind, FVector2f DesignPos, const FLinearColor& Col, float Scale, FVector2f Dir = FVector2f(0.f, -1.f));
+};
+
+// 블룸 거울 (D-102): 판 위젯을 그대로 다시 그리는 껍데기. 게임 모드가 렌더 타깃에 그려 후처리 머티리얼로 장면에 더하면
+// 블룸이 판 선에도 걸린다 (Slate 는 후처리 뒤에 그려져 블룸을 못 받음)
+class SPDBoardMirror : public SLeafWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SPDBoardMirror) {}
+	SLATE_END_ARGS()
+	void Construct(const FArguments& InArgs, TSharedPtr<SPDBoardWidget> InBoard) { Board = InBoard; }
+	virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(1280.0, 720.0); }
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
+		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
+	{
+		const TSharedPtr<SPDBoardWidget> B = Board.Pin();
+		return B.IsValid() ? B->PaintMirror(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) : LayerId;
+	}
+
+private:
+	TWeakPtr<SPDBoardWidget> Board;
 };
