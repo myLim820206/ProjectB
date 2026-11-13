@@ -201,8 +201,11 @@ template <class F> static void PDForNeighbors(int K, F&& Fn)
 static int PDCellDist(int A, int B) { return std::abs(A % Cols - B % Cols) + std::abs(A / Cols - B / Cols); }
 
 // ESU 방식으로 연결 묶음(2~KMax칸)을 한 번씩만 만든다: 시작점보다 번호가 큰 칸으로만 넓힌다
-static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& Sub, const std::vector<int>& Ext, int Root, int KMax, std::vector<std::vector<int>>& Out)
+// Viable(Sub) 가 false 면 그 묶음과 그것을 품는 더 큰 묶음은 족보가 될 수 없어 더 넓히지 않는다 (D-134: 큰 판에서 61ms → 1ms 남짓)
+template <class FViable>
+static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& Sub, const std::vector<int>& Ext, int Root, int KMax, std::vector<std::vector<int>>& Out, const FViable& Viable)
 {
+	if (!Viable(Sub)) return;
 	if (Sub.size() >= 2) Out.push_back(Sub);
 	if ((int)Sub.size() == KMax) return;
 	std::vector<int> E = Ext;
@@ -210,14 +213,15 @@ static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& 
 	{
 		const int W = E.back();
 		E.pop_back();
-		std::set<int> Near;
-		for (int U : Sub) for (int Z : Nb[U]) Near.insert(Z);
+		int Near[32], NNear = 0; // 지금 묶음의 이웃 (묶음 5칸 × 이웃 4 = 최대 20)
+		for (int U : Sub) for (int Z : Nb[U]) if (NNear < 32) Near[NNear++] = Z;
+		auto IsNear = [&](int U) { for (int I = 0; I < NNear; ++I) if (Near[I] == U) return true; return false; };
 		std::vector<int> Next = E;
 		for (int U : Nb[W])
-			if (U > Root && std::find(Sub.begin(), Sub.end(), U) == Sub.end() && U != W && !Near.count(U) && std::find(E.begin(), E.end(), U) == E.end())
+			if (U > Root && std::find(Sub.begin(), Sub.end(), U) == Sub.end() && U != W && !IsNear(U) && std::find(E.begin(), E.end(), U) == E.end())
 				Next.push_back(U);
 		Sub.push_back(W);
-		PDExtend(Nb, Sub, Next, Root, KMax, Out);
+		PDExtend(Nb, Sub, Next, Root, KMax, Out, Viable);
 		Sub.pop_back();
 	}
 }
@@ -281,12 +285,41 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 				auto It = Idx.find(NK);
 				if (It != Idx.end()) Nb[I].push_back(It->second);
 			});
+		// 가지치기 (D-134): 와일드·조커를 뺀 카드가 ① 무늬가 모두 같거나 ② 숫자가 모두 다르고 폭이 4 이하(A 는 1 또는 14)거나
+		// ③ 숫자 종류가 2개 이하일 때만 족보(또는 더 큰 족보의 일부)가 될 수 있다. 레벨이 섞여도 안 됨. 큰 묶음으로 갈수록 조건이 줄기만 하므로 여기서 끊어도 빠지는 족보가 없다
+		std::vector<FPDCard> CardOf(Comp.size());
+		std::vector<int> LvOf(Comp.size());
+		for (int I = 0; I < (int)Comp.size(); ++I)
+		{
+			const FPDTower& T = Towers.at(Comp[I]);
+			CardOf[I] = T.IsJoker() ? FPDCard{0, EPDSuit::Wild} : T.Card;
+			LvOf[I] = T.IsJoker() ? -1 : T.Level;
+		}
+		auto Viable = [&](const std::vector<int>& Sub) {
+			int Lv = -1, Suit = -1, NR = 0, Ranks[5], HiMin = 99, HiMax = 0, LoMin = 99, LoMax = 0;
+			bool bSameSuit = true, bDistinct = true;
+			for (int I : Sub)
+			{
+				if (LvOf[I] >= 0) { if (Lv < 0) Lv = LvOf[I]; else if (Lv != LvOf[I]) return false; }
+				const FPDCard& C = CardOf[I];
+				if (C.IsWild()) continue;
+				if (Suit < 0) Suit = (int)C.Suit; else if (Suit != (int)C.Suit) bSameSuit = false;
+				bool bSeen = false;
+				for (int J = 0; J < NR; ++J) bSeen = bSeen || Ranks[J] == C.Rank;
+				if (bSeen) bDistinct = false; else Ranks[NR++] = C.Rank;
+				const int Lo = C.Rank == 14 ? 1 : C.Rank;
+				HiMin = std::min(HiMin, C.Rank); HiMax = std::max(HiMax, C.Rank);
+				LoMin = std::min(LoMin, Lo); LoMax = std::max(LoMax, Lo);
+			}
+			if (NR <= 2 || bSameSuit) return true;
+			return bDistinct && (HiMax - HiMin <= 4 || LoMax - LoMin <= 4);
+		};
 		std::vector<std::vector<int>> Subs;
 		for (int V = 0; V < (int)Comp.size(); ++V)
 		{
 			std::vector<int> Sub{V}, Ext;
 			for (int U : Nb[V]) if (U > V) Ext.push_back(U);
-			PDExtend(Nb, Sub, Ext, V, 5, Subs);
+			PDExtend(Nb, Sub, Ext, V, 5, Subs, Viable);
 		}
 		struct FCand { EPDHand Kind; int N, Value; std::vector<int> Cells; };
 		std::vector<FCand> Cands;

@@ -525,11 +525,53 @@ FReply SPDBoardWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoi
 	return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 }
 
+#if !UE_BUILD_SHIPPING
+// 부하 시험 치트 (D-134, F4, 쉬핑 빌드에는 없음): 길 둘레 2칸 안 빈칸을 무작위 카드로 채우고(9칸마다 조커) 웨이브 20 직전으로.
+// 타워는 세게(배율 ×6, 조커 ×30·레벨 15), 목숨 999 · 골드 99,999 라 오래 버티며 이펙트를 많이 낸다
+static void PDDebugStress(FPDGame& G)
+{
+	std::mt19937 R(1234);
+	G.Towers.clear();
+	G.Enemies.clear();
+	G.Projectiles.clear();
+	int N = 0;
+	for (int Y = 0; Y < Rows; ++Y)
+		for (int X = 0; X < Cols; ++X)
+		{
+			if (!G.Buildable(X, Y)) continue;
+			bool bNear = false;
+			for (int DY = -2; DY <= 2 && !bNear; ++DY)
+				for (int DX = -2; DX <= 2 && !bNear; ++DX)
+				{
+					const int NX = X + DX, NY = Y + DY;
+					bNear = NX >= 0 && NY >= 0 && NX < Cols && NY < Rows && G.Path.IsPath(NX, NY);
+				}
+			if (!bNear) continue;
+			FPDTower T;
+			T.X = X;
+			T.Y = Y;
+			T.Card = {2 + (int)(R() % 13), (EPDSuit)(R() % 4)};
+			T.Mult = 6.f;
+			if (++N % 9 == 0) { T.Joker = (int)(R() % (int)EPDJoker::Count); T.JLevel = 15; T.Mult = 30.f; T.Card = {0, EPDSuit::Wild}; }
+			G.Towers[CellKey(X, Y)] = T;
+		}
+	G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
+	G.Wave = 19;
+	G.Lives = 999;
+	G.Gold = 99999;
+	G.Phase = EPDPhase::Build;
+	G.AutoStartT = -1.f;
+}
+#endif
+
 FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	if (InKeyEvent.IsRepeat()) return FReply::Handled();
 	const FKey K = InKeyEvent.GetKey();
 	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
+#if !UE_BUILD_SHIPPING
+	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); }
+#endif
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	if (bSettings) { SettingsKey(K); return FReply::Handled(); }
 	if (bMenu)

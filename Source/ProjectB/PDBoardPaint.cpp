@@ -52,11 +52,28 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 
 void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 {
-	// 위력 정보 (D-119): 패널과 타워 정보가 같이 쓴다
-	PowerList = Game.TowerPowers();
-	PowerSum = 0.f;
-	for (const auto& KV : PowerList) PowerSum += KV.second;
-	PowerGain = Game.SynergyGain();
+	// 위력 정보 (D-119): 패널과 타워 정보가 같이 쓴다. 판이 바뀔 때만 다시 계산 (D-134: 큰 판에선 계산 한 번에 수십 ms)
+	{
+		uint64 Sig = 1469598103934665603ull;
+		auto Mix = [&](uint64 V) { Sig = (Sig ^ V) * 1099511628211ull; };
+		for (const auto& KV : Game.Towers)
+		{
+			const FPDTower& T = KV.second;
+			Mix((uint64)KV.first); Mix((uint64)T.Card.Rank << 8 | (uint64)T.Card.Suit); Mix((uint64)T.Level << 16 | (uint64)(T.Joker + 1) << 8 | (uint64)T.JSuit);
+			Mix((uint64)T.JLevel); Mix((uint64)FMath::RoundToInt(T.Mult * 1000.f)); Mix((uint64)FMath::RoundToInt(T.TDmg * 1000.f + T.TRate * 7.f + T.TRange * 13.f + T.TSplash * 17.f));
+		}
+		Mix(Game.CharmMask()); Mix((uint64)Game.Points); Mix(Game.Mods.Keys); Mix(Game.Mods.JokerUp);
+		for (int32 U : Game.Upg) Mix((uint64)U);
+		static uint64 CachedSig = 0;
+		if (Sig != CachedSig || PowerList.empty() != Game.Towers.empty())
+		{
+			CachedSig = Sig;
+			PowerList = Game.TowerPowers();
+			PowerSum = 0.f;
+			for (const auto& KV : PowerList) PowerSum += KV.second;
+			PowerGain = Game.SynergyGain();
+		}
+	}
 	// 판 쪽(F, 흔들림을 받음): 판·적 → 발사체 → 이펙트 → 판 위 UI. 그 위에 고정 패널과 창(C)
 	PaintField(F);
 	PaintShots(F);
