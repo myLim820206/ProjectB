@@ -494,6 +494,15 @@ static const std::array<EPDHand, 3> GPDRecipe[(int)EPDJoker::Count] = {
 	{EPDHand::RoyalFlush, EPDHand::StraightFlush, EPDHand::FullHouse}, // 스타
 };
 const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J) { return GPDRecipe[(int)J]; }
+float JokerTier(EPDJoker J)
+{
+	switch (J)
+	{
+	case EPDJoker::Comedy: case EPDJoker::Mask: case EPDJoker::Jack: case EPDJoker::Baton: return 2.f;
+	case EPDJoker::Harlequin: case EPDJoker::Bell: case EPDJoker::Cheshire: return 2.5f;
+	default: return 3.f; // 모자 장수, 광대, 스타
+	}
+}
 EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 {
 	if (Hands.size() != 3) return EPDJoker::Count;
@@ -1234,7 +1243,7 @@ bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 	}
 	int BestSC = -1;
 	for (auto& KV : SuitCnt) if (KV.second > BestSC) { BestSC = KV.second; J.JSuit = (EPDSuit)KV.first; }
-	J.Mult = Mult * JokerMult() * (1.f + JokerCardBonus * (float)G.Cells.size()); // 재료 카드가 많을수록 세다 (D-114)
+	J.Mult = Mult * JokerMult() * JokerTier(G.Result) * (1.f + JokerCardBonus * (float)G.Cells.size()); // 등급 배율 (D-116), 재료 카드가 많을수록 세다 (D-114)
 	for (int K : G.Cells) Towers.erase(K);
 	Towers[Target] = J;
 	const bool bFirst = !((Discovered >> J.Joker) & 1u);

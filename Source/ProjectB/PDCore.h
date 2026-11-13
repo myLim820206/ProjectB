@@ -217,6 +217,8 @@ EPDJoker CaptainOf(EPDHand H);
 EPDHand CaptainHand(EPDJoker J);
 // 레시피 (D-115): 조커마다 족보 3개 (순서 무관, 같은 족보 여러 번 가능). 족보 10개로 만들 수 있는 3개 조합은 220가지
 const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J);
+// 조커 등급 배율 (D-116): 재료가 3개로 줄어 약해진 만큼. 쉬운 레시피 ×2, 중간 ×2.5, 로열·파이브 카드·스트레이트 플러시가 드는 레시피 ×3
+float JokerTier(EPDJoker J);
 EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 정확히 맞는 조커, 없으면 EPDJoker::Count
 constexpr float CaptainCommand = 0.3f; // 지휘: 판 위 자기 족보 타워 위력 +30%, 대장이 여럿이면 겹친다 (+60%, +90% …)
 constexpr int MaxLevel = 4;

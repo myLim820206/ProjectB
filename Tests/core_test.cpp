@@ -581,6 +581,7 @@ static void UnitTests()
 			std::sort(V.begin(), V.end());
 			Uniq.insert(V);
 		}
+		Expect(JokerTier(EPDJoker::Comedy) == 2.f && JokerTier(EPDJoker::Bell) == 2.5f && JokerTier(EPDJoker::Star) == 3.f, "조커 등급 배율: 쉬움 ×2, 중간 ×2.5, 어려움 ×3 (D-116)");
 		Expect(bRecipes && bCaptainIn && Uniq.size() == 10, "조커 레시피 10개: 서로 다르고, 순서 무관, 자기 대장 족보가 들어 있음 (D-115)");
 		Expect(MatchJokerRecipe({H::Pair, H::Pair, H::Straight}) == EPDJoker::Count && MatchJokerRecipe({H::Pair, H::Pair}) == EPDJoker::Count &&
 			MatchJokerRecipe({H::Straight, H::Pair, H::Straight}) == EPDJoker::Baton && MatchJokerRecipe({H::Pair, H::Four, H::Triple}) == EPDJoker::Cheshire,
@@ -599,8 +600,8 @@ static void UnitTests()
 		const bool bGroup = Groups.size() == 1 && Groups[0].Result == EPDJoker::Baton && Groups[0].Cells.size() == 6;
 		const bool bFused = G.JokerFuse(0);
 		const FPDTower& J = G.Towers.begin()->second;
-		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 6.f * JokerBonus * (1.f + JokerCardBonus * 6.f)) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
-			"맞닿은 스트레이트 둘 + 페어 → 지휘봉 레시피 (위력 6 × 조커 덤 × 카드 6장 덤 1.3), 도감에 기록");
+		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 6.f * JokerBonus * JokerTier(EPDJoker::Baton) * (1.f + JokerCardBonus * 6.f)) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
+			"맞닿은 스트레이트 둘 + 페어 → 지휘봉 레시피 (위력 6 × 조커 덤 × 등급 ×2 × 카드 6장 덤 1.3), 도감에 기록");
 		// 족보 먹이기 (D-098): 조커 옆 족보를 먹이면 경험치(족보 점수 × 평균 위력) → 레벨 업, 먹인 칸은 사라짐
 		{
 			const int JKey = G.Towers.begin()->first, JX = JKey % Cols;
