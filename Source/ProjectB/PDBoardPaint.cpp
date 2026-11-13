@@ -954,8 +954,8 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			C.TextCentered(bKnown ? JokerName(K) : TEXT("???"), X + 107.f, Y + 150.f, WithAlpha(JokerPink, bKnown ? 1.f : 0.6f), 16.f, true, 200.f);
 			C.TextCentered(FString::Printf(TEXT("%s 대장"), HandName(CaptainHand((EPDJoker)K))), X + 107.f, Y + 176.f, HandColor(CaptainHand((EPDJoker)K)), 11.f, true, 200.f);
 			// 조합법은 만들기 전에도 보인다 (이름·능력만 숨김)
-			C.TextCentered(TEXT("레시피"), X + 107.f, Y + 194.f, Dim, 9.f, false, 200.f);
-			C.TextCentered(JokerRecipeText(K), X + 107.f, Y + 210.f, Fg, 10.f, true, 200.f);
+			C.TextCentered(JokerRecipeText(K), X + 107.f, Y + 194.f, Fg, 10.f, true, 200.f);
+			C.TextCentered(JokerRecipe2Text(K), X + 107.f, Y + 210.f, Dim, 10.f, true, 200.f);
 			C.TextCentered(bKnown ? FString(JokerAbility(K)) : FString(TEXT("만들어 보면 능력이 열린다")), X + 107.f, Y + 232.f, bKnown ? Gold : Dim, 10.f, false, 200.f);
 			if (bKnown) C.TextCentered(JokerCommand(K), X + 107.f, Y + 250.f, Fg, 10.f, false, 200.f);
 		}

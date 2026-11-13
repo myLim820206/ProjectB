@@ -190,9 +190,14 @@ inline const TCHAR* HandShort(EPDHand H) { return H == EPDHand::RoyalFlush ? TEX
 inline FString JokerRecipeText(int K)
 {
 	const auto& R = JokerRecipe((EPDJoker)K);
-	return FString::Printf(TEXT("%s + %s + %s"), HandShort(R[0]), HandShort(R[1]), HandShort(R[2]));
+	return FString::Printf(TEXT("3개: %s + %s + %s"), HandShort(R[0]), HandShort(R[1]), HandShort(R[2]));
 }
-inline FString JokerRuleText() { return TEXT("맞닿은 족보 3개가 레시피와 정확히 맞으면 조커 · 이어진 게 더 많아도 그 3개만 (낮은 족보부터)"); }
+inline FString JokerRecipe2Text(int K)
+{
+	const auto& R = JokerRecipe2((EPDJoker)K);
+	return FString::Printf(TEXT("2개: %s + %s"), HandShort(R[0]), HandShort(R[1]));
+}
+inline FString JokerRuleText() { return TEXT("맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의"); }
 inline FString JokerCommand(int K) { return FString::Printf(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
 // 발사체 색: 무늬 기본형은 무늬 색, 족보 발사체는 족보 색, 조커는 분홍

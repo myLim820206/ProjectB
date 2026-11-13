@@ -480,20 +480,51 @@ EPDHand CaptainHand(EPDJoker J)
 	for (int H = 0; H < (int)EPDHand::Count; ++H) if (GPDCaptain[H] == J) return (EPDHand)H;
 	return EPDHand::Pair;
 }
-// 레시피 (D-115). EPDJoker 순서: 광대, 모자 장수, 웃는 가면, 희비극, 할리퀸, 지휘봉, 잭, 체셔, 방울, 스타
-static const std::array<EPDHand, 3> GPDRecipe[(int)EPDJoker::Count] = {
-	{EPDHand::Five, EPDHand::Four, EPDHand::Triple},                 // 광대
-	{EPDHand::StraightFlush, EPDHand::Flush, EPDHand::Straight},     // 모자 장수
-	{EPDHand::TwoPair, EPDHand::Pair, EPDHand::Pair},                // 웃는 가면
-	{EPDHand::Pair, EPDHand::Pair, EPDHand::Pair},                   // 희비극
-	{EPDHand::Flush, EPDHand::Flush, EPDHand::Straight},             // 할리퀸
-	{EPDHand::Straight, EPDHand::Straight, EPDHand::Pair},           // 지휘봉
-	{EPDHand::Triple, EPDHand::TwoPair, EPDHand::Pair},              // 잭
-	{EPDHand::Four, EPDHand::Triple, EPDHand::Pair},                 // 체셔
-	{EPDHand::FullHouse, EPDHand::Triple, EPDHand::TwoPair},         // 방울
-	{EPDHand::RoyalFlush, EPDHand::StraightFlush, EPDHand::FullHouse}, // 스타
+// 레시피 (D-118). EPDJoker 순서: 광대, 모자 장수, 웃는 가면, 희비극, 할리퀸, 지휘봉, 잭, 체셔, 방울, 스타
+using H3 = std::array<EPDHand, 3>;
+using H2 = std::array<EPDHand, 2>;
+static const H3 GPDRecipe[(int)EPDJoker::Count] = {
+	{EPDHand::Five, EPDHand::Straight, EPDHand::Flush},                // 광대
+	{EPDHand::StraightFlush, EPDHand::Straight, EPDHand::Flush},       // 모자 장수
+	{EPDHand::TwoPair, EPDHand::Pair, EPDHand::Straight},              // 웃는 가면
+	{EPDHand::Pair, EPDHand::Straight, EPDHand::Flush},                // 희비극
+	{EPDHand::Flush, EPDHand::Flush, EPDHand::Flush},                  // 할리퀸 (무늬가 다르게)
+	{EPDHand::Straight, EPDHand::Straight, EPDHand::Straight},         // 지휘봉 (숫자가 안 이어지게)
+	{EPDHand::Triple, EPDHand::Straight, EPDHand::Flush},              // 잭
+	{EPDHand::Four, EPDHand::Straight, EPDHand::Flush},                // 체셔
+	{EPDHand::FullHouse, EPDHand::Straight, EPDHand::Flush},           // 방울
+	{EPDHand::RoyalFlush, EPDHand::StraightFlush, EPDHand::Flush},     // 스타
+};
+static const H2 GPDRecipe2[(int)EPDJoker::Count] = {
+	{EPDHand::Five, EPDHand::Straight},           // 광대
+	{EPDHand::StraightFlush, EPDHand::Flush},     // 모자 장수
+	{EPDHand::TwoPair, EPDHand::Pair},            // 웃는 가면
+	{EPDHand::Pair, EPDHand::Straight},           // 희비극
+	{EPDHand::Flush, EPDHand::Flush},             // 할리퀸
+	{EPDHand::Straight, EPDHand::Straight},       // 지휘봉
+	{EPDHand::Triple, EPDHand::Straight},         // 잭
+	{EPDHand::Four, EPDHand::Straight},           // 체셔
+	{EPDHand::FullHouse, EPDHand::Flush},         // 방울
+	{EPDHand::RoyalFlush, EPDHand::StraightFlush}, // 스타
 };
 const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J) { return GPDRecipe[(int)J]; }
+const std::array<EPDHand, 2>& JokerRecipe2(EPDJoker J) { return GPDRecipe2[(int)J]; }
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
+{
+	if (Hands.size() != 2 && Hands.size() != 3) return EPDJoker::Count;
+	std::vector<int> A;
+	for (EPDHand H : Hands) A.push_back((int)H);
+	std::sort(A.begin(), A.end());
+	for (int J = 0; J < (int)EPDJoker::Count; ++J)
+	{
+		std::vector<int> B;
+		if (Hands.size() == 3) for (EPDHand H : GPDRecipe[J]) B.push_back((int)H);
+		else for (EPDHand H : GPDRecipe2[J]) B.push_back((int)H);
+		std::sort(B.begin(), B.end());
+		if (A == B) return (EPDJoker)J;
+	}
+	return EPDJoker::Count;
+}
 float JokerTier(EPDJoker J)
 {
 	switch (J)
@@ -502,21 +533,6 @@ float JokerTier(EPDJoker J)
 	case EPDJoker::Harlequin: case EPDJoker::Bell: case EPDJoker::Cheshire: return 2.5f;
 	default: return 3.f; // 모자 장수, 광대, 스타
 	}
-}
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
-{
-	if (Hands.size() != 3) return EPDJoker::Count;
-	std::vector<int> A;
-	for (EPDHand H : Hands) A.push_back((int)H);
-	std::sort(A.begin(), A.end());
-	for (int J = 0; J < (int)EPDJoker::Count; ++J)
-	{
-		std::vector<int> B;
-		for (EPDHand H : GPDRecipe[J]) B.push_back((int)H);
-		std::sort(B.begin(), B.end());
-		if (A == B) return (EPDJoker)J;
-	}
-	return EPDJoker::Count;
 }
 
 EPDShot ShotKind(const FPDTower& T)
@@ -1152,32 +1168,40 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 		return false;
 	};
 	auto KindOf = [&](const FNode& N) { return N.Syn >= 0 ? (int)Synergies[N.Syn].Kind : Towers.at(N.Fused).FuseHand; };
-	// 맞닿은 3개 조합 (셋이 한 줄기로 이어지면 됨) 중 레시피와 정확히 맞는 것 (D-115)
-	struct FCand { int A, B, C; EPDJoker J; int Value; };
+	// 맞닿은 3개 조합(한 줄기로 이어짐)과 2개 조합 중 레시피와 정확히 맞는 것 (D-115, D-118)
+	struct FCand { int N[3]; int Count; EPDJoker J; int Value; };
 	std::vector<FCand> Cands;
 	const int NN = (int)Nodes.size();
 	std::vector<std::vector<char>> Adj(NN, std::vector<char>(NN, 0));
 	for (int I = 0; I < NN; ++I) for (int J = I + 1; J < NN; ++J) Adj[I][J] = Adj[J][I] = Touch(Nodes[I], Nodes[J]);
+	std::vector<int> Kind(NN);
+	for (int I = 0; I < NN; ++I) Kind[I] = KindOf(Nodes[I]);
 	for (int I = 0; I < NN; ++I)
 		for (int J = I + 1; J < NN; ++J)
+		{
+			if (Kind[I] < 0 || Kind[J] < 0) continue;
+			if (Adj[I][J])
+			{
+				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J]});
+				if (R != EPDJoker::Count) Cands.push_back({{I, J, -1}, 2, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J])});
+			}
 			for (int K = J + 1; K < NN; ++K)
 			{
-				if (Adj[I][J] + Adj[J][K] + Adj[I][K] < 2) continue; // 이어지지 않음
-				const int KI = KindOf(Nodes[I]), KJ = KindOf(Nodes[J]), KK = KindOf(Nodes[K]);
-				if (KI < 0 || KJ < 0 || KK < 0) continue;
-				const EPDJoker R = MatchJokerRecipe({(EPDHand)KI, (EPDHand)KJ, (EPDHand)KK});
-				if (R == EPDJoker::Count) continue;
-				Cands.push_back({I, J, K, R, HandBaseValue((EPDHand)KI) + HandBaseValue((EPDHand)KJ) + HandBaseValue((EPDHand)KK)});
+				if (Kind[K] < 0 || Adj[I][J] + Adj[J][K] + Adj[I][K] < 2) continue; // 이어지지 않음
+				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J], (EPDHand)Kind[K]});
+				if (R != EPDJoker::Count) Cands.push_back({{I, J, K}, 3, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J]) + HandBaseValue((EPDHand)Kind[K])});
 			}
-	// 낮은 족보부터 (값 합이 작은 것 먼저), 칸이 겹치지 않게
-	std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& X, const FCand& Y) { return X.Value < Y.Value; });
+		}
+	// 3개 레시피 먼저 (카드가 많아 세다), 같은 개수끼리는 낮은 족보부터, 칸이 겹치지 않게
+	std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& X, const FCand& Y) { return X.Count != Y.Count ? X.Count > Y.Count : X.Value < Y.Value; });
 	std::set<int> UsedCells;
 	for (const FCand& Cd : Cands)
 	{
 		FPDJokerGroup G;
 		bool bFree = true;
-		for (int N : {Cd.A, Cd.B, Cd.C})
+		for (int Q = 0; Q < Cd.Count; ++Q)
 		{
+			const int N = Cd.N[Q];
 			for (int K : Nodes[N].Cells) bFree = bFree && !UsedCells.count(K);
 			if (Nodes[N].Syn >= 0) G.SynergyIdx.push_back(Nodes[N].Syn);
 			else G.FusedCells.push_back(Nodes[N].Fused);

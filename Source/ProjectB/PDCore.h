@@ -195,7 +195,7 @@ struct FPDFeed
 // 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
 constexpr float JokerBonus = 1.2f; // 조커 합성: 재료 위력 합 × 1.2
-constexpr float JokerCardBonus = 0.05f; // 재료 카드 한 장마다 조커 위력 +5% (6장 ×1.3, 10장 ×1.5) (D-114)
+constexpr float JokerCardBonus = 0.1f; // 재료 카드 한 장마다 조커 위력 +10% (4장 ×1.4, 10장 ×2) (D-114, D-118)
 constexpr float JokerMergeBonus = 1.3f; // 같은 조커끼리 합치기: 위력 합 × 1.3 (D-114)
 // 같은 조커끼리 맞닿은 묶음 (D-114). 합치면 한 칸에 하나로
 struct FPDJokerMerge
@@ -203,8 +203,8 @@ struct FPDJokerMerge
 	int Joker = -1;
 	std::vector<int> Cells;
 };
-// 조커 재료 묶음 (D-115): 서로 맞닿은 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개가 레시피와 정확히 맞을 때.
-// 이어진 것이 더 많아도 그 3개만 쓰고, 맞는 조합이 여럿이면 족보 기본값 합이 가장 낮은 것부터
+// 조커 재료 묶음 (D-115, D-118): 서로 맞닿은 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개 또는 2개가 레시피와 정확히 맞을 때.
+// 이어진 것이 더 많아도 그것만 쓴다. 3개 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
 struct FPDJokerGroup
 {
 	std::vector<int> SynergyIdx; // 족보 번호
@@ -215,11 +215,13 @@ struct FPDJokerGroup
 // 대장: 족보마다 조커 하나 (지휘 능력과 도감 표시). 조커마다 레시피에 자기 대장 족보가 들어 있다
 EPDJoker CaptainOf(EPDHand H);
 EPDHand CaptainHand(EPDJoker J);
-// 레시피 (D-115): 조커마다 족보 3개 (순서 무관, 같은 족보 여러 번 가능). 족보 10개로 만들 수 있는 3개 조합은 220가지
+// 레시피 (D-115, D-118): 조커마다 족보 3개짜리와 2개짜리 (순서 무관). 같은 레벨에서 붙여도 따로 잡히는 조합만:
+// 숫자 족보(페어·트리플…)는 하나만(투 페어 + 원 페어는 예외), 나머지는 스트레이트·플러시
 const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J);
+const std::array<EPDHand, 2>& JokerRecipe2(EPDJoker J);
 // 조커 등급 배율 (D-116): 재료가 3개로 줄어 약해진 만큼. 쉬운 레시피 ×2, 중간 ×2.5, 로열·파이브 카드·스트레이트 플러시가 드는 레시피 ×3
 float JokerTier(EPDJoker J);
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 정확히 맞는 조커, 없으면 EPDJoker::Count
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 족보 3개면 3개 레시피, 2개면 2개 레시피와 정확히 맞는 조커, 없으면 EPDJoker::Count
 constexpr float CaptainCommand = 0.3f; // 지휘: 판 위 자기 족보 타워 위력 +30%, 대장이 여럿이면 겹친다 (+60%, +90% …)
 constexpr int MaxLevel = 4;
 constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5
