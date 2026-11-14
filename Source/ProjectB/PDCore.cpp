@@ -2012,6 +2012,7 @@ void FPDGame::Update(float Dt)
 			FPDEvent L;
 			L.Kind = FPDEvent::EKind::Leak;
 			L.A = Loss;
+			{ const FPDPoint Ex = Path.At(Path.Length); L.X = Ex.X; L.Y = Ex.Y; } // 빠져나간 자리 (예전엔 비어 있어 판 왼쪽 위에서 터졌다, D-180)
 			Ev(L);
 			Sfx(EPDSound::Denied);
 		}
