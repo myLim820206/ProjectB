@@ -124,6 +124,10 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("목을 쳐라: 체력 15% 이하 적 즉시 처치 (보스 제외)"), TEXT("Off with their heads: instantly kills enemies at 15% HP or less (not bosses)"), TEXT("首をはねよ: 体力15%以下の敵を即撃破 (ボス除く)"), TEXT("砍掉他的头: 立即击杀生命15%以下的敌人 (首领除外)"), TEXT("砍掉他的頭: 立即擊殺生命15%以下的敵人 (首領除外)")},
 	{TEXT("주변 8칸 타워 연사 +80%"), TEXT("Towers in the 8 cells around: fire rate +80%"), TEXT("周囲8マスのタワー連射 +80%"), TEXT("周围8格的塔连射 +80%"), TEXT("周圍8格的塔連射 +80%")},
 	{TEXT("보스를 먼저 노리고 보스에게 +50%"), TEXT("Targets bosses first, +50% against bosses"), TEXT("ボスを優先して狙い、ボスに +50%"), TEXT("优先攻击首领，对首领 +50%"), TEXT("優先攻擊首領，對首領 +50%")},
+	{TEXT("둘째 적은 다음 무늬 공격으로"), TEXT("The second enemy is hit with the next suit's attack"), TEXT("2体目の敵には次のスートの攻撃"), TEXT("第二个敌人用下一种花色攻击"), TEXT("第二個敵人用下一種花色攻擊")},
+	{TEXT("판 전체 피해의 무늬가 번갈아: ♥ 차례 위력 ×2, ♣ 차례 판 전체 둔화"), TEXT("Board-wide hits cycle suits: ♥ turn power ×2, ♣ turn slows the whole board"), TEXT("盤面全体攻撃のスートが交代: ♥ の番は威力 ×2、♣ の番は盤面全体を減速"), TEXT("全场伤害的花色轮换: ♥ 轮威力 ×2，♣ 轮全场减速"), TEXT("全場傷害的花色輪換: ♥ 輪威力 ×2，♣ 輪全場減速")},
+	{TEXT("판 위 같은 무늬 중 가장 강한 타워를 따라 함"), TEXT("Copies the strongest tower of the same suit on the board"), TEXT("盤面の同じスートで最も強いタワーをまねる"), TEXT("模仿场上同花色中最强的塔"), TEXT("模仿場上同花色中最強的塔")},
+	{TEXT("주변에서 가장 빠른 타워를 따라 함"), TEXT("Copies the fastest tower nearby"), TEXT("周囲で最も速いタワーをまねる"), TEXT("模仿周围最快的塔"), TEXT("模仿周圍最快的塔")},
 	{TEXT("광대"), TEXT("Jester"), TEXT("道化師"), TEXT("小丑"), TEXT("小丑")},
 	{TEXT("모자 장수"), TEXT("Hatter"), TEXT("帽子屋"), TEXT("帽匠"), TEXT("帽匠")},
 	{TEXT("웃는 가면"), TEXT("Smiling Mask"), TEXT("笑う仮面"), TEXT("笑面具"), TEXT("笑面具")},
@@ -696,4 +700,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 695;
+static const int32 PDLangRowCount = 699;

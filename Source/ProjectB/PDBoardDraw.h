@@ -214,6 +214,10 @@ inline const TCHAR* UpperSpecialText(EPDUpperSpecial S)
 	case EPDUpperSpecial::QueenHearts: return Tr(TEXT("목을 쳐라: 체력 15% 이하 적 즉시 처치 (보스 제외)"));
 	case EPDUpperSpecial::Dormouse: return Tr(TEXT("주변 8칸 타워 연사 +80%"));
 	case EPDUpperSpecial::Jabberwock: return Tr(TEXT("보스를 먼저 노리고 보스에게 +50%"));
+	case EPDUpperSpecial::Tweedle: return Tr(TEXT("둘째 적은 다음 무늬 공격으로"));
+	case EPDUpperSpecial::Mirror: return Tr(TEXT("판 전체 피해의 무늬가 번갈아: ♥ 차례 위력 ×2, ♣ 차례 판 전체 둔화"));
+	case EPDUpperSpecial::RedQueen: return Tr(TEXT("판 위 같은 무늬 중 가장 강한 타워를 따라 함"));
+	case EPDUpperSpecial::MockTurtle: return Tr(TEXT("주변에서 가장 빠른 타워를 따라 함"));
 	default: return TEXT("");
 	}
 }

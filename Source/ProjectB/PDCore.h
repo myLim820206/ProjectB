@@ -217,7 +217,7 @@ struct FPDJokerMerge
 constexpr int UpperBase = 10, UpperJokerCount = 30;
 constexpr int UpperNeedLevel = 10, UpperNeedLevelTip = 5;
 constexpr float UpperBonus = 1.5f, UpperTipBonus = 0.25f;
-enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock };
+enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle };
 struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
 int UpperOf(EPDJoker A, EPDJoker B);         // 레시피가 있으면 상위 조커 번호, 없으면 -1 (순서 무관)

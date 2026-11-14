@@ -115,19 +115,19 @@ bool FPDTreeMods::Up(const FPDTower& T) const { return T.IsJoker() && (IsUpperJo
 // 상위 조커 30종 (D-231, docs/18 4절 순서)
 static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Clown, EPDJoker::Hatter, EPDUpperSpecial::None},        // 장미 칠하는 정원사
-	{EPDJoker::Clown, EPDJoker::Comedy, EPDUpperSpecial::None},        // 트위들덤과 트위들디
+	{EPDJoker::Clown, EPDJoker::Comedy, EPDUpperSpecial::Tweedle},     // 트위들덤과 트위들디: 둘째 적은 다음 무늬로
 	{EPDJoker::Clown, EPDJoker::Baton, EPDUpperSpecial::None},         // 도도새
 	{EPDJoker::Clown, EPDJoker::Cheshire, EPDUpperSpecial::None},      // 애벌레
 	{EPDJoker::Clown, EPDJoker::Bell, EPDUpperSpecial::None},          // 공작부인
-	{EPDJoker::Clown, EPDJoker::Star, EPDUpperSpecial::None},          // 거울 나라
+	{EPDJoker::Clown, EPDJoker::Star, EPDUpperSpecial::Mirror},        // 거울 나라: 판 전체 피해 무늬가 번갈아 (♥ ×2, ♣ 판 전체 둔화)
 	{EPDJoker::Hatter, EPDJoker::Mask, EPDUpperSpecial::None},         // 3월 토끼
 	{EPDJoker::Hatter, EPDJoker::Harlequin, EPDUpperSpecial::None},    // 하트 왕
 	{EPDJoker::Hatter, EPDJoker::Jack, EPDUpperSpecial::None},         // 하트 잭
 	{EPDJoker::Hatter, EPDJoker::Cheshire, EPDUpperSpecial::MadTea},   // 미친 다과회: 주변 8칸 사거리 무한
 	{EPDJoker::Hatter, EPDJoker::Bell, EPDUpperSpecial::WhiteRabbit},  // 흰 토끼: 10초마다 판 전체 1초 멈춤
 	{EPDJoker::Mask, EPDJoker::Comedy, EPDUpperSpecial::None},         // 험프티 덤프티
-	{EPDJoker::Mask, EPDJoker::Harlequin, EPDUpperSpecial::None},      // 붉은 여왕
-	{EPDJoker::Mask, EPDJoker::Baton, EPDUpperSpecial::None},          // 가짜 거북
+	{EPDJoker::Mask, EPDJoker::Harlequin, EPDUpperSpecial::RedQueen},  // 붉은 여왕: 판 위 같은 무늬 중 가장 강한 타워를 따라 함
+	{EPDJoker::Mask, EPDJoker::Baton, EPDUpperSpecial::MockTurtle},    // 가짜 거북: 주변에서 가장 빠른 타워를 따라 함
 	{EPDJoker::Mask, EPDJoker::Jack, EPDUpperSpecial::None},           // 그리핀
 	{EPDJoker::Mask, EPDJoker::Cheshire, EPDUpperSpecial::GrinOnly},   // 웃음만 남은 고양이: 판 전체에서 가장 강한 타워를 따라 함
 	{EPDJoker::Comedy, EPDJoker::Harlequin, EPDUpperSpecial::None},    // 하얀 여왕
@@ -569,9 +569,10 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 			if (JokerHas(Kind, EPDJoker::Baton) && bNear) O.Eff.Rate *= Sp == EPDUpperSpecial::Dormouse ? 1.8f : bUp ? 1.7f : 1.4f;
 			if (JokerHas(Kind, EPDJoker::Hatter) && bNear) { O.Eff.Dmg *= bUp ? 1.5f : 1.25f; O.Eff.Range *= Sp == EPDUpperSpecial::MadTea ? 30.f : 1.1f; } // 미친 다과회: 주변 사거리 무한
 			if (JokerHas(Kind, EPDJoker::Harlequin) && !O.Card.IsWild() && O.Card.Suit == J.JSuit) O.Eff.Dmg *= bUp ? 1.6f : 1.3f;
-			if (JokerHas(Kind, EPDJoker::Mask) && (bNear || Sp == EPDUpperSpecial::GrinOnly)) // 웃음만 남은 고양이: 판 전체
+			const bool bCopyable = Sp == EPDUpperSpecial::RedQueen ? (!O.Card.IsWild() && O.Card.Suit == J.JSuit) : (bNear || Sp == EPDUpperSpecial::GrinOnly); // 붉은 여왕: 판 위 같은 무늬, 웃음만 남은 고양이: 판 전체
+			if (JokerHas(Kind, EPDJoker::Mask) && bCopyable)
 			{
-				const float Pow = (3.f + O.Card.Power()) * SuitDef(O.Card.Suit).Dmg * O.Mult * O.TDmg;
+				const float Pow = Sp == EPDUpperSpecial::MockTurtle ? SuitDef(O.Card.Suit).Rate * O.TRate * O.Eff.Rate : (3.f + O.Card.Power()) * SuitDef(O.Card.Suit).Dmg * O.Mult * O.TDmg; // 가짜 거북: 가장 빠른 타워
 				if (Pow > BestPow) { BestPow = Pow; Towers[KV.first].Eff.CopyKey = OV.first; }
 			}
 		}
@@ -2337,9 +2338,13 @@ void FPDGame::Update(float Dt)
 		if (JokerHas(JK, EPDJoker::Star)) // 스타: 판 전체 레이저, 모든 적에게
 		{
 			bool bAny = false;
-			const float SD = St.Dmg * (1.f + RollCrit() * (St.CritMult - 1.f));
+			float SD = St.Dmg * (1.f + RollCrit() * (St.CritMult - 1.f));
+			const bool bMirror = JSp == EPDUpperSpecial::Mirror; // 거울 나라: 무늬 차례 ♥ 위력 ×2, ♣ 판 전체 둔화
+			const int MirrorSuit = T.Cycle % 4;
+			if (bMirror && MirrorSuit == (int)EPDSuit::Heart) SD *= 2.f;
 			HitSrc = CellKey(T.X, T.Y);
-			for (FPDEnemy& E : Enemies) if (!E.bDead) { Hit(E, SD, 0.f); bAny = true; }
+			for (FPDEnemy& E : Enemies) if (!E.bDead) { Hit(E, SD, 0.f); if (bMirror && MirrorSuit == (int)EPDSuit::Club) { E.SlowT = std::max(E.SlowT, 1.5f); E.SlowAmt = std::max(E.SlowAmt, 0.35f); } bAny = true; }
+			if (bMirror) T.Cycle++;
 			HitSrc = -1;
 			if (bAny)
 			{
@@ -2384,7 +2389,14 @@ void FPDGame::Update(float Dt)
 			if (Second)
 			{
 				Shot2[Extra] = Second;
-				Fire(T, *Second, St.Dmg, 0.f, St.Slow, Crits);
+				if (JSp == EPDUpperSpecial::Tweedle) // 트위들덤과 트위들디: 둘째 적은 다음 무늬 공격으로
+				{
+					FPDTower T2 = T;
+					T2.Cycle = T.Cycle + 1 + Extra;
+					const FPDTowerStats S2 = TowerStats(T2, Mask, Tm);
+					Fire(T, *Second, S2.Dmg * std::max(1.f, S2.Rate * Dt) * (1.f + Crits * (S2.CritMult - 1.f)), S2.Splash, S2.Slow, Crits);
+				}
+				else Fire(T, *Second, St.Dmg, 0.f, St.Slow, Crits);
 			}
 		}
 		Fire(T, *Target, St.Dmg, St.Splash, St.Slow, Crits);

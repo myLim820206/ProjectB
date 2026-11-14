@@ -123,6 +123,10 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 목을 쳐라: 체력 15% 이하 적 즉시 처치 (보스 제외)	Off with their heads: instantly kills enemies at 15% HP or less (not bosses)	首をはねよ: 体力15%以下の敵を即撃破 (ボス除く)	砍掉他的头: 立即击杀生命15%以下的敌人 (首领除外)	砍掉他的頭: 立即擊殺生命15%以下的敵人 (首領除外)	PDBoardDraw.h
 주변 8칸 타워 연사 +80%	Towers in the 8 cells around: fire rate +80%	周囲8マスのタワー連射 +80%	周围8格的塔连射 +80%	周圍8格的塔連射 +80%	PDBoardDraw.h
 보스를 먼저 노리고 보스에게 +50%	Targets bosses first, +50% against bosses	ボスを優先して狙い、ボスに +50%	优先攻击首领，对首领 +50%	優先攻擊首領，對首領 +50%	PDBoardDraw.h
+둘째 적은 다음 무늬 공격으로	The second enemy is hit with the next suit's attack	2体目の敵には次のスートの攻撃	第二个敌人用下一种花色攻击	第二個敵人用下一種花色攻擊	PDBoardDraw.h
+판 전체 피해의 무늬가 번갈아: ♥ 차례 위력 ×2, ♣ 차례 판 전체 둔화	Board-wide hits cycle suits: ♥ turn power ×2, ♣ turn slows the whole board	盤面全体攻撃のスートが交代: ♥ の番は威力 ×2、♣ の番は盤面全体を減速	全场伤害的花色轮换: ♥ 轮威力 ×2，♣ 轮全场减速	全場傷害的花色輪換: ♥ 輪威力 ×2，♣ 輪全場減速	PDBoardDraw.h
+판 위 같은 무늬 중 가장 강한 타워를 따라 함	Copies the strongest tower of the same suit on the board	盤面の同じスートで最も強いタワーをまねる	模仿场上同花色中最强的塔	模仿場上同花色中最強的塔	PDBoardDraw.h
+주변에서 가장 빠른 타워를 따라 함	Copies the fastest tower nearby	周囲で最も速いタワーをまねる	模仿周围最快的塔	模仿周圍最快的塔	PDBoardDraw.h
 광대	Jester	道化師	小丑	小丑	PDBoardDraw.h
 모자 장수	Hatter	帽子屋	帽匠	帽匠	PDBoardDraw.h
 웃는 가면	Smiling Mask	笑う仮面	笑面具	笑面具	PDBoardDraw.h
@@ -693,4 +697,4 @@ P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P
 단조	Forging	鍛造	锻造	鍛造	PDLangTable.inl
 대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDLangTable.inl
 조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDLangTable.inl
-다과회 초대장	Tea Party Invitation	お茶会の招待状	茶会请柬	茶會請柬	PDTreeText.inl
+다과회 초대장	Tea Party Invitation	お茶会の招待状	茶会请柬	茶會請柬	PDLangTable.inl
