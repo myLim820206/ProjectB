@@ -382,7 +382,7 @@ inline FVector2f FeedButtonCenter(const FPDGame& G, int I) { return FuseButtonCe
 inline FVector2f TreeNodePos(int Id) { return FVector2f(TreeNode(Id).X, TreeNode(Id).Y); }
 inline const TCHAR* KeystoneName(int K)
 {
-	static const TCHAR* N[] = {TEXT("외골수"), TEXT("잡식가"), TEXT("큰 판"), TEXT("작은 판"), TEXT("대장장이"), TEXT("광대의 길"), TEXT("고독한 저격수"), TEXT("군중")};
+	static const TCHAR* N[] = {TEXT("외골수"), TEXT("잡식가"), TEXT("큰 판"), TEXT("작은 판"), TEXT("대장장이"), TEXT("광대의 길"), TEXT("고독한 저격수"), TEXT("군중"), TEXT("왕관의 무게"), TEXT("서커스")};
 	return Tr(N[K]);
 }
 inline const TCHAR* KeystoneDesc(int K)
@@ -390,7 +390,8 @@ inline const TCHAR* KeystoneDesc(int K)
 	static const TCHAR* N[] = {TEXT("플러시 타워 위력 ×2 / 다른 족보 타워 위력 ×0.5"), TEXT("플러시 아닌 족보 위력 ×1.3 / 플러시 범위 효과 없음"),
 		TEXT("5장 족보 위력 ×1.6 / 2장 족보는 효과·연쇄 없음"), TEXT("원 페어·투 페어 위력 ×1.8 / 5장 족보는 연쇄 덤 없음"),
 		TEXT("합성 배율 1.5 → 2.0 / 조커 포탑을 만들 수 없음"), TEXT("조커 배율 1.2 → 1.6 / 합성은 레벨 2까지"),
-		TEXT("족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음"), TEXT("연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5")};
+		TEXT("족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음"), TEXT("연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5"),
+		TEXT("상위 조커 위력 배율 ×1.5 → ×2.2 / 기본 조커 지휘 없음"), TEXT("판 위 기본 조커 하나마다 모든 조커 위력 +15% / 상위 조커를 만들 수 없음")};
 	return Tr(N[K]);
 }
 inline const TCHAR* JokerUpDesc(int K)
@@ -436,6 +437,7 @@ inline FString TreeFxText(const FPDNodeFx& F)
 	case EPDStat::AllRate: return TrF(TEXT("모든 타워 공격 속도 +%d%%"), Pct);
 	case EPDStat::CritChance: return TrF(TEXT("치명타 확률 +%d%%p"), Pct);
 	case EPDStat::CritMult: return TrF(TEXT("치명타 배율 +%.2f"), F.Value);
+	case EPDStat::UpperPrep: return TrF(TEXT("상위 조커 위력 +%d%%, 조건 조커 레벨 10 → 7"), Pct);
 	case EPDStat::XpPct: return TrF(TEXT("경험치 +%d%%"), Pct);
 	case EPDStat::HandMax: return TrF(TEXT("손패 최대 +%d"), (int)F.Value);
 	case EPDStat::Draw: return TrF(TEXT("웨이브마다 카드 +%d"), (int)F.Value);

@@ -84,52 +84,57 @@ static const FPDTreeNode GPDTreeNodes[] = {
 	{EPDNode::Small, 4, 846.3f, 248.3f, {{EPDStat::HandDmg, 138, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 80
 	{EPDNode::Small, 4, 859.8f, 220.7f, {{EPDStat::HandDmg, 138, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 81
 	{EPDNode::Notable, 4, 884.9f, 193.7f, {{EPDStat::HandDmg, 138, 0.300f}, {EPDStat::None, 0, 0.000f}}}, // 82
-	{EPDNode::Small, 4, 783.2f, 425.8f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 83
-	{EPDNode::Small, 4, 764.1f, 454.8f, {{EPDStat::HandSplash, 37, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 84
-	{EPDNode::Small, 4, 706.8f, 464.4f, {{EPDStat::CritChance, 0, 0.020f}, {EPDStat::None, 0, 0.000f}}}, // 85
-	{EPDNode::Small, 5, 710.3f, 427.6f, {{EPDStat::HandMax, 0, 1.000f}, {EPDStat::None, 0, 0.000f}}}, // 86
-	{EPDNode::Small, 4, 809.6f, 477.8f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 87
-	{EPDNode::Notable, 4, 855.1f, 500.8f, {{EPDStat::HandDmg, 37, 0.250f}, {EPDStat::HandSplash, 37, 0.250f}}}, // 88
-	{EPDNode::Small, 4, 900.6f, 523.9f, {{EPDStat::HandDmg, 37, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 89
-	{EPDNode::Keystone, 4, 954.4f, 551.1f, {{EPDStat::Keystone, 0, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 90
-	{EPDNode::Small, 4, 801.6f, 504.6f, {{EPDStat::HandDmg, 5, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 91
-	{EPDNode::Small, 4, 813.6f, 532.6f, {{EPDStat::HandDmg, 5, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 92
-	{EPDNode::Notable, 4, 833.1f, 561.2f, {{EPDStat::HandDmg, 5, 0.400f}, {EPDStat::HandRate, 5, 0.200f}}}, // 93
-	{EPDNode::Small, 4, 924.0f, 496.4f, {{EPDStat::HandSplash, 37, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 94
-	{EPDNode::Small, 4, 978.5f, 503.2f, {{EPDStat::HandSplash, 37, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 95
-	{EPDNode::Notable, 4, 1031.9f, 515.9f, {{EPDStat::HandSplash, 37, 0.300f}, {EPDStat::HandDmg, 37, 0.200f}}}, // 96
-	{EPDNode::Small, 6, 938.9f, 585.6f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 97
-	{EPDNode::Joker, 6, 978.0f, 618.9f, {{EPDStat::Joker, 4, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 98
-	{EPDNode::Small, 4, 573.2f, 464.4f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 99
-	{EPDNode::Small, 4, 515.9f, 454.8f, {{EPDStat::HandRate, 69, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 100
-	{EPDNode::Small, 4, 496.8f, 425.8f, {{EPDStat::AllRate, 0, 0.030f}, {EPDStat::None, 0, 0.000f}}}, // 101
-	{EPDNode::Small, 5, 569.7f, 427.6f, {{EPDStat::Lives, 0, 4.000f}, {EPDStat::None, 0, 0.000f}}}, // 102
-	{EPDNode::Small, 4, 470.4f, 477.8f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 103
-	{EPDNode::Notable, 4, 424.9f, 500.8f, {{EPDStat::HandRate, 69, 0.200f}, {EPDStat::HandDmg, 69, 0.100f}}}, // 104
-	{EPDNode::Small, 4, 379.4f, 523.9f, {{EPDStat::HandDmg, 69, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 105
-	{EPDNode::Keystone, 4, 325.6f, 551.1f, {{EPDStat::Keystone, 2, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 106
-	{EPDNode::Small, 4, 417.6f, 473.8f, {{EPDStat::HandDmg, 69, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 107
-	{EPDNode::Small, 4, 362.2f, 479.8f, {{EPDStat::HandDmg, 69, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 108
-	{EPDNode::Notable, 4, 305.6f, 489.7f, {{EPDStat::HandDmg, 69, 0.300f}, {EPDStat::None, 0, 0.000f}}}, // 109
-	{EPDNode::Small, 4, 433.7f, 535.7f, {{EPDStat::HandRate, 69, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 110
-	{EPDNode::Small, 4, 420.2f, 563.3f, {{EPDStat::HandRate, 69, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 111
-	{EPDNode::Notable, 4, 395.1f, 590.3f, {{EPDStat::HandRate, 69, 0.200f}, {EPDStat::HandDmg, 69, 0.100f}}}, // 112
-	{EPDNode::Small, 4, 496.8f, 358.2f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 113
-	{EPDNode::Small, 4, 515.9f, 329.2f, {{EPDStat::ChainAdd, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 114
-	{EPDNode::Small, 4, 573.2f, 319.6f, {{EPDStat::CritMult, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 115
-	{EPDNode::Small, 5, 569.7f, 356.4f, {{EPDStat::Draw, 0, 1.000f}, {EPDStat::None, 0, 0.000f}}}, // 116
-	{EPDNode::Small, 4, 470.4f, 306.2f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 117
-	{EPDNode::Notable, 4, 424.9f, 283.2f, {{EPDStat::FuseAdd, 0, 0.150f}, {EPDStat::ChainAdd, 0, 0.050f}}}, // 118
-	{EPDNode::Small, 4, 379.4f, 260.1f, {{EPDStat::FusedDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 119
-	{EPDNode::Keystone, 4, 325.6f, 232.9f, {{EPDStat::Keystone, 4, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 120
-	{EPDNode::Small, 4, 478.4f, 279.4f, {{EPDStat::FusedDmg, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 121
-	{EPDNode::Small, 4, 466.4f, 251.4f, {{EPDStat::FusedDmg, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 122
-	{EPDNode::Notable, 4, 446.9f, 222.8f, {{EPDStat::FuseAdd, 0, 0.200f}, {EPDStat::FusedDmg, 0, 0.150f}}}, // 123
-	{EPDNode::Small, 4, 356.0f, 287.6f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 124
-	{EPDNode::Small, 4, 301.5f, 280.8f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 125
-	{EPDNode::Notable, 4, 248.1f, 268.1f, {{EPDStat::JokerAdd, 0, 0.100f}, {EPDStat::JokerDmg, 0, 0.150f}}}, // 126
-	{EPDNode::Small, 6, 341.1f, 198.4f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 127
-	{EPDNode::Joker, 6, 302.0f, 165.1f, {{EPDStat::Joker, 2, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 128
+	{EPDNode::Small, 6, 1022.6f, 240.7f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 83
+	{EPDNode::Keystone, 6, 1088.5f, 221.0f, {{EPDStat::Keystone, 8, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 84
+	{EPDNode::Small, 4, 783.2f, 425.8f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 85
+	{EPDNode::Small, 4, 764.1f, 454.8f, {{EPDStat::HandSplash, 37, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 86
+	{EPDNode::Small, 4, 706.8f, 464.4f, {{EPDStat::CritChance, 0, 0.020f}, {EPDStat::None, 0, 0.000f}}}, // 87
+	{EPDNode::Small, 5, 710.3f, 427.6f, {{EPDStat::HandMax, 0, 1.000f}, {EPDStat::None, 0, 0.000f}}}, // 88
+	{EPDNode::Small, 4, 809.6f, 477.8f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 89
+	{EPDNode::Notable, 4, 855.1f, 500.8f, {{EPDStat::HandDmg, 37, 0.250f}, {EPDStat::HandSplash, 37, 0.250f}}}, // 90
+	{EPDNode::Small, 4, 900.6f, 523.9f, {{EPDStat::HandDmg, 37, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 91
+	{EPDNode::Keystone, 4, 954.4f, 551.1f, {{EPDStat::Keystone, 0, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 92
+	{EPDNode::Small, 4, 801.6f, 504.6f, {{EPDStat::HandDmg, 5, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 93
+	{EPDNode::Small, 4, 813.6f, 532.6f, {{EPDStat::HandDmg, 5, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 94
+	{EPDNode::Notable, 4, 833.1f, 561.2f, {{EPDStat::HandDmg, 5, 0.400f}, {EPDStat::HandRate, 5, 0.200f}}}, // 95
+	{EPDNode::Small, 4, 924.0f, 496.4f, {{EPDStat::HandSplash, 37, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 96
+	{EPDNode::Small, 4, 978.5f, 503.2f, {{EPDStat::HandSplash, 37, 0.200f}, {EPDStat::None, 0, 0.000f}}}, // 97
+	{EPDNode::Notable, 4, 1031.9f, 515.9f, {{EPDStat::HandSplash, 37, 0.300f}, {EPDStat::HandDmg, 37, 0.200f}}}, // 98
+	{EPDNode::Small, 6, 938.9f, 585.6f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 99
+	{EPDNode::Joker, 6, 978.0f, 618.9f, {{EPDStat::Joker, 4, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 100
+	{EPDNode::Small, 4, 573.2f, 464.4f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 101
+	{EPDNode::Small, 4, 515.9f, 454.8f, {{EPDStat::HandRate, 69, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 102
+	{EPDNode::Small, 4, 496.8f, 425.8f, {{EPDStat::AllRate, 0, 0.030f}, {EPDStat::None, 0, 0.000f}}}, // 103
+	{EPDNode::Small, 5, 569.7f, 427.6f, {{EPDStat::Lives, 0, 4.000f}, {EPDStat::None, 0, 0.000f}}}, // 104
+	{EPDNode::Small, 4, 470.4f, 477.8f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 105
+	{EPDNode::Notable, 4, 424.9f, 500.8f, {{EPDStat::HandRate, 69, 0.200f}, {EPDStat::HandDmg, 69, 0.100f}}}, // 106
+	{EPDNode::Small, 4, 379.4f, 523.9f, {{EPDStat::HandDmg, 69, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 107
+	{EPDNode::Keystone, 4, 325.6f, 551.1f, {{EPDStat::Keystone, 2, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 108
+	{EPDNode::Small, 4, 417.6f, 473.8f, {{EPDStat::HandDmg, 69, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 109
+	{EPDNode::Small, 4, 362.2f, 479.8f, {{EPDStat::HandDmg, 69, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 110
+	{EPDNode::Notable, 4, 305.6f, 489.7f, {{EPDStat::HandDmg, 69, 0.300f}, {EPDStat::None, 0, 0.000f}}}, // 111
+	{EPDNode::Small, 4, 433.7f, 535.7f, {{EPDStat::HandRate, 69, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 112
+	{EPDNode::Small, 4, 420.2f, 563.3f, {{EPDStat::HandRate, 69, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 113
+	{EPDNode::Notable, 4, 395.1f, 590.3f, {{EPDStat::HandRate, 69, 0.200f}, {EPDStat::HandDmg, 69, 0.100f}}}, // 114
+	{EPDNode::Small, 6, 257.4f, 543.3f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 115
+	{EPDNode::Keystone, 6, 191.5f, 563.0f, {{EPDStat::Keystone, 9, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 116
+	{EPDNode::Small, 4, 496.8f, 358.2f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 117
+	{EPDNode::Small, 4, 515.9f, 329.2f, {{EPDStat::ChainAdd, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 118
+	{EPDNode::Small, 4, 573.2f, 319.6f, {{EPDStat::CritMult, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 119
+	{EPDNode::Small, 5, 569.7f, 356.4f, {{EPDStat::Draw, 0, 1.000f}, {EPDStat::None, 0, 0.000f}}}, // 120
+	{EPDNode::Small, 4, 470.4f, 306.2f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 121
+	{EPDNode::Notable, 4, 424.9f, 283.2f, {{EPDStat::FuseAdd, 0, 0.150f}, {EPDStat::ChainAdd, 0, 0.050f}}}, // 122
+	{EPDNode::Small, 4, 379.4f, 260.1f, {{EPDStat::FusedDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 123
+	{EPDNode::Keystone, 4, 325.6f, 232.9f, {{EPDStat::Keystone, 4, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 124
+	{EPDNode::Small, 4, 478.4f, 279.4f, {{EPDStat::FusedDmg, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 125
+	{EPDNode::Small, 4, 466.4f, 251.4f, {{EPDStat::FusedDmg, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 126
+	{EPDNode::Notable, 4, 446.9f, 222.8f, {{EPDStat::FuseAdd, 0, 0.200f}, {EPDStat::FusedDmg, 0, 0.150f}}}, // 127
+	{EPDNode::Small, 4, 356.0f, 287.6f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 128
+	{EPDNode::Small, 4, 301.5f, 280.8f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 129
+	{EPDNode::Notable, 4, 248.1f, 268.1f, {{EPDStat::JokerAdd, 0, 0.100f}, {EPDStat::JokerDmg, 0, 0.150f}}}, // 130
+	{EPDNode::Small, 6, 341.1f, 198.4f, {{EPDStat::JokerDmg, 0, 0.100f}, {EPDStat::None, 0, 0.000f}}}, // 131
+	{EPDNode::Joker, 6, 302.0f, 165.1f, {{EPDStat::Joker, 2, 0.000f}, {EPDStat::None, 0, 0.000f}}}, // 132
+	{EPDNode::Notable, 6, 274.3f, 200.4f, {{EPDStat::UpperPrep, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 133
 };
 static const int GPDTreeLinks[][2] = {
 	{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {6, 8},
@@ -142,11 +147,12 @@ static const int GPDTreeLinks[][2] = {
 	{56, 57}, {57, 58}, {57, 59}, {59, 60}, {57, 61}, {61, 62}, {55, 63}, {63, 64},
 	{64, 65}, {53, 66}, {66, 67}, {67, 68}, {1, 69}, {69, 70}, {70, 71}, {71, 18},
 	{70, 72}, {70, 73}, {73, 74}, {74, 75}, {75, 76}, {73, 77}, {77, 78}, {78, 79},
-	{74, 80}, {80, 81}, {81, 82}, {18, 83}, {83, 84}, {84, 85}, {85, 35}, {84, 86},
-	{84, 87}, {87, 88}, {88, 89}, {89, 90}, {87, 91}, {91, 92}, {92, 93}, {88, 94},
-	{94, 95}, {95, 96}, {89, 97}, {97, 98}, {35, 99}, {99, 100}, {100, 101}, {101, 52},
-	{100, 102}, {100, 103}, {103, 104}, {104, 105}, {105, 106}, {103, 107}, {107, 108}, {108, 109},
-	{104, 110}, {110, 111}, {111, 112}, {52, 113}, {113, 114}, {114, 115}, {115, 1}, {114, 116},
-	{114, 117}, {117, 118}, {118, 119}, {119, 120}, {117, 121}, {121, 122}, {122, 123}, {118, 124},
-	{124, 125}, {125, 126}, {119, 127}, {127, 128},
+	{74, 80}, {80, 81}, {81, 82}, {75, 83}, {83, 84}, {18, 85}, {85, 86}, {86, 87},
+	{87, 35}, {86, 88}, {86, 89}, {89, 90}, {90, 91}, {91, 92}, {89, 93}, {93, 94},
+	{94, 95}, {90, 96}, {96, 97}, {97, 98}, {91, 99}, {99, 100}, {35, 101}, {101, 102},
+	{102, 103}, {103, 52}, {102, 104}, {102, 105}, {105, 106}, {106, 107}, {107, 108}, {105, 109},
+	{109, 110}, {110, 111}, {106, 112}, {112, 113}, {113, 114}, {107, 115}, {115, 116}, {52, 117},
+	{117, 118}, {118, 119}, {119, 1}, {118, 120}, {118, 121}, {121, 122}, {122, 123}, {123, 124},
+	{121, 125}, {125, 126}, {126, 127}, {122, 128}, {128, 129}, {129, 130}, {123, 131}, {131, 132},
+	{131, 133},
 };

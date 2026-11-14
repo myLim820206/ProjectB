@@ -110,9 +110,9 @@ struct FPDEffects
 // 포인트 값은 살 때마다 ×1.15 로 올라 무한 진행에서도 트리를 다 채우지 못한다.
 // 키스톤은 둘씩 짝이라 하나를 찍으면 짝은 그 판 동안 봉인되고, 판마다 최대 3개.
 enum class EPDNode : uint8_t { Start, Small, Notable, Keystone, Joker };
-enum class EPDStat : uint8_t { None, SuitDmg, SuitRate, SuitRange, SuitSplash, SuitSlow, HandDmg, HandRate, HandSplash, AllDmg, ChainAdd, FuseAdd, FusedDmg, XpPct, HandMax, Draw, Lives, Keystone, Joker, JokerDmg, JokerAdd, AllRate, CritChance, CritMult };
-// 키스톤: (외골수, 잡식가) (큰 판, 작은 판) (대장장이, 광대의 길) (고독한 저격수, 군중) 이 짝. 짝 번호 = K ^ 1
-enum class EPDKeystone : uint8_t { Purist, Omni, BigTable, SmallTable, Smith, ClownPath, Lone, Crowd, Count };
+enum class EPDStat : uint8_t { None, SuitDmg, SuitRate, SuitRange, SuitSplash, SuitSlow, HandDmg, HandRate, HandSplash, AllDmg, ChainAdd, FuseAdd, FusedDmg, XpPct, HandMax, Draw, Lives, Keystone, Joker, JokerDmg, JokerAdd, AllRate, CritChance, CritMult, UpperPrep };
+// 키스톤: (외골수, 잡식가) (큰 판, 작은 판) (대장장이, 광대의 길) (고독한 저격수, 군중) (왕관의 무게, 서커스, D-232) 이 짝. 짝 번호 = K ^ 1
+enum class EPDKeystone : uint8_t { Purist, Omni, BigTable, SmallTable, Smith, ClownPath, Lone, Crowd, Crown, Circus, Count };
 constexpr int KeystoneMax = 3;
 constexpr int PointBasePrice = 20;
 constexpr float PointPriceGrowth = 1.22f;
@@ -145,6 +145,7 @@ struct FPDTreeMods
 	float AllRate = 0.f, CritChance = 0.f, CritMult = 0.f; // 공격 속도, 치명타 확률(+%p), 치명타 배율(+)
 	// 골드 강화 (트리와 따로 곱한다)
 	float UpgDmg = 0.f, UpgRate = 0.f, UpgSuit[4] = {}, UpgCrit = 0.f, UpgCritMult = 0.f;
+	float UpperPrep = 0.f; // 다과회 초대장 (D-232): 상위 조커 위력 +, 조건 레벨 7
 	int HandAdd = 0, DrawAdd = 0;
 	uint32_t Keys = 0;    // 찍은 키스톤 (비트)
 	uint32_t JokerUp = 0; // 강화한 조커 (비트)

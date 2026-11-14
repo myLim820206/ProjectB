@@ -269,12 +269,13 @@ inline FIcon StatIcon(int32 St, float CX, float CY, float R)
 		break;
 	case 22: L = {Bolt(P)}; break;                                                                             // 치명 확률: 번개
 	case 23: L = {Burst(P, 10, 1.f, 0.78f), Bolt(FXf(CX, CY, R, 0.f, 0.f, 0.f, 0.6f))}; break;                // 치명 배율: 별 안에 번개
+	case 24: L = {Poly(P, {{-0.6f, -0.2f}, {-0.5f, 0.55f}, {0.5f, 0.55f}, {0.6f, -0.2f}}), Seg(P, -0.8f, 0.8f, 0.8f, 0.8f), Poly(P, {{0.6f, -0.05f}, {0.9f, 0.05f}, {0.85f, 0.35f}, {0.55f, 0.35f}}, false), Seg(P, -0.15f, -0.45f, -0.05f, -0.8f), Seg(P, 0.15f, -0.45f, 0.25f, -0.8f)}; break; // 다과회 초대장: 찻잔 + 김 (D-232)
 	default: L = {Ring(P, 0.f, 0.f, 0.4f)}; break;
 	}
 	return I;
 }
 
-// EPDKeystone 순서: 외골수, 잡식가, 큰 판, 작은 판, 대장장이, 광대의 길, 고독한 저격수, 군중
+// EPDKeystone 순서: 외골수, 잡식가, 큰 판, 작은 판, 대장장이, 광대의 길, 고독한 저격수, 군중, 왕관의 무게, 서커스
 inline FIcon KeystoneIcon(int32 K, float CX, float CY, float R)
 {
 	FIcon I;
@@ -314,6 +315,14 @@ inline FIcon KeystoneIcon(int32 K, float CX, float CY, float R)
 		Add(L, Person(P, 0.55f, 0.25f, 0.75f));
 		break;
 	}
+	case 8: // 왕관의 무게 (D-232): 큰 왕관 + 아래 무게추
+		L = {Poly(P, {{-0.85f, 0.25f}, {-0.85f, -0.55f}, {-0.42f, -0.15f}, {0.f, -0.8f}, {0.42f, -0.15f}, {0.85f, -0.55f}, {0.85f, 0.25f}}), Seg(P, -0.85f, 0.25f, 0.85f, 0.25f),
+			Poly(P, {{-0.35f, 0.45f}, {0.35f, 0.45f}, {0.5f, 0.92f}, {-0.5f, 0.92f}})};
+		break;
+	case 9: // 서커스 (D-232): 천막 + 깃발
+		L = {Poly(P, {{-0.9f, 0.85f}, {0.f, -0.55f}, {0.9f, 0.85f}}), Seg(P, -0.9f, 0.85f, 0.9f, 0.85f), Seg(P, 0.f, -0.55f, 0.f, -0.95f),
+			Poly(P, {{0.f, -0.95f}, {0.45f, -0.82f}, {0.f, -0.7f}}, false), Poly(P, {{-0.25f, 0.85f}, {0.f, 0.35f}, {0.25f, 0.85f}}, false)};
+		break;
 	default: break;
 	}
 	return I;

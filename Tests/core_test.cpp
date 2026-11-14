@@ -1017,7 +1017,7 @@ static void UnitTests()
 		for (int I = 0; I < N; ++I) { bAll = bAll && D[I] >= 0; MaxD = std::max(MaxD, D[I]); }
 		Expect(N >= 120 && bAll, "트리 " + std::to_string(N) + "노드 (2배), 모두 시작점과 이어짐");
 		Expect(Links - N + 1 == 4, "고리는 4개뿐 (주머니는 막다른 길)");
-		Expect(Jokers == 10 && bLeaf && Keys == 8 && bKeyLeaf, "조커 강화 10·키스톤 8, 모두 막다른 끝");
+		Expect(Jokers == 10 && bLeaf && Keys == (int)EPDKeystone::Count && bKeyLeaf, "조커 강화 10·키스톤 " + std::to_string(Keys) + " (상위 조커 짝 D-232 포함), 모두 막다른 끝");
 		Expect(Notables >= 24, "특급 노드 " + std::to_string(Notables) + "개");
 		int MinJJ = 99;
 		for (int A = 0; A < N; ++A)
@@ -1109,6 +1109,17 @@ static void UnitTests()
 		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
 		const FPDTowerStats S0 = TowerStats(N, 0, &G.Mods), S1 = TowerStats(G.Towers.at(CellKey(2, Row)), 0, &G.Mods);
 		Expect(S1.Range > S0.Range * 10.f && TowerStats(G.Towers.at(UK), 0, &G.Mods).Range >= 99.f, "미친 다과회: 주변 타워 사거리 무한, 자신도 사거리 무한");
+		// 새 짝 키스톤 (D-232): 서커스 = 상위 조커 못 만듦, 왕관의 무게 = 위력 배율 ×2.2
+		G.Towers.clear();
+		PutJ(0, EPDJoker::Jack, 10);
+		PutJ(1, EPDJoker::Cheshire, 10);
+		G.Mods.Keys = 1u << (int)EPDKeystone::Circus;
+		Expect(Uppers() == 0, "서커스 키스톤이면 상위 조커를 만들 수 없다");
+		G.Mods.Keys = 1u << (int)EPDKeystone::Crown;
+		int Ci = -1;
+		const std::vector<FPDJokerMerge> M2 = G.JokerMerges();
+		for (int I = 0; I < (int)M2.size(); ++I) if (M2[I].Upper >= 0) Ci = I;
+		Expect(Ci >= 0 && G.MergeJokers(Ci) && G.Towers.size() == 1 && std::abs(G.Towers.begin()->second.Mult - 4.f * 2.2f) < 1e-3f && G.Towers.begin()->second.Joker == UpperBase + 26, "왕관의 무게: 잭 + 체셔 → 재버워키, 위력 합 × 2.2");
 	}
 	{ // 포인트 구매
 		FPDGame G(5);

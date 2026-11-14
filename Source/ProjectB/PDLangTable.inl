@@ -173,6 +173,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("광대의 길"), TEXT("Jester's Path"), TEXT("道化の道"), TEXT("小丑之路"), TEXT("小丑之路")},
 	{TEXT("고독한 저격수"), TEXT("Lone Sniper"), TEXT("孤独な狙撃手"), TEXT("孤独狙击手"), TEXT("孤獨狙擊手")},
 	{TEXT("군중"), TEXT("Crowd"), TEXT("群衆"), TEXT("群众"), TEXT("群眾")},
+	{TEXT("왕관의 무게"), TEXT("Weight of the Crown"), TEXT("王冠の重み"), TEXT("王冠之重"), TEXT("王冠之重")},
+	{TEXT("서커스"), TEXT("Circus"), TEXT("サーカス"), TEXT("马戏团"), TEXT("馬戲團")},
 	{TEXT("플러시 타워 위력 ×2 / 다른 족보 타워 위력 ×0.5"), TEXT("Flush towers power ×2 / other hand towers ×0.5"), TEXT("フラッシュのタワー威力 ×2 / 他の役のタワー ×0.5"), TEXT("同花塔威力 ×2 / 其他牌型塔 ×0.5"), TEXT("同花塔威力 ×2 / 其他牌型塔 ×0.5")},
 	{TEXT("플러시 아닌 족보 위력 ×1.3 / 플러시 범위 효과 없음"), TEXT("Non-Flush hands power ×1.3 / Flush has no area effect"), TEXT("フラッシュ以外の役の威力 ×1.3 / フラッシュの範囲効果なし"), TEXT("非同花牌型威力 ×1.3 / 同花无范围效果"), TEXT("非同花牌型威力 ×1.3 / 同花無範圍效果")},
 	{TEXT("5장 족보 위력 ×1.6 / 2장 족보는 효과·연쇄 없음"), TEXT("5-card hands power ×1.6 / 2-card hands get no effect or chain"), TEXT("5枚役の威力 ×1.6 / 2枚役は効果・連鎖なし"), TEXT("5张牌型威力 ×1.6 / 2张牌型无效果与连锁"), TEXT("5張牌型威力 ×1.6 / 2張牌型無效果與連鎖")},
@@ -181,6 +183,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 배율 1.2 → 1.6 / 합성은 레벨 2까지"), TEXT("Joker multiplier 1.2 → 1.6 / fusing only up to level 2"), TEXT("ジョーカー倍率 1.2 → 1.6 / 合成はレベル2まで"), TEXT("小丑倍率 1.2 → 1.6 / 合成最多到2级"), TEXT("小丑倍率 1.2 → 1.6 / 合成最多到2級")},
 	{TEXT("족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음"), TEXT("Towers outside hands power ×1.6 / no chain bonus"), TEXT("役に入っていないタワー威力 ×1.6 / 連鎖ボーナスなし"), TEXT("不在牌型中的塔威力 ×1.6 / 无连锁加成"), TEXT("不在牌型中的塔威力 ×1.6 / 無連鎖加成")},
 	{TEXT("연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5"), TEXT("Chain bonus +25% → +40% / towers outside hands power ×0.5"), TEXT("連鎖ボーナス +25% → +40% / 役に入っていないタワー威力 ×0.5"), TEXT("连锁加成 +25% → +40% / 不在牌型中的塔威力 ×0.5"), TEXT("連鎖加成 +25% → +40% / 不在牌型中的塔威力 ×0.5")},
+	{TEXT("상위 조커 위력 배율 ×1.5 → ×2.2 / 기본 조커 지휘 없음"), TEXT("Upper Joker power multiplier ×1.5 → ×2.2 / basic jokers lose their command"), TEXT("上位ジョーカー威力倍率 ×1.5 → ×2.2 / 基本ジョーカーの指揮なし"), TEXT("上位小丑威力倍率 ×1.5 → ×2.2 / 基本小丑没有指挥"), TEXT("上位小丑威力倍率 ×1.5 → ×2.2 / 基本小丑沒有指揮")},
+	{TEXT("판 위 기본 조커 하나마다 모든 조커 위력 +15% / 상위 조커를 만들 수 없음"), TEXT("Each basic joker on the board gives all jokers +15% power / cannot make Upper Jokers"), TEXT("盤面の基本ジョーカー1体ごとに全ジョーカー威力 +15% / 上位ジョーカーを作れない"), TEXT("场上每有一个基本小丑，所有小丑威力 +15% / 无法制作上位小丑"), TEXT("場上每有一個基本小丑，所有小丑威力 +15% / 無法製作上位小丑")},
 	{TEXT("연사 +50%"), TEXT("Rate +50%"), TEXT("連射 +50%"), TEXT("连射 +50%"), TEXT("連射 +50%")},
 	{TEXT("오라 공격력 +25% → +50%, 범위 주변 24칸"), TEXT("Aura ATK +25% → +50%, reach 24 tiles around"), TEXT("オーラ攻撃力 +25% → +50%, 範囲は周囲24マス"), TEXT("光环攻击力 +25% → +50%, 范围周围24格"), TEXT("光環攻擊力 +25% → +50%, 範圍周圍24格")},
 	{TEXT("따라 한 공격 위력 ×1.3"), TEXT("Copied attack power ×1.3"), TEXT("まねた攻撃の威力 ×1.3"), TEXT("模仿攻击威力 ×1.3"), TEXT("模仿攻擊威力 ×1.3")},
@@ -212,6 +216,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("모든 타워 공격 속도 +%d%%"), TEXT("All towers attack speed +%d%%"), TEXT("全タワー攻撃速度 +%d%%"), TEXT("所有塔攻击速度 +%d%%"), TEXT("所有塔攻擊速度 +%d%%")},
 	{TEXT("치명타 확률 +%d%%p"), TEXT("Crit chance +%d%%p"), TEXT("クリティカル率 +%d%%p"), TEXT("暴击率 +%d%%p"), TEXT("暴擊率 +%d%%p")},
 	{TEXT("치명타 배율 +%.2f"), TEXT("Crit multiplier +%.2f"), TEXT("クリティカル倍率 +%.2f"), TEXT("暴击倍率 +%.2f"), TEXT("暴擊倍率 +%.2f")},
+	{TEXT("상위 조커 위력 +%d%%, 조건 조커 레벨 10 → 7"), TEXT("Upper Joker power +%d%%, required Joker Level 10 → 7"), TEXT("上位ジョーカー威力 +%d%%、条件ジョーカーレベル 10 → 7"), TEXT("上位小丑威力 +%d%%，所需小丑等级 10 → 7"), TEXT("上位小丑威力 +%d%%，所需小丑等級 10 → 7")},
 	{TEXT("경험치 +%d%%"), TEXT("XP +%d%%"), TEXT("経験値 +%d%%"), TEXT("经验 +%d%%"), TEXT("經驗 +%d%%")},
 	{TEXT("손패 최대 +%d"), TEXT("Max hand +%d"), TEXT("手札上限 +%d"), TEXT("手牌上限 +%d"), TEXT("手牌上限 +%d")},
 	{TEXT("웨이브마다 카드 +%d"), TEXT("+%d cards per wave"), TEXT("ウェーブごとにカード +%d"), TEXT("每波卡牌 +%d"), TEXT("每波卡牌 +%d")},
@@ -689,5 +694,6 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("단조"), TEXT("Forging"), TEXT("鍛造"), TEXT("锻造"), TEXT("鍛造")},
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
+	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 689;
+static const int32 PDLangRowCount = 695;

@@ -25,9 +25,9 @@ RA, RB = 585.0, 296.0       # 타원 반지름 (가로, 세로)
 
 # 효과 이름은 PDCore.h EPDStat 과 같은 순서
 STATS = ['None', 'SuitDmg', 'SuitRate', 'SuitRange', 'SuitSplash', 'SuitSlow', 'HandDmg', 'HandRate', 'HandSplash', 'AllDmg', 'ChainAdd',
-         'FuseAdd', 'FusedDmg', 'XpPct', 'HandMax', 'Draw', 'Lives', 'Keystone', 'Joker', 'JokerDmg', 'JokerAdd', 'AllRate', 'CritChance', 'CritMult']
+         'FuseAdd', 'FusedDmg', 'XpPct', 'HandMax', 'Draw', 'Lives', 'Keystone', 'Joker', 'JokerDmg', 'JokerAdd', 'AllRate', 'CritChance', 'CritMult', 'UpperPrep']
 HANDS = ['RoyalFlush', 'Five', 'StraightFlush', 'Four', 'FullHouse', 'Flush', 'Straight', 'Triple', 'TwoPair', 'Pair']
-KEYS = ['Purist', 'Omni', 'BigTable', 'SmallTable', 'Smith', 'ClownPath', 'Lone', 'Crowd']
+KEYS = ['Purist', 'Omni', 'BigTable', 'SmallTable', 'Smith', 'ClownPath', 'Lone', 'Crowd', 'Crown', 'Circus']
 JOKERS = ['Clown', 'Hatter', 'Mask', 'Comedy', 'Harlequin', 'Baton', 'Jack', 'Cheshire', 'Bell', 'Star']
 KINDS = ['Start', 'Small', 'Notable', 'Keystone', 'Joker']
 # 색 묶음: 0~3 무늬, 4 족보, 5 살림, 6 조커, 7 시작
@@ -133,6 +133,7 @@ for s, a in enumerate(SUIT_DEG):
 # ---------------------------------------------------------------- 족보 큰길 (이웃 무늬 사이)
 HAND_KEY = ['SmallTable', 'Purist', 'BigTable', 'Smith']
 HAND_JOKER = [None, 'Harlequin', None, 'Mask']
+HAND_UPPER_KEY = ['Crown', None, 'Circus', None]  # 상위 조커 짝 키스톤 (D-232): 조커 갈림길이 없는 족보 큰길 바깥
 UTIL = [('XpPct', 0, .15), ('HandMax', 0, 1), ('Lives', 0, 4), ('Draw', 0, 1)]
 HAND_ROAD = [  # 큰길 작은 3 (특급 앞 2, 뒤 1)
     [('HandDmg', SAME_M, .08), ('AllDmg', 0, .04), ('HandDmg', SAME_M, .08)],
@@ -180,6 +181,12 @@ for h in range(4):
         fork = add('Small', THEME_JOKER, d + 7, 0.83, [('JokerDmg', 0, .10)])
         link(d3, fork)
         link(fork, add('Joker', THEME_JOKER, d + 8, 0.96, [('Joker', JOKERS.index(HAND_JOKER[h]), 0)]))
+        if HAND_JOKER[h] == 'Mask':  # 다과회 초대장 (D-232): 상위 조커 조건 레벨 7, 상위 조커 위력 +15%
+            link(fork, add('Notable', THEME_JOKER, d + 1, 0.90, [('UpperPrep', 0, .15)], '다과회 초대장'))
+    if HAND_UPPER_KEY[h]:
+        fork = add('Small', THEME_JOKER, d + 7, 0.83, [('JokerDmg', 0, .10)])
+        link(d3, fork)
+        link(fork, add('Keystone', THEME_JOKER, d + 8, 0.96, [('Keystone', KEYS.index(HAND_UPPER_KEY[h]), 0)]))
 
 # ---------------------------------------------------------------- 쓰기
 assert len(nodes) <= 160, len(nodes)

@@ -172,6 +172,8 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 광대의 길	Jester's Path	道化の道	小丑之路	小丑之路	PDBoardDraw.h
 고독한 저격수	Lone Sniper	孤独な狙撃手	孤独狙击手	孤獨狙擊手	PDBoardDraw.h
 군중	Crowd	群衆	群众	群眾	PDBoardDraw.h
+왕관의 무게	Weight of the Crown	王冠の重み	王冠之重	王冠之重	PDBoardDraw.h
+서커스	Circus	サーカス	马戏团	馬戲團	PDBoardDraw.h
 플러시 타워 위력 ×2 / 다른 족보 타워 위력 ×0.5	Flush towers power ×2 / other hand towers ×0.5	フラッシュのタワー威力 ×2 / 他の役のタワー ×0.5	同花塔威力 ×2 / 其他牌型塔 ×0.5	同花塔威力 ×2 / 其他牌型塔 ×0.5	PDBoardDraw.h
 플러시 아닌 족보 위력 ×1.3 / 플러시 범위 효과 없음	Non-Flush hands power ×1.3 / Flush has no area effect	フラッシュ以外の役の威力 ×1.3 / フラッシュの範囲効果なし	非同花牌型威力 ×1.3 / 同花无范围效果	非同花牌型威力 ×1.3 / 同花無範圍效果	PDBoardDraw.h
 5장 족보 위력 ×1.6 / 2장 족보는 효과·연쇄 없음	5-card hands power ×1.6 / 2-card hands get no effect or chain	5枚役の威力 ×1.6 / 2枚役は効果・連鎖なし	5张牌型威力 ×1.6 / 2张牌型无效果与连锁	5張牌型威力 ×1.6 / 2張牌型無效果與連鎖	PDBoardDraw.h
@@ -180,6 +182,8 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 조커 배율 1.2 → 1.6 / 합성은 레벨 2까지	Joker multiplier 1.2 → 1.6 / fusing only up to level 2	ジョーカー倍率 1.2 → 1.6 / 合成はレベル2まで	小丑倍率 1.2 → 1.6 / 合成最多到2级	小丑倍率 1.2 → 1.6 / 合成最多到2級	PDBoardDraw.h
 족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음	Towers outside hands power ×1.6 / no chain bonus	役に入っていないタワー威力 ×1.6 / 連鎖ボーナスなし	不在牌型中的塔威力 ×1.6 / 无连锁加成	不在牌型中的塔威力 ×1.6 / 無連鎖加成	PDBoardDraw.h
 연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5	Chain bonus +25% → +40% / towers outside hands power ×0.5	連鎖ボーナス +25% → +40% / 役に入っていないタワー威力 ×0.5	连锁加成 +25% → +40% / 不在牌型中的塔威力 ×0.5	連鎖加成 +25% → +40% / 不在牌型中的塔威力 ×0.5	PDBoardDraw.h
+상위 조커 위력 배율 ×1.5 → ×2.2 / 기본 조커 지휘 없음	Upper Joker power multiplier ×1.5 → ×2.2 / basic jokers lose their command	上位ジョーカー威力倍率 ×1.5 → ×2.2 / 基本ジョーカーの指揮なし	上位小丑威力倍率 ×1.5 → ×2.2 / 基本小丑没有指挥	上位小丑威力倍率 ×1.5 → ×2.2 / 基本小丑沒有指揮	PDBoardDraw.h
+판 위 기본 조커 하나마다 모든 조커 위력 +15% / 상위 조커를 만들 수 없음	Each basic joker on the board gives all jokers +15% power / cannot make Upper Jokers	盤面の基本ジョーカー1体ごとに全ジョーカー威力 +15% / 上位ジョーカーを作れない	场上每有一个基本小丑，所有小丑威力 +15% / 无法制作上位小丑	場上每有一個基本小丑，所有小丑威力 +15% / 無法製作上位小丑	PDBoardDraw.h
 연사 +50%	Rate +50%	連射 +50%	连射 +50%	連射 +50%	PDBoardDraw.h
 오라 공격력 +25% → +50%, 범위 주변 24칸	Aura ATK +25% → +50%, reach 24 tiles around	オーラ攻撃力 +25% → +50%, 範囲は周囲24マス	光环攻击力 +25% → +50%, 范围周围24格	光環攻擊力 +25% → +50%, 範圍周圍24格	PDBoardDraw.h
 따라 한 공격 위력 ×1.3	Copied attack power ×1.3	まねた攻撃の威力 ×1.3	模仿攻击威力 ×1.3	模仿攻擊威力 ×1.3	PDBoardDraw.h
@@ -211,6 +215,7 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 모든 타워 공격 속도 +%d%%	All towers attack speed +%d%%	全タワー攻撃速度 +%d%%	所有塔攻击速度 +%d%%	所有塔攻擊速度 +%d%%	PDBoardDraw.h
 치명타 확률 +%d%%p	Crit chance +%d%%p	クリティカル率 +%d%%p	暴击率 +%d%%p	暴擊率 +%d%%p	PDBoardDraw.h
 치명타 배율 +%.2f	Crit multiplier +%.2f	クリティカル倍率 +%.2f	暴击倍率 +%.2f	暴擊倍率 +%.2f	PDBoardDraw.h
+상위 조커 위력 +%d%%, 조건 조커 레벨 10 → 7	Upper Joker power +%d%%, required Joker Level 10 → 7	上位ジョーカー威力 +%d%%、条件ジョーカーレベル 10 → 7	上位小丑威力 +%d%%，所需小丑等级 10 → 7	上位小丑威力 +%d%%，所需小丑等級 10 → 7	PDBoardDraw.h
 경험치 +%d%%	XP +%d%%	経験値 +%d%%	经验 +%d%%	經驗 +%d%%	PDBoardDraw.h
 손패 최대 +%d	Max hand +%d	手札上限 +%d	手牌上限 +%d	手牌上限 +%d	PDBoardDraw.h
 웨이브마다 카드 +%d	+%d cards per wave	ウェーブごとにカード +%d	每波卡牌 +%d	每波卡牌 +%d	PDBoardDraw.h
@@ -688,3 +693,4 @@ P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P
 단조	Forging	鍛造	锻造	鍛造	PDLangTable.inl
 대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDLangTable.inl
 조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDLangTable.inl
+다과회 초대장	Tea Party Invitation	お茶会の招待状	茶会请柬	茶會請柬	PDTreeText.inl

@@ -97,6 +97,7 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned)
 			case EPDStat::AllRate: M.AllRate += F.Value; break;
 			case EPDStat::CritChance: M.CritChance += F.Value; break;
 			case EPDStat::CritMult: M.CritMult += F.Value; break;
+			case EPDStat::UpperPrep: M.UpperPrep += F.Value; break;
 			case EPDStat::XpPct: M.XpPct += F.Value; break;
 			case EPDStat::HandMax: M.HandAdd += (int)F.Value; break;
 			case EPDStat::Draw: M.DrawAdd += (int)F.Value; break;
@@ -532,7 +533,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 		if (!KV.second.IsJoker()) continue;
 		const int Jk = KV.second.Joker;
 		if (IsUpperJoker(Jk)) { Captains[(int)CaptainHand(UpperDef(Jk - UpperBase).A)]++; Captains[(int)CaptainHand(UpperDef(Jk - UpperBase).B)]++; } // 상위 조커는 재료 둘의 지휘 (D-231)
-		else if (Jk >= 0 && Jk < (int)EPDJoker::Count) Captains[(int)CaptainHand((EPDJoker)Jk)]++;
+		else if (Jk >= 0 && Jk < (int)EPDJoker::Count && !Tm.Key(EPDKeystone::Crown)) Captains[(int)CaptainHand((EPDJoker)Jk)]++; // 왕관의 무게: 기본 조커 지휘 없음 (D-232)
 	}
 	for (auto& KV : Towers)
 	{
@@ -542,6 +543,13 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const
 		int Cmd = 0;
 		for (int H = 0; H < (int)EPDHand::Count; ++H) if ((Bits >> H) & 1u) Cmd += Captains[H]; // 여러 족보에 든 타워는 대장마다 지휘를 받는다
 		if (Cmd > 0) O.Eff.Dmg *= 1.f + CaptainCommand * Cmd;
+	}
+	// 서커스 (D-232): 판 위 기본 조커 하나마다 모든 조커 위력 +15%
+	if (Tm.Key(EPDKeystone::Circus))
+	{
+		int NBase = 0;
+		for (auto& KV : Towers) NBase += KV.second.IsJoker() && !IsUpperJoker(KV.second.Joker);
+		for (auto& KV : Towers) if (KV.second.IsJoker()) KV.second.Eff.Dmg *= 1.f + 0.15f * NBase;
 	}
 	// 조커 오라
 	for (auto& KV : Towers)
@@ -1666,11 +1674,11 @@ std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
 			Out.push_back(M);
 		}
 	}
-	// 상위 조커 (D-231): 맞닿은 서로 다른 기본 조커 둘, 레시피가 있고 둘 다 조건 레벨 이상
+	// 상위 조커 (D-231): 맞닿은 서로 다른 기본 조커 둘, 레시피가 있고 둘 다 조건 레벨 이상. 서커스 키스톤이면 못 만듦 (D-232)
 	for (const auto& KV : Towers)
 	{
 		const FPDTower& A = KV.second;
-		if (!A.IsJoker() || A.Joker < 0 || A.Joker >= (int)EPDJoker::Count || A.JLevel < UpperNeed(A)) continue;
+		if (Mods.Key(EPDKeystone::Circus) || !A.IsJoker() || A.Joker < 0 || A.Joker >= (int)EPDJoker::Count || A.JLevel < UpperNeed(A)) continue;
 		PDForNeighbors(KV.first, [&](int NK) {
 			if (NK <= KV.first) return; // 쌍은 한 번만
 			auto It = Towers.find(NK);
@@ -1689,7 +1697,7 @@ std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
 	return Out;
 }
 
-int FPDGame::UpperNeed(const FPDTower& T) const { return T.Joker >= 0 && T.Joker < (int)EPDJoker::Count && Mods.Up(T.Joker) ? UpperNeedLevelTip : UpperNeedLevel; }
+int FPDGame::UpperNeed(const FPDTower& T) const { return T.Joker >= 0 && T.Joker < (int)EPDJoker::Count && Mods.Up(T.Joker) ? UpperNeedLevelTip : Mods.UpperPrep > 0.f ? 7 : UpperNeedLevel; } // 트리 끝자락 5, 다과회 초대장 7 (D-232)
 
 bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 {
@@ -1721,7 +1729,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 		J.JSuit = JS;
 		J.JLevel = Lv;
 		J.JXp = 0.f;
-		J.Mult = Sum * UpperBonus * (1.f + UpperTipBonus * Tips);
+		J.Mult = Sum * (Mods.Key(EPDKeystone::Crown) ? 2.2f : UpperBonus) * (1.f + UpperTipBonus * Tips + Mods.UpperPrep); // 왕관의 무게 ×2.2 (D-232)
 		J.Cd = 0.f;
 		J.StunT = 0.f;
 		J.Timer = 0.f;
