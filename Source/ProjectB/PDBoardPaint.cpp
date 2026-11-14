@@ -315,7 +315,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		const float Pulse2 = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
 		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.55f));
 		C.TextCentered(TEXT("일시정지"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f - 14.f, WithAlpha(UiTitle, 0.75f + 0.25f * Pulse2), 40.f, true, Cols * CS - 40.f);
-		C.TextCentered(TEXT("P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f + 26.f, Hex(TEXT("cfd8e6")), 13.f, false, Cols * CS - 40.f);
+		C.TextCentered(TEXT("스페이스·P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f + 26.f, Hex(TEXT("cfd8e6")), 13.f, false, Cols * CS - 40.f);
 	}
 	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) PaintTitle(C);
 	else if (G.Phase == EPDPhase::Over)

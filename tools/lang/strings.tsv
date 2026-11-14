@@ -229,7 +229,7 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 닫기  U	Close  U	閉じる  U	关闭  U	關閉  U	PDBoardPaint.cpp
 닫기  J	Close  J	閉じる  J	关闭  J	關閉  J	PDBoardPaint.cpp
 일시정지	Paused	一時停止	已暂停	已暫停	PDBoardPaint.cpp
-P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P or button: resume · you can still place and fuse while paused	P かボタン: 再開 · 停止中もカードの設置・合成はできる	P 或按钮: 继续 · 暂停时仍可放置卡牌和合成	P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成	PDBoardPaint.cpp
+스페이스·P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	Space · P or button: resume · you can still place and fuse while paused	スペース・P かボタン: 再開 · 停止中もカードの設置・合成はできる	空格·P 或按钮: 继续 · 暂停时仍可放置卡牌和合成	空白鍵·P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成	PDBoardPaint.cpp
 웨이브 %d에서 무너졌다 · 처치 %d	Fell at wave %d · %d kills	ウェーブ %d で崩れた · 撃破 %d	在第%d波失守 · 击杀 %d	在第%d波失守 · 擊殺 %d	PDBoardPaint.cpp
 최고 기록 %d웨이브%s	Best record: wave %d%s	最高記録 %dウェーブ%s	最高纪录 第%d波%s	最高紀錄 第%d波%s	PDBoardPaint.cpp
   (갱신!)	  (new!)	  (更新!)	  (刷新!)	  (刷新!)	PDBoardPaint.cpp
@@ -460,6 +460,7 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
+P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P or button: resume · you can still place and fuse while paused	P かボタン: 再開 · 停止中もカードの設置・合成はできる	P 或按钮: 继续 · 暂停时仍可放置卡牌和合成	P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成	PDLangTable.inl
 명사수	Marksman	名射手	神射手	神射手	PDLangTable.inl
 저격수의 눈	Sniper's Eye	狙撃手の目	狙击手之眼	狙擊手之眼	PDLangTable.inl
 망원 조준	Telescopic Sight	望遠照準	望远瞄准	望遠瞄準	PDLangTable.inl
