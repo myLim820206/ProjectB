@@ -322,6 +322,17 @@ struct FMusic
 			Add(0, I0 + I, (Hp * 1.6f * Body + Tone) * 0.55f);
 		}
 	}
+	void Tom(float T0, float F0, float Amp) // 탐 (D-188): 음높이가 살짝 내려가는 사인 + 짧은 잡음
+	{
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(0.3f * Rate);
+		float Ph = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			Ph += F0 * (1.f + 0.5f * std::exp(-T / 0.04f)) / Rate;
+			Add(0, I0 + I, (std::sin(SynthTwoPi * Ph) + 0.15f * Rand() * std::exp(-T / 0.01f)) * std::exp(-T / 0.12f) * Amp);
+		}
+	}
 	void Hat(float T0, float Len, float Amp)
 	{
 		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(Len * Rate);
@@ -373,6 +384,8 @@ struct FMusic
 };
 } // namespace
 
+static std::vector<int16_t> MixDown(FMusic& M, const std::vector<float>& Kicks, float Beat, size_t LoopN, size_t TailN, int SampleRate);
+
 std::vector<int16_t> SynthesizeMusic(int SampleRate)
 {
 	const float Bpm = 104.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
@@ -413,6 +426,12 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate)
 		{14, 0.f, 1.f, 76.f}, {14, 1.f, 1.f, 79.f}, {14, 2.f, 1.f, 76.f}, {14, 3.f, 1.f, 74.f},
 		{15, 0.f, 1.5f, 74.f}, {15, 1.5f, 0.5f, 71.f}, {15, 2.f, 2.f, 67.f}};
 	for (const FLeadNote& L : Lead) M.SawNote(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.95f, L.Midi, 0.16f, 2600.f, 1800.f, 0.3f, 0.01f, 0.12f, 0.005f, 0.006f);
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate);
+}
+
+// 킥 눌림 + 메아리 + 섞기 (일반·보스 음악 공용)
+static std::vector<int16_t> MixDown(FMusic& M, const std::vector<float>& Kicks, float Beat, size_t LoopN, size_t TailN, int SampleRate)
+{
 	// 킥 눌림(사이드체인): 눌리는 소리를 킥마다 잠깐 줄인다
 	std::vector<float>& Duck = M.Bus[1];
 	size_t KI = 0;
@@ -438,5 +457,52 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate)
 	std::vector<int16_t> Out(LoopN);
 	for (size_t I = 0; I < LoopN; ++I) Out[I] = (int16_t)std::lround(std::tanh(Mix[I] * 0.9f) * 28000.f);
 	return Out;
+}
+
+std::vector<int16_t> SynthesizeBossMusic(int SampleRate)
+{
+	const float Bpm = 140.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
+	const int Bars = 16;
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(2.f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	M.Rng = 0x9e3779b9u;
+	// Dm - B♭ - Gm - A (A 장화음이 긴장을 끌고 다시 Dm 으로)
+	struct FChord { float Bass; float Pad[3]; };
+	const FChord Ch[4] = {{38.f, {62.f, 65.f, 69.f}}, {34.f, {62.f, 65.f, 70.f}}, {43.f, {62.f, 67.f, 70.f}}, {45.f, {61.f, 64.f, 69.f}}};
+	std::vector<float> Kicks;
+	for (int B = 0; B < Bars; ++B)
+	{
+		const float T = B * Bar;
+		const FChord& C = Ch[B % 4];
+		const bool bFill = B % 4 == 3, bLead = B >= 8;
+		// 드럼: 4박 킥 + 마디 끝 두 번 킥, 스네어 2·4, 16분 하이햇, 4마디마다 탐 채움
+		for (int K = 0; K < 4; ++K) { M.Kick(T + K * Beat); Kicks.push_back(T + K * Beat); }
+		if (!bFill) { M.Kick(T + 3.5f * Beat); Kicks.push_back(T + 3.5f * Beat); }
+		M.Snare(T + Beat);
+		if (!bFill) M.Snare(T + 3.f * Beat);
+		for (int K = 0; K < 16; ++K) M.Hat(T + K * S16, 0.035f, K % 4 == 2 ? 0.16f : 0.07f);
+		if (bFill) for (int K = 0; K < 8; ++K) M.Tom(T + 2.f * Beat + K * S16, 180.f - K * 14.f, 0.5f);
+		// 베이스: 16분으로 몰아치는 근음 (네 번째마다 옥타브)
+		for (int K = 0; K < 16; ++K) M.SawNote(1, T + K * S16, S16 * 0.7f, C.Bass + (K % 4 == 3 ? 12.f : 0.f), 0.38f, 1800.f, 300.f, 0.04f, 0.002f, 0.015f, 0.005f);
+		// 찌르는 화음: 1박과 2박 반 (짧고 세게)
+		for (const float At : {0.f, 1.5f})
+			for (float N : C.Pad) M.SawNote(1, T + At * Beat, Beat * 0.4f, N, 0.07f, 3000.f, 700.f, 0.08f, 0.003f, 0.08f, 0.008f);
+		// 경보 동기: 높은 음과 반음 위를 8분으로 번갈아 (위협하는 느낌)
+		const float Hi = C.Pad[0] + 12.f;
+		for (int K = 0; K < 8; ++K) M.PulseNote(2, T + K * Beat / 2.f, Beat / 2.f * 0.8f, K % 2 ? Hi + 1.f : Hi, bLead ? 0.045f : 0.07f);
+	}
+	// 리드 (9~16마디): 낮게 깔려 올라가는 단조 선율
+	struct FLeadNote { int Bar; float At, Len, Midi; };
+	const FLeadNote Lead[] = {
+		{8, 0.f, 1.f, 74.f}, {8, 1.f, 1.f, 77.f}, {8, 2.f, 2.f, 76.f},
+		{9, 0.f, 1.f, 74.f}, {9, 1.f, 1.f, 70.f}, {9, 2.f, 2.f, 72.f},
+		{10, 0.f, 1.f, 70.f}, {10, 1.f, 1.f, 74.f}, {10, 2.f, 1.f, 79.f}, {10, 3.f, 1.f, 77.f},
+		{11, 0.f, 2.f, 76.f}, {11, 2.f, 1.f, 73.f}, {11, 3.f, 1.f, 76.f},
+		{12, 0.f, 1.5f, 81.f}, {12, 1.5f, 0.5f, 79.f}, {12, 2.f, 2.f, 77.f},
+		{13, 0.f, 1.f, 74.f}, {13, 1.f, 1.f, 77.f}, {13, 2.f, 2.f, 82.f},
+		{14, 0.f, 1.f, 79.f}, {14, 1.f, 1.f, 77.f}, {14, 2.f, 2.f, 74.f},
+		{15, 0.f, 2.f, 73.f}, {15, 2.f, 2.f, 76.f}};
+	for (const FLeadNote& L : Lead) M.SawNote(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.95f, L.Midi, 0.15f, 3200.f, 1900.f, 0.25f, 0.008f, 0.1f, 0.006f, 0.008f);
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate);
 }
 } // namespace PD

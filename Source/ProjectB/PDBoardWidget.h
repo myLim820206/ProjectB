@@ -60,6 +60,7 @@ public:
 	// 소리 크기 0~1 (설정에서 끄면 0). 게임 모드가 소리마다 곱한다 (D-110)
 	float GetVolume() const { return Settings.bSound ? Settings.Volume : 0.f; }
 	float GetMusicVolume() const { return Settings.bSound ? Settings.MusicVolume : 0.f; } // 배경 음악 (D-117)
+	bool WantBossMusic() const { return Game.Phase == PD::EPDPhase::Wave && Game.NextBossWave() == Game.Wave; } // 보스 웨이브 동안은 보스 음악 (D-188)
 
 	// 메뉴의 [게임 종료]. 게임 모드가 채운다 (월드가 있어야 PIE·패키지 모두 바르게 끝낼 수 있어서)
 	TFunction<void()> OnQuit;
