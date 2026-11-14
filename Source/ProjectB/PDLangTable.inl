@@ -262,6 +262,11 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), TEXT("%s: nothing to fuse (max level or a Joker inside) · Esc: off"), TEXT("%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる"), TEXT("%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭"), TEXT("%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉")},
 	{TEXT("조커 합치기"), TEXT("Merge Jokers"), TEXT("ジョーカー合体"), TEXT("合并小丑"), TEXT("合併小丑")},
 	{TEXT("위력 %s/초 (판의 %d%%)"), TEXT("Power %s/s (%d%% of board)"), TEXT("威力 %s/秒 (盤の%d%%)"), TEXT("威力 %s/秒 (占全场%d%%)"), TEXT("威力 %s/秒 (占全場%d%%)")},
+	{TEXT("합성하면: %s %s · %s Lv%d"), TEXT("After fusing: %s %s · %s Lv%d"), TEXT("合成すると: %s %s · %s Lv%d"), TEXT("合成后: %s %s · %s Lv%d"), TEXT("合成後: %s %s · %s Lv%d")},
+	{TEXT("위력 %s/초 → %s/초 (%s%.0f%%)"), TEXT("Power %s/s → %s/s (%s%.0f%%)"), TEXT("威力 %s/秒 → %s/秒 (%s%.0f%%)"), TEXT("威力 %s/秒 → %s/秒 (%s%.0f%%)"), TEXT("威力 %s/秒 → %s/秒 (%s%.0f%%)")},
+	{TEXT("재료 %d장의 위력 합 → 합성 타워 하나"), TEXT("Total of %d material cards → one fused tower"), TEXT("素材 %d 枚の威力合計 → 合成タワー1つ"), TEXT("%d 张素材的威力总和 → 一座合成塔"), TEXT("%d 張素材的威力總和 → 一座合成塔")},
+	{TEXT("공격력 %.0f → %.0f · 초당 %.1f → %.1f발"), TEXT("Damage %.0f → %.0f · %.1f → %.1f shots/s"), TEXT("攻撃力 %.0f → %.0f · 毎秒 %.1f → %.1f発"), TEXT("攻击力 %.0f → %.0f · 每秒 %.1f → %.1f 发"), TEXT("攻擊力 %.0f → %.0f · 每秒 %.1f → %.1f 發")},
+	{TEXT("사거리 %.1f → %.1f · 범위 %.1f → %.1f"), TEXT("Range %.1f → %.1f · Area %.1f → %.1f"), TEXT("射程 %.1f → %.1f · 範囲 %.1f → %.1f"), TEXT("射程 %.1f → %.1f · 范围 %.1f → %.1f"), TEXT("射程 %.1f → %.1f · 範圍 %.1f → %.1f")},
 	{TEXT("%s 대장: %s"), TEXT("%s captain: %s"), TEXT("%s 隊長: %s"), TEXT("%s 队长: %s"), TEXT("%s 隊長: %s")},
 	{TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), TEXT("ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f"), TEXT("攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f"), TEXT("攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f"), TEXT("攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f")},
 	{TEXT("사거리 %.1f%s%s"), TEXT("Range %.1f%s%s"), TEXT("射程 %.1f%s%s"), TEXT("射程 %.1f%s%s"), TEXT("射程 %.1f%s%s")},
@@ -513,4 +518,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 512;
+static const int32 PDLangRowCount = 517;

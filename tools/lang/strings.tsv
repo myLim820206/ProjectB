@@ -261,6 +261,11 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 %s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
 위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
+합성하면: %s %s · %s Lv%d	After fusing: %s %s · %s Lv%d	合成すると: %s %s · %s Lv%d	合成后: %s %s · %s Lv%d	合成後: %s %s · %s Lv%d	PDBoardPaint.cpp
+위력 %s/초 → %s/초 (%s%.0f%%)	Power %s/s → %s/s (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
+재료 %d장의 위력 합 → 합성 타워 하나	Total of %d material cards → one fused tower	素材 %d 枚の威力合計 → 合成タワー1つ	%d 张素材的威力总和 → 一座合成塔	%d 張素材的威力總和 → 一座合成塔	PDBoardPaint.cpp
+공격력 %.0f → %.0f · 초당 %.1f → %.1f발	Damage %.0f → %.0f · %.1f → %.1f shots/s	攻撃力 %.0f → %.0f · 毎秒 %.1f → %.1f発	攻击力 %.0f → %.0f · 每秒 %.1f → %.1f 发	攻擊力 %.0f → %.0f · 每秒 %.1f → %.1f 發	PDBoardPaint.cpp
+사거리 %.1f → %.1f · 범위 %.1f → %.1f	Range %.1f → %.1f · Area %.1f → %.1f	射程 %.1f → %.1f · 範囲 %.1f → %.1f	射程 %.1f → %.1f · 范围 %.1f → %.1f	射程 %.1f → %.1f · 範圍 %.1f → %.1f	PDBoardPaint.cpp
 %s 대장: %s	%s captain: %s	%s 隊長: %s	%s 队长: %s	%s 隊長: %s	PDBoardPaint.cpp
 공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardPaint.cpp
 사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardPaint.cpp

@@ -1276,7 +1276,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		}
 		F.NextLayer();
 	}
-	bool bFuseHov = false; // 합쳐질 칸 위: 타워 툴팁이 미리보기를 가리지 않게 (D-199)
+	bool bFuseHov = false; // 합쳐질 칸 위: 보통 타워 툴팁 대신 합성 전후 툴팁 (D-209)
+	int32 FuseHovSyn = -1;
 	// 합성 못 하는 족보(조커가 낌·최대 레벨)는 따로 표시하지 않고 다른 칸처럼 어둡게 (D-207, D-200 의 빨간 X 는 난잡해서 뺐다)
 	// 같은 족보가 여럿 붙어 있으면 족보마다 다른 색 (D-200): 맞닿은 족보끼리 색이 겹치지 않게 차례로 고른다
 	TMap<int32, FLinearColor> SynCol;
@@ -1339,6 +1340,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			if (bHov) // 마우스 칸 = 합쳐질 칸: 하늘색 테두리 + 퍼지는 고리 + "여기", 다른 재료 칸에서 점선
 			{
 				bFuseHov = true;
+				FuseHovSyn = I;
 				const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
 				const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
 				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), WithAlpha(TargetCol, 0.9f), 3.8f, (1.8f + Wv) * 0.9f);
@@ -1348,7 +1350,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.81f * (1.f - U)), 2.2f, 1.f);
 				}
 				for (int K : FS.Cells) if (K != HKey) F.Dashed({CellCenter(K), CellCenter(HKey)}, WithAlpha(TargetCol, 0.63f), 1.6f, 4.f, 5.f);
-				F.Badge(TEXT("여기로 합성"), C0.X + CS / 2.f, C0.Y + CS + 20.f, TargetCol, 1.f); // 어두운 바탕 딱지로 칸 아래에 (D-205): 위쪽은 족보 이름표·퍼지는 고리와 겹쳐 안 보였다
+				F.Badge(TEXT("여기로 합성"), C0.X + CS / 2.f, C0.Y + CS + 20.f, TargetCol, 1.f);
+				BadgeRects.Add(FBox2f(FVector2f(C0.X - 20.f, C0.Y + CS + 11.f), FVector2f(C0.X + CS + 20.f, C0.Y + CS + 29.f))); // 툴팁이 피할 자리 // 어두운 바탕 딱지로 칸 아래에 (D-205): 위쪽은 족보 이름표·퍼지는 고리와 겹쳐 안 보였다
 			}
 		}
 	// 먹이기 (D-131): 평소엔 먹일 족보가 있는 조커 위에 작은 "먹이" 표시만. 조커를 클릭하면 먹이기 모드
@@ -1528,7 +1531,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false, Cols * CS - 20.f);
 	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
-	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward && !bFeedBtnHov && !bFuseHov)
+	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward && !bFeedBtnHov)
 	{
 		auto It = G.Towers.find(CellKey(HoverX, HoverY));
 		if (It != G.Towers.end())
@@ -1588,7 +1591,35 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				if (Chain >= 2) { Put(TEXT(" · "), Grey); Put(TrF(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (Chain - 1))), Gold); }
 				return Lines;
 			};
-			if (T.IsJoker())
+			if (bFuseHov && FuseHovSyn >= 0)
+			{
+				// 합성 전후 (D-209): 사본에서 이 칸으로 합성해 보고, 재료 위력 합 → 결과 타워 위력, 이 칸 타워의 한 발·연사·사거리 → 결과
+				FPDGame Copy = G;
+				Copy.bMuted = true;
+				const int32 HK = It->first;
+				const std::vector<int> Mats = FuseSyn(G, FuseHovSyn).Cells;
+				if (Copy.Fuse(FuseHovSyn, HK) && Copy.Towers.count(HK))
+				{
+					const FPDTower& R = Copy.Towers.at(HK);
+					const FPDTowerStats Rs = TowerStats(R, Copy.CharmMask(), &Copy.Mods);
+					float PwB = 0.f, PwA = 0.f;
+					for (const auto& KV : PowerList) if (std::find(Mats.begin(), Mats.end(), KV.first) != Mats.end()) PwB += KV.second;
+					for (const auto& KV : Copy.TowerPowers()) if (KV.first == HK) PwA = KV.second;
+					const float Pct = PwB > 0.f ? (PwA / PwB - 1.f) * 100.f : 0.f;
+					const FLinearColor Up = Hex(TEXT("9cffb0")), Down = Hex(TEXT("ff6a6a"));
+					constexpr float TW = 270.f, TH = 108.f;
+					const FVector2f P = PlaceTip(TW, TH);
+					F.Box(P.X, P.Y, TW, TH, Hex(TEXT("06060b"), 0.94f));
+					F.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TW, TH, 8.f), Gold, 1.2f, 0.4f);
+					const FString CardName = R.Card.IsWild() ? FString(Tr(TEXT("와일드"))) : RankText(R.Card.Rank);
+					F.Text(TrF(TEXT("합성하면: %s %s · %s Lv%d"), *CardName, SuitName(R.Card.Suit), HandName((EPDHand)FMath::Max(0, R.FuseHand)), R.Level), P.X + 10.f, P.Y + 18.f, Gold, 12.f, 0, true, TW - 20.f);
+					F.Text(TrF(TEXT("위력 %s/초 → %s/초 (%s%.0f%%)"), *ShortNum(PwB), *ShortNum(PwA), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct), P.X + 10.f, P.Y + 38.f, Pct >= 0.f ? Up : Down, 11.f, 0, true, TW - 20.f);
+					F.Text(TrF(TEXT("재료 %d장의 위력 합 → 합성 타워 하나"), (int32)Mats.size()), P.X + 10.f, P.Y + 54.f, Grey, 9.f, 0, false, TW - 20.f);
+					F.Text(TrF(TEXT("공격력 %.0f → %.0f · 초당 %.1f → %.1f발"), St.Dmg, Rs.Dmg, St.Rate, Rs.Rate), P.X + 10.f, P.Y + 72.f, Fg, 11.f, 0, false, TW - 20.f);
+					F.Text(TrF(TEXT("사거리 %.1f → %.1f · 범위 %.1f → %.1f"), St.Range, Rs.Range, St.Splash, Rs.Splash), P.X + 10.f, P.Y + 90.f, Grey, 11.f, 0, false, TW - 20.f);
+				}
+			}
+			else if (T.IsJoker())
 			{
 				const float SynH = SynLines(false, 0.f, 0.f, 226.f) * 16.f;
 				const FVector2f Pj = PlaceTip(246.f, 140.f + SynH);
