@@ -231,6 +231,8 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 웨이브 %d에서 무너졌다 · 처치 %d	Fell at wave %d · %d kills	ウェーブ %d で崩れた · 撃破 %d	在第%d波失守 · 击杀 %d	在第%d波失守 · 擊殺 %d	PDBoardPaint.cpp
 최고 기록 %d웨이브%s	Best record: wave %d%s	最高記録 %dウェーブ%s	最高纪录 第%d波%s	最高紀錄 第%d波%s	PDBoardPaint.cpp
   (갱신!)	  (new!)	  (更新!)	  (刷新!)	  (刷新!)	PDBoardPaint.cpp
+개인 랭킹 %d위	Personal rank #%d	個人ランキング %d位	个人排名 第%d名	個人排名 第%d名	PDBoardPaint.cpp
+개인 랭킹 20위 밖	Outside personal top 20	個人ランキング 20位圏外	未进入个人前20名	未進入個人前20名	PDBoardPaint.cpp
 R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか画面を押して再挑戦	按 R 或点击画面重来	按 R 或點擊畫面重來	PDBoardPaint.cpp
 1초 최저 %.0f fps (%.1f ms)	1s low %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	PDBoardPaint.cpp
 적 %d · 발사체 %d · 타워 %d	Enemies %d · Shots %d · Towers %d	敵 %d · 弾 %d · タワー %d	敌人 %d · 弹体 %d · 塔 %d	敵人 %d · 彈體 %d · 塔 %d	PDBoardPaint.cpp
@@ -355,6 +357,7 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라	Place cards, build poker hands, hold back the endless horde	カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ	放置卡牌组成牌型, 挡住源源不断的敌人	放置卡牌組成牌型, 擋住源源不絕的敵人	PDBoardPaint.cpp
 이어하기	Continue	続きから	继续游戏	繼續遊戲	PDBoardPaint.cpp
 게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDBoardPaint.cpp
+랭킹	Ranking	ランキング	排行榜	排行榜	PDBoardPaint.cpp
 환경 설정	Settings	環境設定	设置	設定	PDBoardPaint.cpp
 최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
 위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정	Up/Down or mouse to choose · Enter or click to confirm	上下キーかマウスで選ぶ · Enter かクリックで決定	用上下键或鼠标选择 · 按 Enter 或点击确认	用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認	PDBoardPaint.cpp
@@ -399,6 +402,17 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 이전	Back	前へ	上一页	上一頁	PDBoardPaint.cpp
 건너뛰기	Skip	スキップ	跳过	跳過	PDBoardPaint.cpp
 ←→ 넘기기 · Enter 다음 · Esc 닫기	←→ turn pages · Enter next · Esc close	←→ ページ送り · Enter 次へ · Esc 閉じる	←→ 翻页 · Enter 下一页 · Esc 关闭	←→ 翻頁 · Enter 下一頁 · Esc 關閉	PDBoardPaint.cpp
+개인 랭킹	Personal	個人ランキング	个人排名	個人排名	PDBoardPaint.cpp
+리더보드	Leaderboard	リーダーボード	排行榜	排行榜	PDBoardPaint.cpp
+순위	Rank	順位	名次	名次	PDBoardPaint.cpp
+웨이브	Wave	ウェーブ	波次	波次	PDBoardPaint.cpp
+처치	Kills	撃破	击杀	擊殺	PDBoardPaint.cpp
+최고 위력	Best Power	最高威力	最高威力	最高威力	PDBoardPaint.cpp
+날짜	Date	日付	日期	日期	PDBoardPaint.cpp
+아직 기록이 없다. 게임 오버가 되면 여기에 남는다	No records yet. Your runs are saved here when the game ends	まだ記録がない。ゲームオーバーになるとここに残る	还没有记录。游戏结束后会记录在这里	還沒有紀錄。遊戲結束後會記錄在這裡	PDBoardPaint.cpp
+스팀 리더보드 준비 중	Steam leaderboard coming soon	Steamリーダーボード準備中	Steam 排行榜准备中	Steam 排行榜準備中	PDBoardPaint.cpp
+출시 때 스팀 계정으로 전 세계 플레이어와 최고 웨이브를 겨룬다	At launch, compete for the best wave with players worldwide on Steam	リリース時にSteamアカウントで世界中のプレイヤーと最高ウェーブを競える	正式发售后可用 Steam 账号与全球玩家比拼最高波次	正式發售後可用 Steam 帳號與全球玩家比拚最高波次	PDBoardPaint.cpp
+←→ 탭 바꾸기 · Esc 닫기	←→ switch tab · Esc close	←→ タブ切替 · Esc 閉じる	←→ 切换标签 · Esc 关闭	←→ 切換標籤 · Esc 關閉	PDBoardPaint.cpp
 판을 준비하는 중	Preparing the board	盤を準備中	正在准备棋盘	正在準備棋盤	PDBoardPaint.cpp
 붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)	Adjacent towers forming a poker hand create a synergy (any shape)	隣り合うタワーがポーカーの役になるとシナジー (形は自由)	相邻的塔组成扑克牌型就有协同 (形状不限)	相鄰的塔組成撲克牌型就有協同 (形狀不限)	PDBoardPaint.cpp
 족보끼리 맞닿으면 연쇄 보너스가 붙는다	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp

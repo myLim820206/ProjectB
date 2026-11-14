@@ -81,6 +81,18 @@ private:
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
 	void TitleSelect(int32 Item);          // 시작 화면 항목 실행 (D-153)
 	void PaintTutorial(FCanvas& C) const;  // 튜토리얼 장면 (D-166)
+	// 랭킹 (D-168): 게임 오버마다 기록 하나 (웨이브·처치·최고 판 위력·날짜), 상위 20개를 Saved/SaveGames/Ranking.txt 에
+	struct FRankEntry { int32 Wave = 0; int32 Kills = 0; float Power = 0.f; int64 Time = 0; };
+	TArray<FRankEntry> Ranking;
+	bool bRanking = false;                 // 랭킹 창
+	int32 RankTab = 0;                     // 0 개인 랭킹, 1 리더보드 (스팀 준비 중)
+	int32 LastRankPos = -1;                // 방금 판이 몇 위로 들어갔나 (-1 = 못 들어감)
+	bool bRankRecorded = false;            // 이번 게임 오버를 이미 기록했다
+	float PeakPower = 0.f;                 // 이번 판 최고 판 위력
+	void LoadRanking();
+	void SaveRanking() const;
+	void RecordRun();
+	void PaintRanking(FCanvas& C) const;
 	void OpenTutorial(bool bThenStart);
 	void CloseTutorial();
 	bool bTutorial = false;                // 튜토리얼 창 (여는 동안 게임은 멈춘다)

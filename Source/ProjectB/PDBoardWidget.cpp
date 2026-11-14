@@ -282,6 +282,7 @@ namespace
 {
 const TCHAR* const PDSetSection = TEXT("ProjectB.Settings");
 FString PDProgressPath() { return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), TEXT("Progress.txt")); }
+FString PDRankPath() { return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), TEXT("Ranking.txt")); } // 개인 랭킹 (D-168)
 FString PDRunSavePath() { return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), TEXT("Run.txt")); } // 중단 저장 (D-162)
 }
 
@@ -323,6 +324,7 @@ void SPDBoardWidget::LoadUserData()
 	Game.bMuted = !Settings.bSound;
 	// 진행: 도감(만들어 본 조커)과 최고 기록
 	TArray<FString> Lines;
+	LoadRanking(); // 개인 랭킹 (D-168)
 	bHasRunSave = FPaths::FileExists(PDRunSavePath()); // 이어할 판 (D-162)
 	if (bHasRunSave) TitleSel = (int32)ETitleItem::Continue;
 	else TitleSel = (int32)ETitleItem::Start;
@@ -491,6 +493,9 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		if (SaveCooldown <= 0.f) { SaveCooldown = 1.f; WriteRunSave(Game.SaveRun()); }
 	}
 	else if (Game.Phase == EPDPhase::Over && bHasRunSave) DeleteRunSave();
+	// 개인 랭킹 (D-168): 판 위력 최고값을 따라가고, 게임 오버가 되면 한 번 기록
+	if (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave) { PeakPower = FMath::Max(PeakPower, PowerSum); bRankRecorded = false; }
+	if (Game.Phase == EPDPhase::Over && !bRankRecorded) { bRankRecorded = true; RecordRun(); }
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
 	if (SwapFrom >= 0 && !Game.Towers.count(SwapFrom)) SwapFrom = -1;
@@ -509,6 +514,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				LoadT = -1.f;
 				PDDebugStress(Game);
 				{ int32 TP = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdtut="), TP)) { bTutorial = true; TutPage = FMath::Clamp(TP, 0, TutPages - 1); } } // 시험용: 튜토리얼 N쪽 띄우기
+				{ int32 RT = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdrank="), RT)) { bRanking = true; RankTab = RT; if (Ranking.Num() == 0) for (int32 I = 0; I < 13; ++I) { FRankEntry E; E.Wave = 40 - I * 2; E.Kills = 2000 - I * 97; E.Power = 900000.f / (I + 1); E.Time = FDateTime::Now().ToUnixTimestamp() - I * 86400; Ranking.Add(E); } LastRankPos = 2; } } // 시험용: 랭킹 창 (기록이 없으면 보기용 가짜, 저장 안 함)
 				GPDDebug.bShow = true;
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔
 				if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"))) V->Set(0.f, ECVF_SetByCode);
@@ -708,6 +714,13 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
 	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
+	if (bRanking) // 랭킹 (D-168): 탭 · 닫기, 창 밖·오른쪽 클릭 = 닫기
+	{
+		for (int32 I = 0; I < 2; ++I)
+			if (InRect(P, DesignW / 2.f - RankTabW - 6.f + I * (RankTabW + 12.f), RankTabY, RankTabW, RankTabH)) { RankTab = I; UiSound(EPDSound::Move); return; }
+		if (bRight || !InRect(P, TutX, TutY, TutW, TutH) || InRect(P, TutNextX, TutBtnY, TutBtnW, TutBtnH)) bRanking = false;
+		return;
+	}
 	if (bTutorial) // 튜토리얼 (D-166): 이전 · 다음/시작하기 · 건너뛰기, 오른쪽 클릭 = 이전
 	{
 		if (bRight) { TutPage = FMath::Max(0, TutPage - 1); return; }
@@ -909,6 +922,46 @@ void SPDBoardWidget::UiSound(EPDSound S)
 	if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f});
 }
 
+// 개인 랭킹 (D-168): 한 줄에 웨이브 처치 위력 시각. 웨이브 → 처치 → 위력 순으로 높은 것부터, 20개까지
+void SPDBoardWidget::LoadRanking()
+{
+	Ranking.Reset();
+	TArray<FString> Lines;
+	if (!FFileHelper::LoadFileToStringArray(Lines, *PDRankPath())) return;
+	for (const FString& L : Lines)
+	{
+		TArray<FString> P;
+		L.ParseIntoArrayWS(P);
+		if (P.Num() < 4) continue;
+		FRankEntry E;
+		E.Wave = FCString::Atoi(*P[0]); E.Kills = FCString::Atoi(*P[1]); E.Power = FCString::Atof(*P[2]); E.Time = FCString::Atoi64(*P[3]);
+		Ranking.Add(E);
+	}
+	Ranking.Sort([](const FRankEntry& A, const FRankEntry& B) { return A.Wave != B.Wave ? A.Wave > B.Wave : A.Kills != B.Kills ? A.Kills > B.Kills : A.Power > B.Power; });
+	if (Ranking.Num() > RankMax) Ranking.SetNum(RankMax);
+}
+
+void SPDBoardWidget::SaveRanking() const
+{
+	FString S;
+	for (const FRankEntry& E : Ranking) S += FString::Printf(TEXT("%d %d %.0f %lld\n"), E.Wave, E.Kills, E.Power, E.Time);
+	FFileHelper::SaveStringToFile(S, *PDRankPath());
+}
+
+void SPDBoardWidget::RecordRun()
+{
+	FRankEntry E;
+	E.Wave = Game.Wave; E.Kills = Game.Kills; E.Power = FMath::Max(PeakPower, PowerSum); E.Time = FDateTime::Now().ToUnixTimestamp();
+	auto Better = [](const FRankEntry& A, const FRankEntry& B) { return A.Wave != B.Wave ? A.Wave > B.Wave : A.Kills != B.Kills ? A.Kills > B.Kills : A.Power > B.Power; };
+	int32 Pos = 0;
+	while (Pos < Ranking.Num() && !Better(E, Ranking[Pos])) ++Pos;
+	LastRankPos = Pos < RankMax ? Pos : -1;
+	if (LastRankPos < 0) return;
+	Ranking.Insert(E, Pos);
+	if (Ranking.Num() > RankMax) Ranking.SetNum(RankMax);
+	SaveRanking();
+}
+
 // 중단 저장 (D-162)
 void SPDBoardWidget::WriteRunSave(const std::string& S)
 {
@@ -944,6 +997,7 @@ bool SPDBoardWidget::ContinueRun()
 void SPDBoardWidget::RestartRun()
 {
 	Game.NewGame(true);
+	PeakPower = 0.f; LastRankPos = -1;
 	Sel = -1;
 	bTree = bUpg = bCodex = bMenu = bSettings = false;
 	PowerRef = 0.f;
@@ -992,6 +1046,7 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 		if (!bTutorialSeen) { OpenTutorial(true); break; } // 처음이면 튜토리얼부터 (D-166)
 		bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Tutorial: OpenTutorial(false); break;
+	case ETitleItem::Ranking: bRanking = true; RankTab = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
 		if (OnQuit) OnQuit();
@@ -1079,6 +1134,12 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 #endif
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	if (LoadT > 0.f) return FReply::Handled(); // 로딩 중 (D-153)
+	if (bRanking) // 랭킹 (D-168): ←→ 탭, Esc·Enter 닫기
+	{
+		if (K == EKeys::Left || K == EKeys::Right || K == EKeys::A || K == EKeys::D || K == EKeys::Tab) RankTab = 1 - RankTab;
+		else if (K == EKeys::Escape || K == EKeys::Enter) bRanking = false;
+		return FReply::Handled();
+	}
 	if (bTutorial) // 튜토리얼 (D-166): ←→ 넘기기, Enter 다음, Esc 닫기
 	{
 		if (K == EKeys::Left || K == EKeys::A) TutPage = FMath::Max(0, TutPage - 1);
