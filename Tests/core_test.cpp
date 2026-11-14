@@ -205,6 +205,15 @@ static void UnitTests()
 		Expect(HasH(ClassifyHand({C(7), W}), EPDHand::Pair) && HasH(ClassifyHand({C(2, He), C(9, He), W}), EPDHand::Flush) && HasH(ClassifyHand({C(4), C(5, Di), W}), EPDHand::Straight),
 			"와일드 카드: 페어·플러시·스트레이트를 이어 줌");
 	}
+	{ // 와일드가 든 로열 스트레이트 플러시 (판 위, 순서대로)
+		const FPDCard W{0, EPDSuit::Wild};
+		auto HasRoyal = [](FPDTowerMap M) { for (const FPDSynergy& S : ApplyEffects(M)) if (S.Kind == EPDHand::RoyalFlush) return true; return false; };
+		FPDTowerMap A, B, Cc;
+		Put(A, 0, 0, C(10)); Put(A, 1, 0, C(11)); Put(A, 2, 0, W); Put(A, 3, 0, C(13)); Put(A, 4, 0, C(14));
+		Put(B, 0, 0, W); Put(B, 1, 0, C(11)); Put(B, 2, 0, C(12)); Put(B, 3, 0, C(13)); Put(B, 4, 0, C(14));
+		Put(Cc, 0, 0, C(10)); Put(Cc, 1, 0, C(11)); Put(Cc, 2, 0, C(12)); Put(Cc, 3, 0, C(13)); Put(Cc, 4, 0, W);
+		Expect(HasRoyal(A) && HasRoyal(B) && HasRoyal(Cc), "와일드가 가운데·10 자리·A 자리에 있어도 로열");
+	}
 	{ // 적: 방패, 관통탄, 분열, 재생, 보스
 		FPDGame G(4);
 		G.NewGame(true);
