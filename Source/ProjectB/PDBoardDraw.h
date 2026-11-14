@@ -3,6 +3,7 @@
 // - SPDBoardWidget::FCanvas: Slate 그리기 요소를 만드는 붓 (네온 선, 글자, 무늬·카드·조커 그림)
 // 화풍은 docs/15-art-style.md (거의 검은 바탕, 채우지 않은 한 색 가는 선, 넓고 부드러운 번짐)
 #pragma once
+#include "PDLang.h"
 
 #include "PDBoardWidget.h"
 #include "PDIcons.h"
@@ -74,7 +75,7 @@ inline FLinearColor SuitColor(EPDSuit S)
 inline const TCHAR* SuitName(EPDSuit S)
 {
 	static const TCHAR* N[] = {TEXT("저격"), TEXT("폭발"), TEXT("연사"), TEXT("둔화"), TEXT("와일드")};
-	return N[(int)S];
+	return Tr(N[(int)S]);
 }
 inline FLinearColor HandColor(EPDHand H)
 {
@@ -85,19 +86,19 @@ inline FLinearColor HandColor(EPDHand H)
 inline const TCHAR* HandName(EPDHand H)
 {
 	static const TCHAR* N[] = {TEXT("로열 스트레이트 플러시"), TEXT("파이브 카드"), TEXT("스트레이트 플러시"), TEXT("포카드"), TEXT("풀하우스"), TEXT("플러시"), TEXT("스트레이트"), TEXT("트리플"), TEXT("투 페어"), TEXT("원 페어")};
-	return N[(int)H];
+	return Tr(N[(int)H]);
 }
 inline const TCHAR* HandEffect(EPDHand H)
 {
 	static const TCHAR* N[] = {TEXT("공격력 ×2.5 · 연사 ×2.5 · 넓은 범위"), TEXT("공격력 ×5 (와일드·조커가 있어야)"), TEXT("공격력 ×2 · 연사 ×2 · 범위"), TEXT("공격력 ×3.5"), TEXT("공격력 ×1.5 · 연사 ×1.5 · 범위"), TEXT("범위 공격 (장수만큼 넓게)"),
 		TEXT("연사 ×1.25 / ×1.5 / ×1.75 / ×2"), TEXT("공격력 ×2"), TEXT("공격력 ×1.5 · 사거리 ×1.25"), TEXT("공격력 ×1.5")};
-	return N[(int)H];
+	return Tr(N[(int)H]);
 }
 inline FString HandLabel(const FPDSynergy& S)
 {
 	FString L = HandName(S.Kind);
 	if (S.Kind == EPDHand::Flush || S.Kind == EPDHand::Straight) L += FString::FromInt(S.N);
-	if (S.Chain >= 2) L += FString::Printf(TEXT(" 연쇄×%s"), *FString::SanitizeFloat(1.f + ChainStep * (S.Chain - 1)));
+	if (S.Chain >= 2) L += TrF(TEXT(" 연쇄×%s"), *FString::SanitizeFloat(1.f + ChainStep * (S.Chain - 1)));
 	return L;
 }
 inline FString RankText(int R)
@@ -138,20 +139,20 @@ inline const TCHAR* BossName(EPDEnemy T)
 {
 	switch (T)
 	{
-	case EPDEnemy::ShieldBoss: return TEXT("방패 거인");
-	case EPDEnemy::SplitBoss: return TEXT("분열 군주");
-	case EPDEnemy::RegenBoss: return TEXT("재생 왕");
-	case EPDEnemy::Charger: return TEXT("돌진 기사");
-	case EPDEnemy::Summoner: return TEXT("소환사");
-	case EPDEnemy::Phantom: return TEXT("유령");
-	case EPDEnemy::Warlord: return TEXT("군단장");
-	case EPDEnemy::Berserker: return TEXT("분노 거인");
-	case EPDEnemy::Blinker: return TEXT("공간 도약자");
-	case EPDEnemy::Devourer: return TEXT("흡수자");
-	case EPDEnemy::Warden: return TEXT("수호자");
-	case EPDEnemy::Hexer: return TEXT("저주술사");
-	case EPDEnemy::Breaker: return TEXT("파괴자");
-	default: return TEXT("");
+	case EPDEnemy::ShieldBoss: return Tr(TEXT("방패 거인"));
+	case EPDEnemy::SplitBoss: return Tr(TEXT("분열 군주"));
+	case EPDEnemy::RegenBoss: return Tr(TEXT("재생 왕"));
+	case EPDEnemy::Charger: return Tr(TEXT("돌진 기사"));
+	case EPDEnemy::Summoner: return Tr(TEXT("소환사"));
+	case EPDEnemy::Phantom: return Tr(TEXT("유령"));
+	case EPDEnemy::Warlord: return Tr(TEXT("군단장"));
+	case EPDEnemy::Berserker: return Tr(TEXT("분노 거인"));
+	case EPDEnemy::Blinker: return Tr(TEXT("공간 도약자"));
+	case EPDEnemy::Devourer: return Tr(TEXT("흡수자"));
+	case EPDEnemy::Warden: return Tr(TEXT("수호자"));
+	case EPDEnemy::Hexer: return Tr(TEXT("저주술사"));
+	case EPDEnemy::Breaker: return Tr(TEXT("파괴자"));
+	default: return Tr(TEXT(""));
 	}
 }
 // 보스 능력 한 줄 (배너)
@@ -159,27 +160,27 @@ inline const TCHAR* BossSkillText(EPDEnemy T)
 {
 	switch (T)
 	{
-	case EPDEnemy::ShieldBoss: return TEXT("두꺼운 방패: 한 방 피해를 깎는다");
-	case EPDEnemy::SplitBoss: return TEXT("죽으면 탱크 넷으로 갈라진다");
-	case EPDEnemy::RegenBoss: return TEXT("체력이 계속 차오른다");
-	case EPDEnemy::Charger: return TEXT("4초마다 3배 속도로 돌진");
-	case EPDEnemy::Summoner: return TEXT("3초마다 졸개 둘을 부른다");
-	case EPDEnemy::Phantom: return TEXT("4초마다 1.2초 동안 무적");
-	case EPDEnemy::Warlord: return TEXT("주변 적이 빠르고 단단해진다");
-	case EPDEnemy::Berserker: return TEXT("체력이 줄수록 빨라진다");
-	case EPDEnemy::Blinker: return TEXT("5초마다 앞으로 순간이동");
-	case EPDEnemy::Devourer: return TEXT("주변 적이 죽으면 회복");
-	case EPDEnemy::Warden: return TEXT("6초마다 보호막");
-	case EPDEnemy::Hexer: return TEXT("주변 타워 공격력 -35%");
-	case EPDEnemy::Breaker: return TEXT("6초마다 가까운 타워를 기절시킨다");
-	default: return TEXT("");
+	case EPDEnemy::ShieldBoss: return Tr(TEXT("두꺼운 방패: 한 방 피해를 깎는다"));
+	case EPDEnemy::SplitBoss: return Tr(TEXT("죽으면 탱크 넷으로 갈라진다"));
+	case EPDEnemy::RegenBoss: return Tr(TEXT("체력이 계속 차오른다"));
+	case EPDEnemy::Charger: return Tr(TEXT("4초마다 3배 속도로 돌진"));
+	case EPDEnemy::Summoner: return Tr(TEXT("3초마다 졸개 둘을 부른다"));
+	case EPDEnemy::Phantom: return Tr(TEXT("4초마다 1.2초 동안 무적"));
+	case EPDEnemy::Warlord: return Tr(TEXT("주변 적이 빠르고 단단해진다"));
+	case EPDEnemy::Berserker: return Tr(TEXT("체력이 줄수록 빨라진다"));
+	case EPDEnemy::Blinker: return Tr(TEXT("5초마다 앞으로 순간이동"));
+	case EPDEnemy::Devourer: return Tr(TEXT("주변 적이 죽으면 회복"));
+	case EPDEnemy::Warden: return Tr(TEXT("6초마다 보호막"));
+	case EPDEnemy::Hexer: return Tr(TEXT("주변 타워 공격력 -35%"));
+	case EPDEnemy::Breaker: return Tr(TEXT("6초마다 가까운 타워를 기절시킨다"));
+	default: return Tr(TEXT(""));
 	}
 }
 inline const TCHAR* CharmName(int J)
 {
 	static const TCHAR* N[] = {TEXT("하트 애호가"), TEXT("스페이드 애호가"), TEXT("다이아 애호가"), TEXT("클로버 애호가"), TEXT("연결고리"), TEXT("쌍둥이"), TEXT("일직선"),
 		TEXT("넓은 물결"), TEXT("그림 카드"), TEXT("작은 수"), TEXT("행운의 7"), TEXT("큰 손"), TEXT("보급"), TEXT("재활용"), TEXT("조준경"), TEXT("서리"), TEXT("연쇄 폭발"), TEXT("관통탄")};
-	return N[J];
+	return Tr(N[J]);
 }
 inline const TCHAR* CharmDesc(int J)
 {
@@ -187,34 +188,34 @@ inline const TCHAR* CharmDesc(int J)
 		TEXT("원 페어·투 페어 ×1.5 → ×2"), TEXT("스트레이트 연사 한 장마다 +0.25 더"), TEXT("플러시 범위 +0.75칸"), TEXT("J·Q·K 타워 공격력 +60%"), TEXT("2~6 타워 연사 +60%"),
 		TEXT("숫자 7 타워 공격력 ×2.5"), TEXT("손패 최대 +2"), TEXT("웨이브마다 카드 +1"), TEXT("카드를 버리면 1장 뽑기"), TEXT("모든 타워 사거리 +15%"),
 		TEXT("둔화 더 강하게, ♣ 주변도 둔화"), TEXT("처치 시 주변 적에게 최대 체력 15% 피해"), TEXT("적의 방패를 무시")};
-	return N[J];
+	return Tr(N[J]);
 }
 inline const TCHAR* JokerName(int K)
 {
 	static const TCHAR* N[] = {TEXT("광대"), TEXT("모자 장수"), TEXT("웃는 가면"), TEXT("희비극"), TEXT("할리퀸"), TEXT("지휘봉"), TEXT("잭"), TEXT("체셔"), TEXT("방울"), TEXT("스타")};
-	return N[K];
+	return Tr(N[K]);
 }
 inline const TCHAR* JokerAbility(int K)
 {
 	static const TCHAR* N[] = {TEXT("무늬 4종 공격을 번갈아 씀"), TEXT("주변 8칸 타워 공격력 +25%·사거리 +10%"), TEXT("주변 가장 강한 타워의 공격을 따라 함"),
 		TEXT("두 적을 동시에 공격"), TEXT("판 위 같은 무늬 타워 전부 공격력 +30%"), TEXT("주변 8칸 타워 연사 +40%"), TEXT("아주 강한 한 방 (공격력 ×3, 연사 ×0.5)"),
 		TEXT("사거리 무한: 가장 앞선 적 저격"), TEXT("8초마다 종: 사거리 안 적 1.5초 멈춤"), TEXT("판 전체 레이저: 모든 적에게 피해")};
-	return N[K];
+	return Tr(N[K]);
 }
 // 조커 레시피 (D-115): 코어 JokerRecipe 의 족보 3개를 그대로 보여 준다
-inline const TCHAR* HandShort(EPDHand H) { return H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H); } // 도감 칸이 좁아서
+inline const TCHAR* HandShort(EPDHand H) { return Tr(H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H)); } // 도감 칸이 좁아서
 inline FString JokerRecipeText(int K)
 {
 	const auto& R = JokerRecipe((EPDJoker)K);
-	return FString::Printf(TEXT("3개: %s + %s + %s"), HandShort(R[0]), HandShort(R[1]), HandShort(R[2]));
+	return TrF(TEXT("3개: %s + %s + %s"), HandShort(R[0]), HandShort(R[1]), HandShort(R[2]));
 }
 inline FString JokerRecipe2Text(int K)
 {
 	const auto& R = JokerRecipe2((EPDJoker)K);
-	return FString::Printf(TEXT("2개: %s + %s"), HandShort(R[0]), HandShort(R[1]));
+	return TrF(TEXT("2개: %s + %s"), HandShort(R[0]), HandShort(R[1]));
 }
 inline FString JokerRuleText() { return TEXT("맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의"); }
-inline FString JokerCommand(int K) { return FString::Printf(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
+inline FString JokerCommand(int K) { return TrF(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
 // 발사체 색: 무늬 기본형은 무늬 색, 족보 발사체는 족보 색, 조커는 분홍
 inline FLinearColor ShotColor(EPDShot K, EPDSuit S)
@@ -243,12 +244,12 @@ inline TArray<FVector2f> ArcPts(FVector2f C, float R, float Mid, float Half, int
 inline const TCHAR* InstantName(int I)
 {
 	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("골드"), TEXT("자리바꿈")};
-	return N[I];
+	return Tr(N[I]);
 }
 inline const TCHAR* InstantDesc(int I)
 {
 	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("골드 +(10 + 웨이브 × 4)"), TEXT("타워 둘의 자리를 바꾸거나 빈 칸으로 옮기기 2번 (레벨·조커 그대로)")};
-	return N[I];
+	return Tr(N[I]);
 }
 // 보상 카드 위치 (판 가운데 3장)
 inline FVector2f RewardPos(int I) { return FVector2f(FX + Cols * CS / 2.f - 360.f + I * 250.f, FY + 160.f); }
@@ -275,7 +276,7 @@ inline FVector2f MergeButtonCenter(const std::vector<int>& Cells)
 constexpr float FuseW = 46.f, FuseH = 16.f; // 먹이기 버튼 크기 (합성 버튼 높이도)
 // 합성 버튼 글자 (D-122): "합성 · 원 페어" 처럼 족보 이름을 같이. 너비는 글자 수로 어림 (한글 10, 그 밖 6)
 inline FPDSynergy FuseSyn(const FPDGame& G, int I) { FPDSynergy S = G.Synergies[I]; G.FuseSynergy(I, S); return S; } // 실제로 합쳐질 족보 (조커 뺀 것, D-128)
-inline FString FuseLabel(const FPDSynergy& S) { return FString::Printf(TEXT("합성 · %s"), HandShort(S.Kind)); }
+inline FString FuseLabel(const FPDSynergy& S) { return TrF(TEXT("합성 · %s"), HandShort(S.Kind)); }
 inline float FuseBtnW(const FPDSynergy& S)
 {
 	float W = 14.f;
@@ -312,7 +313,7 @@ inline FVector2f FuseButtonCenter(const std::vector<FPDSynergy>& L, int I)
 
 // 먹이기 버튼: 합성 버튼 오른쪽 (합성 버튼이 없으면 그 자리)
 // 먹이기 버튼 (D-129, D-131): "먹이기 · 플러시" 처럼 족보 이름. 조커를 클릭한 먹이기 모드에서만, 족보 가운데
-inline FString FeedLabel(const FPDSynergy& S) { return FString::Printf(TEXT("먹이기 · %s"), HandShort(S.Kind)); }
+inline FString FeedLabel(const FPDSynergy& S) { return TrF(TEXT("먹이기 · %s"), HandShort(S.Kind)); }
 inline float FeedBtnW(const FPDSynergy& S)
 {
 	float W = 14.f;
@@ -326,7 +327,7 @@ inline FVector2f TreeNodePos(int Id) { return FVector2f(TreeNode(Id).X, TreeNode
 inline const TCHAR* KeystoneName(int K)
 {
 	static const TCHAR* N[] = {TEXT("외골수"), TEXT("잡식가"), TEXT("큰 판"), TEXT("작은 판"), TEXT("대장장이"), TEXT("광대의 길"), TEXT("고독한 저격수"), TEXT("군중")};
-	return N[K];
+	return Tr(N[K]);
 }
 inline const TCHAR* KeystoneDesc(int K)
 {
@@ -334,14 +335,14 @@ inline const TCHAR* KeystoneDesc(int K)
 		TEXT("5장 족보 위력 ×1.6 / 2장 족보는 효과·연쇄 없음"), TEXT("원 페어·투 페어 위력 ×1.8 / 5장 족보는 연쇄 덤 없음"),
 		TEXT("합성 배율 1.5 → 2.0 / 조커 포탑을 만들 수 없음"), TEXT("조커 배율 1.2 → 1.6 / 합성은 레벨 2까지"),
 		TEXT("족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음"), TEXT("연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5")};
-	return N[K];
+	return Tr(N[K]);
 }
 inline const TCHAR* JokerUpDesc(int K)
 {
 	static const TCHAR* N[] = {TEXT("연사 +50%"), TEXT("오라 공격력 +25% → +50%, 범위 주변 24칸"), TEXT("따라 한 공격 위력 ×1.3"), TEXT("셋째 적까지 함께 공격"),
 		TEXT("같은 무늬 공격력 +30% → +60%"), TEXT("주변 연사 +40% → +70%"), TEXT("공격력 ×3 → ×5"), TEXT("위력 ×1.5"), TEXT("5초마다 2초 멈춤 (원래 8초마다 1.5초)"),
 		TEXT("레이저 위력 ×0.5 → ×0.8")};
-	return N[K];
+	return Tr(N[K]);
 }
 inline FString HandGroupName(int Mask)
 {
@@ -362,27 +363,27 @@ inline FString TreeFxText(const FPDNodeFx& F)
 	const int Pct = FMath::RoundToInt(F.Value * 100.f);
 	switch (F.Stat)
 	{
-	case EPDStat::SuitDmg: return FString::Printf(TEXT("%s 위력 +%d%%"), Sym[F.Param], Pct);
-	case EPDStat::SuitRate: return FString::Printf(TEXT("%s 연사 +%d%%"), Sym[F.Param], Pct);
-	case EPDStat::SuitRange: return FString::Printf(TEXT("%s 사거리 +%d%%"), Sym[F.Param], Pct);
-	case EPDStat::SuitSplash: return FString::Printf(TEXT("%s 폭발 범위 +%.1f칸"), Sym[F.Param], F.Value);
-	case EPDStat::SuitSlow: return FString::Printf(TEXT("%s 둔화 +%d%%p"), Sym[F.Param], Pct);
-	case EPDStat::HandDmg: return FString::Printf(TEXT("%s 위력 +%d%%"), *HandGroupName(F.Param), Pct);
-	case EPDStat::HandRate: return FString::Printf(TEXT("%s 연사 +%d%%"), *HandGroupName(F.Param), Pct);
-	case EPDStat::HandSplash: return FString::Printf(TEXT("%s 범위 +%.2f칸"), *HandGroupName(F.Param), F.Value);
-	case EPDStat::AllDmg: return FString::Printf(TEXT("모든 타워 위력 +%d%%"), Pct);
-	case EPDStat::ChainAdd: return FString::Printf(TEXT("연쇄 덤 +%d%%p"), Pct);
-	case EPDStat::FuseAdd: return FString::Printf(TEXT("합성 배율 +%.2f"), F.Value);
-	case EPDStat::FusedDmg: return FString::Printf(TEXT("합성 타워 위력 +%d%%"), Pct);
-	case EPDStat::JokerDmg: return FString::Printf(TEXT("조커 포탑 위력 +%d%%"), Pct);
-	case EPDStat::JokerAdd: return FString::Printf(TEXT("조커 배율 +%.2f"), F.Value);
-	case EPDStat::AllRate: return FString::Printf(TEXT("모든 타워 공격 속도 +%d%%"), Pct);
-	case EPDStat::CritChance: return FString::Printf(TEXT("치명타 확률 +%d%%p"), Pct);
-	case EPDStat::CritMult: return FString::Printf(TEXT("치명타 배율 +%.2f"), F.Value);
-	case EPDStat::GoldPct: return FString::Printf(TEXT("골드 +%d%%"), Pct);
-	case EPDStat::HandMax: return FString::Printf(TEXT("손패 최대 +%d"), (int)F.Value);
-	case EPDStat::Draw: return FString::Printf(TEXT("웨이브마다 카드 +%d"), (int)F.Value);
-	case EPDStat::Lives: return FString::Printf(TEXT("목숨 +%d (찍을 때)"), (int)F.Value);
+	case EPDStat::SuitDmg: return TrF(TEXT("%s 위력 +%d%%"), Sym[F.Param], Pct);
+	case EPDStat::SuitRate: return TrF(TEXT("%s 연사 +%d%%"), Sym[F.Param], Pct);
+	case EPDStat::SuitRange: return TrF(TEXT("%s 사거리 +%d%%"), Sym[F.Param], Pct);
+	case EPDStat::SuitSplash: return TrF(TEXT("%s 폭발 범위 +%.1f칸"), Sym[F.Param], F.Value);
+	case EPDStat::SuitSlow: return TrF(TEXT("%s 둔화 +%d%%p"), Sym[F.Param], Pct);
+	case EPDStat::HandDmg: return TrF(TEXT("%s 위력 +%d%%"), *HandGroupName(F.Param), Pct);
+	case EPDStat::HandRate: return TrF(TEXT("%s 연사 +%d%%"), *HandGroupName(F.Param), Pct);
+	case EPDStat::HandSplash: return TrF(TEXT("%s 범위 +%.2f칸"), *HandGroupName(F.Param), F.Value);
+	case EPDStat::AllDmg: return TrF(TEXT("모든 타워 위력 +%d%%"), Pct);
+	case EPDStat::ChainAdd: return TrF(TEXT("연쇄 덤 +%d%%p"), Pct);
+	case EPDStat::FuseAdd: return TrF(TEXT("합성 배율 +%.2f"), F.Value);
+	case EPDStat::FusedDmg: return TrF(TEXT("합성 타워 위력 +%d%%"), Pct);
+	case EPDStat::JokerDmg: return TrF(TEXT("조커 포탑 위력 +%d%%"), Pct);
+	case EPDStat::JokerAdd: return TrF(TEXT("조커 배율 +%.2f"), F.Value);
+	case EPDStat::AllRate: return TrF(TEXT("모든 타워 공격 속도 +%d%%"), Pct);
+	case EPDStat::CritChance: return TrF(TEXT("치명타 확률 +%d%%p"), Pct);
+	case EPDStat::CritMult: return TrF(TEXT("치명타 배율 +%.2f"), F.Value);
+	case EPDStat::GoldPct: return TrF(TEXT("골드 +%d%%"), Pct);
+	case EPDStat::HandMax: return TrF(TEXT("손패 최대 +%d"), (int)F.Value);
+	case EPDStat::Draw: return TrF(TEXT("웨이브마다 카드 +%d"), (int)F.Value);
+	case EPDStat::Lives: return TrF(TEXT("목숨 +%d (찍을 때)"), (int)F.Value);
 	case EPDStat::Keystone: return KeystoneDesc(F.Param);
 	case EPDStat::Joker: return JokerUpDesc(F.Param);
 	default: return FString();
@@ -401,18 +402,18 @@ inline FLinearColor TreeNodeColor(int Id)
 inline const TCHAR* UpgradeName(int U)
 {
 	static const TCHAR* N[] = {TEXT("공격"), TEXT("공격 속도"), TEXT("치명타 확률"), TEXT("치명타 배율"), TEXT("♠ 스페이드 강화"), TEXT("♥ 하트 강화"), TEXT("♦ 다이아 강화"), TEXT("♣ 클로버 강화")};
-	return N[U];
+	return Tr(N[U]);
 }
 inline FString UpgradeEffect(int U, int Level)
 {
 	const float V = UpgradeStep((EPDUpgrade)U) * Level;
 	switch ((EPDUpgrade)U)
 	{
-	case EPDUpgrade::Attack: return FString::Printf(TEXT("모든 타워 공격력 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
-	case EPDUpgrade::Speed: return FString::Printf(TEXT("모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
-	case EPDUpgrade::Crit: return FString::Printf(TEXT("치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)"), (BaseCrit + V) * 100.f);
-	case EPDUpgrade::CritMult: return FString::Printf(TEXT("치명타 배율 ×%.2f  (레벨당 +0.01)"), BaseCritMult + V);
-	default: return FString::Printf(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)"), V * 100.f);
+	case EPDUpgrade::Attack: return TrF(TEXT("모든 타워 공격력 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
+	case EPDUpgrade::Speed: return TrF(TEXT("모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
+	case EPDUpgrade::Crit: return TrF(TEXT("치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)"), (BaseCrit + V) * 100.f);
+	case EPDUpgrade::CritMult: return TrF(TEXT("치명타 배율 ×%.2f  (레벨당 +0.01)"), BaseCritMult + V);
+	default: return TrF(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)"), V * 100.f);
 	}
 }
 inline FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? SuitColor((EPDSuit)(U - (int)EPDUpgrade::Spade)) : U >= (int)EPDUpgrade::Crit ? Hex(TEXT("ff9a6a")) : Hex(TEXT("ffd96a")); }
@@ -444,20 +445,21 @@ constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
 	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("설정"), TEXT("게임 종료")};
-	return N[I];
+	return Tr(N[I]);
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
-enum class ESetRow : uint8_t { Window, CardTheme, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Close, Count };
-constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 8.f, SetLabelW = 200.f, SetBtnH = 32.f;
-constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 160.f;
+enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Close, Count };
+constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 6.f, SetLabelW = 200.f, SetBtnH = 32.f;
+constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 140.f; // 언어 줄이 늘어 조금 위로 (D-159)
 constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
-inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : 1; }
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Lang ? (int)EPDLang::Count : Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : 1; }
 inline FLinearColor LevelDotColor() { return GPDCardTheme == 1 ? FLinearColor::White : Hex(TEXT("ffd96a")); } // 타워 레벨 점 (흑백이면 흰빛)
 inline float SetBtnW(int Row, int Idx)
 {
+	if (Row == (int)ESetRow::Lang) return 66.f; // 언어 다섯 (D-159)
 	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return 112.f;
 	if (SetBarRow(Row)) return Idx == 1 ? 220.f : 40.f;
 	if (Row == (int)ESetRow::Close) return 160.f;
@@ -466,6 +468,7 @@ inline float SetBtnW(int Row, int Idx)
 inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 {
 	const float X0 = SetX + SetLabelW, Y = SetRowY(Row) + (SetRowH - SetBtnH) / 2.f;
+	if (Row == (int)ESetRow::Lang) return FVector2f(X0 + Idx * (66.f + 6.f), Y);
 	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
 	if (SetBarRow(Row)) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
 	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
@@ -576,14 +579,14 @@ inline const TCHAR* HandChip(EPDHand H)
 {
 	switch (H)
 	{
-	case EPDHand::RoyalFlush: return TEXT("로열");
-	case EPDHand::Five: return TEXT("파이브");
-	case EPDHand::StraightFlush: return TEXT("스티플");
-	case EPDHand::FullHouse: return TEXT("풀하");
-	case EPDHand::Straight: return TEXT("스트");
-	case EPDHand::TwoPair: return TEXT("투페어");
-	case EPDHand::Pair: return TEXT("페어");
-	default: return HandName(H);
+	case EPDHand::RoyalFlush: return Tr(TEXT("로열"));
+	case EPDHand::Five: return Tr(TEXT("파이브"));
+	case EPDHand::StraightFlush: return Tr(TEXT("스티플"));
+	case EPDHand::FullHouse: return Tr(TEXT("풀하"));
+	case EPDHand::Straight: return Tr(TEXT("스트"));
+	case EPDHand::TwoPair: return Tr(TEXT("투페어"));
+	case EPDHand::Pair: return Tr(TEXT("페어"));
+	default: return Tr(HandName(H));
 	}
 }
 } // namespace PDDraw
@@ -817,7 +820,7 @@ struct SPDBoardWidget::FCanvas
 	}
 	void Text(const FString& InS, float X, float Y, const FLinearColor& Col, float Px = 13.f, int32 Align = 0, bool bBold = false, float MaxW = 0.f)
 	{
-		FString S = InS;
+		FString S = TrS(InS); // 언어팩 (D-159): 그릴 때 번역
 		FSlateFontInfo F = Font(Px, bBold);
 		FVector2f Sz = Measure(S, F);
 		FitText(S, F, Sz, Px, bBold, MaxW);
@@ -828,7 +831,7 @@ struct SPDBoardWidget::FCanvas
 	}
 	void TextCentered(const FString& InS, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float MaxW = 0.f)
 	{
-		FString S = InS;
+		FString S = TrS(InS);
 		FSlateFontInfo F = Font(Px, bBold);
 		FVector2f Sz = Measure(S, F);
 		FitText(S, F, Sz, Px, bBold, MaxW);
@@ -1059,8 +1062,9 @@ struct SPDBoardWidget::FCanvas
 		Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Col, 2.f, 1.4f + 0.5f * Pulse);
 		JokerArt(K, CX, CY, R, Col, 1.3f, 0.8f);
 	}
-	void Badge(const FString& S, float CX, float CY, const FLinearColor& Col, float Alpha)
+	void Badge(const FString& InS, float CX, float CY, const FLinearColor& Col, float Alpha)
 	{
+		const FString S = TrS(InS);
 		const FSlateFontInfo F = Font(11.f, true);
 		const FVector2f Sz = Measure(S, F);
 		const float W = Sz.X + 10.f, H = 16.f;
@@ -1131,6 +1135,6 @@ struct SPDBoardWidget::FCanvas
 		if (P.After < 0.f || P.Before <= 0.f) return;
 		const float Pct = (P.After / P.Before - 1.f) * 100.f;
 		const FLinearColor Col = Pct >= 0.5f ? Hex(TEXT("9cffb0")) : Pct <= -0.5f ? Hex(TEXT("ff6a6a")) : Hex(TEXT("cfd8e6"));
-		Badge(FString::Printf(TEXT("판 위력 %s → %s (%s%.0f%%)"), *ShortNum(P.Before), *ShortNum(P.After), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct), X, Y, Col, 1.f);
+		Badge(TrF(TEXT("판 위력 %s → %s (%s%.0f%%)"), *ShortNum(P.Before), *ShortNum(P.After), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct), X, Y, Col, 1.f);
 	}
 };

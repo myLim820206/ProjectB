@@ -1,0 +1,423 @@
+ko	en	ja	zh-Hans	zh-Hant	file
+저격	Snipe	狙撃	狙击	狙擊	PDBoardDraw.h
+폭발	Blast	爆発	爆炸	爆炸	PDBoardDraw.h
+연사	Rapid	連射	连射	連射	PDBoardDraw.h
+둔화	Slow	減速	减速	減速	PDBoardDraw.h
+와일드	Wild	ワイルド	百搭	百搭	PDBoardDraw.h
+로열 스트레이트 플러시	Royal Straight Flush	ロイヤルストレートフラッシュ	皇家同花顺	皇家同花順	PDBoardDraw.h
+파이브 카드	Five of a Kind	ファイブカード	五条	五條	PDBoardDraw.h
+스트레이트 플러시	Straight Flush	ストレートフラッシュ	同花顺	同花順	PDBoardDraw.h
+포카드	Four of a Kind	フォーカード	四条	四條	PDBoardDraw.h
+풀하우스	Full House	フルハウス	葫芦	葫蘆	PDBoardDraw.h
+플러시	Flush	フラッシュ	同花	同花	PDBoardDraw.h
+스트레이트	Straight	ストレート	顺子	順子	PDBoardDraw.h
+트리플	Three of a Kind	スリーカード	三条	三條	PDBoardDraw.h
+투 페어	Two Pair	ツーペア	两对	兩對	PDBoardDraw.h
+원 페어	One Pair	ワンペア	一对	一對	PDBoardDraw.h
+공격력 ×2.5 · 연사 ×2.5 · 넓은 범위	ATK ×2.5 · Rate ×2.5 · Wide area	攻撃力 ×2.5 · 連射 ×2.5 · 広範囲	攻击力 ×2.5 · 连射 ×2.5 · 大范围	攻擊力 ×2.5 · 連射 ×2.5 · 大範圍	PDBoardDraw.h
+공격력 ×5 (와일드·조커가 있어야)	ATK ×5 (needs a Wild or Joker)	攻撃力 ×5 (ワイルド・ジョーカーが必要)	攻击力 ×5 (需要百搭或小丑)	攻擊力 ×5 (需要百搭或小丑)	PDBoardDraw.h
+공격력 ×2 · 연사 ×2 · 범위	ATK ×2 · Rate ×2 · Area	攻撃力 ×2 · 連射 ×2 · 範囲	攻击力 ×2 · 连射 ×2 · 范围	攻擊力 ×2 · 連射 ×2 · 範圍	PDBoardDraw.h
+공격력 ×3.5	ATK ×3.5	攻撃力 ×3.5	攻击力 ×3.5	攻擊力 ×3.5	PDBoardDraw.h
+공격력 ×1.5 · 연사 ×1.5 · 범위	ATK ×1.5 · Rate ×1.5 · Area	攻撃力 ×1.5 · 連射 ×1.5 · 範囲	攻击力 ×1.5 · 连射 ×1.5 · 范围	攻擊力 ×1.5 · 連射 ×1.5 · 範圍	PDBoardDraw.h
+범위 공격 (장수만큼 넓게)	Area attack (wider with more cards)	範囲攻撃 (枚数ぶん広く)	范围攻击 (张数越多越广)	範圍攻擊 (張數越多越廣)	PDBoardDraw.h
+연사 ×1.25 / ×1.5 / ×1.75 / ×2	Rate ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	连射 ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	PDBoardDraw.h
+공격력 ×2	ATK ×2	攻撃力 ×2	攻击力 ×2	攻擊力 ×2	PDBoardDraw.h
+공격력 ×1.5 · 사거리 ×1.25	ATK ×1.5 · Range ×1.25	攻撃力 ×1.5 · 射程 ×1.25	攻击力 ×1.5 · 射程 ×1.25	攻擊力 ×1.5 · 射程 ×1.25	PDBoardDraw.h
+공격력 ×1.5	ATK ×1.5	攻撃力 ×1.5	攻击力 ×1.5	攻擊力 ×1.5	PDBoardDraw.h
+ 연쇄×%s	 Chain×%s	 連鎖×%s	 连锁×%s	 連鎖×%s	PDBoardDraw.h
+방패 거인	Shield Giant	盾の巨人	盾之巨人	盾之巨人	PDBoardDraw.h
+분열 군주	Split Lord	分裂の君主	分裂君主	分裂君主	PDBoardDraw.h
+재생 왕	Regen King	再生の王	再生之王	再生之王	PDBoardDraw.h
+돌진 기사	Charging Knight	突進の騎士	突进骑士	突進騎士	PDBoardDraw.h
+소환사	Summoner	召喚士	召唤师	召喚師	PDBoardDraw.h
+유령	Phantom	亡霊	幽灵	幽靈	PDBoardDraw.h
+군단장	Warlord	軍団長	军团长	軍團長	PDBoardDraw.h
+분노 거인	Rage Giant	怒りの巨人	狂怒巨人	狂怒巨人	PDBoardDraw.h
+공간 도약자	Blinker	空間跳躍者	空间跳跃者	空間跳躍者	PDBoardDraw.h
+흡수자	Absorber	吸収者	吸收者	吸收者	PDBoardDraw.h
+수호자	Guardian	守護者	守护者	守護者	PDBoardDraw.h
+저주술사	Hexer	呪術師	诅咒师	詛咒師	PDBoardDraw.h
+파괴자	Destroyer	破壊者	破坏者	破壞者	PDBoardDraw.h
+두꺼운 방패: 한 방 피해를 깎는다	Thick shield: cuts damage per hit	分厚い盾: 一撃のダメージを減らす	厚盾: 削减每次伤害	厚盾: 削減每次傷害	PDBoardDraw.h
+죽으면 탱크 넷으로 갈라진다	Splits into four tanks on death	倒すと戦車4体に分裂	死后分裂成四个坦克	死後分裂成四個坦克	PDBoardDraw.h
+체력이 계속 차오른다	Keeps regenerating HP	体力が回復し続ける	生命持续恢复	生命持續恢復	PDBoardDraw.h
+4초마다 3배 속도로 돌진	Charges at 3× speed every 4s	4秒ごとに3倍速で突進	每4秒以3倍速度突进	每4秒以3倍速度突進	PDBoardDraw.h
+3초마다 졸개 둘을 부른다	Summons two minions every 3s	3秒ごとに手下を2体呼ぶ	每3秒召唤两个小兵	每3秒召喚兩個小兵	PDBoardDraw.h
+4초마다 1.2초 동안 무적	Invulnerable for 1.2s every 4s	4秒ごとに1.2秒無敵	每4秒无敌1.2秒	每4秒無敵1.2秒	PDBoardDraw.h
+주변 적이 빠르고 단단해진다	Nearby enemies get faster and tougher	周りの敵が速く硬くなる	周围敌人更快更硬	周圍敵人更快更硬	PDBoardDraw.h
+체력이 줄수록 빨라진다	Faster as HP drops	体力が減るほど速くなる	生命越低越快	生命越低越快	PDBoardDraw.h
+5초마다 앞으로 순간이동	Teleports forward every 5s	5秒ごとに前へ瞬間移動	每5秒向前瞬移	每5秒向前瞬移	PDBoardDraw.h
+주변 적이 죽으면 회복	Heals when nearby enemies die	周りの敵が倒れると回復	周围敌人死亡时恢复	周圍敵人死亡時恢復	PDBoardDraw.h
+6초마다 보호막	Shield every 6s	6秒ごとにバリア	每6秒获得护盾	每6秒獲得護盾	PDBoardDraw.h
+주변 타워 공격력 -35%	Nearby towers ATK -35%	周りのタワー攻撃力 -35%	周围塔攻击力 -35%	周圍塔攻擊力 -35%	PDBoardDraw.h
+6초마다 가까운 타워를 기절시킨다	Stuns a nearby tower every 6s	6秒ごとに近くのタワーを気絶させる	每6秒击晕附近的塔	每6秒擊暈附近的塔	PDBoardDraw.h
+하트 애호가	Heart Lover	ハート好き	红心爱好者	紅心愛好者	PDBoardDraw.h
+스페이드 애호가	Spade Lover	スペード好き	黑桃爱好者	黑桃愛好者	PDBoardDraw.h
+다이아 애호가	Diamond Lover	ダイヤ好き	方块爱好者	方塊愛好者	PDBoardDraw.h
+클로버 애호가	Club Lover	クラブ好き	梅花爱好者	梅花愛好者	PDBoardDraw.h
+연결고리	Chain Link	連結	连接环	連接環	PDBoardDraw.h
+쌍둥이	Twins	双子	双胞胎	雙胞胎	PDBoardDraw.h
+일직선	Straight Line	一直線	一条直线	一條直線	PDBoardDraw.h
+넓은 물결	Wide Wave	広い波	宽广波纹	寬廣波紋	PDBoardDraw.h
+그림 카드	Face Cards	絵札	人头牌	人頭牌	PDBoardDraw.h
+작은 수	Small Numbers	小さい数	小数字	小數字	PDBoardDraw.h
+행운의 7	Lucky 7	幸運の7	幸运7	幸運7	PDBoardDraw.h
+큰 손	Big Hand	大きな手	大手	大手	PDBoardDraw.h
+보급	Supply	補給	补给	補給	PDBoardDraw.h
+재활용	Recycle	リサイクル	回收	回收	PDBoardDraw.h
+조준경	Scope	照準器	瞄准镜	瞄準鏡	PDBoardDraw.h
+서리	Frost	霜	冰霜	冰霜	PDBoardDraw.h
+연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDBoardDraw.h
+관통탄	Piercing Rounds	貫通弾	穿甲弹	穿甲彈	PDBoardDraw.h
+♥ 타워 공격력 +40%	♥ towers ATK +40%	♥ タワー攻撃力 +40%	♥ 塔攻击力 +40%	♥ 塔攻擊力 +40%	PDBoardDraw.h
+♠ 타워 공격력 +40%	♠ towers ATK +40%	♠ タワー攻撃力 +40%	♠ 塔攻击力 +40%	♠ 塔攻擊力 +40%	PDBoardDraw.h
+♦ 타워 공격력 +40%	♦ towers ATK +40%	♦ タワー攻撃力 +40%	♦ 塔攻击力 +40%	♦ 塔攻擊力 +40%	PDBoardDraw.h
+♣ 타워 공격력 +40%	♣ towers ATK +40%	♣ タワー攻撃力 +40%	♣ 塔攻击力 +40%	♣ 塔攻擊力 +40%	PDBoardDraw.h
+연쇄 보너스 +25% → +45%	Chain bonus +25% → +45%	連鎖ボーナス +25% → +45%	连锁加成 +25% → +45%	連鎖加成 +25% → +45%	PDBoardDraw.h
+원 페어·투 페어 ×1.5 → ×2	One/Two Pair ×1.5 → ×2	ワンペア・ツーペア ×1.5 → ×2	一对·两对 ×1.5 → ×2	一對·兩對 ×1.5 → ×2	PDBoardDraw.h
+스트레이트 연사 한 장마다 +0.25 더	Straight rate +0.25 more per card	ストレート連射 1枚ごとに +0.25	顺子连射每张再 +0.25	順子連射每張再 +0.25	PDBoardDraw.h
+플러시 범위 +0.75칸	Flush area +0.75 tiles	フラッシュ範囲 +0.75マス	同花范围 +0.75格	同花範圍 +0.75格	PDBoardDraw.h
+J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃力 +60%	J·Q·K 塔攻击力 +60%	J·Q·K 塔攻擊力 +60%	PDBoardDraw.h
+2~6 타워 연사 +60%	2–6 towers rate +60%	2〜6 タワー連射 +60%	2~6 塔连射 +60%	2~6 塔連射 +60%	PDBoardDraw.h
+숫자 7 타워 공격력 ×2.5	7 towers ATK ×2.5	7のタワー攻撃力 ×2.5	数字7的塔攻击力 ×2.5	數字7的塔攻擊力 ×2.5	PDBoardDraw.h
+손패 최대 +2	Max hand +2	手札上限 +2	手牌上限 +2	手牌上限 +2	PDBoardDraw.h
+웨이브마다 카드 +1	+1 card per wave	ウェーブごとにカード +1	每波卡牌 +1	每波卡牌 +1	PDBoardDraw.h
+카드를 버리면 1장 뽑기	Draw 1 when you discard	カードを捨てると1枚引く	弃牌时抽1张	棄牌時抽1張	PDBoardDraw.h
+모든 타워 사거리 +15%	All towers range +15%	全タワー射程 +15%	所有塔射程 +15%	所有塔射程 +15%	PDBoardDraw.h
+둔화 더 강하게, ♣ 주변도 둔화	Stronger slow, ♣ slows nearby too	減速が強くなり ♣ の周りも減速	减速更强, ♣ 周围也减速	減速更強, ♣ 周圍也減速	PDBoardDraw.h
+처치 시 주변 적에게 최대 체력 15% 피해	On kill, deals 15% max HP to nearby enemies	撃破時、周りの敵に最大体力15%のダメージ	击杀时对周围敌人造成最大生命15%伤害	擊殺時對周圍敵人造成最大生命15%傷害	PDBoardDraw.h
+적의 방패를 무시	Ignores enemy shields	敵の盾を無視	无视敌人护盾	無視敵人護盾	PDBoardDraw.h
+광대	Jester	道化師	小丑	小丑	PDBoardDraw.h
+모자 장수	Hatter	帽子屋	帽匠	帽匠	PDBoardDraw.h
+웃는 가면	Smiling Mask	笑う仮面	笑面具	笑面具	PDBoardDraw.h
+희비극	Tragicomedy	悲喜劇	悲喜剧	悲喜劇	PDBoardDraw.h
+할리퀸	Harlequin	ハーレクイン	哈利奎恩	哈利奎恩	PDBoardDraw.h
+지휘봉	Baton	指揮棒	指挥棒	指揮棒	PDBoardDraw.h
+잭	Jack	ジャック	杰克	傑克	PDBoardDraw.h
+체셔	Cheshire	チェシャ	柴郡猫	柴郡貓	PDBoardDraw.h
+방울	Bell	鈴	铃铛	鈴鐺	PDBoardDraw.h
+스타	Star	スター	星星	星星	PDBoardDraw.h
+무늬 4종 공격을 번갈아 씀	Alternates all four suit attacks	4種のスート攻撃を交互に使う	轮流使用四种花色攻击	輪流使用四種花色攻擊	PDBoardDraw.h
+주변 8칸 타워 공격력 +25%·사거리 +10%	Towers in 8 tiles around: ATK +25% · Range +10%	周囲8マスのタワー攻撃力 +25%・射程 +10%	周围8格塔攻击力 +25%·射程 +10%	周圍8格塔攻擊力 +25%·射程 +10%	PDBoardDraw.h
+주변 가장 강한 타워의 공격을 따라 함	Copies the strongest nearby tower's attack	周りで最も強いタワーの攻撃をまねる	模仿周围最强塔的攻击	模仿周圍最強塔的攻擊	PDBoardDraw.h
+두 적을 동시에 공격	Attacks two enemies at once	2体の敵を同時に攻撃	同时攻击两个敌人	同時攻擊兩個敵人	PDBoardDraw.h
+판 위 같은 무늬 타워 전부 공격력 +30%	All same-suit towers on the board ATK +30%	盤上の同じスートのタワー全部 攻撃力 +30%	场上同花色的塔全部攻击力 +30%	場上同花色的塔全部攻擊力 +30%	PDBoardDraw.h
+주변 8칸 타워 연사 +40%	Towers in 8 tiles around: rate +40%	周囲8マスのタワー連射 +40%	周围8格塔连射 +40%	周圍8格塔連射 +40%	PDBoardDraw.h
+아주 강한 한 방 (공격력 ×3, 연사 ×0.5)	One huge hit (ATK ×3, rate ×0.5)	とても強い一撃 (攻撃力 ×3, 連射 ×0.5)	超强一击 (攻击力 ×3, 连射 ×0.5)	超強一擊 (攻擊力 ×3, 連射 ×0.5)	PDBoardDraw.h
+사거리 무한: 가장 앞선 적 저격	Infinite range: snipes the lead enemy	射程無限: 先頭の敵を狙撃	射程无限: 狙击最前面的敌人	射程無限: 狙擊最前面的敵人	PDBoardDraw.h
+8초마다 종: 사거리 안 적 1.5초 멈춤	Bell every 8s: freezes enemies in range for 1.5s	8秒ごとに鐘: 射程内の敵を1.5秒止める	每8秒敲钟: 射程内敌人停止1.5秒	每8秒敲鐘: 射程內敵人停止1.5秒	PDBoardDraw.h
+판 전체 레이저: 모든 적에게 피해	Board-wide laser: hits every enemy	盤全体レーザー: 全ての敵にダメージ	全场激光: 伤害所有敌人	全場雷射: 傷害所有敵人	PDBoardDraw.h
+로열	Royal	ロイヤル	皇家	皇家	PDBoardDraw.h
+스티플	St. Flush	ストフラ	同花顺	同花順	PDBoardDraw.h
+3개: %s + %s + %s	3 hands: %s + %s + %s	3つ: %s + %s + %s	3个: %s + %s + %s	3個: %s + %s + %s	PDBoardDraw.h
+2개: %s + %s	2 hands: %s + %s	2つ: %s + %s	2个: %s + %s	2個: %s + %s	PDBoardDraw.h
+맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의	3 (or 2) touching hands matching a recipe make a Joker · 3-hand recipes use more cards and are stronger · careful: shared numbers merge into a bigger hand	隣接する役3つ(または2つ)がレシピに合うとジョーカー · 3つの方がカードが多く強い · 数字が重なると大きな役にまとまるので注意	相邻的3个(或2个)牌型符合配方即成小丑 · 3个的配方牌更多更强 · 注意数字重叠会合并成更大的牌型	相鄰的3個(或2個)牌型符合配方即成小丑 · 3個的配方牌更多更強 · 注意數字重疊會合併成更大的牌型	PDBoardDraw.h
+지휘: %s 타워 위력 +30%% (겹침)	Command: %s towers power +30%% (stacks)	指揮: %s タワー威力 +30%% (重複可)	指挥: %s 塔威力 +30%% (可叠加)	指揮: %s 塔威力 +30%% (可疊加)	PDBoardDraw.h
+와일드 카드	Wild Card	ワイルドカード	百搭牌	百搭牌	PDBoardDraw.h
+보충	Draw	補充	补牌	補牌	PDBoardDraw.h
+수리	Repair	修理	修复	修復	PDBoardDraw.h
+골드	Gold	ゴールド	金币	金幣	PDBoardDraw.h
+자리바꿈	Swap	入れ替え	换位	換位	PDBoardDraw.h
+아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)	1 card that counts as any rank and suit (rare)	どの数字・スートにもなるカード1枚 (まれ)	1张可当任意点数与花色的牌 (稀有)	1張可當任意點數與花色的牌 (稀有)	PDBoardDraw.h
+카드 2장 뽑기	Draw 2 cards	カードを2枚引く	抽2张牌	抽2張牌	PDBoardDraw.h
+목숨 +3	Lives +3	ライフ +3	生命 +3	生命 +3	PDBoardDraw.h
+골드 +(10 + 웨이브 × 4)	Gold +(10 + wave × 4)	ゴールド +(10 + ウェーブ × 4)	金币 +(10 + 波次 × 4)	金幣 +(10 + 波次 × 4)	PDBoardDraw.h
+타워 둘의 자리를 바꾸거나 빈 칸으로 옮기기 2번 (레벨·조커 그대로)	Swap two towers or move one to an empty tile, 2 uses (keeps level and Joker)	タワー2つの入れ替えか空きマスへの移動を2回 (レベル・ジョーカーはそのまま)	交换两座塔或移到空格, 2次 (等级与小丑不变)	交換兩座塔或移到空格, 2次 (等級與小丑不變)	PDBoardDraw.h
+합성 · %s	Fuse · %s	合成 · %s	合成 · %s	合成 · %s	PDBoardDraw.h
+먹이기 · %s	Feed · %s	エサ · %s	喂养 · %s	餵養 · %s	PDBoardDraw.h
+외골수	Purist	一途	专一	專一	PDBoardDraw.h
+잡식가	Omnivore	雑食家	杂食者	雜食者	PDBoardDraw.h
+큰 판	Big Hands	大きな役	大牌型	大牌型	PDBoardDraw.h
+작은 판	Small Hands	小さな役	小牌型	小牌型	PDBoardDraw.h
+대장장이	Blacksmith	鍛冶屋	铁匠	鐵匠	PDBoardDraw.h
+광대의 길	Jester's Path	道化の道	小丑之路	小丑之路	PDBoardDraw.h
+고독한 저격수	Lone Sniper	孤独な狙撃手	孤独狙击手	孤獨狙擊手	PDBoardDraw.h
+군중	Crowd	群衆	群众	群眾	PDBoardDraw.h
+플러시 타워 위력 ×2 / 다른 족보 타워 위력 ×0.5	Flush towers power ×2 / other hand towers ×0.5	フラッシュのタワー威力 ×2 / 他の役のタワー ×0.5	同花塔威力 ×2 / 其他牌型塔 ×0.5	同花塔威力 ×2 / 其他牌型塔 ×0.5	PDBoardDraw.h
+플러시 아닌 족보 위력 ×1.3 / 플러시 범위 효과 없음	Non-Flush hands power ×1.3 / Flush has no area effect	フラッシュ以外の役の威力 ×1.3 / フラッシュの範囲効果なし	非同花牌型威力 ×1.3 / 同花无范围效果	非同花牌型威力 ×1.3 / 同花無範圍效果	PDBoardDraw.h
+5장 족보 위력 ×1.6 / 2장 족보는 효과·연쇄 없음	5-card hands power ×1.6 / 2-card hands get no effect or chain	5枚役の威力 ×1.6 / 2枚役は効果・連鎖なし	5张牌型威力 ×1.6 / 2张牌型无效果与连锁	5張牌型威力 ×1.6 / 2張牌型無效果與連鎖	PDBoardDraw.h
+원 페어·투 페어 위력 ×1.8 / 5장 족보는 연쇄 덤 없음	One/Two Pair power ×1.8 / 5-card hands get no chain bonus	ワンペア・ツーペア威力 ×1.8 / 5枚役は連鎖ボーナスなし	一对·两对威力 ×1.8 / 5张牌型无连锁加成	一對·兩對威力 ×1.8 / 5張牌型無連鎖加成	PDBoardDraw.h
+합성 배율 1.5 → 2.0 / 조커 포탑을 만들 수 없음	Fuse multiplier 1.5 → 2.0 / cannot make Joker towers	合成倍率 1.5 → 2.0 / ジョーカータワーを作れない	合成倍率 1.5 → 2.0 / 无法制作小丑塔	合成倍率 1.5 → 2.0 / 無法製作小丑塔	PDBoardDraw.h
+조커 배율 1.2 → 1.6 / 합성은 레벨 2까지	Joker multiplier 1.2 → 1.6 / fusing only up to level 2	ジョーカー倍率 1.2 → 1.6 / 合成はレベル2まで	小丑倍率 1.2 → 1.6 / 合成最多到2级	小丑倍率 1.2 → 1.6 / 合成最多到2級	PDBoardDraw.h
+족보에 안 든 타워 위력 ×1.6 / 연쇄 덤 없음	Towers outside hands power ×1.6 / no chain bonus	役に入っていないタワー威力 ×1.6 / 連鎖ボーナスなし	不在牌型中的塔威力 ×1.6 / 无连锁加成	不在牌型中的塔威力 ×1.6 / 無連鎖加成	PDBoardDraw.h
+연쇄 덤 +25% → +40% / 족보에 안 든 타워 위력 ×0.5	Chain bonus +25% → +40% / towers outside hands power ×0.5	連鎖ボーナス +25% → +40% / 役に入っていないタワー威力 ×0.5	连锁加成 +25% → +40% / 不在牌型中的塔威力 ×0.5	連鎖加成 +25% → +40% / 不在牌型中的塔威力 ×0.5	PDBoardDraw.h
+연사 +50%	Rate +50%	連射 +50%	连射 +50%	連射 +50%	PDBoardDraw.h
+오라 공격력 +25% → +50%, 범위 주변 24칸	Aura ATK +25% → +50%, reach 24 tiles around	オーラ攻撃力 +25% → +50%, 範囲は周囲24マス	光环攻击力 +25% → +50%, 范围周围24格	光環攻擊力 +25% → +50%, 範圍周圍24格	PDBoardDraw.h
+따라 한 공격 위력 ×1.3	Copied attack power ×1.3	まねた攻撃の威力 ×1.3	模仿攻击威力 ×1.3	模仿攻擊威力 ×1.3	PDBoardDraw.h
+셋째 적까지 함께 공격	Also hits a third enemy	3体目の敵まで同時に攻撃	同时攻击到第三个敌人	同時攻擊到第三個敵人	PDBoardDraw.h
+같은 무늬 공격력 +30% → +60%	Same-suit ATK +30% → +60%	同じスートの攻撃力 +30% → +60%	同花色攻击力 +30% → +60%	同花色攻擊力 +30% → +60%	PDBoardDraw.h
+주변 연사 +40% → +70%	Nearby rate +40% → +70%	周りの連射 +40% → +70%	周围连射 +40% → +70%	周圍連射 +40% → +70%	PDBoardDraw.h
+공격력 ×3 → ×5	ATK ×3 → ×5	攻撃力 ×3 → ×5	攻击力 ×3 → ×5	攻擊力 ×3 → ×5	PDBoardDraw.h
+위력 ×1.5	Power ×1.5	威力 ×1.5	威力 ×1.5	威力 ×1.5	PDBoardDraw.h
+5초마다 2초 멈춤 (원래 8초마다 1.5초)	Freeze 2s every 5s (was 1.5s every 8s)	5秒ごとに2秒停止 (元は8秒ごとに1.5秒)	每5秒停止2秒 (原为每8秒1.5秒)	每5秒停止2秒 (原為每8秒1.5秒)	PDBoardDraw.h
+레이저 위력 ×0.5 → ×0.8	Laser power ×0.5 → ×0.8	レーザー威力 ×0.5 → ×0.8	激光威力 ×0.5 → ×0.8	雷射威力 ×0.5 → ×0.8	PDBoardDraw.h
+원 페어·투 페어	One/Two Pair	ワンペア・ツーペア	一对·两对	一對·兩對	PDBoardDraw.h
+트리플·포카드·파이브 카드	Three/Four/Five of a Kind	スリー・フォー・ファイブカード	三条·四条·五条	三條·四條·五條	PDBoardDraw.h
+플러시 계열	Flush family	フラッシュ系	同花类	同花類	PDBoardDraw.h
+스트레이트 플러시·로열	Straight Flush · Royal	ストレートフラッシュ・ロイヤル	同花顺·皇家	同花順·皇家	PDBoardDraw.h
+스트레이트 계열	Straight family	ストレート系	顺子类	順子類	PDBoardDraw.h
+같은 숫자 족보	Same-rank hands	同じ数字の役	同点数牌型	同點數牌型	PDBoardDraw.h
+%s 위력 +%d%%	%s power +%d%%	%s 威力 +%d%%	%s 威力 +%d%%	%s 威力 +%d%%	PDBoardDraw.h
+%s 연사 +%d%%	%s rate +%d%%	%s 連射 +%d%%	%s 连射 +%d%%	%s 連射 +%d%%	PDBoardDraw.h
+%s 사거리 +%d%%	%s range +%d%%	%s 射程 +%d%%	%s 射程 +%d%%	%s 射程 +%d%%	PDBoardDraw.h
+%s 폭발 범위 +%.1f칸	%s blast area +%.1f tiles	%s 爆発範囲 +%.1fマス	%s 爆炸范围 +%.1f格	%s 爆炸範圍 +%.1f格	PDBoardDraw.h
+%s 둔화 +%d%%p	%s slow +%d%%p	%s 減速 +%d%%p	%s 减速 +%d%%p	%s 減速 +%d%%p	PDBoardDraw.h
+%s 범위 +%.2f칸	%s area +%.2f tiles	%s 範囲 +%.2fマス	%s 范围 +%.2f格	%s 範圍 +%.2f格	PDBoardDraw.h
+모든 타워 위력 +%d%%	All towers power +%d%%	全タワー威力 +%d%%	所有塔威力 +%d%%	所有塔威力 +%d%%	PDBoardDraw.h
+연쇄 덤 +%d%%p	Chain bonus +%d%%p	連鎖ボーナス +%d%%p	连锁加成 +%d%%p	連鎖加成 +%d%%p	PDBoardDraw.h
+합성 배율 +%.2f	Fuse multiplier +%.2f	合成倍率 +%.2f	合成倍率 +%.2f	合成倍率 +%.2f	PDBoardDraw.h
+합성 타워 위력 +%d%%	Fused towers power +%d%%	合成タワー威力 +%d%%	合成塔威力 +%d%%	合成塔威力 +%d%%	PDBoardDraw.h
+조커 포탑 위력 +%d%%	Joker towers power +%d%%	ジョーカータワー威力 +%d%%	小丑塔威力 +%d%%	小丑塔威力 +%d%%	PDBoardDraw.h
+조커 배율 +%.2f	Joker multiplier +%.2f	ジョーカー倍率 +%.2f	小丑倍率 +%.2f	小丑倍率 +%.2f	PDBoardDraw.h
+모든 타워 공격 속도 +%d%%	All towers attack speed +%d%%	全タワー攻撃速度 +%d%%	所有塔攻击速度 +%d%%	所有塔攻擊速度 +%d%%	PDBoardDraw.h
+치명타 확률 +%d%%p	Crit chance +%d%%p	クリティカル率 +%d%%p	暴击率 +%d%%p	暴擊率 +%d%%p	PDBoardDraw.h
+치명타 배율 +%.2f	Crit multiplier +%.2f	クリティカル倍率 +%.2f	暴击倍率 +%.2f	暴擊倍率 +%.2f	PDBoardDraw.h
+골드 +%d%%	Gold +%d%%	ゴールド +%d%%	金币 +%d%%	金幣 +%d%%	PDBoardDraw.h
+손패 최대 +%d	Max hand +%d	手札上限 +%d	手牌上限 +%d	手牌上限 +%d	PDBoardDraw.h
+웨이브마다 카드 +%d	+%d cards per wave	ウェーブごとにカード +%d	每波卡牌 +%d	每波卡牌 +%d	PDBoardDraw.h
+목숨 +%d (찍을 때)	Lives +%d (when taken)	ライフ +%d (取得時)	生命 +%d (点亮时)	生命 +%d (點亮時)	PDBoardDraw.h
+공격	Attack	攻撃	攻击	攻擊	PDBoardDraw.h
+공격 속도	Attack Speed	攻撃速度	攻击速度	攻擊速度	PDBoardDraw.h
+치명타 확률	Crit Chance	クリティカル率	暴击率	暴擊率	PDBoardDraw.h
+치명타 배율	Crit Multiplier	クリティカル倍率	暴击倍率	暴擊倍率	PDBoardDraw.h
+♠ 스페이드 강화	♠ Spade Upgrade	♠ スペード強化	♠ 黑桃强化	♠ 黑桃強化	PDBoardDraw.h
+♥ 하트 강화	♥ Heart Upgrade	♥ ハート強化	♥ 红心强化	♥ 紅心強化	PDBoardDraw.h
+♦ 다이아 강화	♦ Diamond Upgrade	♦ ダイヤ強化	♦ 方块强化	♦ 方塊強化	PDBoardDraw.h
+♣ 클로버 강화	♣ Club Upgrade	♣ クラブ強化	♣ 梅花强化	♣ 梅花強化	PDBoardDraw.h
+모든 타워 공격력 +%.0f%%  (레벨당 +1%%)	All towers ATK +%.0f%%  (+1%% per level)	全タワー攻撃力 +%.0f%%  (レベルごと +1%%)	所有塔攻击力 +%.0f%%  (每级 +1%%)	所有塔攻擊力 +%.0f%%  (每級 +1%%)	PDBoardDraw.h
+모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)	All towers attack speed +%.0f%%  (+1%% per level)	全タワー攻撃速度 +%.0f%%  (レベルごと +1%%)	所有塔攻击速度 +%.0f%%  (每级 +1%%)	所有塔攻擊速度 +%.0f%%  (每級 +1%%)	PDBoardDraw.h
+치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)	Crit chance %.1f%%  (+0.1%%p per level, over 100%% crits multiple times)	クリティカル率 %.1f%%  (レベルごと +0.1%%p, 100%% 超えで一撃に複数回)	暴击率 %.1f%%  (每级 +0.1%%p, 超过100%% 一击多次暴击)	暴擊率 %.1f%%  (每級 +0.1%%p, 超過100%% 一擊多次暴擊)	PDBoardDraw.h
+치명타 배율 ×%.2f  (레벨당 +0.01)	Crit multiplier ×%.2f  (+0.01 per level)	クリティカル倍率 ×%.2f  (レベルごと +0.01)	暴击倍率 ×%.2f  (每级 +0.01)	暴擊倍率 ×%.2f  (每級 +0.01)	PDBoardDraw.h
+그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)	That suit's towers ATK +%.0f%%  (+2%% per level)	そのスートのタワー攻撃力 +%.0f%%  (レベルごと +2%%)	该花色塔攻击力 +%.0f%%  (每级 +2%%)	該花色塔攻擊力 +%.0f%%  (每級 +2%%)	PDBoardDraw.h
+계속하기	Resume	続ける	继续	繼續	PDBoardDraw.h
+새 게임	New Game	ニューゲーム	新游戏	新遊戲	PDBoardDraw.h
+설정	Settings	設定	设置	設定	PDBoardDraw.h
+게임 종료	Quit Game	ゲーム終了	退出游戏	退出遊戲	PDBoardDraw.h
+파이브	Five	ファイブ	五条	五條	PDBoardDraw.h
+풀하	F.House	フルハウス	葫芦	葫蘆	PDBoardDraw.h
+스트	Straight	ストレート	顺子	順子	PDBoardDraw.h
+투페어	2 Pair	ツーペア	两对	兩對	PDBoardDraw.h
+페어	Pair	ペア	对子	對子	PDBoardDraw.h
+판 위력 %s → %s (%s%.0f%%)	Board power %s → %s (%s%.0f%%)	盤の威力 %s → %s (%s%.0f%%)	场上威力 %s → %s (%s%.0f%%)	場上威力 %s → %s (%s%.0f%%)	PDBoardDraw.h
++%d 골드	+%d Gold	+%d ゴールド	+%d 金币	+%d 金幣	PDBoardFx.cpp
+목숨 -%d	Lives -%d	ライフ -%d	生命 -%d	生命 -%d	PDBoardFx.cpp
+연쇄 ×%s	Chain ×%s	連鎖 ×%s	连锁 ×%s	連鎖 ×%s	PDBoardFx.cpp
+보스: %s · %s	Boss: %s · %s	ボス: %s · %s	首领: %s · %s	首領: %s · %s	PDBoardFx.cpp
+최고 기록 갱신 중!	New record!	最高記録更新中!	正在刷新最高纪录!	正在刷新最高紀錄!	PDBoardFx.cpp
+최고 %d웨이브	Best: wave %d	最高 %dウェーブ	最高 第%d波	最高 第%d波	PDBoardFx.cpp
+카드 +%d%s	Cards +%d%s	カード +%d%s	卡牌 +%d%s	卡牌 +%d%s	PDBoardFx.cpp
+ (손패 가득)	 (hand full)	 (手札いっぱい)	 (手牌已满)	 (手牌已滿)	PDBoardFx.cpp
+조커: %s!	Joker: %s!	ジョーカー: %s!	小丑: %s!	小丑: %s!	PDBoardFx.cpp
+새로 발견! (J: 도감)	New discovery! (J: Codex)	新発見! (J: 図鑑)	新发现! (J: 图鉴)	新發現! (J: 圖鑑)	PDBoardFx.cpp
+레벨 %d!	Level %d!	レベル %d!	等级 %d!	等級 %d!	PDBoardFx.cpp
+경험치 +%.0f	XP +%.0f	経験値 +%.0f	经验 +%.0f	經驗 +%.0f	PDBoardFx.cpp
+조커 강화!	Joker upgraded!	ジョーカー強化!	小丑强化!	小丑強化!	PDBoardFx.cpp
+ 경험치	 XP	 経験値	 经验	 經驗	PDBoardFx.cpp
++%d 경험치	+%d XP	+%d 経験値	+%d 经验	+%d 經驗	PDBoardFx.cpp
++%.0f 경험치	+%.0f XP	+%.0f 経験値	+%.0f 经验	+%.0f 經驗	PDBoardFx.cpp
+%s %d개 합침!	Merged %s ×%d!	%s %d体を合体!	%s %d个合体!	%s %d個合體!	PDBoardFx.cpp
+기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
+시작	Start	スタート	起点	起點	PDBoardPaint.cpp
+키스톤: %s	Keystone: %s	キーストーン: %s	基石: %s	基石: %s	PDBoardPaint.cpp
+조커 강화: %s	Joker Upgrade: %s	ジョーカー強化: %s	小丑强化: %s	小丑強化: %s	PDBoardPaint.cpp
+특급 노드	Notable	特級ノード	特级节点	特級節點	PDBoardPaint.cpp
+조커 갈림길	Joker Crossroads	ジョーカーの分かれ道	小丑岔路	小丑岔路	PDBoardPaint.cpp
+살림	Economy	やりくり	经济	經濟	PDBoardPaint.cpp
+작은 노드	Small Node	小ノード	小节点	小節點	PDBoardPaint.cpp
+닫기  K	Close  K	閉じる  K	关闭  K	關閉  K	PDBoardPaint.cpp
+닫기  U	Close  U	閉じる  U	关闭  U	關閉  U	PDBoardPaint.cpp
+닫기  J	Close  J	閉じる  J	关闭  J	關閉  J	PDBoardPaint.cpp
+웨이브 %d에서 무너졌다 · 처치 %d	Fell at wave %d · %d kills	ウェーブ %d で崩れた · 撃破 %d	在第%d波失守 · 击杀 %d	在第%d波失守 · 擊殺 %d	PDBoardPaint.cpp
+최고 기록 %d웨이브%s	Best record: wave %d%s	最高記録 %dウェーブ%s	最高纪录 第%d波%s	最高紀錄 第%d波%s	PDBoardPaint.cpp
+  (갱신!)	  (new!)	  (更新!)	  (刷新!)	  (刷新!)	PDBoardPaint.cpp
+R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか画面を押して再挑戦	按 R 或点击画面重来	按 R 或點擊畫面重來	PDBoardPaint.cpp
+1초 최저 %.0f fps (%.1f ms)	1s low %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	PDBoardPaint.cpp
+적 %d · 발사체 %d · 타워 %d	Enemies %d · Shots %d · Towers %d	敵 %d · 弾 %d · タワー %d	敌人 %d · 弹体 %d · 塔 %d	敵人 %d · 彈體 %d · 塔 %d	PDBoardPaint.cpp
+입자 %d · 고리 %d · 배속 ×%d · F3 닫기	Particles %d · Rings %d · Speed ×%d · F3 close	粒子 %d · リング %d · 倍速 ×%d · F3 閉じる	粒子 %d · 光环 %d · 倍速 ×%d · F3 关闭	粒子 %d · 光環 %d · 倍速 ×%d · F3 關閉	PDBoardPaint.cpp
+그리기 %.1fms · 갱신 %.1fms · 선 %d (%dk점) · %s	Paint %.1fms · Tick %.1fms · Lines %d (%dk pts) · %s	描画 %.1fms · 更新 %.1fms · 線 %d (%dk点) · %s	绘制 %.1fms · 更新 %.1fms · 线 %d (%dk点) · %s	繪製 %.1fms · 更新 %.1fms · 線 %d (%dk點) · %s	PDBoardPaint.cpp
+스프라이트	Sprites	スプライト	精灵图	精靈圖	PDBoardPaint.cpp
+진짜 선(F6)	Real lines (F6)	実線(F6)	真实线条(F6)	真實線條(F6)	PDBoardPaint.cpp
+여기	Here	ここ	这里	這裡	PDBoardPaint.cpp
+기본	Default	基本	默认	預設	PDBoardPaint.cpp
+조커 자리를 고르세요	Choose the Joker's spot	ジョーカーの場所を選んでください	请选择小丑的位置	請選擇小丑的位置	PDBoardPaint.cpp
+합성 타워 자리를 고르세요	Choose the fused tower's spot	合成タワーの場所を選んでください	请选择合成塔的位置	請選擇合成塔的位置	PDBoardPaint.cpp
+빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · button again / G: default tile · Esc / right-click: cancel	光る素材マスを1つクリック · ボタンをもう一度 / G: 基本マス · Esc / 右クリック: キャンセル	点击一个发光的素材格 · 再按按钮 / G: 默认格 · Esc / 右键: 取消	點擊一個發光的素材格 · 再按按鈕 / G: 預設格 · Esc / 右鍵: 取消	PDBoardPaint.cpp
+먹이%d	Feed%d	エサ%d	喂%d	餵%d	PDBoardPaint.cpp
+경험치 +%.0f → 레벨 %d%s	XP +%.0f → level %d%s	経験値 +%.0f → レベル %d%s	经验 +%.0f → 等级 %d%s	經驗 +%.0f → 等級 %d%s	PDBoardPaint.cpp
+%s 먹이기: 먹일 족보의 [먹이기] 클릭 · 다른 곳 클릭 / Esc: 취소	Feeding %s: click [Feed] on a hand · click elsewhere / Esc: cancel	%s にエサ: 与える役の [エサ] をクリック · 他をクリック / Esc: キャンセル	喂养 %s: 点击要喂的牌型的 [喂养] · 点击别处 / Esc: 取消	餵養 %s: 點擊要餵的牌型的 [餵養] · 點擊別處 / Esc: 取消	PDBoardPaint.cpp
+먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · 다른 곳 클릭 / Esc: 취소	No hand to feed (hands touching the Joker are food) · click elsewhere / Esc: cancel	与える役がない (ジョーカーに隣接する役がエサ) · 他をクリック / Esc: キャンセル	没有可喂的牌型 (与小丑相邻的牌型才可喂) · 点击别处 / Esc: 取消	沒有可餵的牌型 (與小丑相鄰的牌型才可餵) · 點擊別處 / Esc: 取消	PDBoardPaint.cpp
+자리바꿈 (%d번 남음): 옮길 타워 클릭 · 오른쪽 클릭 / Esc: 끄기	Swap (%d left): click a tower to move · right-click / Esc: off	入れ替え (残り %d回): 動かすタワーをクリック · 右クリック / Esc: やめる	换位 (剩余 %d次): 点击要移动的塔 · 右键 / Esc: 关闭	換位 (剩餘 %d次): 點擊要移動的塔 · 右鍵 / Esc: 關閉	PDBoardPaint.cpp
+바꿀 자리 클릭 (타워면 서로 바꾸고 빈 칸이면 옮김) · 같은 타워 다시: 다시 고르기	Click the target (swaps with a tower, moves to an empty tile) · same tower again: reselect	移動先をクリック (タワーなら入れ替え、空きマスなら移動) · 同じタワーをもう一度: 選び直し	点击目标位置 (是塔就交换, 空格就移动) · 再点同一座塔: 重新选择	點擊目標位置 (是塔就交換, 空格就移動) · 再點同一座塔: 重新選擇	PDBoardPaint.cpp
+조커 만들기만 보기: [조커] 버튼이나 재료 칸 클릭 = 조커 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing Joker recipes only: click [Joker] or a material tile = make Joker · click the list again / Esc: off	ジョーカー作成のみ表示: [ジョーカー] ボタンか素材マスをクリック = ジョーカー合成 · 役リストをもう一度 / Esc: 解除	只看小丑制作: 点击 [小丑] 按钮或素材格 = 合成小丑 · 再点牌型列表 / Esc: 关闭	只看小丑製作: 點擊 [小丑] 按鈕或素材格 = 合成小丑 · 再點牌型列表 / Esc: 關閉	PDBoardPaint.cpp
+%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing %s only: click its tiles = fuse · click the list again / Esc: off	%s のみ表示: その役のマスをクリック = 合成 · 役リストをもう一度 / Esc: 解除	只看%s: 点击该牌型的格 = 合成 · 再点牌型列表 / Esc: 关闭	只看%s: 點擊該牌型的格 = 合成 · 再點牌型列表 / Esc: 關閉	PDBoardPaint.cpp
+조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDBoardPaint.cpp
+조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
+위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
+%s 대장: %s	%s captain: %s	%s 隊長: %s	%s 队长: %s	%s 隊長: %s	PDBoardPaint.cpp
+클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)	Click: feed · kill +%.0f XP (boss +%.0f)	クリック: エサ · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 喂养 · 击杀 +%.0f 经验 (首领 +%.0f)	點擊: 餵養 · 擊殺 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
+레벨 %d (최대) · 위력 +%d%%	Level %d (max) · power +%d%%	レベル %d (最大) · 威力 +%d%%	等级 %d (最高) · 威力 +%d%%	等級 %d (最高) · 威力 +%d%%	PDBoardPaint.cpp
+레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Level %d · XP %.0f/%.0f · power +%d%%%s	レベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
+ · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
+%s %s · 레벨 %d	%s %s · Level %d	%s %s · レベル %d	%s %s · 等级 %d	%s %s · 等級 %d	PDBoardPaint.cpp
+공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardPaint.cpp
+사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardPaint.cpp
+ · 범위 %.1f	 · area %.1f	 · 範囲 %.1f	 · 范围 %.1f	 · 範圍 %.1f	PDBoardPaint.cpp
+ · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardPaint.cpp
+특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardPaint.cpp
+보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDBoardPaint.cpp
+다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDBoardPaint.cpp
+남은 적 %d / %d	Enemies left %d / %d	残りの敵 %d / %d	剩余敌人 %d / %d	剩餘敵人 %d / %d	PDBoardPaint.cpp
+처치 %d · 놓침 %d	Kills %d · Leaked %d	撃破 %d · 突破 %d	击杀 %d · 漏掉 %d	擊殺 %d · 漏掉 %d	PDBoardPaint.cpp
+웨이브 %d 자동 시작까지 %d초	Wave %d starts in %ds	ウェーブ %d 自動開始まで %d秒	第%d波 %d秒后自动开始	第%d波 %d秒後自動開始	PDBoardPaint.cpp
+웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardPaint.cpp
+처치 %d · 놓침 %d · 최고 %d	Kills %d · Leaked %d · Best %d	撃破 %d · 突破 %d · 最高 %d	击杀 %d · 漏掉 %d · 最高 %d	擊殺 %d · 漏掉 %d · 最高 %d	PDBoardPaint.cpp
+목숨 %d	Lives %d	ライフ %d	生命 %d	生命 %d	PDBoardPaint.cpp
+골드 %s	Gold %s	ゴールド %s	金币 %s	金幣 %s	PDBoardPaint.cpp
+다음 노드 %s	Next node %s	次のノード %s	下个节点 %s	下個節點 %s	PDBoardPaint.cpp
+판 위력	Board Power	盤の威力	场上威力	場上威力	PDBoardPaint.cpp
+손패 %d/%d	Hand %d/%d	手札 %d/%d	手牌 %d/%d	手牌 %d/%d	PDBoardPaint.cpp
+덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
+자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
+끄기 X	Off X	やめる X	关闭 X	關閉 X	PDBoardPaint.cpp
+초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDBoardPaint.cpp
+족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDBoardPaint.cpp
+족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDBoardPaint.cpp
+타워를 놓으면 위력이 보인다	Place towers to see power	タワーを置くと威力が見える	放置塔后显示威力	放置塔後顯示威力	PDBoardPaint.cpp
+웨이브 %d 시작	Start wave %d	ウェーブ %d 開始	开始第%d波	開始第%d波	PDBoardPaint.cpp
+%d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
+웨이브 %d 진행 중	Wave %d in progress	ウェーブ %d 進行中	第%d波 进行中	第%d波 進行中	PDBoardPaint.cpp
+웨이브 시작	Start Wave	ウェーブ開始	开始波次	開始波次	PDBoardPaint.cpp
+배속 ×%d (F)	Speed ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	PDBoardPaint.cpp
+×%d 배속	×%d speed	×%d 倍速	×%d 倍速	×%d 倍速	PDBoardPaint.cpp
+F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍速	PDBoardPaint.cpp
+스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDBoardPaint.cpp
+골드 강화	Gold Upgrades	ゴールド強化	金币强化	金幣強化	PDBoardPaint.cpp
+조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDBoardPaint.cpp
+메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
+부적 %d/%d	Charms %d/%d	お守り %d/%d	护符 %d/%d	護符 %d/%d	PDBoardPaint.cpp
+다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
+%d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
+?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDBoardPaint.cpp
+카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체	Click a card (number key) → click a tile: place · placing on a tower replaces it	カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換	点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換	PDBoardPaint.cpp
+오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
+족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기	Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed	役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ	鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养	滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養	PDBoardPaint.cpp
+Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
+K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree · U gold upgrades · J Joker codex · Esc menu	K スキルツリー · U ゴールド強化 · J ジョーカー図鑑 · Esc メニュー	K 技能树 · U 金币强化 · J 小丑图鉴 · Esc 菜单	K 技能樹 · U 金幣強化 · J 小丑圖鑑 · Esc 選單	PDBoardPaint.cpp
+웨이브 %d 부적 — 하나를 고른다	Wave %d charm — pick one	ウェーブ %d お守り — 1つ選ぶ	第%d波 护符 — 选择一个	第%d波 護符 — 選擇一個	PDBoardPaint.cpp
+부적	Charm	お守り	护符	護符	PDBoardPaint.cpp
+즉시	Instant	即時	即时	即時	PDBoardPaint.cpp
+1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
+부적 칸이 가득 찼다 (5/5)	Charm slots are full (5/5)	お守り枠がいっぱい (5/5)	护符栏已满 (5/5)	護符欄已滿 (5/5)	PDBoardPaint.cpp
+%d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardPaint.cpp
+맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커. 3개 쪽이 카드가 많아 세다	3 (or 2) touching hands matching a recipe make a Joker. 3-hand recipes use more cards and are stronger	隣接する役3つ(または2つ)がレシピに合うとジョーカー。3つの方がカードが多く強い	相邻的3个(或2个)牌型符合配方即成小丑。3个的配方牌更多更强	相鄰的3個(或2個)牌型符合配方即成小丑。3個的配方牌更多更強	PDBoardPaint.cpp
+위력 %s	Power %s	威力 %s	威力 %s	威力 %s	PDBoardPaint.cpp
+만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardPaint.cpp
+3개	3 hands	3つ	3个	3個	PDBoardPaint.cpp
+2개	2 hands	2つ	2个	2個	PDBoardPaint.cpp
+%s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardPaint.cpp
+능력	Ability	能力	能力	能力	PDBoardPaint.cpp
+만들어 보면 열린다	Make it once to unlock	作ってみると解放される	制作一次即可解锁	製作一次即可解鎖	PDBoardPaint.cpp
+3개 레시피	3-hand recipe	3つのレシピ	3个的配方	3個的配方	PDBoardPaint.cpp
+2개 레시피	2-hand recipe	2つのレシピ	2个的配方	2個的配方	PDBoardPaint.cpp
+스트레이트끼리는 숫자가 이어지지 않게	Keep Straights' numbers from connecting	ストレート同士は数字がつながらないように	顺子之间数字不要相连	順子之間數字不要相連	PDBoardPaint.cpp
+플러시끼리는 무늬가 다르게	Flushes must be different suits	フラッシュ同士はスートを変える	同花之间花色要不同	同花之間花色要不同	PDBoardPaint.cpp
+숫자가 겹치면 큰 족보로 합쳐지니 주의	Careful: shared numbers merge into a bigger hand	数字が重なると大きな役にまとまるので注意	注意数字重叠会合并成更大的牌型	注意數字重疊會合併成更大的牌型	PDBoardPaint.cpp
+위력 계산	Power formula	威力の計算	威力计算	威力計算	PDBoardPaint.cpp
+재료 위력 합 × %.1f × 등급 %s	Sum of material power × %.1f × grade %s	素材威力の合計 × %.1f × 等級 %s	素材威力总和 × %.1f × 等级 %s	素材威力總和 × %.1f × 等級 %s	PDBoardPaint.cpp
+× 카드 수 덤 (한 장마다 +%d%%)	× card count bonus (+%d%% per card)	× カード枚数ボーナス (1枚ごと +%d%%)	× 卡牌数量加成 (每张 +%d%%)	× 卡牌數量加成 (每張 +%d%%)	PDBoardPaint.cpp
+3개 레시피(6장 이상)가 2개(4장)보다 세다	3-hand recipes (6+ cards) beat 2-hand ones (4 cards)	3つのレシピ(6枚以上)は2つ(4枚)より強い	3个的配方(6张以上)比2个的(4张)更强	3個的配方(6張以上)比2個的(4張)更強	PDBoardPaint.cpp
+카드 클릭: 크게 보기 · J / Esc: 닫기	Click a card: enlarge · J / Esc: close	カードをクリック: 拡大 · J / Esc: 閉じる	点击卡牌: 放大 · J / Esc: 关闭	點擊卡牌: 放大 · J / Esc: 關閉	PDBoardPaint.cpp
+골드 %d   강화에 쓴 골드 %d   (이번 판에서만 유지, 최대 %d레벨, 값 = 10 + 2 × 레벨)	Gold %d   Spent on upgrades %d   (this run only, max level %d, cost = 10 + 2 × level)	ゴールド %d   強化に使ったゴールド %d   (今回のみ, 最大 %dレベル, 値段 = 10 + 2 × レベル)	金币 %d   强化已花费 %d   (仅本局, 最高 %d级, 价格 = 10 + 2 × 等级)	金幣 %d   強化已花費 %d   (僅本局, 最高 %d級, 價格 = 10 + 2 × 等級)	PDBoardPaint.cpp
+최대	Max	最大	最大	最大	PDBoardPaint.cpp
+버튼 클릭: 강화   U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	Click a button: upgrade   U or Esc · right-click: close   (game is paused while open)	ボタンをクリック: 強化   U か Esc · 右クリック: 閉じる   (開いている間ゲームは止まる)	点击按钮: 强化   U 或 Esc · 右键: 关闭   (打开期间游戏暂停)	點擊按鈕: 強化   U 或 Esc · 右鍵: 關閉   (打開期間遊戲暫停)	PDBoardPaint.cpp
+다음 노드 %s 골드	Next node %s Gold	次のノード %s ゴールド	下个节点 %s 金币	下個節點 %s 金幣	PDBoardPaint.cpp
+키스톤 %d / %d	Keystones %d / %d	キーストーン %d / %d	基石 %d / %d	基石 %d / %d	PDBoardPaint.cpp
+찍은 노드 %d	Nodes taken %d	取得ノード %d	已点亮节点 %d	已點亮節點 %d	PDBoardPaint.cpp
+이번 판에서만 · 값은 찍을 때마다 ×%.2f	This run only · cost ×%.2f per node	今回のみ · 値段は取得ごとに ×%.2f	仅本局 · 每点亮一次价格 ×%.2f	僅本局 · 每點亮一次價格 ×%.2f	PDBoardPaint.cpp
+찍음	Taken	取得済み	已点亮	已點亮	PDBoardPaint.cpp
+찍을 수 있음	Available	取得可能	可点亮	可點亮	PDBoardPaint.cpp
+아직 못 찍음	Locked	まだ取れない	尚不可点亮	尚不可點亮	PDBoardPaint.cpp
+봉인 (짝 키스톤)	Sealed (paired keystone)	封印 (対のキーストーン)	封印 (成对基石)	封印 (成對基石)	PDBoardPaint.cpp
+키스톤은 둘씩 짝: 하나를 찍으면	Keystones come in pairs: take one and	キーストーンは2つで1組: 片方を取ると	基石两两成对: 点亮一个后	基石兩兩成對: 點亮一個後	PDBoardPaint.cpp
+짝은 이 판 동안 봉인 · 판마다 3개까지	its pair is sealed this run · up to 3 per run	対はこの回の間封印 · 1回3つまで	另一个本局封印 · 每局最多3个	另一個本局封印 · 每局最多3個	PDBoardPaint.cpp
+찍을 수 있음 · %s 골드	Available · %s Gold	取得可能 · %s ゴールド	可点亮 · %s 金币	可點亮 · %s 金幣	PDBoardPaint.cpp
+찍은 노드와 이어져야 한다	Must connect to a taken node	取得済みノードとつながっている必要がある	必须与已点亮节点相连	必須與已點亮節點相連	PDBoardPaint.cpp
+짝 키스톤을 찍어서 봉인됨	Sealed: its pair was taken	対のキーストーンを取ったので封印	已点亮成对基石而封印	已點亮成對基石而封印	PDBoardPaint.cpp
+키스톤은 판마다 %d개까지	Up to %d keystones per run	キーストーンは1回 %d個まで	每局最多 %d 个基石	每局最多 %d 個基石	PDBoardPaint.cpp
+골드 부족 (%s / %s)	Not enough Gold (%s / %s)	ゴールド不足 (%s / %s)	金币不足 (%s / %s)	金幣不足 (%s / %s)	PDBoardPaint.cpp
+지금은 찍을 수 없다 (보상 고르는 중)	Can't take now (choosing a reward)	今は取れない (報酬選択中)	现在无法点亮 (正在选择奖励)	現在無法點亮 (正在選擇獎勵)	PDBoardPaint.cpp
+시작점	Start	開始点	起点	起點	PDBoardPaint.cpp
+키스톤	Keystone	キーストーン	基石	基石	PDBoardPaint.cpp
+조커 강화	Joker Upgrade	ジョーカー強化	小丑强化	小丑強化	PDBoardPaint.cpp
+짝: %s (함께 못 찍음)	Pair: %s (can't take both)	対: %s (同時に取れない)	成对: %s (不能同时点亮)	成對: %s (不能同時點亮)	PDBoardPaint.cpp
+클릭해서 찍기	Click to take	クリックで取得	点击点亮	點擊點亮	PDBoardPaint.cpp
+카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라	Place cards, build poker hands, hold back the endless horde	カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ	放置卡牌组成牌型, 挡住源源不断的敌人	放置卡牌組成牌型, 擋住源源不絕的敵人	PDBoardPaint.cpp
+게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDBoardPaint.cpp
+환경 설정	Settings	環境設定	设置	設定	PDBoardPaint.cpp
+최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
+위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정	Up/Down or mouse to choose · Enter or click to confirm	上下キーかマウスで選ぶ · Enter かクリックで決定	用上下键或鼠标选择 · 按 Enter 或点击确认	用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認	PDBoardPaint.cpp
+판을 준비하는 중	Preparing the board	盤を準備中	正在准备棋盘	正在準備棋盤	PDBoardPaint.cpp
+붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)	Adjacent towers forming a poker hand create a synergy (any shape)	隣り合うタワーがポーカーの役になるとシナジー (形は自由)	相邻的塔组成扑克牌型就有协同 (形状不限)	相鄰的塔組成撲克牌型就有協同 (形狀不限)	PDBoardPaint.cpp
+족보끼리 맞닿으면 연쇄 보너스가 붙는다	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp
+왼쪽 족보 목록을 클릭하면 그 족보만 펼쳐 보고 바로 합성할 수 있다	Click a hand in the left list to show only it and fuse right away	左の役リストをクリックするとその役だけ表示してすぐ合成できる	点击左侧牌型列表即可只显示该牌型并直接合成	點擊左側牌型列表即可只顯示該牌型並直接合成	PDBoardPaint.cpp
+맞닿은 족보 3개(또는 2개)로 조커를 만들 수 있다	3 (or 2) touching hands can make a Joker	隣接する役3つ(または2つ)でジョーカーを作れる	相邻的3个(或2个)牌型可以做出小丑	相鄰的3個(或2個)牌型可以做出小丑	PDBoardPaint.cpp
+자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다	The Swap reward lets you swap two towers	入れ替え報酬でタワー2つの場所を交換できる	换位奖励可以交换两座塔的位置	換位獎勵可以交換兩座塔的位置	PDBoardPaint.cpp
+무늬는 공격 방식, 숫자는 공격력	Suit sets the attack type, rank sets attack power	スートは攻撃方式、数字は攻撃力	花色决定攻击方式, 点数决定攻击力	花色決定攻擊方式, 點數決定攻擊力	PDBoardPaint.cpp
+족보	Hands	役	牌型	牌型	PDBoardPaint.cpp
+다시 클릭 / Esc: 필터 끄기	Click again / Esc: clear filter	もう一度クリック / Esc: フィルター解除	再次点击 / Esc: 关闭筛选	再次點擊 / Esc: 關閉篩選	PDBoardPaint.cpp
+클릭: 그 족보만 보기	Click: show only that hand	クリック: その役だけ表示	点击: 只看该牌型	點擊: 只看該牌型	PDBoardPaint.cpp
+ (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
+ (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDBoardPaint.cpp
+조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
+맞닿은 족보 3개(또는 2개)로 만든다	Made from 3 (or 2) touching hands	隣接する役3つ(または2つ)で作る	由相邻的3个(或2个)牌型制作	由相鄰的3個(或2個)牌型製作	PDBoardPaint.cpp
+연쇄	Chain	連鎖	连锁	連鎖	PDBoardPaint.cpp
+족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
+무늬 = 공격 방식	Suit = attack type	スート = 攻撃方式	花色 = 攻击方式	花色 = 攻擊方式	PDBoardPaint.cpp
+↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)	↑↓ · Enter or click   Esc: close   (game is paused while open)	↑↓ · Enter かクリック   Esc: 閉じる   (開いている間ゲームは止まる)	↑↓ · Enter 或点击   Esc: 关闭   (打开期间游戏暂停)	↑↓ · Enter 或點擊   Esc: 關閉   (打開期間遊戲暫停)	PDBoardPaint.cpp
+언어	Language	言語	语言	語言	PDBoardPaint.cpp
+화면	Display	画面	画面	畫面	PDBoardPaint.cpp
+카드 색	Card Colors	カードの色	卡牌颜色	卡牌顏色	PDBoardPaint.cpp
+프레임 제한	Frame Limit	フレーム制限	帧率限制	幀率限制	PDBoardPaint.cpp
+수직 동기화	VSync	垂直同期	垂直同步	垂直同步	PDBoardPaint.cpp
+월드 이펙트 (나이아가라)	World Effects (Niagara)	ワールドエフェクト (ナイアガラ)	世界特效 (Niagara)	世界特效 (Niagara)	PDBoardPaint.cpp
+화면 흔들림·번쩍임	Screen Shake · Flash	画面の揺れ・フラッシュ	画面震动·闪光	畫面震動·閃光	PDBoardPaint.cpp
+소리	Sound	サウンド	声音	聲音	PDBoardPaint.cpp
+효과음 볼륨	SFX Volume	効果音の音量	音效音量	音效音量	PDBoardPaint.cpp
+음악 볼륨	Music Volume	音楽の音量	音乐音量	音樂音量	PDBoardPaint.cpp
+창	Windowed	ウィンドウ	窗口	視窗	PDBoardPaint.cpp
+전체화면	Fullscreen	フルスクリーン	全屏	全螢幕	PDBoardPaint.cpp
+테두리 없음	Borderless	ボーダーレス	无边框	無邊框	PDBoardPaint.cpp
+네온	Neon	ネオン	霓虹	霓虹	PDBoardPaint.cpp
+흑백	Mono	モノクロ	黑白	黑白	PDBoardPaint.cpp
+빨강·하양	Red · White	赤・白	红·白	紅·白	PDBoardPaint.cpp
+제한 없음	Unlimited	制限なし	不限制	不限制	PDBoardPaint.cpp
+켜짐	On	オン	开	開	PDBoardPaint.cpp
+꺼짐	Off	オフ	关	關	PDBoardPaint.cpp
+닫기	Close	閉じる	关闭	關閉	PDBoardPaint.cpp
+화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)	Display mode only changes in packaged builds (saved only in the editor)	画面モードはパッケージ版でのみ変わる (エディタでは保存のみ)	画面模式仅在打包版本中改变 (编辑器中只保存)	畫面模式僅在打包版本中改變 (編輯器中只儲存)	PDBoardPaint.cpp
+↑↓ 고르기 · ←→ 바꾸기 · Enter 켜기/끄기 · Esc 메뉴로	↑↓ select · ←→ change · Enter toggle · Esc back to menu	↑↓ 選ぶ · ←→ 変更 · Enter オン/オフ · Esc メニューへ	↑↓ 选择 · ←→ 更改 · Enter 开/关 · Esc 返回菜单	↑↓ 選擇 · ←→ 更改 · Enter 開/關 · Esc 返回選單	PDBoardPaint.cpp
+아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
+아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
+한국어					PDLang.cpp
+명사수	Marksman	名射手	神射手	神射手	PDTreeText.inl
+저격수의 눈	Sniper's Eye	狙撃手の目	狙击手之眼	狙擊手之眼	PDTreeText.inl
+망원 조준	Telescopic Sight	望遠照準	望远瞄准	望遠瞄準	PDTreeText.inl
+불꽃놀이	Fireworks	花火	烟花	煙火	PDTreeText.inl
+화약고	Powder Keg	火薬庫	火药库	火藥庫	PDTreeText.inl
+기관총	Machine Gun	機関銃	机枪	機槍	PDTreeText.inl
+탄창	Magazine	弾倉	弹匣	彈匣	PDTreeText.inl
+과열	Overheat	過熱	过热	過熱	PDTreeText.inl
+얼음 손	Ice Hand	氷の手	冰之手	冰之手	PDTreeText.inl
+서릿발	Frost Spikes	霜柱	霜刺	霜刺	PDTreeText.inl
+빙하	Glacier	氷河	冰川	冰川	PDTreeText.inl
+거울	Mirror	鏡	镜子	鏡子	PDTreeText.inl
+다섯 손가락	Five Fingers	五本の指	五指	五指	PDTreeText.inl
+물든 패	Tinted Hand	染まった札	染色之牌	染色之牌	PDTreeText.inl
+왕관	Crown	王冠	王冠	王冠	PDTreeText.inl
+번지는 물감	Spreading Paint	にじむ絵の具	晕染颜料	暈染顏料	PDTreeText.inl
+흐름	Flow	流れ	流动	流動	PDTreeText.inl
+긴 줄	Long Line	長い列	长龙	長龍	PDTreeText.inl
+장전	Reload	装填	装填	裝填	PDTreeText.inl
+단조	Forging	鍛造	锻造	鍛造	PDTreeText.inl
+대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDTreeText.inl
+조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDTreeText.inl

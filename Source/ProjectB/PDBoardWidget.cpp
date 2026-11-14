@@ -295,11 +295,17 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
+		GConfig->GetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 		Settings.CardTheme = FMath::Clamp(Settings.CardTheme, 0, 2);
 		GPDCardTheme = Settings.CardTheme;
 		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	}
 	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
+	if (Settings.Lang < 0 || Settings.Lang >= (int32)EPDLang::Count) Settings.Lang = LangFromSystem(); // 처음 켜면 시스템 언어 (D-159)
+#if !UE_BUILD_SHIPPING
+	{ int32 L = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdlang="), L)) Settings.Lang = FMath::Clamp(L, 0, (int32)EPDLang::Count - 1); } // 시험용: -pdlang=1 (영어) 등
+#endif
+	GPDLang = Settings.Lang;
 	ApplyFrameSettings();
 	Settings.Volume = FMath::Clamp(Settings.Volume, 0.f, 1.f);
 	Settings.MusicVolume = FMath::Clamp(Settings.MusicVolume, 0.f, 1.f);
@@ -339,6 +345,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -390,6 +397,7 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 {
 	switch ((ESetRow)Row)
 	{
+	case ESetRow::Lang: { const int32 N = (int32)EPDLang::Count; Settings.Lang = ((Settings.Lang + (Delta == 0 ? 1 : Delta)) % N + N) % N; GPDLang = Settings.Lang; SaveSettings(); break; }
 	case ESetRow::Window: ApplyWindowMode(Settings.WindowMode + (Delta == 0 ? 1 : Delta)); break;
 	case ESetRow::CardTheme: Settings.CardTheme = ((Settings.CardTheme + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; GPDCardTheme = Settings.CardTheme; SaveSettings(); break;
 	case ESetRow::Frame: Settings.FrameCap = ((Settings.FrameCap + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; SaveSettings(); ApplyFrameSettings(); break;
@@ -422,7 +430,8 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			const FVector2f B = SetBtnPos(Row, I);
 			if (!InRect(P, B.X, B.Y, SetBtnW(Row, I), SetBtnH)) continue;
 			SetSel = Row;
-			if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
+			if (Row == (int32)ESetRow::Lang) { Settings.Lang = I; GPDLang = I; SaveSettings(); UiSound(EPDSound::Move); }
+			else if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
 			else if (Row == (int32)ESetRow::CardTheme) { Settings.CardTheme = I; GPDCardTheme = I; SaveSettings(); UiSound(EPDSound::Move); }
 			else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
 			else if (SetBarRow(Row))

@@ -106,7 +106,7 @@ void SPDBoardWidget::HandleEvents()
 		case FPDEvent::EKind::Kill:
 		{
 			DeathFx(P, E.Enemy);
-			if (EnemyDef(E.Enemy).bBoss) Floats.Add({FString::Printf(TEXT("+%d 골드"), E.A), P - FVector2f(0.f, 40.f), 0.f, 1.4f, 22.f, Hex(TEXT("ffd96a"))});
+			if (EnemyDef(E.Enemy).bBoss) Floats.Add({TrF(TEXT("+%d 골드"), E.A), P - FVector2f(0.f, 40.f), 0.f, 1.4f, 22.f, Hex(TEXT("ffd96a"))});
 			break;
 		}
 		case FPDEvent::EKind::Leak:
@@ -114,7 +114,7 @@ void SPDBoardWidget::HandleEvents()
 			FlashT = 0.4f;
 			FlashCol = Hex(TEXT("ff3a4a"));
 			PushWorldFx(EWorldFx::Leak, P, Hex(TEXT("ff3a4a")), 1.f);
-			Floats.Add({FString::Printf(TEXT("목숨 -%d"), E.A), FVector2f(FX + Cols * CS - 60.f, FY + 40.f), 0.f, 1.2f, 20.f, Hex(TEXT("ff6a6a"))});
+			Floats.Add({TrF(TEXT("목숨 -%d"), E.A), FVector2f(FX + Cols * CS - 60.f, FY + 40.f), 0.f, 1.2f, 20.f, Hex(TEXT("ff6a6a"))});
 			break;
 		case FPDEvent::EKind::Place:
 		{
@@ -162,7 +162,7 @@ void SPDBoardWidget::HandleEvents()
 			Floats.Add({Label + TEXT("!"), P - FVector2f(0.f, 24.f), 0.f, 1.4f, Val >= 80 ? 30.f : 22.f, Col});
 			if (E.B >= 2)
 			{
-				Floats.Add({FString::Printf(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (E.B - 1))), P + FVector2f(0.f, 6.f), 0.f, 1.4f, 18.f, FLinearColor::White});
+				Floats.Add({TrF(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (E.B - 1))), P + FVector2f(0.f, 6.f), 0.f, 1.4f, 18.f, FLinearColor::White});
 				Shake = FMath::Max(Shake, 0.12f + 0.05f * E.B);
 			}
 			if (Val >= 80) { FlashT = 0.3f; FlashCol = Col; Shake = FMath::Max(Shake, 0.3f); }
@@ -171,14 +171,14 @@ void SPDBoardWidget::HandleEvents()
 		case FPDEvent::EKind::WaveStart:
 			PowerRef = Game.Power(); // 위쪽 띠의 판 위력 ±% 기준 (D-119)
 			BannerText = E.B ? FString::Printf(TEXT("BOSS WAVE %d"), E.A) : FString::Printf(TEXT("WAVE %d"), E.A);
-			BannerSub = E.B ? FString::Printf(TEXT("보스: %s · %s"), BossName(E.Enemy), BossSkillText(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(TEXT("최고 기록 갱신 중!")) : FString::Printf(TEXT("최고 %d웨이브"), Game.BestWave));
+			BannerSub = E.B ? TrF(TEXT("보스: %s · %s"), BossName(E.Enemy), BossSkillText(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(Tr(TEXT("최고 기록 갱신 중!"))) : TrF(TEXT("최고 %d웨이브"), Game.BestWave));
 			BannerCol = E.B ? Hex(TEXT("ff6a6a")) : Hex(TEXT("7fd6ff"));
 			BannerT = BannerMax = 1.6f;
 			if (E.B) { FlashT = 0.25f; FlashCol = BannerCol; }
 			break;
 		case FPDEvent::EKind::WaveClear:
 			BannerText = TEXT("WAVE CLEAR");
-			BannerSub = FString::Printf(TEXT("카드 +%d%s"), E.A, E.A < DrawPerWave ? TEXT(" (손패 가득)") : TEXT(""));
+			BannerSub = TrF(TEXT("카드 +%d%s"), E.A, E.A < DrawPerWave ? Tr(TEXT(" (손패 가득)")) : TEXT(""));
 			BannerCol = Hex(TEXT("9cffb0"));
 			BannerT = BannerMax = 1.4f;
 			break;
@@ -197,7 +197,7 @@ void SPDBoardWidget::HandleEvents()
 			Burst(P, 90, JokerPink, 100.f, 380.f, 1.1f, 3.2f, true);
 			PushWorldFx(EWorldFx::JokerFuse, P, JokerPink, 1.f);
 			Burst(P, 40, FLinearColor::White, 60.f, 240.f, 0.9f, 2.4f, false, 60.f);
-			Floats.Add({FString::Printf(TEXT("조커: %s!"), JokerName(E.A)), P - FVector2f(0.f, 36.f), 0.f, 2.f, 30.f, JokerPink});
+			Floats.Add({TrF(TEXT("조커: %s!"), JokerName(E.A)), P - FVector2f(0.f, 36.f), 0.f, 2.f, 30.f, JokerPink});
 			if (E.B) Floats.Add({TEXT("새로 발견! (J: 도감)"), P + FVector2f(0.f, 2.f), 0.f, 2.f, 16.f, FLinearColor::White});
 			FlashT = 0.45f;
 			FlashCol = JokerPink;
@@ -217,10 +217,10 @@ void SPDBoardWidget::HandleEvents()
 				Rings.Add({P, 10.f, 110.f, 0.3f, 0.9f, 3.f, JokerPink});
 				Burst(P, 40, JokerPink, 80.f, 260.f, 0.8f, 2.6f, true);
 				PushWorldFx(EWorldFx::Synergy, P, JokerPink, 2.f);
-				Floats.Add({FString::Printf(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
+				Floats.Add({TrF(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
 				Shake = FMath::Max(Shake, 0.25f);
 			}
-			else Floats.Add({FString::Printf(TEXT("경험치 +%.0f"), E.R), P - FVector2f(0.f, 26.f), 0.f, 1.2f, 14.f, JokerPink});
+			else Floats.Add({TrF(TEXT("경험치 +%.0f"), E.R), P - FVector2f(0.f, 26.f), 0.f, 1.2f, 14.f, JokerPink});
 			break;
 		}
 		case FPDEvent::EKind::JokerXp: // 조커 처치 경험치 (D-125): 작은 "+1 경험치" + 별빛, 레벨이 오르면 고리·입자·큰 글자
@@ -268,8 +268,8 @@ void SPDBoardWidget::HandleEvents()
 				const FVector2f At = P - FVector2f(0.f, CS * 0.45f);
 				FFloatText* Same = nullptr;
 				for (FFloatText& Ft : Floats) if (Ft.S.EndsWith(TEXT(" 경험치")) && FVector2f::Distance(Ft.P, At) < 1.f && Ft.T < Ft.MaxT * 0.8f) Same = &Ft;
-				if (Same) { Same->S = FString::Printf(TEXT("+%d 경험치"), FCString::Atoi(*Same->S.Mid(1)) + FMath::RoundToInt(E.R)); Same->T = FMath::Min(Same->T, 0.15f); Same->Size = FMath::Min(16.f, Same->Size + 0.3f); }
-				else Floats.Add({FString::Printf(TEXT("+%.0f 경험치"), E.R), At, 0.f, 0.9f, E.R >= 10.f ? 15.f : 12.f, WithAlpha(JokerPink, 0.95f)});
+				if (Same) { Same->S = TrF(TEXT("+%d 경험치"), FCString::Atoi(*Same->S.Mid(1)) + FMath::RoundToInt(E.R)); Same->T = FMath::Min(Same->T, 0.15f); Same->Size = FMath::Min(16.f, Same->Size + 0.3f); }
+				else Floats.Add({TrF(TEXT("+%.0f 경험치"), E.R), At, 0.f, 0.9f, E.R >= 10.f ? 15.f : 12.f, WithAlpha(JokerPink, 0.95f)});
 			}
 			break;
 		}
@@ -280,7 +280,7 @@ void SPDBoardWidget::HandleEvents()
 			Rings.Add({P, 8.f, 90.f, 0.25f, 0.7f, 3.f, JokerPink, EWave::Star, 4, FMath::FRandRange(0.f, TwoPi), 2.f});
 			Burst(P, 40, JokerPink, 80.f, 260.f, 0.8f, 2.6f, true);
 			PushWorldFx(EWorldFx::JokerFuse, P, JokerPink, 1.f);
-			Floats.Add({FString::Printf(TEXT("%s %d개 합침!"), JokerName(E.A), E.B), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
+			Floats.Add({TrF(TEXT("%s %d개 합침!"), JokerName(E.A), E.B), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
 			Shake = FMath::Max(Shake, 0.25f);
 			break;
 		}
@@ -332,7 +332,7 @@ void SPDBoardWidget::HandleEvents()
 			Rings.Add({P, 8.f, 90.f, 0.15f, 0.75f, 3.f, Col}); // 터져 나가는 고리
 			Burst(P, 50, Col, 80.f, 300.f, 0.8f, 2.8f, true);
 			PushWorldFx(EWorldFx::Fuse, P, Col, (float)E.A);
-			Floats.Add({FString::Printf(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.5f, 28.f, Hex(TEXT("ffd96a"))});
+			Floats.Add({TrF(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.5f, 28.f, Hex(TEXT("ffd96a"))});
 			FlashT = FMath::Max(FlashT, 0.2f);
 			FlashCol = Col;
 			Shake = FMath::Max(Shake, 0.25f + 0.08f * E.A);

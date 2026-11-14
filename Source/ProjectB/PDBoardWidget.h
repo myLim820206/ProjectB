@@ -103,6 +103,7 @@ private:
 		int32 FrameCap = 0;       // 프레임 제한 (D-120): 0 = 60, 1 = 120, 2 = 제한 없음
 		bool bVSync = false;      // 수직 동기화
 		int32 CardTheme = 0;      // 카드 색 (D-154): 0 네온, 1 흑백, 2 빨강·하양
+		int32 Lang = -1;          // 언어 (D-159, EPDLang). -1 = 아직 없음 → 시스템 언어로
 	};
 	FSettings Settings;
 	bool bSettings = false;                // 설정 창 (메뉴에서 연다, 여는 동안 메뉴도 열려 있어 게임은 멈춤)
