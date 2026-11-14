@@ -259,15 +259,15 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
 위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
 %s 대장: %s	%s captain: %s	%s 隊長: %s	%s 队长: %s	%s 隊長: %s	PDBoardPaint.cpp
+공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardPaint.cpp
+사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardPaint.cpp
+ · 범위 %.1f	 · area %.1f	 · 範囲 %.1f	 · 范围 %.1f	 · 範圍 %.1f	PDBoardPaint.cpp
+ · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardPaint.cpp
 클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)	Click: feed · kill +%.0f XP (boss +%.0f)	クリック: エサ · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 喂养 · 击杀 +%.0f 经验 (首领 +%.0f)	點擊: 餵養 · 擊殺 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
 레벨 %d (최대) · 위력 +%d%%	Level %d (max) · power +%d%%	レベル %d (最大) · 威力 +%d%%	等级 %d (最高) · 威力 +%d%%	等級 %d (最高) · 威力 +%d%%	PDBoardPaint.cpp
 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Level %d · XP %.0f/%.0f · power +%d%%%s	レベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
 %s %s · 레벨 %d	%s %s · Level %d	%s %s · レベル %d	%s %s · 等级 %d	%s %s · 等級 %d	PDBoardPaint.cpp
-공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardPaint.cpp
-사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardPaint.cpp
- · 범위 %.1f	 · area %.1f	 · 範囲 %.1f	 · 范围 %.1f	 · 範圍 %.1f	PDBoardPaint.cpp
- · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardPaint.cpp
 특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardPaint.cpp
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDBoardPaint.cpp
 다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDBoardPaint.cpp
