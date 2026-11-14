@@ -1360,14 +1360,14 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 	for (int I = 0; I < NN; ++I)
 		for (int J = I + 1; J < NN; ++J)
 		{
-			if (Kind[I] < 0 || Kind[J] < 0) continue;
+			if (Kind[I] < 0 || Kind[J] < 0 || JokerNodesClash(Nodes[I], Nodes[J])) continue;
 			{
 				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J]});
 				if (R != EPDJoker::Count) Cands.push_back({{I, J, -1}, 2, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J])});
 			}
 			for (int K = J + 1; K < NN; ++K)
 			{
-				if (Kind[K] < 0) continue;
+				if (Kind[K] < 0 || JokerNodesClash(Nodes[I], Nodes[K]) || JokerNodesClash(Nodes[J], Nodes[K])) continue;
 				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J], (EPDHand)Kind[K]});
 				if (R != EPDJoker::Count) Cands.push_back({{I, J, K}, 3, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J]) + HandBaseValue((EPDHand)Kind[K])});
 			}
@@ -1434,7 +1434,7 @@ std::vector<FPDJokerNode> FPDGame::JokerNodes() const
 		if (!bJoker) { FPDJokerNode N; N.Syn = I; N.Cells = Synergies[I].Cells; N.Kind = Synergies[I].Kind; Nodes.push_back(N); }
 	}
 	for (const auto& KV : Towers)
-		if (KV.second.Level >= 2 && !KV.second.IsJoker() && !InSyn.count(KV.first) && KV.second.FuseHand >= 0)
+		if (KV.second.Level >= 2 && !KV.second.IsJoker() && KV.second.FuseHand >= 0) // 족보에 들어 있어도 기억한 족보로 재료 (D-220)
 		{
 			FPDJokerNode N;
 			N.Fused = KV.first;
@@ -1445,6 +1445,12 @@ std::vector<FPDJokerNode> FPDGame::JokerNodes() const
 	return Nodes;
 }
 
+bool FPDGame::JokerNodesClash(const FPDJokerNode& A, const FPDJokerNode& B)
+{
+	auto In = [](const FPDJokerNode& S, int Cell) { return std::find(S.Cells.begin(), S.Cells.end(), Cell) != S.Cells.end(); };
+	return (A.Fused >= 0 && In(B, A.Fused)) || (B.Fused >= 0 && In(A, B.Fused));
+}
+
 EPDJoker FPDGame::JokerCraftResult(const std::vector<int>& Picks) const
 {
 	if (Picks.size() != 2 && Picks.size() != 3) return EPDJoker::Count;
@@ -1453,7 +1459,7 @@ EPDJoker FPDGame::JokerCraftResult(const std::vector<int>& Picks) const
 	for (size_t I = 0; I < Picks.size(); ++I)
 	{
 		if (Picks[I] < 0 || Picks[I] >= (int)Nodes.size()) return EPDJoker::Count;
-		for (size_t J = 0; J < I; ++J) if (Picks[J] == Picks[I]) return EPDJoker::Count; // 같은 재료 두 번
+		for (size_t J = 0; J < I; ++J) if (Picks[J] == Picks[I] || JokerNodesClash(Nodes[Picks[J]], Nodes[Picks[I]])) return EPDJoker::Count; // 같은 재료 두 번, 합성 타워와 그 족보 (D-220)
 		Hands.push_back(Nodes[Picks[I]].Kind);
 	}
 	return MatchJokerRecipe(Hands);

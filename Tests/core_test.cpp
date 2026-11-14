@@ -819,6 +819,19 @@ static void UnitTests()
 			Expect(bTwo && bBad && bOutside && bMade && G.Towers.size() == 1 && G.Towers.at(CellKey(7, Row)).Joker == (int)EPDJoker::Star,
 				"조커 만들기: 떨어진 플러시·로열·스트플을 골라 스타, 재료 밖 칸·같은 재료 두 번은 거절");
 		}
+		{ // 족보에 든 합성 타워도 기억한 족보로 재료 (D-220): 로열 A♠ Lv2 가 Lv2 A♦ 와 원 페어
+			G.Towers.clear();
+			Put(G.Towers, 0, Row, C(14), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::RoyalFlush;
+			Put(G.Towers, 1, Row, C(14, Di), 2);
+			Put(G.Towers, 6, Row, C(3, He), 2); G.Towers[CellKey(6, Row)].FuseHand = (int)EPDHand::StraightFlush;
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			const std::vector<FPDJokerNode> Ns = G.JokerNodes();
+			int NR = -1, NP = -1, NS = -1;
+			for (int I = 0; I < (int)Ns.size(); ++I) { if (Ns[I].Kind == EPDHand::RoyalFlush) NR = I; if (Ns[I].Kind == EPDHand::Pair) NP = I; if (Ns[I].Kind == EPDHand::StraightFlush) NS = I; }
+			const bool bStar = NR >= 0 && NS >= 0 && G.JokerCraftResult({NR, NS}) == EPDJoker::Star;
+			const bool bClash = NR >= 0 && NP >= 0 && FPDGame::JokerNodesClash(Ns[NR], Ns[NP]);
+			Expect(NP >= 0 && bStar && bClash, "원 페어에 든 로열 합성 타워도 로열로 재료 (스타), 그 원 페어와는 같이 못 넣음");
+		}
 		{ // 조커 목록 (D-210): 가장 좋은 재료, 모자란 족보
 			G.Towers.clear();
 			Put(G.Towers, 0, Row, C(4), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::Flush;

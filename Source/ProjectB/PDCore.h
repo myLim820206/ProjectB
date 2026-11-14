@@ -218,7 +218,7 @@ struct FPDJokerGroup
 	std::vector<int> Cells;      // 쓰이는 칸 전부
 	EPDJoker Result = EPDJoker::Clown;
 };
-// 조커 재료 하나 (D-195): 조커가 없는 족보 하나, 또는 족보에 안 든 합성 타워(레벨 2+) 하나
+// 조커 재료 하나 (D-195): 조커가 없는 족보 하나, 또는 합성 타워(레벨 2+, 기억한 족보로) 하나. 합성 타워는 족보에 들어 있어도 따로 재료가 된다 (D-220)
 struct FPDJokerNode
 {
 	int Syn = -1;            // 족보 번호 (-1 이면 합성 타워)
@@ -424,6 +424,8 @@ public:
 	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
 	// 조커 만들기 (D-195): 플레이어가 재료를 직접 고른다 (JokerNodes 번호 2~3개, 거리 상관없음)
 	std::vector<FPDJokerNode> JokerNodes() const;
+	// 한 조커에 같이 못 넣는 재료 둘 (D-220): 합성 타워와 그 타워가 든 족보 (같은 칸을 두 번 쓰게 된다)
+	static bool JokerNodesClash(const FPDJokerNode& A, const FPDJokerNode& B);
 	EPDJoker JokerCraftResult(const std::vector<int>& Nodes) const; // 레시피와 맞으면 그 조커, 아니면 Count
 	bool JokerCraft(const std::vector<int>& Nodes, int TargetCell); // TargetCell = 재료 칸 중 하나 (-1 = 기본 칸)
 	bool JokerFuseGroup(const FPDJokerGroup& G, int TargetCell);

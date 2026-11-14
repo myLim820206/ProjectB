@@ -740,7 +740,11 @@ namespace
 bool PDCraftFits(const std::vector<FPDJokerNode>& Ns, const std::vector<int>& Idx, int32 J)
 {
 	std::vector<int> Have;
-	for (int N : Idx) Have.push_back((int)Ns[N].Kind);
+	for (size_t I = 0; I < Idx.size(); ++I)
+	{
+		for (size_t J = 0; J < I; ++J) if (FPDGame::JokerNodesClash(Ns[Idx[I]], Ns[Idx[J]])) return false; // 합성 타워와 그 족보는 같이 못 넣음 (D-220)
+		Have.push_back((int)Ns[Idx[I]].Kind);
+	}
 	std::sort(Have.begin(), Have.end());
 	auto Sub = [&Have](std::vector<int> R) {
 		std::sort(R.begin(), R.end());
