@@ -742,7 +742,7 @@ bool PDCraftFits(const std::vector<FPDJokerNode>& Ns, const std::vector<int>& Id
 	std::vector<int> Have;
 	for (size_t I = 0; I < Idx.size(); ++I)
 	{
-		for (size_t J = 0; J < I; ++J) if (FPDGame::JokerNodesClash(Ns[Idx[I]], Ns[Idx[J]])) return false; // 합성 타워와 그 족보는 같이 못 넣음 (D-220)
+		for (size_t Q = 0; Q < I; ++Q) if (FPDGame::JokerNodesClash(Ns[Idx[I]], Ns[Idx[Q]])) return false; // 합성 타워와 그 족보는 같이 못 넣음 (D-220)
 		Have.push_back((int)Ns[Idx[I]].Kind);
 	}
 	std::sort(Have.begin(), Have.end());
