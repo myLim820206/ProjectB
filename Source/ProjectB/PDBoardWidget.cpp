@@ -574,16 +574,13 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	else
 	{
 		RefreshJokerList();
-		// 고른 재료가 판이 바뀌어 안 맞게 되면 그 조커의 가장 좋은 재료로 다시, 못 만들면 목록으로 (D-210)
+		// 판이 바뀌어 사라진 재료는 빼고, 그 조커를 더는 못 만들면 목록으로 (D-211)
 		if (CraftJoker >= 0)
 		{
-			const std::vector<int> Idx = CraftNodeIdx();
-			if (Idx.size() != CraftPicks.size() || Game.JokerCraftResult(Idx) != (EPDJoker)CraftJoker)
-			{
-				CraftPicks.clear();
-				for (const FJokerEntry& E : JokerList) if (E.J == CraftJoker && E.bMake) CraftPicks = E.Best;
-				if (CraftPicks.empty()) CraftJoker = -1;
-			}
+			const std::vector<FPDJokerNode> Ns = Game.JokerNodes();
+			CraftPicks.erase(std::remove_if(CraftPicks.begin(), CraftPicks.end(), [&Ns](const std::vector<int>& Pk) {
+				return std::none_of(Ns.begin(), Ns.end(), [&Pk](const FPDJokerNode& N) { std::vector<int> A = N.Cells, B = Pk; std::sort(A.begin(), A.end()); std::sort(B.begin(), B.end()); return A == B; }); }), CraftPicks.end());
+			if (std::none_of(JokerList.begin(), JokerList.end(), [this](const FJokerEntry& E) { return E.J == CraftJoker && E.bMake; })) { CraftJoker = -1; CraftPicks.clear(); }
 		}
 	}
 	// 판 흔들림 + 스프라이트 아틀라스 (D-140): 처음 한 번 굽고, 렌더가 끝난 몇 프레임 뒤부터 쓴다
@@ -724,8 +721,27 @@ void SPDBoardWidget::CraftSelect(int32 Entry)
 {
 	if (Entry < 0 || Entry >= (int32)JokerList.size() || !JokerList[Entry].bMake) { UiSound(EPDSound::Denied); return; }
 	CraftJoker = JokerList[Entry].J;
-	CraftPicks = JokerList[Entry].Best;
+	CraftPicks.clear(); // 재료는 직접 고른다 (D-211): 게임이 고른 재료는 "추천" 표시만
 	UiSound(EPDSound::Move);
+}
+
+namespace
+{
+// 고른 재료 족보들이 그 조커의 3개 또는 2개 레시피 안에 들어가나 (아직 덜 골랐어도)
+bool PDCraftFits(const std::vector<FPDJokerNode>& Ns, const std::vector<int>& Idx, int32 J)
+{
+	std::vector<int> Have;
+	for (int N : Idx) Have.push_back((int)Ns[N].Kind);
+	std::sort(Have.begin(), Have.end());
+	auto Sub = [&Have](std::vector<int> R) {
+		std::sort(R.begin(), R.end());
+		return std::includes(R.begin(), R.end(), Have.begin(), Have.end());
+	};
+	std::vector<int> R3, R2;
+	for (EPDHand H : JokerRecipe((EPDJoker)J)) R3.push_back((int)H);
+	for (EPDHand H : JokerRecipe2((EPDJoker)J)) R2.push_back((int)H);
+	return Sub(R3) || Sub(R2);
+}
 }
 
 void SPDBoardWidget::CraftClick(int32 Cell)
@@ -733,35 +749,37 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 	if (CraftJoker < 0) { UiSound(EPDSound::Denied); return; }
 	const std::vector<FPDJokerNode> Ns = Game.JokerNodes();
 	const std::vector<int> Idx = CraftNodeIdx();
-	// 고른 재료 칸 = 그 칸에 조커 (D-210, 합성처럼 한 번 클릭)
-	for (const std::vector<int>& Pk : CraftPicks)
-		if (std::find(Pk.begin(), Pk.end(), Cell) != Pk.end())
+	const bool bDone = Idx.size() == CraftPicks.size() && Game.JokerCraftResult(Idx) == (EPDJoker)CraftJoker;
+	// 고른 재료 칸: 레시피가 다 찼으면 그 칸에 조커, 덜 찼으면 빼기
+	for (size_t P = 0; P < CraftPicks.size(); ++P)
+		if (std::find(CraftPicks[P].begin(), CraftPicks[P].end(), Cell) != CraftPicks[P].end())
 		{
+			if (!bDone) { CraftPicks.erase(CraftPicks.begin() + P); UiSound(EPDSound::Move); return; }
 			PendingFuseCells.Reset();
 			for (const std::vector<int>& Q : CraftPicks) for (int K : Q) PendingFuseCells.Add(CellCenter(K));
-			if (Idx.size() == CraftPicks.size() && Game.JokerCraft(Idx, Cell)) { CraftPicks.clear(); CraftJoker = -1; HandFilter = -1; }
+			if (Game.JokerCraft(Idx, Cell)) { CraftPicks.clear(); CraftJoker = -1; HandFilter = -1; }
 			else { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
 			return;
 		}
-	// 흐린 후보 = 같은 족보 자리의 재료를 바꾸거나(3개 레시피가 되면) 더한다
+	// 후보: 레시피에 들어가면 더하고, 같은 족보 자리가 차 있으면 바꾼다
 	std::vector<int> Cands;
 	for (int32 I = 0; I < (int32)Ns.size(); ++I)
 		if (std::find(Ns[I].Cells.begin(), Ns[I].Cells.end(), Cell) != Ns[I].Cells.end() && std::find(Idx.begin(), Idx.end(), I) == Idx.end()) Cands.push_back(I);
 	std::stable_sort(Cands.begin(), Cands.end(), [&Ns](int A, int B) { return HandBaseValue(Ns[A].Kind) > HandBaseValue(Ns[B].Kind); });
 	for (int C : Cands)
 	{
+		if (Idx.size() < 3)
+		{
+			std::vector<int> Try = Idx;
+			Try.push_back(C);
+			if (PDCraftFits(Ns, Try, CraftJoker)) { CraftPicks.push_back(Ns[C].Cells); UiSound(EPDSound::Move); return; }
+		}
 		for (size_t P = 0; P < Idx.size(); ++P)
 		{
 			if (Ns[Idx[P]].Kind != Ns[C].Kind) continue;
 			std::vector<int> Try = Idx;
 			Try[P] = C;
-			if (Game.JokerCraftResult(Try) == (EPDJoker)CraftJoker) { CraftPicks[P] = Ns[C].Cells; UiSound(EPDSound::Move); return; }
-		}
-		if (Idx.size() < 3)
-		{
-			std::vector<int> Try = Idx;
-			Try.push_back(C);
-			if (Game.JokerCraftResult(Try) == (EPDJoker)CraftJoker) { CraftPicks.push_back(Ns[C].Cells); UiSound(EPDSound::Move); return; }
+			if (PDCraftFits(Ns, Try, CraftJoker)) { CraftPicks[P] = Ns[C].Cells; UiSound(EPDSound::Move); return; }
 		}
 	}
 	UiSound(EPDSound::Denied);
@@ -769,15 +787,12 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 
 void SPDBoardWidget::CraftRightClick(int32 Cell)
 {
-	// 고른 재료 위 = 그 재료 빼기 (3개 → 2개 레시피가 될 때만), 그 밖 = 목록으로
-	const std::vector<int> Idx = CraftNodeIdx();
+	// 고른 재료 위 = 빼기, 그 밖 = 목록으로
 	for (size_t P = 0; P < CraftPicks.size(); ++P)
 		if (std::find(CraftPicks[P].begin(), CraftPicks[P].end(), Cell) != CraftPicks[P].end())
 		{
-			std::vector<int> Try = Idx;
-			if (P < Try.size()) Try.erase(Try.begin() + P);
-			if (Try.size() == 2 && Game.JokerCraftResult(Try) == (EPDJoker)CraftJoker) { CraftPicks.erase(CraftPicks.begin() + P); UiSound(EPDSound::Move); }
-			else UiSound(EPDSound::Denied);
+			CraftPicks.erase(CraftPicks.begin() + P);
+			UiSound(EPDSound::Move);
 			return;
 		}
 	CraftJoker = -1;

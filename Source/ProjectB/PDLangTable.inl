@@ -248,7 +248,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 자리를 고르세요"), TEXT("Choose the Joker's spot"), TEXT("ジョーカーの場所を選んでください"), TEXT("请选择小丑的位置"), TEXT("請選擇小丑的位置")},
 	{TEXT("합성 타워 자리를 고르세요"), TEXT("Choose the fused tower's spot"), TEXT("合成タワーの場所を選んでください"), TEXT("请选择合成塔的位置"), TEXT("請選擇合成塔的位置")},
 	{TEXT("빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소"), TEXT("Click one of the glowing tiles · Esc / right-click: cancel"), TEXT("光る素材マスを1つクリック · Esc / 右クリック: キャンセル"), TEXT("点击一个发光的素材格 · Esc / 右键: 取消"), TEXT("點擊一個發光的素材格 · Esc / 右鍵: 取消")},
-	{TEXT("클릭: 이 재료로 바꾸기"), TEXT("Click: use this material"), TEXT("クリック: この素材に替える"), TEXT("点击: 换成这个素材"), TEXT("點擊: 換成這個素材")},
+	{TEXT("추천"), TEXT("Best"), TEXT("おすすめ"), TEXT("推荐"), TEXT("推薦")},
+	{TEXT("클릭: 재료로 고르기"), TEXT("Click: pick as material"), TEXT("クリック: 素材に選ぶ"), TEXT("点击: 选为素材"), TEXT("點擊: 選為素材")},
+	{TEXT("클릭: 빼기"), TEXT("Click: remove"), TEXT("クリック: 外す"), TEXT("点击: 移除"), TEXT("點擊: 移除")},
 	{TEXT("여기에 조커"), TEXT("Joker here"), TEXT("ここにジョーカー"), TEXT("小丑放这里"), TEXT("小丑放這裡")},
 	{TEXT("여기로 합성"), TEXT("Fuse here"), TEXT("ここに合成"), TEXT("合成到这里"), TEXT("合成到這裡")},
 	{TEXT("먹이%d"), TEXT("Feed%d"), TEXT("エサ%d"), TEXT("喂%d"), TEXT("餵%d")},
@@ -258,8 +260,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("자리바꿈 (%d번 남음): 옮길 타워 클릭 · 오른쪽 클릭 / Esc: 끄기"), TEXT("Swap (%d left): click a tower to move · right-click / Esc: off"), TEXT("入れ替え (残り %d回): 動かすタワーをクリック · 右クリック / Esc: やめる"), TEXT("换位 (剩余 %d次): 点击要移动的塔 · 右键 / Esc: 关闭"), TEXT("換位 (剩餘 %d次): 點擊要移動的塔 · 右鍵 / Esc: 關閉")},
 	{TEXT("바꿀 자리 클릭 (타워면 서로 바꾸고 빈 칸이면 옮김) · 같은 타워 다시: 다시 고르기"), TEXT("Click the target (swaps with a tower, moves to an empty tile) · same tower again: reselect"), TEXT("移動先をクリック (タワーなら入れ替え、空きマスなら移動) · 同じタワーをもう一度: 選び直し"), TEXT("点击目标位置 (是塔就交换, 空格就移动) · 再点同一座塔: 重新选择"), TEXT("點擊目標位置 (是塔就交換, 空格就移動) · 再點同一座塔: 重新選擇")},
 	{TEXT("조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기"), TEXT("Make Joker: pick a Joker from the left list (hover to see materials) · Esc: off"), TEXT("ジョーカー作成: 左のリストからジョーカーを選んでください (マウスを乗せると素材が見える) · Esc: やめる"), TEXT("制作小丑: 从左侧列表选择小丑 (悬停可看素材) · Esc: 关闭"), TEXT("製作小丑: 從左側列表選擇小丑 (懸停可看素材) · Esc: 關閉")},
-	{TEXT("%s 만들기: 분홍 재료 칸 클릭 = 그 칸에 조커 · 흐린 후보 클릭 = 재료 바꾸기"), TEXT("Make %s: click a pink material tile = Joker there · click a dim candidate = swap material"), TEXT("%s 作成: ピンクの素材マスをクリック = そこにジョーカー · 薄い候補をクリック = 素材を替える"), TEXT("制作 %s: 点击粉色素材格 = 小丑放那里 · 点击暗淡候选 = 换素材"), TEXT("製作 %s: 點擊粉色素材格 = 小丑放那裡 · 點擊暗淡候選 = 換素材")},
-	{TEXT("재료 위 오른쪽 클릭 = 빼기 (3개 → 2개) · 다른 곳 오른쪽 클릭 / Esc = 목록으로"), TEXT("Right-click a material = remove (3 → 2) · right-click elsewhere / Esc = back to list"), TEXT("素材を右クリック = 外す (3つ → 2つ) · ほかを右クリック / Esc = リストへ"), TEXT("右键素材 = 移除 (3 → 2) · 右键别处 / Esc = 返回列表"), TEXT("右鍵素材 = 移除 (3 → 2) · 右鍵別處 / Esc = 返回列表")},
+	{TEXT("%s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)"), TEXT("Make %s: %d materials picked · click a candidate = add (Best = the game's pick)"), TEXT("%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)"), TEXT("制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)"), TEXT("製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)")},
+	{TEXT("레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로"), TEXT("Recipe complete: click a picked tile = Joker there · right-click = remove material · Esc = back to list"), TEXT("レシピ完成: 選んだ素材マスをクリック = そこにジョーカー · 右クリック = 素材を外す · Esc = リストへ"), TEXT("配方完成: 点击已选素材格 = 小丑放那里 · 右键 = 移除素材 · Esc = 返回列表"), TEXT("配方完成: 點擊已選素材格 = 小丑放那裡 · 右鍵 = 移除素材 · Esc = 返回列表")},
+	{TEXT("고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로"), TEXT("Click a picked material = remove · right-click elsewhere / Esc = back to list"), TEXT("選んだ素材をクリック = 外す · ほかを右クリック / Esc = リストへ"), TEXT("点击已选素材 = 移除 · 右键别处 / Esc = 返回列表"), TEXT("點擊已選素材 = 移除 · 右鍵別處 / Esc = 返回列表")},
 	{TEXT("%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기"), TEXT("Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off"), TEXT("%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる"), TEXT("合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭"), TEXT("合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉")},
 	{TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), TEXT("%s: nothing to fuse (max level or a Joker inside) · Esc: off"), TEXT("%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる"), TEXT("%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭"), TEXT("%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉")},
 	{TEXT("조커 합치기"), TEXT("Merge Jokers"), TEXT("ジョーカー合体"), TEXT("合并小丑"), TEXT("合併小丑")},
@@ -477,6 +480,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT(""), TEXT(""), TEXT(""), TEXT("")},
+	{TEXT("클릭: 이 재료로 바꾸기"), TEXT("Click: use this material"), TEXT("クリック: この素材に替える"), TEXT("点击: 换成这个素材"), TEXT("點擊: 換成這個素材")},
+	{TEXT("%s 만들기: 분홍 재료 칸 클릭 = 그 칸에 조커 · 흐린 후보 클릭 = 재료 바꾸기"), TEXT("Make %s: click a pink material tile = Joker there · click a dim candidate = swap material"), TEXT("%s 作成: ピンクの素材マスをクリック = そこにジョーカー · 薄い候補をクリック = 素材を替える"), TEXT("制作 %s: 点击粉色素材格 = 小丑放那里 · 点击暗淡候选 = 换素材"), TEXT("製作 %s: 點擊粉色素材格 = 小丑放那裡 · 點擊暗淡候選 = 換素材")},
+	{TEXT("재료 위 오른쪽 클릭 = 빼기 (3개 → 2개) · 다른 곳 오른쪽 클릭 / Esc = 목록으로"), TEXT("Right-click a material = remove (3 → 2) · right-click elsewhere / Esc = back to list"), TEXT("素材を右クリック = 外す (3つ → 2つ) · ほかを右クリック / Esc = リストへ"), TEXT("右键素材 = 移除 (3 → 2) · 右键别处 / Esc = 返回列表"), TEXT("右鍵素材 = 移除 (3 → 2) · 右鍵別處 / Esc = 返回列表")},
 	{TEXT("조커 만들기: 재료(족보·합성 타워)를 2~3개 클릭 · 같은 칸 다시 = 다른 족보 / 빼기 · Esc: 끄기"), TEXT("Make a Joker: click 2–3 materials (hands · fused towers) · same tile again = other hand / remove · Esc: off"), TEXT("ジョーカー作成: 素材(役・合成タワー)を2〜3個クリック · 同じマスをもう一度 = 別の役 / 外す · Esc: やめる"), TEXT("制作小丑: 点击 2~3 个素材(牌型·合成塔) · 再点同一格 = 换牌型 / 取消 · Esc: 关闭"), TEXT("製作小丑: 點擊 2~3 個素材(牌型·合成塔) · 再點同一格 = 換牌型 / 取消 · Esc: 關閉")},
 	{TEXT(" → 조커: %s · Enter·G 또는 [만들기]"), TEXT(" → Joker: %s · Enter·G or [Make]"), TEXT(" → ジョーカー: %s · Enter·G または [作る]"), TEXT(" → 小丑: %s · Enter·G 或 [制作]"), TEXT(" → 小丑: %s · Enter·G 或 [製作]")},
 	{TEXT(" → 맞는 레시피가 없다 (J: 도감)"), TEXT(" → no matching recipe (J: Codex)"), TEXT(" → 合うレシピがない (J: 図鑑)"), TEXT(" → 没有匹配的配方 (J: 图鉴)"), TEXT(" → 沒有匹配的配方 (J: 圖鑑)")},
@@ -531,4 +537,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 530;
+static const int32 PDLangRowCount = 536;

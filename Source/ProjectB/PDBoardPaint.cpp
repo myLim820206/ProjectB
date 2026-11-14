@@ -1261,6 +1261,20 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), WithAlpha(JokerPink, 0.6f), 1.6f, 0.4f + 0.3f * Wv);
 			}
+		// 추천 재료 (D-211): 게임이 고른 가장 좋은 재료 중 아직 안 고른 것에 "추천" 딱지
+		if (J >= 0 && !bPreview)
+			for (const FJokerEntry& E : JokerList)
+				if (E.J == J)
+					for (const std::vector<int>& Pk : E.Best)
+					{
+						bool bPicked = false;
+						for (const std::vector<int>& Q : Show) { std::vector<int> A = Pk, B = Q; std::sort(A.begin(), A.end()); std::sort(B.begin(), B.end()); bPicked = bPicked || A == B; }
+						if (bPicked) continue;
+						const int K0 = *std::min_element(Pk.begin(), Pk.end());
+						const FVector2f C0 = CellPx((float)(K0 % Cols), (float)(K0 / Cols));
+						F.Box(C0.X + CS - 25.f, C0.Y + CS - 13.f, 24.f, 12.f, Hex(TEXT("06060b"), 0.9f));
+						F.TextCentered(TEXT("추천"), C0.X + CS - 13.f, C0.Y + CS - 7.f, Gold, 8.f, true, 23.f);
+					}
 		for (int N : CandNodes) // 바꿀 후보: 족보 색 가는 테두리, 마우스가 올라가면 밝게 + "바꾸기"
 		{
 			const bool bH = std::find(Ns[N].Cells.begin(), Ns[N].Cells.end(), HKey) != Ns[N].Cells.end();
@@ -1269,7 +1283,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 				F.Glow(FCanvas::RoundRectPoints(C0.X + 4.f, C0.Y + 4.f, CS - 8.f, CS - 8.f, 6.f), WithAlpha(HandColor(Ns[N].Kind), bH ? 0.95f : 0.5f), bH ? 2.2f : 1.3f, bH ? 1.f : 0.3f);
 			}
-			if (bH) { const FVector2f C0 = CellPx((float)HoverX, (float)HoverY); F.Badge(TEXT("클릭: 이 재료로 바꾸기"), C0.X + CS / 2.f, C0.Y + CS + 20.f, HandColor(Ns[N].Kind), 1.f); }
+			if (bH) { const FVector2f C0 = CellPx((float)HoverX, (float)HoverY); F.Badge(TEXT("클릭: 재료로 고르기"), C0.X + CS / 2.f, C0.Y + CS + 20.f, HandColor(Ns[N].Kind), 1.f); }
 		}
 		for (int32 Pi = 0; Pi < (int32)Show.size(); ++Pi) // 고른 재료: 분홍 채움 + 굵은 테두리 + 번호
 		{
@@ -1289,7 +1303,10 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			bool bOnPick = false;
 			for (const std::vector<int>& Pk : Show) bOnPick = bOnPick || std::find(Pk.begin(), Pk.end(), HKey) != Pk.end();
-			if (bOnPick)
+			const std::vector<int> PIdx = CraftNodeIdx();
+			const bool bDone = PIdx.size() == Show.size() && G.JokerCraftResult(PIdx) == (EPDJoker)J;
+			if (bOnPick && !bDone) { const FVector2f C0 = CellPx((float)HoverX, (float)HoverY); F.Badge(TEXT("클릭: 빼기"), C0.X + CS / 2.f, C0.Y + CS + 20.f, Hex(TEXT("cfd8e6")), 1.f); }
+			if (bOnPick && bDone)
 			{
 				bCraftHov = true;
 				const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
@@ -1494,8 +1511,11 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			if (CraftJoker < 0) F.Badge(TEXT("조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
 			else
 			{
-				F.Badge(TrF(TEXT("%s 만들기: 분홍 재료 칸 클릭 = 그 칸에 조커 · 흐린 후보 클릭 = 재료 바꾸기"), (G.Discovered >> CraftJoker) & 1u ? JokerName(CraftJoker) : TEXT("???")), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
-				F.Badge(TEXT("재료 위 오른쪽 클릭 = 빼기 (3개 → 2개) · 다른 곳 오른쪽 클릭 / Esc = 목록으로"), FX + Cols * CS / 2.f, FY + 32.f, Hex(TEXT("cfd8e6")), 1.f);
+				const std::vector<int> PIdx = CraftNodeIdx();
+				const bool bDone = PIdx.size() == CraftPicks.size() && G.JokerCraftResult(PIdx) == (EPDJoker)CraftJoker;
+				F.Badge(TrF(TEXT("%s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)"), (G.Discovered >> CraftJoker) & 1u ? JokerName(CraftJoker) : TEXT("???"), (int32)CraftPicks.size()), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
+				F.Badge(bDone ? FString(TEXT("레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로"))
+							  : FString(TEXT("고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로")), FX + Cols * CS / 2.f, FY + 32.f, bDone ? Hex(TEXT("5ff2ff")) : Hex(TEXT("cfd8e6")), 1.f);
 			}
 		}
 		else
