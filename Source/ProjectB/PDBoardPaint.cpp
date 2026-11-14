@@ -2324,12 +2324,12 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 		switch (Can)
 		{
 		case FPDGame::EBuy::Ok: State = TrF(TEXT("찍을 수 있음 · %s 골드"), *CommaNum(G.PointPrice())); SCol = Green; break;
-		case FPDGame::EBuy::Owned: State = TEXT("찍음"); SCol = Cyan; break;
-		case FPDGame::EBuy::NotLinked: State = TEXT("찍은 노드와 이어져야 한다"); break;
-		case FPDGame::EBuy::Sealed: State = TEXT("짝 키스톤을 찍어서 봉인됨"); SCol = Red; break;
+		case FPDGame::EBuy::Owned: State = Tr(TEXT("찍음")); SCol = Cyan; break;
+		case FPDGame::EBuy::NotLinked: State = Tr(TEXT("찍은 노드와 이어져야 한다")); break;
+		case FPDGame::EBuy::Sealed: State = Tr(TEXT("짝 키스톤을 찍어서 봉인됨")); SCol = Red; break;
 		case FPDGame::EBuy::KeyCap: State = TrF(TEXT("키스톤은 판마다 %d개까지"), KeystoneMax); SCol = Red; break;
 		case FPDGame::EBuy::NoGold: State = TrF(TEXT("골드 부족 (%s / %s)"), *CommaNum(G.Gold), *CommaNum(G.PointPrice())); SCol = Red; break;
-		default: State = TEXT("지금은 찍을 수 없다 (보상 고르는 중)"); break;
+		default: State = Tr(TEXT("지금은 찍을 수 없다 (보상 고르는 중)")); break;
 		}
 		TArray<FString> Lines;
 		for (const FPDNodeFx& Fx : N.Fx) if (Fx.Stat != EPDStat::None) Lines.Add(TreeFxText(Fx));
@@ -2342,7 +2342,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), Edge, 1.4f, 0.6f);
 		C.Text(TreeNodeName(Hov), X + 14.f, Y + 22.f, bKey ? Gold : TreeNodeColor(Hov), 14.f, 0, true, W - 28.f);
 		static const TCHAR* KindName[] = {TEXT("시작점"), TEXT("작은 노드"), TEXT("특급 노드"), TEXT("키스톤"), TEXT("조커 강화")};
-		C.Text(FString::Printf(TEXT("%s · %s"), KindName[(int)N.Kind], *State), X + 14.f, Y + 42.f, SCol, 10.f, 0, true, W - 28.f);
+		C.Text(FString::Printf(TEXT("%s · %s"), Tr(KindName[(int)N.Kind]), *State), X + 14.f, Y + 42.f, SCol, 10.f, 0, true, W - 28.f);
 		float Ly = Y + 66.f;
 		for (const FString& L : Lines) { C.Text(L, X + 14.f, Ly, Fg, 12.f, 0, false, W - 28.f); Ly += 20.f; }
 		if (bKey) { C.Text(TrF(TEXT("짝: %s (함께 못 찍음)"), KeystoneName(N.Fx[0].Param ^ 1)), X + 14.f, Ly, Red, 10.f, 0, false, W - 28.f); Ly += 20.f; }

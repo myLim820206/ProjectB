@@ -355,12 +355,12 @@ inline const TCHAR* JokerUpDesc(int K)
 inline FString HandGroupName(int Mask)
 {
 	auto B = [](EPDHand H) { return 1 << (int)H; };
-	if (Mask == (B(EPDHand::Pair) | B(EPDHand::TwoPair))) return TEXT("원 페어·투 페어");
-	if (Mask == (B(EPDHand::Triple) | B(EPDHand::Four) | B(EPDHand::Five))) return TEXT("트리플·포카드·파이브 카드");
-	if (Mask == (B(EPDHand::Flush) | B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return TEXT("플러시 계열");
-	if (Mask == (B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return TEXT("스트레이트 플러시·로열");
-	if (Mask == (B(EPDHand::Straight) | B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return TEXT("스트레이트 계열");
-	if (Mask == (B(EPDHand::Pair) | B(EPDHand::TwoPair) | B(EPDHand::Triple) | B(EPDHand::FullHouse) | B(EPDHand::Four) | B(EPDHand::Five))) return TEXT("같은 숫자 족보");
+	if (Mask == (B(EPDHand::Pair) | B(EPDHand::TwoPair))) return Tr(TEXT("원 페어·투 페어")); // 언어팩 (D-219)
+	if (Mask == (B(EPDHand::Triple) | B(EPDHand::Four) | B(EPDHand::Five))) return Tr(TEXT("트리플·포카드·파이브 카드")); // 언어팩 (D-219)
+	if (Mask == (B(EPDHand::Flush) | B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return Tr(TEXT("플러시 계열")); // 언어팩 (D-219)
+	if (Mask == (B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return Tr(TEXT("스트레이트 플러시·로열")); // 언어팩 (D-219)
+	if (Mask == (B(EPDHand::Straight) | B(EPDHand::StraightFlush) | B(EPDHand::RoyalFlush))) return Tr(TEXT("스트레이트 계열")); // 언어팩 (D-219)
+	if (Mask == (B(EPDHand::Pair) | B(EPDHand::TwoPair) | B(EPDHand::Triple) | B(EPDHand::FullHouse) | B(EPDHand::Four) | B(EPDHand::Five))) return Tr(TEXT("같은 숫자 족보")); // 언어팩 (D-219)
 	FString Out;
 	for (int H = 0; H < (int)EPDHand::Count; ++H) if (Mask & (1 << H)) Out += (Out.IsEmpty() ? TEXT("") : TEXT("·")) + FString(HandName((EPDHand)H));
 	return Out;
