@@ -194,6 +194,7 @@ private:
 	void SettingsChange(int32 Row, int32 Delta); // 줄 값 바꾸기 (Delta: -1/+1, 0 = 켜기·끄기 뒤집기)
 	void PaintSettings(FCanvas& C) const;
 	uint32 SavedDiscovered = 0;
+	uint32 SavedUpper = 0;
 	int32 SavedBest = 0;
 	int32 MenuSel = 0;                     // 키보드로 고른 메뉴 항목
 	int32 TitleSel = 0;                    // 시작 화면에서 고른 항목 (D-153)
@@ -316,6 +317,7 @@ private:
 	int32 SwapFrom = -1;                   // 자리바꿈: 고른 타워 칸
 	bool FilterPass(PD::EPDHand Kind) const { return HandFilter < 0 || (int32)Kind == HandFilter; }
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)
+	bool bCodexUpper = false;              // 도감 상위 조커 쪽 (D-231)
 	float PowerRef = 0.f;                  // 이번 웨이브 시작 때 판 위력 (위쪽 띠의 ±%)
 	// 위력 정보 (D-119): 그릴 때 한 번 계산해 패널·타워 정보가 같이 쓴다
 	mutable std::vector<std::pair<int, float>> PowerList; // 타워 칸 키, 위력 (큰 것부터)

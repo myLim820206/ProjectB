@@ -149,7 +149,7 @@ struct FPDTreeMods
 	uint32_t Keys = 0;    // 찍은 키스톤 (비트)
 	uint32_t JokerUp = 0; // 강화한 조커 (비트)
 	bool Key(EPDKeystone K) const { return (Keys >> (int)K) & 1u; }
-	bool Up(int Joker) const { return (JokerUp >> Joker) & 1u; }
+	bool Up(int Joker) const { return Joker >= 0 && Joker < 10 && ((JokerUp >> Joker) & 1u); } // 상위 조커 번호는 트리 강화 없음
 	bool Up(const FPDTower& T) const; // 트리 강화 또는 조커 레벨 10 이상
 };
 FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned);
@@ -208,7 +208,21 @@ struct FPDJokerMerge
 {
 	int Joker = -1;
 	std::vector<int> Cells;
+	int Upper = -1; // 상위 조커 합성 (D-231): 서로 다른 두 조커 → 상위 조커 번호 (0~29). -1 = 같은 조커 합치기
 };
+// ---------------------------------------------------------------- 상위 조커 (D-231, docs/18)
+// 서로 다른 기본 조커 둘(맞닿음, 둘 다 조커 레벨 10 이상, 트리 끝자락을 찍은 조커는 5)을 합친 최종형. 타워의 Joker 값 10~39.
+// 능력 = 두 재료 조커의 능력 (강화된 상태) + 대표 조커 몇은 고유 능력. 위력 = 재료 합 × 1.5 (트리 끝자락 재료 하나마다 +25%)
+constexpr int UpperBase = 10, UpperJokerCount = 30;
+constexpr int UpperNeedLevel = 10, UpperNeedLevelTip = 5;
+constexpr float UpperBonus = 1.5f, UpperTipBonus = 0.25f;
+enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock };
+struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
+const FPDUpperDef& UpperDef(int U);          // U = 0~29
+int UpperOf(EPDJoker A, EPDJoker B);         // 레시피가 있으면 상위 조커 번호, 없으면 -1 (순서 무관)
+inline bool IsUpperJoker(int Joker) { return Joker >= UpperBase && Joker < UpperBase + UpperJokerCount; }
+bool JokerHas(int Joker, EPDJoker K);        // 그 조커이거나, 그 조커를 재료로 한 상위 조커
+EPDUpperSpecial JokerSpecial(int Joker);
 // 조커 재료 묶음 (D-115, D-118): 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개 또는 2개가 레시피와 정확히 맞을 때.
 // 판 어디에 있어도 된다 (D-195, 예전엔 서로 맞닿아야 했다). 3개 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
 struct FPDJokerGroup
@@ -463,6 +477,8 @@ public:
 	int NextBossWave() const { const int W = Phase == EPDPhase::Wave ? Wave : Wave + 1; return (W + 4) / 5 * 5; } // 지금 또는 다음 보스 웨이브
 	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
+	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
+	int UpperNeed(const FPDTower& T) const;          // 이 조커가 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }

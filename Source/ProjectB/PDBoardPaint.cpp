@@ -519,7 +519,18 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		{
 			if (bStatic != bYoung)
 			{
-				if (bAtlas) F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + T.Joker], P.X, P.Y, BoardCardK, FLinearColor::White);
+				if (IsUpperJoker(T.Joker)) // 상위 조커는 아틀라스에 없어 선으로 (D-231)
+				{
+					if (bAtlas) // 재료 둘의 스프라이트를 작게 + 금색 표시
+					{
+						const FPDUpperDef& D = UpperDef(T.Joker - UpperBase);
+						F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + (int32)D.A], P.X - CS * 0.12f, P.Y - CS * 0.09f, BoardCardK * 0.55f, FLinearColor::White);
+						F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + (int32)D.B], P.X + CS * 0.12f, P.Y + CS * 0.1f, BoardCardK * 0.55f, FLinearColor::White);
+						F.UpperMark(P.X, P.Y, CS * 0.4f * BoardCardK * Pop, Hex(TEXT("ffd96a")), Pulse);
+					}
+					else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, Pulse);
+				}
+				else if (bAtlas) F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + T.Joker], P.X, P.Y, BoardCardK, FLinearColor::White);
 				else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, Pulse);
 			}
 			if (bStatic) continue; // 레벨·경험치는 자주 바뀌어 움직이는 층에서
@@ -1595,7 +1606,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			BadgeRects.Add(FBox2f(FVector2f(B.X - MergeW / 2.f, B.Y - MergeH / 2.f), FVector2f(B.X - MergeW / 2.f + MergeW, B.Y - MergeH / 2.f + MergeH))); // 툴팁이 피할 자리 (D-150)
 			F.Box(B.X - MergeW / 2.f, B.Y - MergeH / 2.f, MergeW, MergeH, Hex(TEXT("06060b"), 0.92f));
 			F.Glow(FCanvas::RoundRectPoints(B.X - MergeW / 2.f, B.Y - MergeH / 2.f, MergeW, MergeH, 6.f), JokerPink, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.6f);
-			F.TextCentered(TEXT("조커 합치기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, MergeW - 6.f);
+			if (Ms[I].Upper >= 0) // 상위 조커 (D-231): 처음이면 이름은 ???
+				F.TextCentered((G.UpperFound >> Ms[I].Upper) & 1u ? TrF(TEXT("상위: %s"), UpperName(Ms[I].Upper)) : FString(Tr(TEXT("상위 조커 ???"))), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.85f), 10.f, true, MergeW - 6.f);
+			else F.TextCentered(TEXT("조커 합치기"), B.X, B.Y, WithAlpha(JokerPink, bHov ? 1.f : 0.85f), 10.f, true, MergeW - 6.f);
 		}
 	}
 	for (const FFloatText& Ft : Floats)
@@ -1817,7 +1830,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Box(JX, JY, 246.f, 140.f + SynH, Hex(TEXT("06060b"), 0.94f));
 				F.Glow(FCanvas::RoundRectPoints(JX, JY, 246.f, 140.f + SynH, 8.f), JokerPink, 1.2f, 0.4f);
 				SynLines(true, JX + 10.f, JY + 150.f, 226.f);
-				F.Text(TrF(TEXT("%s 대장: %s"), HandName(CaptainHand((EPDJoker)T.Joker)), JokerName(T.Joker)), JX + 10.f, JY + 18.f, JokerPink, 12.f, 0, true, 226.f);
+				F.Text(JokerTitle(T.Joker), JX + 10.f, JY + 18.f, IsUpperJoker(T.Joker) ? Gold : JokerPink, 12.f, 0, true, 226.f);
 				F.Text(PowLine, JX + 10.f, JY + 36.f, PowCol, 11.f, 0, true, 226.f);
 				// 조커도 공격력·연사·치명·사거리 (D-187): 일반 타워 툴팁과 같은 두 줄
 				F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), JX + 10.f, JY + 54.f, Fg, 11.f, 0, false, 226.f);
@@ -2117,15 +2130,49 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("부적 칸이 가득 찼다 (5/5)"), FX + Cols * CS / 2.f, FY + 396.f, Dim, 11.f, false);
 	}
 
+	// ---- 상위 조커 도감 (D-231): 6 × 5. 만든 것은 그림·이름·능력, 못 만든 것은 실루엣 + 재료 하나 힌트
+	if (bCodex && bCodexUpper)
+	{
+		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
+		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
+		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
+		C.Text(TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound)), 170.f, HudY + 32.f, Gold, 14.f, 0, true);
+		C.Text(TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커"), 400.f, HudY + 32.f, Grey, 10.f, 0, false, 400.f);
+		for (int32 U = 0; U < UpperJokerCount; ++U)
+		{
+			const FVector2f P = UpperCardPos(U);
+			const bool bKnown = (G.UpperFound >> U) & 1u;
+			const FPDUpperDef& D = UpperDef(U);
+			const bool bHov = InRect(Mouse, P.X, P.Y, UpCardW, UpCardH);
+			C.Box(P.X, P.Y, UpCardW, UpCardH, Hex(TEXT("0a0b14"), 0.92f));
+			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UpCardW, UpCardH, 8.f), WithAlpha(Gold, bKnown ? 1.f : 0.35f), bHov ? 1.6f : 1.1f, bKnown ? 0.6f : 0.2f);
+			const float IX = P.X + 40.f, IY = P.Y + UpCardH / 2.f;
+			if (bKnown) C.JokerTower(UpperBase + U, IX, IY, 26.f, 1.f, 0.5f);
+			else { C.UpperMark(IX, IY, 26.f, WithAlpha(Gold, 0.35f), 0.f); C.TextCentered(TEXT("?"), IX, IY, WithAlpha(Gold, 0.5f), 22.f, true); }
+			const float TX = P.X + 76.f, TW = UpCardW - 84.f;
+			C.Text(bKnown ? FString(UpperName(U)) : FString(TEXT("???")), TX, P.Y + 22.f, bKnown ? Gold : Grey, 12.f, 0, true, TW);
+			C.Text(bKnown ? TrF(TEXT("%s + %s"), JokerName((int)D.A), JokerName((int)D.B)) : TrF(TEXT("%s + ?"), JokerName((int)D.A)), TX, P.Y + 40.f, bKnown ? JokerPink : Dim, 10.f, 0, false, TW);
+			if (bKnown)
+			{
+				FString Ab = JokerAbility(UpperBase + U);
+				FString L2;
+				if (Ab.Len() > 22) { L2 = Ab.Mid(22); Ab = Ab.Left(22); }
+				C.Text(Ab, TX, P.Y + 62.f, Fg, 9.f, 0, false, TW);
+				if (!L2.IsEmpty()) C.Text(L2, TX, P.Y + 76.f, Fg, 9.f, 0, false, TW);
+			}
+			else C.Text(TEXT("만들면 열림"), TX, P.Y + 66.f, Dim, 9.f, 0, false, TW);
+		}
+		C.Text(TEXT("Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
+	}
 	// ---- 조커 도감 (J, D-119): 카드 5×2 + 오른쪽에 고른 조커 크게
-	if (bCodex)
+	if (bCodex && !bCodexUpper)
 	{
 		const FLinearColor Green = Hex(TEXT("9cffb0"));
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
 		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
 		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
 		C.Text(TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)), 170.f, HudY + 32.f, Fg, 14.f, 0, true);
-		C.TextCentered(TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다"), 700.f, HudY + HudH / 2.f, Grey, 11.f, false, 640.f);
+		C.TextCentered(TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다"), 520.f, HudY + HudH / 2.f, Grey, 11.f, false, 460.f);
 		PaintCloseButton(C, JokerPink);
 		auto TierCol = [&](float T) { return T >= 2.9f ? Gold : T >= 2.4f ? Hex(TEXT("ffa86a")) : Cyan; };
 		auto TierText = [](float T) { return FMath::IsNearlyEqual(T, FMath::RoundToFloat(T)) ? FString::Printf(TEXT("×%.0f"), T) : FString::Printf(TEXT("×%.1f"), T); };
@@ -2199,6 +2246,20 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		C.Text(TEXT("카드 클릭: 크게 보기 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
 	}
 
+	if (bCodex) // 도감 쪽 탭 (D-231)
+	{
+		static const TCHAR* Tabs[2] = {TEXT("기본 조커"), TEXT("상위 조커")};
+		for (int32 I = 0; I < 2; ++I)
+		{
+			const float X = CdxTabX(I);
+			const bool bOn = bCodexUpper == (I == 1), bHov = InRect(Mouse, X, CdxTabY, CdxTabW, CdxTabH);
+			const FLinearColor Col = I == 1 ? Gold : JokerPink;
+			if (bOn) C.Box(X, CdxTabY, CdxTabW, CdxTabH, WithAlpha(Col, 0.14f));
+			C.Glow(FCanvas::RoundRectPoints(X, CdxTabY, CdxTabW, CdxTabH, 8.f), Col, bOn || bHov ? 1.6f : 1.1f, bOn ? 1.f : 0.35f);
+			C.TextCentered(Tabs[I], X + CdxTabW / 2.f, CdxTabY + CdxTabH / 2.f, bOn ? FLinearColor::White : Col, 12.f, true, CdxTabW - 8.f);
+		}
+		PaintCloseButton(C, JokerPink);
+	}
 	if (bUpg && G.Phase != EPDPhase::Title) PaintUpgrades(C); // 영구 강화 (U): 판 안에서는 보기만 (D-228)
 }
 

@@ -195,17 +195,56 @@ inline const TCHAR* CharmDesc(int J)
 		TEXT("둔화 더 강하게, ♣ 주변도 둔화"), TEXT("처치 시 주변 적에게 최대 체력 15% 피해"), TEXT("적의 방패를 무시")};
 	return Tr(N[J]);
 }
+// 상위 조커 30종 (D-231, docs/18 4절 순서)
+inline const TCHAR* UpperName(int U)
+{
+	static const TCHAR* N[UpperJokerCount] = {TEXT("장미 칠하는 정원사"), TEXT("트위들덤과 트위들디"), TEXT("도도새"), TEXT("애벌레"), TEXT("공작부인"), TEXT("거울 나라"),
+		TEXT("3월 토끼"), TEXT("하트 왕"), TEXT("하트 잭"), TEXT("미친 다과회"), TEXT("흰 토끼"), TEXT("험프티 덤프티"), TEXT("붉은 여왕"), TEXT("가짜 거북"), TEXT("그리핀"),
+		TEXT("웃음만 남은 고양이"), TEXT("하얀 여왕"), TEXT("바다코끼리와 목수"), TEXT("하얀 기사"), TEXT("말하는 꽃들"), TEXT("하트 여왕"), TEXT("홍학 크로케"), TEXT("트럼프 근위대"),
+		TEXT("체스판"), TEXT("겨울잠쥐"), TEXT("유니콘"), TEXT("재버워키"), TEXT("사자"), TEXT("꿈꾸는 붉은 왕"), TEXT("반짝반짝 작은 박쥐")};
+	return Tr(N[FMath::Clamp(U, 0, UpperJokerCount - 1)]);
+}
+inline const TCHAR* UpperSpecialText(EPDUpperSpecial S)
+{
+	switch (S)
+	{
+	case EPDUpperSpecial::MadTea: return Tr(TEXT("주변 8칸 타워 사거리 무한"));
+	case EPDUpperSpecial::WhiteRabbit: return Tr(TEXT("회중시계: 10초마다 판 전체 적 1초 멈춤"));
+	case EPDUpperSpecial::GrinOnly: return Tr(TEXT("판 전체에서 가장 강한 타워를 따라 함"));
+	case EPDUpperSpecial::QueenHearts: return Tr(TEXT("목을 쳐라: 체력 15% 이하 적 즉시 처치 (보스 제외)"));
+	case EPDUpperSpecial::Dormouse: return Tr(TEXT("주변 8칸 타워 연사 +80%"));
+	case EPDUpperSpecial::Jabberwock: return Tr(TEXT("보스를 먼저 노리고 보스에게 +50%"));
+	default: return TEXT("");
+	}
+}
+inline const TCHAR* JokerAbility(int K);
 inline const TCHAR* JokerName(int K)
 {
 	static const TCHAR* N[] = {TEXT("광대"), TEXT("모자 장수"), TEXT("웃는 가면"), TEXT("희비극"), TEXT("할리퀸"), TEXT("지휘봉"), TEXT("잭"), TEXT("체셔"), TEXT("방울"), TEXT("스타")};
-	return Tr(N[K]);
+	if (IsUpperJoker(K)) return UpperName(K - UpperBase);
+	return Tr(N[FMath::Clamp(K, 0, 9)]);
 }
-inline const TCHAR* JokerAbility(int K)
+inline const TCHAR* BaseJokerAbility(int K)
 {
 	static const TCHAR* N[] = {TEXT("무늬 4종 공격을 번갈아 씀"), TEXT("주변 8칸 타워 공격력 +25%·사거리 +10%"), TEXT("주변 가장 강한 타워의 공격을 따라 함"),
 		TEXT("두 적을 동시에 공격"), TEXT("판 위 같은 무늬 타워 전부 공격력 +30%"), TEXT("주변 8칸 타워 연사 +40%"), TEXT("아주 강한 한 방 (공격력 ×3, 연사 ×0.5)"),
 		TEXT("사거리 무한: 가장 앞선 적 저격"), TEXT("8초마다 종: 사거리 안 적 1.5초 멈춤"), TEXT("판 전체 레이저: 모든 적에게 피해")};
-	return Tr(N[K]);
+	return Tr(N[FMath::Clamp(K, 0, 9)]);
+}
+// 상위 조커 능력 글: 고유 능력이 있으면 그것, 없으면 "재료 A 능력 + 재료 B 능력"
+inline const TCHAR* JokerAbility(int K)
+{
+	if (!IsUpperJoker(K)) return BaseJokerAbility(K);
+	static FString Cache[UpperJokerCount][8]; // 고정 자리 (돌려준 포인터가 움직이지 않게), [상위 조커][언어]
+	const int32 U = K - UpperBase, L = FMath::Clamp(GPDLang, 0, 7);
+	FString& S = Cache[U][L];
+	if (S.IsEmpty())
+	{
+		const FPDUpperDef& D = UpperDef(U);
+		S = D.Special != EPDUpperSpecial::None ? FString(UpperSpecialText(D.Special)) + TEXT(" · ") : FString();
+		S += FString(BaseJokerAbility((int)D.A)) + TEXT(" + ") + BaseJokerAbility((int)D.B);
+	}
+	return *S;
 }
 // 조커 레시피 (D-115): 코어 JokerRecipe 의 족보 3개를 그대로 보여 준다
 inline const TCHAR* HandShort(EPDHand H) { return Tr(H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H)); } // 도감 칸이 좁아서
@@ -220,7 +259,16 @@ inline FString JokerRecipe2Text(int K)
 	return TrF(TEXT("2개: %s + %s"), HandShort(R[0]), HandShort(R[1]));
 }
 inline FString JokerRuleText() { return TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 · 판 어디에 있어도 된다 · 3개 쪽이 카드가 많아 세다"); }
-inline FString JokerCommand(int K) { return TrF(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
+inline FString JokerCommand(int K)
+{
+	if (IsUpperJoker(K)) { const FPDUpperDef& D = UpperDef(K - UpperBase); return TrF(TEXT("지휘: %s · %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand(D.A)), HandName(CaptainHand(D.B))); }
+	return TrF(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)FMath::Clamp(K, 0, 9))));
+}
+inline FString JokerTitle(int K) // 툴팁 첫 줄
+{
+	if (IsUpperJoker(K)) { const FPDUpperDef& D = UpperDef(K - UpperBase); return TrF(TEXT("상위 조커: %s (%s + %s)"), JokerName(K), JokerName((int)D.A), JokerName((int)D.B)); }
+	return TrF(TEXT("%s 대장: %s"), HandName(CaptainHand((EPDJoker)FMath::Clamp(K, 0, 9))), JokerName(K));
+}
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
 const FLinearColor UiEdge = FLinearColor(FColor::FromHex(TEXT("7fd6ff"))); // UI 창·패널·버튼 테두리는 모두 이 색 (D-160)
 const FLinearColor UiTitle = UiEdge;                                         // UI 글자 (D-163): 패널 제목·이름표는 하늘색
@@ -438,6 +486,12 @@ constexpr float CharmY = MenuBtnY + MenuBtnH + 12.f; // 부적 칸
 // 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
 constexpr float CdxCardX = 16.f, CdxCardY = 76.f, CdxCardW = 164.f, CdxCardH = 304.f, CdxGapX = 8.f, CdxGapY = 12.f;
 constexpr float CdxDetX = 884.f, CdxDetW = 380.f;
+// 도감 쪽 탭 (D-231): 기본 조커 / 상위 조커. 위쪽 띠 안 오른쪽
+constexpr float CdxTabW = 150.f, CdxTabH = 30.f, CdxTabY = HudY + 10.f, CdxTabX0 = 820.f;
+inline float CdxTabX(int I) { return CdxTabX0 + I * (CdxTabW + 8.f); }
+// 상위 조커 쪽: 6 × 5 카드
+constexpr float UpCardW = 192.f, UpCardH = 112.f, UpCardGap = 8.f, UpCardY0 = 80.f;
+inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * UpCardW + 5.f * UpCardGap) / 2.f + (U % 6) * (UpCardW + UpCardGap), UpCardY0 + (U / 6) * (UpCardH + UpCardGap)); }
 constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
 inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
@@ -1394,8 +1448,24 @@ struct SPDBoardWidget::FCanvas
 		const FLinearColor Col = WithAlpha(JokerPink, Alpha);
 		const float H = R * 0.98f;
 		Box(CX - H, CY - H, H * 2.f, H * 2.f, WithAlpha(Col, 0.08f + 0.06f * Pulse));
+		if (IsUpperJoker(K)) // 상위 조커 (D-231): 재료 둘의 그림을 작게 + 금색 이중 테두리 + 틀 위 작은 왕관
+		{
+			const FPDUpperDef& D = UpperDef(K - UpperBase);
+			JokerArt((int32)D.A, CX - R * 0.3f, CY - R * 0.22f, R * 0.52f, Col, 1.1f, 0.6f);
+			JokerArt((int32)D.B, CX + R * 0.3f, CY + R * 0.26f, R * 0.52f, Col, 1.1f, 0.6f);
+			UpperMark(CX, CY, R, WithAlpha(Hex(TEXT("ffd96a")), Alpha), Pulse);
+			return;
+		}
 		Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Col, 2.f, 1.4f + 0.5f * Pulse);
 		JokerArt(K, CX, CY, R, Col, 1.3f, 0.8f);
+	}
+	void UpperMark(float CX, float CY, float R, const FLinearColor& Gold, float Pulse)
+	{
+		const float H = R * 0.98f, H2 = R * 0.86f;
+		Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Gold, 2.f, 1.2f + 0.5f * Pulse);
+		Glow(RoundRectPoints(CX - H2, CY - H2, H2 * 2.f, H2 * 2.f, R * 0.17f), Gold, 1.2f, 0.6f);
+		const float W = R * 0.22f, Hh = R * 0.18f, BY = CY - H + 1.f;
+		Glow({{CX - W, BY}, {CX - W, BY - Hh}, {CX - W * 0.5f, BY - Hh * 0.5f}, {CX, BY - Hh * 1.1f}, {CX + W * 0.5f, BY - Hh * 0.5f}, {CX + W, BY - Hh}, {CX + W, BY}, {CX - W, BY}}, Gold, 1.2f, 0.9f);
 	}
 	void Badge(const FString& InS, float CX, float CY, const FLinearColor& Col, float Alpha)
 	{

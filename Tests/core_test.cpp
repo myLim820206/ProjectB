@@ -1064,6 +1064,52 @@ static void UnitTests()
 		const bool bLoad = H.LoadRun(G.SaveRun());
 		Expect(bLoad && H.Mode == EPDMode::W30, "중단 저장에 모드가 남는다");
 	}
+	{ // 상위 조커 (D-231): 레시피 30개 (조커마다 6개), 조건 레벨, 합성 결과, 트리 끝자락, 능력
+		int Deg[(int)EPDJoker::Count] = {};
+		bool bSym = true;
+		for (int A = 0; A < (int)EPDJoker::Count; ++A)
+			for (int B = 0; B < (int)EPDJoker::Count; ++B)
+			{
+				const int U = A == B ? -1 : UpperOf((EPDJoker)A, (EPDJoker)B);
+				bSym = bSym && U == (A == B ? -1 : UpperOf((EPDJoker)B, (EPDJoker)A));
+				if (U >= 0 && A < B) { Deg[A]++; Deg[B]++; }
+			}
+		bool bSix = true;
+		for (int D : Deg) bSix = bSix && D == 6;
+		Expect(bSym && bSix && UpperOf(EPDJoker::Hatter, EPDJoker::Baton) < 0, "상위 조커 레시피 30개, 조커마다 6개, 모자 장수 + 지휘봉은 없음");
+		FPDGame G(21);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		int Row = 0;
+		for (int Y = 0; Y < Rows; ++Y) { bool bOk = true; for (int X = 0; X < 4; ++X) bOk = bOk && G.Buildable(X, Y); if (bOk) { Row = Y; break; } }
+		auto PutJ = [&](int X, EPDJoker K, int Lv) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = X; T.Y = Row; T.Joker = (int)K; T.JLevel = Lv; T.Mult = 2.f; G.Towers[CellKey(X, Row)] = T; };
+		PutJ(0, EPDJoker::Hatter, 9);
+		PutJ(1, EPDJoker::Cheshire, 10);
+		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
+		auto Uppers = [&]() { int N = 0; for (const FPDJokerMerge& M : G.JokerMerges()) N += M.Upper >= 0; return N; };
+		Expect(Uppers() == 0, "조커 레벨 9 이면 상위 조커 재료가 아니다");
+		G.Mods.JokerUp |= 1u << (int)EPDJoker::Hatter; // 트리 끝자락을 찍은 셈
+		Expect(Uppers() == 1 && G.UpperNeed(G.Towers.at(CellKey(0, Row))) == UpperNeedLevelTip, "트리 끝자락을 찍은 조커는 레벨 5부터 재료");
+		G.Mods.JokerUp = 0;
+		G.Towers.at(CellKey(0, Row)).JLevel = 10;
+		int Idx = -1;
+		const std::vector<FPDJokerMerge> Ms = G.JokerMerges();
+		for (int I = 0; I < (int)Ms.size(); ++I) if (Ms[I].Upper == 9) Idx = I;
+		const bool bFused = Idx >= 0 && G.MergeJokers(Idx, CellKey(1, Row));
+		const bool bOne = G.Towers.size() == 1 && G.Towers.count(CellKey(1, Row)) && G.Towers.at(CellKey(1, Row)).Joker == UpperBase + 9;
+		Expect(bFused && bOne && std::abs(G.Towers.at(CellKey(1, Row)).Mult - 4.f * UpperBonus) < 1e-4f && (G.UpperFound & (1u << 9)), "모자 장수 + 체셔 → 미친 다과회 (위력 합 × 1.5, 도감에 남음)");
+		const int UK = CellKey(1, Row);
+		Expect(JokerHas(G.Towers.at(UK).Joker, EPDJoker::Hatter) && JokerHas(G.Towers.at(UK).Joker, EPDJoker::Cheshire) && !JokerHas(G.Towers.at(UK).Joker, EPDJoker::Star), "상위 조커는 재료 둘의 능력을 가진다");
+		FPDTower N;
+		N.Card = C(9);
+		N.X = 2;
+		N.Y = Row;
+		G.Towers[CellKey(2, Row)] = N;
+		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
+		const FPDTowerStats S0 = TowerStats(N, 0, &G.Mods), S1 = TowerStats(G.Towers.at(CellKey(2, Row)), 0, &G.Mods);
+		Expect(S1.Range > S0.Range * 10.f && TowerStats(G.Towers.at(UK), 0, &G.Mods).Range >= 99.f, "미친 다과회: 주변 타워 사거리 무한, 자신도 사거리 무한");
+	}
 	{ // 포인트 구매
 		FPDGame G(5);
 		G.NewGame(true);
@@ -1282,7 +1328,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	std::map<int, int> Hist;
 	int WaveSum = 0;
 	std::map<int, int> JokersMade, KindsMade;
-	long Feeds = 0, JLvSum = 0;
+	long Feeds = 0, JLvSum = 0, UppersMade = 0;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
@@ -1294,6 +1340,26 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		std::mt19937 R(77 + Run);
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
+			// 상위 조커 (D-231): 판 위력이 오르면 합친다
+			for (int Tries = 0; bJoker && Tries < 2; ++Tries)
+			{
+				const std::vector<FPDJokerMerge> Ms = G.JokerMerges();
+				FPDTowerMap Cur = G.Towers;
+				const double Base = Power(G, Cur);
+				int BestI = -1;
+				double BestP = Base;
+				for (int I = 0; I < (int)Ms.size(); ++I)
+				{
+					if (Ms[I].Upper < 0) continue;
+					FPDGame Copy = G;
+					if (!Copy.MergeJokers(I)) continue;
+					FPDTowerMap Tw = Copy.Towers;
+					const double P = Power(Copy, Tw);
+					if (P > BestP) { BestP = P; BestI = I; }
+				}
+				if (BestI < 0 || !G.MergeJokers(BestI)) break;
+				UppersMade++;
+			}
 			// 조커 먹이기: 판 위 위력을 15% 넘게 깎지 않는 족보 중 경험치가 가장 많은 것 (비운 칸은 바로 아래에서 다시 채움)
 			for (int Tries = 0; bJoker && Tries < 3 && !G.Hand.empty(); ++Tries)
 			{
@@ -1421,7 +1487,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	std::printf("   평균 %.1f웨이브", (double)WaveSum / Runs);
 	if (bJoker) std::printf("   조커 판당 %.1f개 (종류:", (double)JokersMade[0] / Runs);
 	if (bJoker) { for (auto& KV : KindsMade) std::printf(" %d=%d", KV.first + 1, KV.second); std::printf(")"); }
-	if (bJoker) std::printf("   먹이기 판당 %.1f번 · 최고 조커 레벨 평균 %.1f", (double)Feeds / Runs, (double)JLvSum / Runs);
+	if (bJoker) std::printf("   먹이기 판당 %.1f번 · 최고 조커 레벨 평균 %.1f · 상위 조커 판당 %.1f개", (double)Feeds / Runs, (double)JLvSum / Runs, (double)UppersMade / Runs);
 	std::printf("   번 경험치 %.0f · 레벨 포인트 %.1f", GoldSum / Runs, PointSum / Runs);
 	if (bTree) { std::printf("   키스톤:"); for (auto& KV : GKeysTaken) std::printf(" %d=%d", KV.first, KV.second); }
 	std::printf("\n");

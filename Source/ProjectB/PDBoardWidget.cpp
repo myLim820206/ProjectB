@@ -339,6 +339,7 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("Hints")) HintSeen = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("Modes")) ModesCleared = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("Chips")) MetaChips = FMath::Max(0, FCString::Atoi(*Val));
+			else if (Key == TEXT("Uppers")) Game.UpperFound |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 상위 조커 도감 (D-231)
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
@@ -347,6 +348,7 @@ void SPDBoardWidget::LoadUserData()
 			}
 		}
 	SavedDiscovered = Game.Discovered;
+	SavedUpper = Game.UpperFound;
 	SavedBest = Game.BestWave;
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("pdunlock"))) ModesCleared = 0xF; // 시험용: 모드 모두 열기
@@ -373,10 +375,11 @@ void SPDBoardWidget::SaveSettings() const
 void SPDBoardWidget::SaveProgress()
 {
 	SavedDiscovered = Game.Discovered;
+	SavedUpper = Game.UpperFound;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -598,7 +601,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 	UpdateFx(Dt);
 	if (!Settings.bShake) { Shake = 0.f; FlashT = 0.f; } // 설정: 화면 흔들림·번쩍임 끔
-	if (Game.Discovered != SavedDiscovered || FMath::Max(Game.BestWave, Game.Wave) > SavedBest) SaveProgress(); // 도감·최고 기록이 바뀌면 바로 저장
+	if (Game.Discovered != SavedDiscovered || Game.UpperFound != SavedUpper || FMath::Max(Game.BestWave, Game.Wave) > SavedBest) SaveProgress(); // 도감·최고 기록이 바뀌면 바로 저장
 	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
 	UpdatePreview();
 	JGroups = Game.JokerGroups();
@@ -1154,6 +1157,8 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (bCodex) // 도감 (D-119): 카드 클릭 = 크게 보기, 닫기 버튼·오른쪽 클릭 = 닫기
 	{
 		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bCodex = false; return; }
+		for (int32 I = 0; I < 2; ++I) if (InRect(P, CdxTabX(I), CdxTabY, CdxTabW, CdxTabH)) { bCodexUpper = I == 1; UiSound(EPDSound::Move); return; } // 쪽 탭 (D-231)
+		if (bCodexUpper) return;
 		for (int32 K = 0; K < (int32)EPDJoker::Count; ++K)
 		{
 			const FVector2f C0 = CodexCardPos(K);
@@ -1624,6 +1629,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bCodex)
 	{
 		if (K == EKeys::J || K == EKeys::Escape) bCodex = false;
+		else if (K == EKeys::Tab) bCodexUpper = !bCodexUpper; // 기본 ↔ 상위 조커 (D-231)
 		else if (K == EKeys::Left || K == EKeys::A) CodexSel = (CodexSel + 9) % 10; // 화살표로 넘겨 보기
 		else if (K == EKeys::Right || K == EKeys::D) CodexSel = (CodexSel + 1) % 10;
 		else if (K == EKeys::Up || K == EKeys::Down || K == EKeys::W || K == EKeys::S) CodexSel = (CodexSel + 5) % 10;

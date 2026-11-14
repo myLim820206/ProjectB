@@ -87,6 +87,42 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 둔화 더 강하게, ♣ 주변도 둔화	Stronger slow, ♣ slows nearby too	減速が強くなり ♣ の周りも減速	减速更强, ♣ 周围也减速	減速更強, ♣ 周圍也減速	PDBoardDraw.h
 처치 시 주변 적에게 최대 체력 15% 피해	On kill, deals 15% max HP to nearby enemies	撃破時、周りの敵に最大体力15%のダメージ	击杀时对周围敌人造成最大生命15%伤害	擊殺時對周圍敵人造成最大生命15%傷害	PDBoardDraw.h
 적의 방패를 무시	Ignores enemy shields	敵の盾を無視	无视敌人护盾	無視敵人護盾	PDBoardDraw.h
+장미 칠하는 정원사	The Rose Painters	バラを塗る庭師	涂玫瑰的园丁	塗玫瑰的園丁	PDBoardDraw.h
+트위들덤과 트위들디	Tweedledum and Tweedledee	トゥイードルダムとトゥイードルディー	叮当兄和叮当弟	叮噹兄和叮噹弟	PDBoardDraw.h
+도도새	The Dodo	ドードー	渡渡鸟	渡渡鳥	PDBoardDraw.h
+애벌레	The Caterpillar	イモムシ	毛毛虫	毛毛蟲	PDBoardDraw.h
+공작부인	The Duchess	公爵夫人	公爵夫人	公爵夫人	PDBoardDraw.h
+거울 나라	Looking-Glass Land	鏡の国	镜中世界	鏡中世界	PDBoardDraw.h
+3월 토끼	The March Hare	三月ウサギ	三月兔	三月兔	PDBoardDraw.h
+하트 왕	The King of Hearts	ハートの王様	红心国王	紅心國王	PDBoardDraw.h
+하트 잭	The Knave of Hearts	ハートのジャック	红心杰克	紅心傑克	PDBoardDraw.h
+미친 다과회	The Mad Tea Party	狂ったお茶会	疯狂茶会	瘋狂茶會	PDBoardDraw.h
+흰 토끼	The White Rabbit	白ウサギ	白兔	白兔	PDBoardDraw.h
+험프티 덤프티	Humpty Dumpty	ハンプティ・ダンプティ	矮胖子	矮胖子	PDBoardDraw.h
+붉은 여왕	The Red Queen	赤の女王	红皇后	紅皇后	PDBoardDraw.h
+가짜 거북	The Mock Turtle	ニセウミガメ	假海龟	假海龜	PDBoardDraw.h
+그리핀	The Gryphon	グリフォン	狮鹫	獅鷲	PDBoardDraw.h
+웃음만 남은 고양이	The Grin Without a Cat	ニヤニヤ笑いだけの猫	只剩笑容的猫	只剩笑容的貓	PDBoardDraw.h
+하얀 여왕	The White Queen	白の女王	白皇后	白皇后	PDBoardDraw.h
+바다코끼리와 목수	The Walrus and the Carpenter	セイウチと大工	海象与木匠	海象與木匠	PDBoardDraw.h
+하얀 기사	The White Knight	白の騎士	白骑士	白騎士	PDBoardDraw.h
+말하는 꽃들	The Talking Flowers	しゃべる花たち	会说话的花	會說話的花	PDBoardDraw.h
+하트 여왕	The Queen of Hearts	ハートの女王	红心皇后	紅心皇后	PDBoardDraw.h
+홍학 크로케	Flamingo Croquet	フラミンゴのクロッケー	火烈鸟槌球	火鶴槌球	PDBoardDraw.h
+트럼프 근위대	The Card Guards	トランプの近衛兵	扑克近卫队	撲克近衛隊	PDBoardDraw.h
+체스판	The Chessboard	チェス盤	棋盘	棋盤	PDBoardDraw.h
+겨울잠쥐	The Dormouse	ヤマネ	睡鼠	睡鼠	PDBoardDraw.h
+유니콘	The Unicorn	ユニコーン	独角兽	獨角獸	PDBoardDraw.h
+재버워키	The Jabberwock	ジャバウォック	炸脖龙	炸脖龍	PDBoardDraw.h
+사자	The Lion	ライオン	狮子	獅子	PDBoardDraw.h
+꿈꾸는 붉은 왕	The Dreaming Red King	夢見る赤の王	做梦的红国王	做夢的紅國王	PDBoardDraw.h
+반짝반짝 작은 박쥐	Twinkle Twinkle Little Bat	きらきらコウモリ	一闪一闪小蝙蝠	一閃一閃小蝙蝠	PDBoardDraw.h
+주변 8칸 타워 사거리 무한	Infinite range for towers in the 8 cells around	周囲8マスのタワー射程無限	周围8格的塔射程无限	周圍8格的塔射程無限	PDBoardDraw.h
+회중시계: 10초마다 판 전체 적 1초 멈춤	Pocket watch: every 10s, stops every enemy for 1s	懐中時計: 10秒ごとに盤面の敵全員を1秒停止	怀表: 每10秒让全场敌人停止1秒	懷錶: 每10秒讓全場敵人停止1秒	PDBoardDraw.h
+판 전체에서 가장 강한 타워를 따라 함	Copies the strongest tower on the whole board	盤面全体で最も強いタワーをまねる	模仿全场最强的塔	模仿全場最強的塔	PDBoardDraw.h
+목을 쳐라: 체력 15% 이하 적 즉시 처치 (보스 제외)	Off with their heads: instantly kills enemies at 15% HP or less (not bosses)	首をはねよ: 体力15%以下の敵を即撃破 (ボス除く)	砍掉他的头: 立即击杀生命15%以下的敌人 (首领除外)	砍掉他的頭: 立即擊殺生命15%以下的敵人 (首領除外)	PDBoardDraw.h
+주변 8칸 타워 연사 +80%	Towers in the 8 cells around: fire rate +80%	周囲8マスのタワー連射 +80%	周围8格的塔连射 +80%	周圍8格的塔連射 +80%	PDBoardDraw.h
+보스를 먼저 노리고 보스에게 +50%	Targets bosses first, +50% against bosses	ボスを優先して狙い、ボスに +50%	优先攻击首领，对首领 +50%	優先攻擊首領，對首領 +50%	PDBoardDraw.h
 광대	Jester	道化師	小丑	小丑	PDBoardDraw.h
 모자 장수	Hatter	帽子屋	帽匠	帽匠	PDBoardDraw.h
 웃는 가면	Smiling Mask	笑う仮面	笑面具	笑面具	PDBoardDraw.h
@@ -112,7 +148,10 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 3개: %s + %s + %s	3 hands: %s + %s + %s	3つ: %s + %s + %s	3个: %s + %s + %s	3個: %s + %s + %s	PDBoardDraw.h
 2개: %s + %s	2 hands: %s + %s	2つ: %s + %s	2个: %s + %s	2個: %s + %s	PDBoardDraw.h
 족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 · 판 어디에 있어도 된다 · 3개 쪽이 카드가 많아 세다	Pick 3 (or 2) hands that match a recipe to make a Joker · they can be anywhere on the board · 3 hands use more cards, so it's stronger	役を3つ(または2つ)選んでレシピに合えばジョーカー · 盤のどこにあってもよい · 3つの方がカードが多くて強い	选 3 个(或 2 个)牌型, 符合配方即成小丑 · 在棋盘任何位置都行 · 3 个的卡更多, 更强	選 3 個(或 2 個)牌型, 符合配方即成小丑 · 在棋盤任何位置都行 · 3 個的卡更多, 更強	PDBoardDraw.h
+지휘: %s · %s 타워 위력 +30%% (겹침)	Command: %s · %s towers power +30%% (stacks)	指揮: %s · %s のタワー威力 +30%% (重複)	指挥: %s · %s 塔威力 +30%% (可叠加)	指揮: %s · %s 塔威力 +30%% (可疊加)	PDBoardDraw.h
 지휘: %s 타워 위력 +30%% (겹침)	Command: %s towers power +30%% (stacks)	指揮: %s タワー威力 +30%% (重複可)	指挥: %s 塔威力 +30%% (可叠加)	指揮: %s 塔威力 +30%% (可疊加)	PDBoardDraw.h
+상위 조커: %s (%s + %s)	Upper Joker: %s (%s + %s)	上位ジョーカー: %s (%s + %s)	上位小丑: %s (%s + %s)	上位小丑: %s (%s + %s)	PDBoardDraw.h
+%s 대장: %s	%s captain: %s	%s 隊長: %s	%s 队长: %s	%s 隊長: %s	PDBoardDraw.h
 와일드 카드	Wild Card	ワイルドカード	百搭牌	百搭牌	PDBoardDraw.h
 보충	Draw	補充	补牌	補牌	PDBoardDraw.h
 수리	Repair	修理	修复	修復	PDBoardDraw.h
@@ -272,6 +311,8 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로	Click a picked material = remove · right-click elsewhere / Esc = back to list	選んだ素材をクリック = 外す · ほかを右クリック / Esc = リストへ	点击已选素材 = 移除 · 右键别处 / Esc = 返回列表	點擊已選素材 = 移除 · 右鍵別處 / Esc = 返回列表	PDBoardPaint.cpp
 %s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기	Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off	%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる	合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭	合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉	PDBoardPaint.cpp
 %s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
+상위: %s	Upper: %s	上位: %s	上位: %s	上位: %s	PDBoardPaint.cpp
+상위 조커 ???	Upper Joker ???	上位ジョーカー ???	上位小丑 ???	上位小丑 ???	PDBoardPaint.cpp
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
 판매 +%d 경험치	Sell +%d XP	売却 +%d 経験値	出售 +%d 经验	出售 +%d 經驗	PDBoardPaint.cpp
 위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
@@ -289,7 +330,6 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 사거리 %.1f → %.1f · 범위 %.1f → %.1f	Range %.1f → %.1f · Area %.1f → %.1f	射程 %.1f → %.1f · 範囲 %.1f → %.1f	射程 %.1f → %.1f · 范围 %.1f → %.1f	射程 %.1f → %.1f · 範圍 %.1f → %.1f	PDBoardPaint.cpp
 합성하면: %s %s · %s Lv%d	After fusing: %s %s · %s Lv%d	合成すると: %s %s · %s Lv%d	合成后: %s %s · %s Lv%d	合成後: %s %s · %s Lv%d	PDBoardPaint.cpp
 재료 %d장의 위력 합 → 합성 타워 하나	Total of %d material cards → one fused tower	素材 %d 枚の威力合計 → 合成タワー1つ	%d 张素材的威力总和 → 一座合成塔	%d 張素材的威力總和 → 一座合成塔	PDBoardPaint.cpp
-%s 대장: %s	%s captain: %s	%s 隊長: %s	%s 队长: %s	%s 隊長: %s	PDBoardPaint.cpp
 공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardPaint.cpp
 사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardPaint.cpp
  · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardPaint.cpp
@@ -344,10 +384,13 @@ K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴	K Skill Tree
 즉시	Instant	即時	即时	即時	PDBoardPaint.cpp
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
 부적 칸이 가득 찼다 (5/5)	Charm slots are full (5/5)	お守り枠がいっぱい (5/5)	护符栏已满 (5/5)	護符欄已滿 (5/5)	PDBoardPaint.cpp
+상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardPaint.cpp
+서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커	Two different jokers side by side, both Joker Level 10 (5 if you took its tree tip) → Upper Joker	異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 (ツリー末端を取ったジョーカーは5) → 上位ジョーカー	两个不同的小丑相邻，且都达到小丑等级10 (点了技能树末端的小丑为5) → 上位小丑	兩個不同的小丑相鄰，且都達到小丑等級10 (點了技能樹末端的小丑為5) → 上位小丑	PDBoardPaint.cpp
+만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardPaint.cpp
+Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jokers · J / Esc: close	Tab: 基本 ↔ 上位ジョーカー · J / Esc: 閉じる	Tab: 基本 ↔ 上位小丑 · J / Esc: 关闭	Tab: 基本 ↔ 上位小丑 · J / Esc: 關閉	PDBoardPaint.cpp
 %d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardPaint.cpp
 족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다	Pick 3 (or 2) hands that match a recipe to make a Joker (anywhere on the board). 3 hands use more cards, so it's stronger	役を3つ(または2つ)選んでレシピに合えばジョーカー (盤のどこでも)。3つの方がカードが多くて強い	选 3 个(或 2 个)牌型, 符合配方即成小丑 (棋盘任何位置)。3 个的卡更多, 更强	選 3 個(或 2 個)牌型, 符合配方即成小丑 (棋盤任何位置)。3 個的卡更多, 更強	PDBoardPaint.cpp
 위력 %s	Power %s	威力 %s	威力 %s	威力 %s	PDBoardPaint.cpp
-만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardPaint.cpp
 3개	3 hands	3つ	3个	3個	PDBoardPaint.cpp
 2개	2 hands	2つ	2个	2個	PDBoardPaint.cpp
 %s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardPaint.cpp
@@ -363,6 +406,8 @@ K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴	K Skill Tree
 × 카드 수 덤 (한 장마다 +%d%%)	× card count bonus (+%d%% per card)	× カード枚数ボーナス (1枚ごと +%d%%)	× 卡牌数量加成 (每张 +%d%%)	× 卡牌數量加成 (每張 +%d%%)	PDBoardPaint.cpp
 3개 레시피(6장 이상)가 2개(4장)보다 세다	3-hand recipes (6+ cards) beat 2-hand ones (4 cards)	3つのレシピ(6枚以上)は2つ(4枚)より強い	3个的配方(6张以上)比2个的(4张)更强	3個的配方(6張以上)比2個的(4張)更強	PDBoardPaint.cpp
 카드 클릭: 크게 보기 · J / Esc: 닫기	Click a card: enlarge · J / Esc: close	カードをクリック: 拡大 · J / Esc: 閉じる	点击卡牌: 放大 · J / Esc: 关闭	點擊卡牌: 放大 · J / Esc: 關閉	PDBoardPaint.cpp
+기본 조커	Basic Jokers	基本ジョーカー	基本小丑	基本小丑	PDBoardPaint.cpp
+상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardPaint.cpp
 칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)	Chips %s · You earn chips when a run ends (wave + 2 × levels gained + clear bonus)	チップ %s · ラン終了時にチップを得る (ウェーブ + 2 × 上がったレベル + クリアボーナス)	筹码 %s · 一局结束时获得筹码 (波次 + 2 × 提升的等级 + 通关奖励)	籌碼 %s · 一局結束時獲得籌碼 (波次 + 2 × 提升的等級 + 通關獎勵)	PDBoardPaint.cpp
 판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다	Upgrades that stay after a run. Raise them with chips on the title screen	ラン終了後も残る強化。タイトル画面でチップを使って上げる	一局结束后仍保留的强化。在标题画面用筹码提升	一局結束後仍保留的強化。在標題畫面用籌碼提升	PDBoardPaint.cpp
 최대	Max	最大	最大	最大	PDBoardPaint.cpp
