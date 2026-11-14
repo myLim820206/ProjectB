@@ -1160,7 +1160,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		const int HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 		for (const FPDSynergy& S : G.Synergies)
 			if (std::find(S.Cells.begin(), S.Cells.end(), HKey) != S.Cells.end() || (HandFilter >= 0 && (int32)S.Kind == HandFilter)) Hov.push_back(S); // 필터로 고른 족보는 이름표도 (D-148)
-		if (!bPv) DrawBadges(Hov, 1.f);
+		if (!bPv && FeedJoker < 0) DrawBadges(Hov, 1.f); // 먹이기 중엔 [먹이기] 버튼이 족보 이름을 대신한다 (D-197)
 	}
 	if (bPv) DrawBadges(Preview, 1.f);
 	// 합성 위치 고르는 중: 재료 칸을 깜빡이고, 마우스가 올라간 칸을 표시 (기본 칸 없음, D-194)
@@ -1334,6 +1334,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			if (bHov && PickCells.empty()) F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Fuse, I), B.X, B.Y - FuseH - 6.f);
 		}
 	// 먹이기 (D-131): 평소엔 먹일 족보가 있는 조커 위에 작은 "먹이" 표시만. 조커를 클릭하면 먹이기 모드
+	bool bFeedBtnHov = false; // [먹이기] 버튼 위: 타워 툴팁을 띄우지 않는다 (D-197)
 	if (!bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
 	{
 		const std::vector<FPDFeed> Feeds = G.FeedTargets();
@@ -1374,14 +1375,15 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, bHov ? 3.f : 2.4f, 1.2f + 1.2f * Wv);
 					F.Dashed({CellCenter(K), JC}, WithAlpha(JokerPink, bHov ? 0.8f : 0.4f), 1.3f, 4.f, 5.f);
 				}
-				if (bHov)
+				if (bHov) // 한 자리에 두 줄로 (D-197): 조커가 얻는 것 + 판 위력 (예전엔 조커 위·버튼 위로 흩어져 이름표·툴팁과 겹쳤다)
 				{
+					bFeedBtnHov = true;
 					const FPDTower& Jt = G.Towers.at(FeedJoker);
 					int Lv = Jt.JLevel;
 					float Xp = Jt.JXp + Fd.Xp;
 					while (Lv < JokerMaxLevel && Xp >= JokerXpNeed(Lv)) { Xp -= JokerXpNeed(Lv); ++Lv; }
-					F.Badge(TrF(TEXT("위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s"), Fd.Gain / FMath::Max(0.01f, Jt.Mult) * 100.f, Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), JC.X, JC.Y - CS * 0.75f, JokerPink, 1.f); // 흡수 (D-191)
-					F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
+					F.Badge(TrF(TEXT("위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s"), Fd.Gain / FMath::Max(0.01f, Jt.Mult) * 100.f, Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), B.X, B.Y - FuseH - 22.f, JokerPink, 1.f); // 흡수 (D-191)
+					F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 5.f);
 				}
 				BadgeRects.Add(FBox2f(FVector2f(B.X - BW / 2.f, B.Y - FuseH / 2.f), FVector2f(B.X - BW / 2.f + BW, B.Y - FuseH / 2.f + FuseH))); // 툴팁이 피할 자리 (D-150)
 				F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
@@ -1501,7 +1503,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false, Cols * CS - 20.f);
 	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
-	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward)
+	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward && !bFeedBtnHov)
 	{
 		auto It = G.Towers.find(CellKey(HoverX, HoverY));
 		if (It != G.Towers.end())
