@@ -49,8 +49,8 @@ def rot(p, c, a):
     return (c[0] + x * co - y * s, c[1] + x * s + y * co)
 
 
-def soldier(kind, cx, cy, R, t):
-    """선 목록 [(점들, 색, 굵기)]. cy = 발바닥. t = 걷기 위상 0..1"""
+def soldier(kind, cx, cy, R, t, flop=False):
+    """선 목록 [(점들, 색, 굵기)]. cy = 발바닥. t = 걷기 위상 0..1. flop = 카드가 흐느적 휘며 걷기 (D-182 시안)"""
     name, st, col, wk, hk, spd, wpn = kind
     c = HX(col)
     L = []
@@ -74,6 +74,13 @@ def soldier(kind, cx, cy, R, t):
     # 몸통 카드
     top = hip[1] - bh
     body_c = (cx, top + bh / 2)
+    # 흐느적 (D-182 시안): 카드 윗부분이 걸음보다 조금 늦게 좌우로 휘청 (위로 갈수록 크게), 몸 전체도 살짝 흔들린다
+    bend = (0.26 * R * math.sin(ph - 0.9)) if flop else 0.0
+    wob = (math.radians(5) * math.sin(ph - 0.4)) if flop else 0.0
+
+    def W(q):
+        v = min(1.0, max(0.0, (q[1] - top) / bh)) if bh > 0 else 0.0
+        return rot((q[0] + bend * (1 - v) ** 2, q[1]), hip, lean + wob)
     P = []
     r = 0.12 * R
     for (ox, oy, a0) in ((bw / 2 - r, -bh / 2 + r, -90), (bw / 2 - r, bh / 2 - r, 0), (-bw / 2 + r, bh / 2 - r, 90), (-bw / 2 + r, -bh / 2 + r, 180)):
@@ -81,37 +88,43 @@ def soldier(kind, cx, cy, R, t):
             a = math.radians(a0 + k * 15)
             P.append((body_c[0] + ox + math.cos(a) * r, body_c[1] + oy + math.sin(a) * r))
     P.append(P[0])
-    P = [rot(p, hip, lean) for p in P]
+    if flop:  # 곧은 변을 잘게 나눠야 휘어 보인다
+        Q = [P[0]]
+        for a, b in zip(P, P[1:]):
+            n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / (0.08 * R)))
+            Q += [(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n) for k in range(1, n + 1)]
+        P = Q
+    P = [W(p) for p in P]
     L.append((P, c, 2.4 if name == '탱크' else 1.7))
     if wpn in ('split', 'b_split'):  # 가운데 찢어진 금
         zz = [(body_c[0] + (0.08 if k % 2 else -0.08) * bw, top + bh * k / 6) for k in range(7)]
-        L.append(([rot(p, hip, lean) for p in zz], c, 1.2))
+        L.append(([W(p) for p in zz], c, 1.2))
     # 무늬는 카드 귀퉁이에 작게 (왼쪽 위, 오른쪽 아래), 가운데는 얼굴 (머리 없이 카드가 곧 몸이자 얼굴)
     pr = 0.085 * R * min(wk, hk)
     for (ox, oy) in ((-bw / 2 + 0.12 * R * wk, -bh / 2 + 0.14 * R * hk), (bw / 2 - 0.12 * R * wk, bh / 2 - 0.14 * R * hk)): # 귀퉁이 끝으로 (얼굴과 안 겹치게)
         for s in neon.suit(st)(body_c[0] + ox, body_c[1] + oy, pr):
-            L.append(([rot(p, hip, lean) for p in s], c, 1.1))
+            L.append(([W(p) for p in s], c, 1.1))
     fc = (body_c[0], body_c[1] - 0.04 * R)
     ex, ey, er = 0.16 * R * min(wk, 1.1), 0.1 * R, 0.09 * R # 게임 크기에서도 보이게 눈을 크게
     blink = (t * spd * 1.3) % 1.0 > 0.9  # 가끔 눈 깜빡
     if wpn == 'b_hex':  # 외눈
-        L.append(([rot(p, hip, lean) for p in neon.circle(fc[0], fc[1] - ey, er * 1.6, 16)], c, 1.5))
-        L.append(([rot(p, hip, lean) for p in neon.circle(fc[0], fc[1] - ey, er * 0.6, 10)], c, 1.3))
+        L.append(([W(p) for p in neon.circle(fc[0], fc[1] - ey, er * 1.6, 16)], c, 1.5))
+        L.append(([W(p) for p in neon.circle(fc[0], fc[1] - ey, er * 0.6, 10)], c, 1.3))
     for s in (-1, 1) if wpn != 'b_hex' else ():
         e_c = (fc[0] + s * ex, fc[1] - ey)
         if ghost:  # 텅 빈 눈
-            L.append(([rot(p, hip, lean) for p in neon.circle(e_c[0], e_c[1] + 0.02 * R, er * 1.2, 12)], c, 1.4))
+            L.append(([W(p) for p in neon.circle(e_c[0], e_c[1] + 0.02 * R, er * 1.2, 12)], c, 1.4))
             continue
         if blink:
-            L.append(([rot((e_c[0] - er, e_c[1]), hip, lean), rot((e_c[0] + er, e_c[1]), hip, lean)], c, 1.4))
+            L.append(([W((e_c[0] - er, e_c[1])), W((e_c[0] + er, e_c[1]))], c, 1.4))
         else:
-            L.append(([rot(p, hip, lean) for p in neon.circle(e_c[0], e_c[1], er, 12)], c, 1.4))
+            L.append(([W(p) for p in neon.circle(e_c[0], e_c[1], er, 12)], c, 1.4))
             pup = (e_c[0] + 0.02 * R, e_c[1] + 0.01 * R)
-            L.append(([rot(p, hip, lean) for p in neon.circle(pup[0], pup[1], er * 0.35, 8)], c, 1.2))
+            L.append(([W(p) for p in neon.circle(pup[0], pup[1], er * 0.35, 8)], c, 1.2))
         if name in ('탱크', '보스: 왕') or (boss and wpn not in ('b_regen',)):  # 짙은 눈썹
-            L.append(([rot((e_c[0] - s * 0.09 * R, e_c[1] - 0.12 * R), hip, lean), rot((e_c[0] + s * 0.07 * R, e_c[1] - 0.08 * R), hip, lean)], c, 1.4))
+            L.append(([W((e_c[0] - s * 0.09 * R, e_c[1] - 0.12 * R)), W((e_c[0] + s * 0.07 * R, e_c[1] - 0.08 * R))], c, 1.4))
     nose = [(fc[0], fc[1] - 0.02 * R), (fc[0] - 0.04 * R, fc[1] + 0.09 * R), (fc[0] + 0.02 * R, fc[1] + 0.09 * R)]
-    L.append(([rot(p, hip, lean) for p in nose], c, 1.2))
+    L.append(([W(p) for p in nose], c, 1.2))
     mw = 0.2 * R
     if wpn == 'b_devour':   # 크게 벌린 둥근 입
         mouth = neon.circle(fc[0], fc[1] + 0.22 * R, 0.13 * R + 0.03 * R * abs(sw), 16)
@@ -122,17 +135,17 @@ def soldier(kind, cx, cy, R, t):
     else:                   # 걸음마다 오물오물 (살짝 열렸다 닫힘)
         op = 0.03 * R + 0.04 * R * abs(sw)
         mouth = [(fc[0] - mw * 0.7, fc[1] + 0.2 * R), (fc[0], fc[1] + 0.2 * R + op), (fc[0] + mw * 0.7, fc[1] + 0.2 * R), (fc[0], fc[1] + 0.2 * R - op * 0.3), (fc[0] - mw * 0.7, fc[1] + 0.2 * R)]
-    L.append(([rot(p, hip, lean) for p in mouth], c, 1.3))
+    L.append(([W(p) for p in mouth], c, 1.3))
     if wpn in ('king', 'b_regen', 'b_warlord'):  # 왕관은 카드 위에 바로
         hx, hy = body_c[0], top
         crown = [(hx - 0.3 * R, hy), (hx - 0.3 * R, hy - 0.28 * R), (hx - 0.15 * R, hy - 0.12 * R), (hx, hy - 0.34 * R), (hx + 0.15 * R, hy - 0.12 * R),
                  (hx + 0.3 * R, hy - 0.28 * R), (hx + 0.3 * R, hy)]
-        L.append(([rot(p, hip, lean) for p in crown], HX('ffd96a'), 1.6))
+        L.append(([W(p) for p in crown], HX('ffd96a'), 1.6))
     # 팔 (어깨에서, 다리와 반대로 흔든다)
     sh_y = top + 0.22 * bh
     for s in (1, -1):
-        sh = rot((cx + s * bw / 2, sh_y), hip, lean)
-        a = -math.radians(30) * sw * s
+        sh = W((cx + s * bw / 2, sh_y))
+        a = -math.radians(45 if flop else 30) * math.sin(ph - (0.6 if flop else 0.0)) * s
         hand = (sh[0] + s * 0.14 * R + math.sin(a) * 0.07 * R, sh[1] + 0.26 * R * math.cos(a * 0.5)) # 짧은 팔
         L.append(([sh, hand], c, 1.5))
         if s == 1:
@@ -167,7 +180,7 @@ def soldier(kind, cx, cy, R, t):
         tip = (rh[0], rh[1] - 1.1 * R)
         L.append(([(rh[0], rh[1] + 0.2 * R), tip], c, 1.6))
         L.append((neon.circle(tip[0], tip[1] - 0.1 * R, 0.1 * R, 14), c, 1.6))
-        cape = [rot((cx - bw / 2 - 0.05 * R, top + 0.1 * R), hip, lean), (cx - bw / 2 - 0.35 * R - 0.08 * R * sw, hip[1] + 0.15 * R), (cx - bw / 2 - 0.05 * R, hip[1] + 0.05 * R)]
+        cape = [W((cx - bw / 2 - 0.05 * R, top + 0.1 * R)), (cx - bw / 2 - 0.35 * R - 0.08 * R * sw, hip[1] + 0.15 * R), (cx - bw / 2 - 0.05 * R, hip[1] + 0.05 * R)]
         L.append((cape, c, 1.3))
     elif boss:
         boss_extra(L, wpn, c, cx, top, bw, bh, body_c, hip, lean, rh, lh, R, t, sw, ph)
@@ -263,6 +276,46 @@ def bosses(out):
     M.draw(img).resize((W, H), Image.LANCZOS).save(out)
 
 
+FLOP_PICK = [0, 1, 2, 3, 4, 5]
+
+
+def flop_sheet(out):
+    """흐느적 시안: 고른 종류 × 8프레임 (위) + 지금 4프레임 비교 (아래)"""
+    W_, H_, S = 1280, 900, 2
+    M = neon._Mock(S, W_, H_)
+    R = 44
+    for row, ki in enumerate(FLOP_PICK):
+        k = KINDS[ki]
+        y = 30 + row * 140
+        M.tx(20, y + 10, k[0], HX(k[2]), 15, 'lm')
+        for f in range(8):
+            for pts, c, wd in soldier(k, 200 + f * 132, y + 125, R, f / 8, flop=True):
+                M.ln(pts, c, wd)
+    M.tx(20, H_ - 20, '흐느적 8프레임 (위아래로 카드 윗부분이 걸음보다 늦게 휘청)', (95, 104, 120), 11, 'lm')
+    img = Image.new('RGB', (W_ * S, H_ * S), neon.BG)
+    M.draw(img).resize((W_, H_), Image.LANCZOS).save(out)
+
+
+def flop_gif(out):
+    W_, H_, S = 960, 300, 1
+    frames = []
+    N = 32
+    for f in range(N):
+        M = neon._Mock(S, W_, H_)
+        for x in range(0, W_, 24):
+            M.ln([(x, 200), (x + 12, 200)], (60, 110, 140), 1.0)
+        for i, ki in enumerate(FLOP_PICK + [7]):
+            k = KINDS[ki]
+            spd = k[5]
+            tt = (f / N * spd * 2) % 1.0
+            x = (i * 135 + 60 + f / N * 135 * spd) % (W_ + 80) - 40
+            for pts, c, wd in soldier(k, x, 220, 36 if ki != 7 else 40, tt, flop=True):
+                M.ln(pts, c, wd)
+        img = Image.new('RGB', (W_ * S, H_ * S), neon.BG)
+        frames.append(M.draw(img).convert('P', palette=Image.ADAPTIVE))
+    frames[0].save(out, save_all=True, append_images=frames[1:], duration=60, loop=0)
+
+
 def sheet(out):
     W, H, S = 1280, 990, 2
     M = neon._Mock(S, W, H)
@@ -308,5 +361,5 @@ def gif(out):
 
 
 if __name__ == '__main__':
-    {'sheet': sheet, 'gif': gif, 'bosses': bosses}[sys.argv[1]](sys.argv[2])
+    {'sheet': sheet, 'gif': gif, 'bosses': bosses, 'flop': flop_sheet, 'flopgif': flop_gif}[sys.argv[1]](sys.argv[2])
     print('saved', sys.argv[2])
