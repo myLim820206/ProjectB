@@ -489,7 +489,17 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			}
 			if (bStatic) continue; // 레벨·경험치는 자주 바뀌어 움직이는 층에서
 			// 레벨 (위 오른쪽) + 경험치 막대 (아래), 레벨업 순간 막대가 번쩍 (D-125)
-			F.Text(FString::Printf(TEXT("Lv%d"), T.JLevel), P.X + CS * 0.5f - 3.f, P.Y - CS * 0.5f + 10.f, JokerPink, 9.f, 2, true, CS - 6.f);
+			{ // 레벨 딱지 (D-174): 칸 위쪽 가운데에 진한 바탕 + 분홍 테두리 + 흰 굵은 숫자. 강화(레벨 10 이상)면 금색
+				const FString Lv = FString::Printf(TEXT("Lv%d"), T.JLevel);
+				const bool bUp = T.JLevel >= JokerUpLevel;
+				const FLinearColor LC = bUp ? Hex(TEXT("ffd96a")) : JokerPink;
+				const float W = FMath::Min(CS + 4.f, FCanvas::Measure(Lv, FCanvas::Font(10.f, true)).X + 10.f), H = 14.f;
+				const float LX0 = P.X - W / 2.f, LY0 = P.Y - CS * 0.5f - H / 2.f + 1.f;
+				F.Box(LX0, LY0, W, H, Hex(TEXT("06060b"), 0.92f));
+				F.Box(LX0, LY0, W, H, WithAlpha(LC, 0.22f));
+				F.Lines(FCanvas::RectPoints(LX0, LY0, W, H), LC, 1.2f);
+				F.TextCentered(Lv, P.X, LY0 + H / 2.f, FLinearColor::White, 10.f, true, W - 2.f);
+			}
 			if (T.JLevel < JokerMaxLevel)
 			{
 				const float BW = CS - 12.f, BX = P.X - BW / 2.f, BY = P.Y + CS * 0.5f - 5.f;
@@ -1189,7 +1199,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			for (const auto& KV : PerJoker)
 			{
 				const FVector2f C0 = CellPx((float)(KV.Key % Cols), (float)(KV.Key / Cols));
-				const FVector2f Bp = C0 + FVector2f(12.f, 9.f);
+				const FVector2f Bp = C0 + FVector2f(12.f, CS - 14.f); // 왼쪽 아래 (위쪽 가운데는 레벨 딱지, D-174)
 				F.Box(Bp.X - 10.f, Bp.Y - 6.f, 20.f, 12.f, Hex(TEXT("06060b"), 0.9f));
 				F.Glow(FCanvas::RoundRectPoints(Bp.X - 10.f, Bp.Y - 6.f, 20.f, 12.f, 5.f), JokerPink, 1.f, 0.5f + 0.5f * Pulse);
 				F.TextCentered(TrF(TEXT("먹이%d"), KV.Value), Bp.X, Bp.Y, JokerPink, 7.f, true, 19.f);
