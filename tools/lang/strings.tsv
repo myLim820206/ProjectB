@@ -283,6 +283,12 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
 자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
 끄기 X	Off X	やめる X	关闭 X	關閉 X	PDBoardPaint.cpp
+멀리 있는 적도 레이저로 바로 맞힌다	Hits even distant enemies instantly with a laser	遠くの敵もレーザーで即座に撃ち抜く	用激光瞬间命中远处的敌人	用雷射瞬間命中遠處的敵人	PDBoardPaint.cpp
+미사일이 터져 둘레 적에게도 피해	Missiles explode, damaging nearby enemies too	ミサイルが爆発し周りの敵にもダメージ	导弹爆炸, 周围敌人也受伤害	導彈爆炸, 周圍敵人也受傷害	PDBoardPaint.cpp
+탄환을 빠르게 여러 발	Fires bullets rapidly	弾丸を素早く何発も撃つ	快速连发子弹	快速連發子彈	PDBoardPaint.cpp
+서리 구체로 맞은 적을 느리게	Frost orbs slow the enemies they hit	霜の球で当たった敵を遅くする	冰霜球使被击中的敌人减速	冰霜球使被擊中的敵人減速	PDBoardPaint.cpp
+아무 숫자·무늬로 쳐서 족보를 이어 준다	Counts as any rank and suit to complete hands	どの数字・スートにもなって役をつなぐ	可当任意点数与花色来组成牌型	可當任意點數與花色來組成牌型	PDBoardPaint.cpp
+클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click (number key) → click a tile: place · right-click: discard	クリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDBoardPaint.cpp
 판 위력	Board Power	盤の威力	场上威力	場上威力	PDBoardPaint.cpp
 초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDBoardPaint.cpp
 족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDBoardPaint.cpp

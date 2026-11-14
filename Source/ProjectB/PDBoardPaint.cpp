@@ -46,11 +46,11 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 		{
 			const FPDCard Card = Ci == 52 ? FPDCard{0, EPDSuit::Wild} : FPDCard{2 + Ci / 4, (EPDSuit)(Ci % 4)};
 			for (int32 Lv = 1; Lv <= 4; ++Lv)
-				for (int32 St = 0; St < 2; ++St)
+				for (int32 St = 0; St < 1; ++St) // 족보 타워(채움)는 그릴 때 덧그린다 (D-176)
 				{
-					const FVector2f P = AtlasCellCenter(TowerSprite(Card, Lv, St != 0));
+					const FVector2f P = AtlasCellCenter(TowerSprite(Card, Lv, false));
 					if (!Vis(P)) continue;
-					F.CardShape(Card, P.X, P.Y, R, 1.f, St != 0, 0.5f);
+					F.CardShape(Card, P.X, P.Y, R, 1.f, false, 0.5f);
 					for (int L = 2; L <= Lv; ++L)
 					{
 						const float H = R * 0.98f + (L - 1) * 3.5f;
@@ -65,11 +65,21 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 		const FVector2f P = AtlasCellCenter(AtlasJoker0 + K);
 		if (Vis(P)) F.JokerTower(K, P.X, P.Y, R, 1.f, 0.5f);
 	}
+	{ // 둔화 눈송이 (D-178): 6갈래 + 가지, 흰색 (그릴 때 얼음색으로)
+		const FVector2f P = AtlasCellCenter(AtlasSnow);
+		if (Vis(P))
+			for (int32 K = 0; K < 6; ++K)
+			{
+				const FVector2f D = Rot2(FVector2f(0.f, -1.f), K * TwoPi / 6.f), N(-D.Y, D.X);
+				F.Glow({P, P + D * 30.f}, FLinearColor::White, 1.6f, 0.8f);
+				for (const float B : {0.45f, 0.72f}) { const FVector2f Q = P + D * 30.f * B; const float L = B < 0.6f ? 9.f : 6.f; F.Glow({Q + (D - N) * L * 0.7f, Q, Q + (D + N) * L * 0.7f}, FLinearColor::White, 1.4f, 0.6f); }
+			}
+	}
 	for (int32 Sh = 0; Sh < SoldierShapes; ++Sh) // 카드병정 적 (D-175): 흰색, 걷기 4프레임
 		for (int32 Fr = 0; Fr < SoldierFrames; ++Fr)
 		{
 			const FVector2f P = AtlasCellCenter(AtlasSoldier0 + Sh * SoldierFrames + Fr);
-			if (Vis(P)) F.CardSoldier(Sh, P + FVector2f(0.f, SoldierFoot), Sh == 7 ? SoldierBossBakeR : SoldierBakeR, Fr / (float)SoldierFrames, FLinearColor::White);
+			if (Vis(P)) F.CardSoldier(Sh, P + FVector2f(0.f, SoldierFoot), Sh >= 7 ? SoldierBossBakeR : SoldierBakeR, Fr / (float)SoldierFrames, FLinearColor::White);
 		}
 	// 이펙트 모양 (D-141): 흰색, 반지름 AtlasFxR, 0도에서 시작 (그릴 때 색·크기·회전)
 	const FLinearColor W = FLinearColor::White;
@@ -476,6 +486,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 
 	// ---- 타워 (D-140: 아틀라스가 준비되면 카드·조커는 구운 그림을 한 층에 모아 찍는다)
 	const bool bAtlas = bStatic && UseAtlas();
+	const int32 FillLayer = bAtlas ? F.NextLayer() : 0; // 족보 타워 채움 (카드 그림 밑, D-176)
 	const int32 SpriteLayer = bAtlas ? F.NextLayer() : 0;
 	const int32 DotLayer = bAtlas ? F.NextLayer() : 0; // 레벨 점 (카드 그림 위)
 	if (bAtlas) F.NextLayer();
@@ -519,7 +530,13 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		if (bStatic == bYoung) continue;
 		if (bAtlas) // 흰색으로 구운 카드를 카드 색으로 물들여 찍고, 레벨 점은 따로 (D-154)
 		{
-			F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, T.Eff.Hand >= 0)], P.X, P.Y, BoardCardK, SuitColor(T.Card.Suit));
+			F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, false)], P.X, P.Y, BoardCardK, SuitColor(T.Card.Suit));
+			if (T.Eff.Hand >= 0) // 족보에 든 타워: 옅은 채움 + 한 번 더 찍어 빛을 진하게 (예전엔 따로 구운 칸, D-176)
+			{
+				const float Hh = CS * 0.4f * BoardCardK * 0.98f;
+				F.BoxAt(FillLayer, P.X - Hh, P.Y - Hh, Hh * 2.f, Hh * 2.f, WithAlpha(SuitColor(T.Card.Suit), 0.08f + 0.05f * Pulse));
+				F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, false)], P.X, P.Y, BoardCardK, WithAlpha(SuitColor(T.Card.Suit), 0.5f));
+			}
 			if (T.Level >= 2)
 				for (int L = 0; L < T.Level; ++L) F.BoxAt(DotLayer, P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, LevelDotColor());
 			continue;
@@ -594,7 +611,23 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			const int32 Sh = SoldierShape(E.Type);
 			const int32 Fr = (int32)(FMath::Fmod(E.D * 2.2f, 1.f) * SoldierFrames) % SoldierFrames;
 			const float Sc = bBoss ? 0.95f : Sh == 6 ? 0.42f : 0.48f;
-			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Col);
+			const FLinearColor Ice = Hex(TEXT("b8f0ff"));
+			const float Fz = E.SlowT > 0.f ? FMath::Min(1.f, E.SlowT * 3.f) : 0.f; // 둔화 (D-178): 몸이 얼음빛으로 물든다
+			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Fz > 0.f ? FMath::Lerp(Col, WithAlpha(Ice, Col.A), 0.55f * Fz) : Col);
+			if (Fz > 0.f) // 둔화 (D-178): 발밑 얼음 고리(납작한 타원) + 머리 위에서 천천히 도는 눈송이
+			{
+				const float FeetY = P.Y + 33.f * Sc, Rx = bBoss ? 30.f : 15.f, Ry = Rx * 0.32f;
+				TArray<FVector2f> Ring;
+				for (int32 K = 0; K <= 28; ++K) { const float A = K / 28.f * TwoPi; Ring.Add(FVector2f(P.X + FMath::Cos(A) * Rx, FeetY + FMath::Sin(A) * Ry)); }
+				F.Glow(Ring, WithAlpha(Ice, 0.75f * Fz), 1.2f, 0.9f);
+				for (int32 K = 0; K < 3; ++K) // 고리에서 솟는 얼음 결정 셋
+				{
+					const float A = Clock * 0.6f + K * TwoPi / 3.f;
+					const FVector2f B(P.X + FMath::Cos(A) * Rx, FeetY + FMath::Sin(A) * Ry);
+					F.Lines({B, B + FVector2f(0.f, -(bBoss ? 9.f : 5.f))}, WithAlpha(Ice, 0.8f * Fz), 1.2f);
+				}
+				F.SpriteRot(F.NextLayer(), &Atlas->Brushes[AtlasSnow], P.X, P.Y - 4.f * Sc - 40.f * Sc, bBoss ? 0.28f : 0.18f, Clock * 0.8f + E.Id, WithAlpha(Ice, 0.9f * Fz));
+			}
 			if (E.Type == EPDEnemy::Warden) // 보호막 켜짐/꺼짐은 그대로 보여 준다
 			{
 				if (E.Shield > 0.f) F.Glow(FCanvas::CirclePoints(P, 30.f + 2.f * Pulse, 40), Col, 2.2f, 1.6f);
@@ -709,7 +742,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			break;
 		default: F.Glow(FCanvas::CirclePoints(P, 9.f, 20), Col, 2.f); break;
 		}
-		if (E.SlowT > 0.f) F.Lines(FCanvas::CirclePoints(P, bBoss ? 28.f : 15.f, 24), Hex(TEXT("8affc4"), 0.6f), 1.2f);
+		if (E.SlowT > 0.f && !UseAtlas()) F.Lines(FCanvas::CirclePoints(P, bBoss ? 28.f : 15.f, 24), Hex(TEXT("8affc4"), 0.6f), 1.2f); // 아틀라스가 없을 때만 예전 고리 (D-178)
 		const float W = bBoss ? 44.f : 24.f, BY = P.Y - (bBoss ? 34.f : 22.f);
 		F.Box(P.X - W / 2.f, BY, W, 3.f, Hex(TEXT("ffffff"), 0.15f));
 		const float HpNow = FMath::Max(0.f, E.Hp / E.MaxHp), HpOld = FMath::Max(HpNow, HpShown.FindRef(E.Id));
@@ -1543,6 +1576,27 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.TextCentered(SuitName(Card.Suit), X + CardW / 2.f, Y + CardH - 12.f, Col, 10.f, false, CardW - 6.f);
 		C.Text(FString::FromInt(I + 1), X + 7.f, Y + 14.f, Dim, 10.f);
 	}
+	// 손패 카드 툴팁 (D-177): 놓으면 될 타워의 공격력·연사·치명·사거리 (지금 부적·트리·강화 반영, 족보 효과 빼고) + 무늬 공격 설명
+	for (int32 I = 0; I < (int32)G.Hand.size(); ++I)
+	{
+		const float X = HandCardX(I, (int32)G.Hand.size());
+		if (!InRect(Mouse, X, HandY - 12.f, CardW, CardH + 12.f) || bMenu || bSettings || bTutorial) continue;
+		const FPDCard& Card = G.Hand[I];
+		FPDTower T;
+		T.Card = Card;
+		const FPDTowerStats St = TowerStats(T, G.CharmMask(), &G.Mods);
+		static const TCHAR* SuitHow[5] = {TEXT("멀리 있는 적도 레이저로 바로 맞힌다"), TEXT("미사일이 터져 둘레 적에게도 피해"), TEXT("탄환을 빠르게 여러 발"), TEXT("서리 구체로 맞은 적을 느리게"), TEXT("아무 숫자·무늬로 쳐서 족보를 이어 준다")};
+		const float TW = 260.f, TH = 104.f, TX = FMath::Clamp(X + CardW / 2.f - TW / 2.f, 8.f, DesignW - TW - 8.f), TY = HandY - 18.f - TH;
+		const FLinearColor SC = SuitColor(Card.Suit);
+		C.Box(TX, TY, TW, TH, Hex(TEXT("06060b"), 0.96f));
+		C.Glow(FCanvas::RoundRectPoints(TX, TY, TW, TH, 8.f), SC, 1.2f, 0.45f);
+		C.Text(TrF(TEXT("%s %s"), Card.IsWild() ? Tr(TEXT("와일드")) : *RankText(Card.Rank), SuitName(Card.Suit)), TX + 12.f, TY + 20.f, SC, 13.f, 0, true, TW - 24.f);
+		C.Text(SuitHow[FMath::Clamp((int32)Card.Suit, 0, 4)], TX + 12.f, TY + 38.f, Fg, 10.f, 0, false, TW - 24.f);
+		C.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), TX + 12.f, TY + 58.f, UiValue, 11.f, 0, false, TW - 24.f);
+		C.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), TX + 12.f, TY + 75.f, Grey, 11.f, 0, false, TW - 24.f);
+		C.Text(TEXT("클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TX + 12.f, TY + 93.f, Dim, 9.f, 0, false, TW - 24.f);
+		break;
+	}
 
 	// ---- 왼쪽 족보 안내
 	PaintHandGuide(C);
@@ -2023,7 +2077,12 @@ void SPDBoardWidget::PaintTutorial(FCanvas& C) const
 	C.Lines(FCanvas::RectPoints(GX, GY, GW, GH), WithAlpha(UiEdge, 0.25f), 1.f);
 	const bool bImg = UseAtlas();
 	auto Card = [&](const FPDCard& Cd, int32 Lv, bool bStrong, float X, float Y, float S) {
-		if (bImg) C.Sprite(C.NextLayer(), &Atlas->Brushes[TowerSprite(Cd, Lv, bStrong)], X, Y, S, SuitColor(Cd.Suit));
+		if (bImg)
+		{
+			if (bStrong) { const float Hh = CS * 0.4f * S * 0.98f; C.Box(X - Hh, Y - Hh, Hh * 2.f, Hh * 2.f, WithAlpha(SuitColor(Cd.Suit), 0.1f)); }
+			C.Sprite(C.NextLayer(), &Atlas->Brushes[TowerSprite(Cd, Lv, false)], X, Y, S, SuitColor(Cd.Suit));
+			if (bStrong) C.Sprite(C.NextLayer(), &Atlas->Brushes[TowerSprite(Cd, Lv, false)], X, Y, S, WithAlpha(SuitColor(Cd.Suit), 0.5f));
+		}
 		else C.CardShape(Cd, X, Y, CS * 0.4f * S, 1.f, bStrong, Pulse);
 	};
 	auto Joker = [&](int32 K, float X, float Y, float S) {

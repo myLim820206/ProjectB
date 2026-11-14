@@ -516,6 +516,12 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				{ int32 TP = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdtut="), TP)) { bTutorial = true; TutPage = FMath::Clamp(TP, 0, TutPages - 1); } } // 시험용: 튜토리얼 N쪽 띄우기
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdpause"))) bPaused = true; // 시험용: 일시정지 화면
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdwalk"))) { Game.Towers.clear(); Game.RebuildMods(); } // 시험용: 타워 없이 적이 걷는 모습
+				if (FParse::Param(FCommandLine::Get(), TEXT("pdhandtip")) && Game.Hand.size() > 0) Mouse = FVector2f(HandCardX(0, (int32)Game.Hand.size()) + CardW / 2.f, HandY + CardH / 2.f); // 시험용: 첫 손패 카드에 마우스
+				if (FParse::Param(FCommandLine::Get(), TEXT("pdbosses"))) // 시험용: 보스 13종을 길 위에 줄 세움 (느리게 걷는다)
+				{
+					const EPDEnemy Bs[13] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss, EPDEnemy::Charger, EPDEnemy::Summoner, EPDEnemy::Phantom, EPDEnemy::Warlord, EPDEnemy::Berserker, EPDEnemy::Blinker, EPDEnemy::Devourer, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Breaker};
+					for (int32 I = 0; I < 13; ++I) { FPDEnemy E; E.Type = Bs[I]; E.D = 3.f + I * 2.6f; E.Hp = E.MaxHp = E.BaseHp = 1e12f; E.Speed = 0.05f; E.Id = 900000 + I; E.Wave = 20; Game.Enemies.push_back(E); }
+				}
 				{ int32 RT = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdrank="), RT)) { bRanking = true; RankTab = RT; if (Ranking.Num() == 0) for (int32 I = 0; I < 13; ++I) { FRankEntry E; E.Wave = 40 - I * 2; E.Kills = 2000 - I * 97; E.Power = 900000.f / (I + 1); E.Time = FDateTime::Now().ToUnixTimestamp() - I * 86400; Ranking.Add(E); } LastRankPos = 2; } } // 시험용: 랭킹 창 (기록이 없으면 보기용 가짜, 저장 안 함)
 				GPDDebug.bShow = true;
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔
@@ -527,6 +533,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 			{
 				StressT += InDeltaTime;
 				Game.Speed = 10;
+				static const bool bSlowTest = FParse::Param(FCommandLine::Get(), TEXT("pdslow")); // 시험용: 모든 적 둔화
+				if (bSlowTest) for (FPDEnemy& E : Game.Enemies) { E.SlowT = FMath::Max(E.SlowT, 0.5f); E.SlowAmt = FMath::Max(E.SlowAmt, 0.3f); }
 				if (Game.Phase == EPDPhase::Build) Game.StartWave();
 				if (Game.Phase == EPDPhase::Reward) Game.TakeReward(-1);
 				static bool bShot = false; // 게임 안 스크린샷 (Saved/Screenshots): 부하 시험 화면 확인용

@@ -284,6 +284,12 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("덱 %d장"), TEXT("Deck %d"), TEXT("デッキ %d枚"), TEXT("牌库 %d张"), TEXT("牌庫 %d張")},
 	{TEXT("자리바꿈 ×%d"), TEXT("Swap ×%d"), TEXT("入れ替え ×%d"), TEXT("换位 ×%d"), TEXT("換位 ×%d")},
 	{TEXT("끄기 X"), TEXT("Off X"), TEXT("やめる X"), TEXT("关闭 X"), TEXT("關閉 X")},
+	{TEXT("멀리 있는 적도 레이저로 바로 맞힌다"), TEXT("Hits even distant enemies instantly with a laser"), TEXT("遠くの敵もレーザーで即座に撃ち抜く"), TEXT("用激光瞬间命中远处的敌人"), TEXT("用雷射瞬間命中遠處的敵人")},
+	{TEXT("미사일이 터져 둘레 적에게도 피해"), TEXT("Missiles explode, damaging nearby enemies too"), TEXT("ミサイルが爆発し周りの敵にもダメージ"), TEXT("导弹爆炸, 周围敌人也受伤害"), TEXT("導彈爆炸, 周圍敵人也受傷害")},
+	{TEXT("탄환을 빠르게 여러 발"), TEXT("Fires bullets rapidly"), TEXT("弾丸を素早く何発も撃つ"), TEXT("快速连发子弹"), TEXT("快速連發子彈")},
+	{TEXT("서리 구체로 맞은 적을 느리게"), TEXT("Frost orbs slow the enemies they hit"), TEXT("霜の球で当たった敵を遅くする"), TEXT("冰霜球使被击中的敌人减速"), TEXT("冰霜球使被擊中的敵人減速")},
+	{TEXT("아무 숫자·무늬로 쳐서 족보를 이어 준다"), TEXT("Counts as any rank and suit to complete hands"), TEXT("どの数字・スートにもなって役をつなぐ"), TEXT("可当任意点数与花色来组成牌型"), TEXT("可當任意點數與花色來組成牌型")},
+	{TEXT("클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Click (number key) → click a tile: place · right-click: discard"), TEXT("クリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる"), TEXT("点击(数字键) → 点击格子: 放置 · 右键: 弃牌"), TEXT("點擊(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌")},
 	{TEXT("판 위력"), TEXT("Board Power"), TEXT("盤の威力"), TEXT("场上威力"), TEXT("場上威力")},
 	{TEXT("초당 피해 어림"), TEXT("Est. damage/s"), TEXT("秒間ダメージ目安"), TEXT("每秒伤害估计"), TEXT("每秒傷害估計")},
 	{TEXT("족보 덤 ×%.1f"), TEXT("Hand bonus ×%.1f"), TEXT("役ボーナス ×%.1f"), TEXT("牌型加成 ×%.1f"), TEXT("牌型加成 ×%.1f")},
@@ -478,4 +484,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 477;
+static const int32 PDLangRowCount = 483;
