@@ -1587,7 +1587,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("조커 도감"), TEXT("J"), JokerPink, false);
 		Btn(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, TEXT("메뉴"), TEXT("Esc"), Grey, false);
 	}
-	// ---- 부적: 동그란 칸 다섯 + 이름·설명
+	// ---- 부적: 이름·설명
 	{
 		const float H = DesignH - 30.f - CharmY;
 		const int32 N = (int32)G.Charms.size();
@@ -1596,20 +1596,11 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Text(FString::Printf(TEXT("부적 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, Gold, 12.f, 0, true);
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		C.Text(FString::Printf(TEXT("다음 %d웨이브"), (W0 + CharmEvery - 1) / CharmEvery * CharmEvery), RX + PW - 14.f, CharmY + 22.f, Dim, 9.f, 2);
-		for (int32 K = 0; K < CharmMax; ++K)
-		{
-			const FVector2f Cc(RX + 26.f + K * 42.f, CharmY + 52.f);
-			if (K < N)
-			{
-				C.Glow(FCanvas::CirclePoints(Cc, 16.f, 28), Gold, 1.5f, 0.8f);
-				C.TextCentered(FString(CharmName((int)G.Charms[K])).Left(1), Cc.X, Cc.Y, Gold, 13.f, true);
-			}
-			else C.Glow(FCanvas::CirclePoints(Cc, 16.f, 28), WithAlpha(Dim, 0.6f), 1.f, 0.2f);
-		}
-		if (N == 0) C.Text(FString::Printf(TEXT("%d웨이브마다 하나를 고른다"), CharmEvery), RX + 14.f, CharmY + 98.f, Dim, 10.f, 0, false, PW - 28.f);
+		// 동그란 칸은 뺐다 (D-157): 이름·설명만
+		if (N == 0) C.Text(FString::Printf(TEXT("%d웨이브마다 하나를 고른다"), CharmEvery), RX + 14.f, CharmY + 50.f, Dim, 10.f, 0, false, PW - 28.f);
 		for (int32 I = 0; I < N; ++I)
 		{
-			const float Y = CharmY + 94.f + I * 32.f;
+			const float Y = CharmY + 50.f + I * 32.f;
 			C.Text(CharmName((int)G.Charms[I]), RX + 14.f, Y, Gold, 11.f, 0, true, PW - 28.f);
 			C.Text(CharmDesc((int)G.Charms[I]), RX + 14.f, Y + 14.f, Grey, 10.f, 0, false, PW - 28.f);
 		}
