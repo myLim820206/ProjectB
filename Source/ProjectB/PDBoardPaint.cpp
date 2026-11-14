@@ -1402,7 +1402,13 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			const float BX = P.X, BYp = P.Y;
 			F.Box(BX, BYp, 240.f, BH, Hex(TEXT("06060b"), 0.94f));
 			F.Glow(FCanvas::RoundRectPoints(BX, BYp, 240.f, BH, 8.f), SuitColor(T.Card.Suit), 1.2f, 0.4f);
-			F.Text(TrF(TEXT("%s %s · 레벨 %d"), T.Card.IsWild() ? Tr(TEXT("와일드")) : *RankText(T.Card.Rank), SuitName(T.Card.Suit), T.Level), BX + 10.f, BYp + 18.f, SuitColor(T.Card.Suit), 12.f, 0, true, 220.f);
+			{ // 합성 타워는 어떤 족보로 만들었는지 (D-172): "6 폭발 · 원 페어 Lv2"
+				const FString CardName = T.Card.IsWild() ? FString(Tr(TEXT("와일드"))) : RankText(T.Card.Rank);
+				const FString Title = T.Level >= 2 && T.FuseHand >= 0 && T.FuseHand < (int32)EPDHand::Count
+					? TrF(TEXT("%s %s · %s Lv%d"), *CardName, SuitName(T.Card.Suit), HandName((EPDHand)T.FuseHand), T.Level)
+					: TrF(TEXT("%s %s · 레벨 %d"), *CardName, SuitName(T.Card.Suit), T.Level);
+				F.Text(Title, BX + 10.f, BYp + 18.f, SuitColor(T.Card.Suit), 12.f, 0, true, 220.f);
+			}
 			F.Text(PowLine, BX + 10.f, BYp + 36.f, PowCol, 11.f, 0, true, 220.f);
 			F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), BX + 10.f, BYp + 54.f, Fg, 11.f, 0, false, 220.f);
 			F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), BX + 10.f, BYp + 70.f, Grey, 11.f, 0, false, 220.f);
