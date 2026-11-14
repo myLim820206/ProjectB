@@ -184,9 +184,10 @@ struct FPDTower
 	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
 	bool IsJoker() const { return Joker >= 0; }
 };
-// 조커 레벨 (D-098): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +10%, 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
+// 조커 레벨 (D-098): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +15% (D-191), 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
 constexpr int JokerMaxLevel = 9999;
-constexpr float JokerLevelDmg = 0.1f;
+constexpr float JokerLevelDmg = 0.15f; // 레벨마다 위력 +15% (D-191, 예전 10%)
+constexpr float JokerFeedAbsorb = 0.6f; // 먹이기: 먹인 타워 위력의 60% 를 조커 위력에 바로 더한다 (D-191)
 constexpr int JokerUpLevel = 10;
 inline float JokerXpNeed(int Level) { return 20.f + 10.f * (Level - 1); }
 constexpr float JokerKillXp = 1.f, JokerBossXp = 15.f; // 조커가 적을 처치하면 경험치 (D-125)
@@ -195,6 +196,7 @@ struct FPDFeed
 	int Syn = -1;   // 먹일 족보 번호
 	int Joker = -1; // 먹을 조커 칸
 	float Xp = 0.f; // 얻는 경험치
+	float Gain = 0.f; // 조커 위력 배율(Mult)에 더해지는 양 (D-191)
 };
 // 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };

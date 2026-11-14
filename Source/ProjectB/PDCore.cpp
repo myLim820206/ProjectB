@@ -671,7 +671,7 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	if (Tm.Key(EPDKeystone::Crowd) && bAlone) St.Dmg *= 0.5f;
 	if (T.IsJoker())
 	{
-		St.Dmg *= 1.f + JokerLevelDmg * (T.JLevel - 1); // 조커 레벨: 레벨마다 위력 +10%
+		St.Dmg *= 1.f + JokerLevelDmg * (T.JLevel - 1); // 조커 레벨: 레벨마다 위력 +15% (D-191)
 		const bool bUp = Tm.Up(T);
 		switch ((EPDJoker)T.Joker)
 		{
@@ -1581,7 +1581,12 @@ std::vector<FPDFeed> FPDGame::FeedTargets() const
 		if (Inside >= 0) Best = Inside;
 		if (Best < 0 || Fed == 0 || Towers.at(Best).JLevel >= JokerMaxLevel) continue;
 		// 경험치 = 족보 점수 × 먹인 타워 평균 위력 (합성 타워일수록 많이)
-		Out.push_back({I, Best, S.Value * MultSum / Fed});
+		// 흡수 (D-191): 먹인 타워의 실제 세기((3+숫자)·배율·특성)를 조커 단위로 바꿔 60% 를 더한다. 조커 카드는 와일드라 숫자 10
+		const FPDTower& Jt = Towers.at(Best);
+		float Val = 0.f;
+		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); if (!T.IsJoker()) Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
+		const float Gain = JokerFeedAbsorb * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate));
+		Out.push_back({I, Best, S.Value * MultSum / Fed, Gain});
 	}
 	return Out;
 }
@@ -1593,10 +1598,11 @@ bool FPDGame::Feed(int SynergyIdx)
 	for (const FPDFeed& X : List) if (X.Syn == SynergyIdx) F = &X;
 	if (!F) return false;
 	const int JKey = F->Joker;
-	const float Xp = F->Xp;
+	const float Xp = F->Xp, Gain = F->Gain;
 	for (int K : Synergies[SynergyIdx].Cells) if (!Towers.at(K).IsJoker()) Towers.erase(K);
 	FPDTower& J = Towers.at(JKey);
 	const int Old = J.JLevel;
+	J.Mult += Gain; // 먹인 위력 흡수 (D-191)
 	J.JXp += Xp;
 	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
 	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;

@@ -731,13 +731,14 @@ static void UnitTests()
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			auto Fd = G.FeedTargets();
 			const int SV = Fd.empty() ? 0 : G.Synergies[Fd[0].Syn].Value;
+			const float M0 = G.Towers.at(JKey).Mult, Gain = Fd.empty() ? 0.f : Fd[0].Gain; // 흡수 (D-191)
 			const bool bOk = Fd.size() == 1 && Fd[0].Joker == JKey && std::fabs(Fd[0].Xp - SV) < 1e-4f && G.Feed(Fd[0].Syn);
 			int L = 1;
 			float X = (float)SV;
 			while (X >= JokerXpNeed(L)) { X -= JokerXpNeed(L); ++L; }
 			const FPDTower& Jt = G.Towers.at(JKey);
-			Expect(bOk && G.Towers.size() == 1 && L >= 2 && Jt.JLevel == L && std::fabs(Jt.JXp - X) < 1e-3f && std::fabs(TowerStats(Jt).Dmg / D0 - (1.f + JokerLevelDmg * (L - 1))) < 1e-3f,
-				"조커 옆 족보 먹이기: 경험치만큼 레벨 업 (레벨마다 위력 +10%), 먹인 칸은 사라짐");
+			Expect(bOk && G.Towers.size() == 1 && L >= 2 && Jt.JLevel == L && std::fabs(Jt.JXp - X) < 1e-3f && Gain > 0.f && std::fabs(Jt.Mult - (M0 + Gain)) < 1e-3f && std::fabs(TowerStats(Jt).Dmg / D0 - (M0 + Gain) / M0 * (1.f + JokerLevelDmg * (L - 1))) < 1e-3f,
+				"조커 옆 족보 먹이기: 경험치만큼 레벨 업 (레벨마다 위력 +15%) + 먹인 위력 60% 흡수 (D-191), 먹인 칸은 사라짐");
 			G.Towers.at(JKey).JLevel = JokerUpLevel - 1;
 			G.Towers.at(JKey).JXp = JokerXpNeed(JokerUpLevel - 1) - 1.f;
 			Put(G.Towers, JX + 1, Row, C(4)); Put(G.Towers, JX + 2, Row, C(5, He));

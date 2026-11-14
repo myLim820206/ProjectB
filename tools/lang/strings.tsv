@@ -248,7 +248,7 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 합성 타워 자리를 고르세요	Choose the fused tower's spot	合成タワーの場所を選んでください	请选择合成塔的位置	請選擇合成塔的位置	PDBoardPaint.cpp
 빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · button again / G: default tile · Esc / right-click: cancel	光る素材マスを1つクリック · ボタンをもう一度 / G: 基本マス · Esc / 右クリック: キャンセル	点击一个发光的素材格 · 再按按钮 / G: 默认格 · Esc / 右键: 取消	點擊一個發光的素材格 · 再按按鈕 / G: 預設格 · Esc / 右鍵: 取消	PDBoardPaint.cpp
 먹이%d	Feed%d	エサ%d	喂%d	餵%d	PDBoardPaint.cpp
-경험치 +%.0f → 레벨 %d%s	XP +%.0f → level %d%s	経験値 +%.0f → レベル %d%s	经验 +%.0f → 等级 %d%s	經驗 +%.0f → 等級 %d%s	PDBoardPaint.cpp
+위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s	Power +%.0f%% · XP +%.0f → Lv %d%s	威力 +%.0f%% · 経験値 +%.0f → レベル %d%s	威力 +%.0f%% · 经验 +%.0f → 等级 %d%s	威力 +%.0f%% · 經驗 +%.0f → 等級 %d%s	PDBoardPaint.cpp
 %s 먹이기: 먹일 족보의 [먹이기] 클릭 · 다른 곳 클릭 / Esc: 취소	Feeding %s: click [Feed] on a hand · click elsewhere / Esc: cancel	%s にエサ: 与える役の [エサ] をクリック · 他をクリック / Esc: キャンセル	喂养 %s: 点击要喂的牌型的 [喂养] · 点击别处 / Esc: 取消	餵養 %s: 點擊要餵的牌型的 [餵養] · 點擊別處 / Esc: 取消	PDBoardPaint.cpp
 먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · 다른 곳 클릭 / Esc: 취소	No hand to feed (hands touching the Joker are food) · click elsewhere / Esc: cancel	与える役がない (ジョーカーに隣接する役がエサ) · 他をクリック / Esc: キャンセル	没有可喂的牌型 (与小丑相邻的牌型才可喂) · 点击别处 / Esc: 取消	沒有可餵的牌型 (與小丑相鄰的牌型才可餵) · 點擊別處 / Esc: 取消	PDBoardPaint.cpp
 자리바꿈 (%d번 남음): 옮길 타워 클릭 · 오른쪽 클릭 / Esc: 끄기	Swap (%d left): click a tower to move · right-click / Esc: off	入れ替え (残り %d回): 動かすタワーをクリック · 右クリック / Esc: やめる	换位 (剩余 %d次): 点击要移动的塔 · 右键 / Esc: 关闭	換位 (剩餘 %d次): 點擊要移動的塔 · 右鍵 / Esc: 關閉	PDBoardPaint.cpp
@@ -460,6 +460,7 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
+경험치 +%.0f → 레벨 %d%s	XP +%.0f → level %d%s	経験値 +%.0f → レベル %d%s	经验 +%.0f → 等级 %d%s	經驗 +%.0f → 等級 %d%s	PDLangTable.inl
 P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P or button: resume · you can still place and fuse while paused	P かボタン: 再開 · 停止中もカードの設置・合成はできる	P 或按钮: 继续 · 暂停时仍可放置卡牌和合成	P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成	PDLangTable.inl
 명사수	Marksman	名射手	神射手	神射手	PDLangTable.inl
 저격수의 눈	Sniper's Eye	狙撃手の目	狙击手之眼	狙擊手之眼	PDLangTable.inl

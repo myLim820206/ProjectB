@@ -1330,7 +1330,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					int Lv = Jt.JLevel;
 					float Xp = Jt.JXp + Fd.Xp;
 					while (Lv < JokerMaxLevel && Xp >= JokerXpNeed(Lv)) { Xp -= JokerXpNeed(Lv); ++Lv; }
-					F.Badge(TrF(TEXT("경험치 +%.0f → 레벨 %d%s"), Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), JC.X, JC.Y - CS * 0.75f, JokerPink, 1.f);
+					F.Badge(TrF(TEXT("위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s"), Fd.Gain / FMath::Max(0.01f, Jt.Mult) * 100.f, Fd.Xp, Lv, Lv > Jt.JLevel ? TEXT("!") : TEXT("")), JC.X, JC.Y - CS * 0.75f, JokerPink, 1.f); // 흡수 (D-191)
 					F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Feed, Fd.Syn), B.X, B.Y - FuseH - 6.f);
 				}
 				BadgeRects.Add(FBox2f(FVector2f(B.X - BW / 2.f, B.Y - FuseH / 2.f), FVector2f(B.X - BW / 2.f + BW, B.Y - FuseH / 2.f + FuseH))); // 툴팁이 피할 자리 (D-150)
@@ -1495,8 +1495,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 86.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 102.f, Gold, 10.f, 0, false, 226.f);
 				F.Text(TrF(TEXT("클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f);
-				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, (T.JLevel - 1) * 10)
-					: TrF(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), (T.JLevel - 1) * 10, T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
+				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f))
+					: TrF(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f), T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
 					JX + 10.f, JY + 134.f, JokerPink, 10.f, 0, false, 226.f);
 			}
 			else
