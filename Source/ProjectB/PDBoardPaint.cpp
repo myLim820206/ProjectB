@@ -1439,17 +1439,10 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		C.Glow(FCanvas::RoundRectPoints(EX, HudY + 29.f, EW, 9.f, 4.f), bAuto ? Green : Dim, 1.f, 0.25f);
 	}
 	// 목숨·골드
-	C.Text(TrF(TEXT("목숨 %d"), G.Lives), 784.f, HudY + 27.f, WithAlpha(Red, G.Lives <= 5 ? 0.6f + 0.4f * Pulse : 1.f), 17.f, 0, true, 100.f);
-	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 888.f, HudY + 27.f, Gold, 17.f, 0, true, 140.f);
-	C.Text(TrF(TEXT("다음 노드 %s"), *CommaNum(G.PointPrice())), 888.f, HudY + 43.f, G.Gold >= G.PointPrice() ? Gold : Dim, 9.f, 0, false, 140.f);
-	// 판 위력 (이번 웨이브 시작 때보다 몇 % 올랐나)
-	C.Text(TEXT("판 위력"), 1040.f, HudY + 18.f, Grey, 10.f);
-	C.Text(ShortNum(PowerSum), 1040.f, HudY + 41.f, Green, 20.f, 0, true, 80.f);
-	if (PowerRef > 0.f && PowerSum > 0.f)
-	{
-		const float Pct = (PowerSum / PowerRef - 1.f) * 100.f;
-		if (FMath::Abs(Pct) >= 1.f) C.Text(FString::Printf(TEXT("%s%.0f%%"), Pct > 0.f ? TEXT("+") : TEXT(""), Pct), 1174.f, HudY + 41.f, Pct > 0.f ? Green : Red, 11.f, 2, true);
-	}
+	// 글자 색 통일 (D-163): 값은 흰빛, 목숨은 5 이하일 때만 빨갛게 깜빡. 판 위력은 오른쪽 카드에만 (위쪽 띠에서 뺐다)
+	C.Text(TrF(TEXT("목숨 %d"), G.Lives), 860.f, HudY + 27.f, G.Lives <= 5 ? WithAlpha(Red, 0.6f + 0.4f * Pulse) : UiValue, 17.f, 0, true, 120.f);
+	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 990.f, HudY + 27.f, UiValue, 17.f, 0, true, 160.f);
+	C.Text(TrF(TEXT("다음 노드 %s"), *CommaNum(G.PointPrice())), 990.f, HudY + 43.f, G.Gold >= G.PointPrice() ? UiTitle : Dim, 9.f, 0, false, 160.f);
 	// 속도 (F) · 설정
 	{
 		const bool bHov = InRect(Mouse, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS);
@@ -1505,9 +1498,14 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 	// ---- 오른쪽: 판 위력 카드 (초당 피해 어림, 족보 덤, 가장 센 타워 셋)
 	C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.5f));
 	C.Glow(FCanvas::RoundRectPoints(RX, FY, PW, PowCardH, 10.f), UiEdge, 1.f, 0.35f);
-	C.Text(TEXT("판 위력"), RX + 14.f, FY + 22.f, Green, 13.f, 0, true);
+	C.Text(TEXT("판 위력"), RX + 14.f, FY + 22.f, UiTitle, 13.f, 0, true);
+	if (PowerRef > 0.f && PowerSum > 0.f) // 이번 웨이브 시작 때보다 몇 % (위쪽 띠에서 옮김, D-163)
+	{
+		const float Pct = (PowerSum / PowerRef - 1.f) * 100.f;
+		if (FMath::Abs(Pct) >= 1.f) C.Text(FString::Printf(TEXT("%s%.0f%%"), Pct > 0.f ? TEXT("+") : TEXT(""), Pct), RX + 14.f, FY + 76.f, Pct > 0.f ? Green : Hex(TEXT("ff6a6a")), 10.f, 0, true);
+	}
 	C.Text(TEXT("초당 피해 어림"), RX + PW - 14.f, FY + 22.f, Dim, 9.f, 2);
-	C.Text(CommaNum(FMath::RoundToInt(PowerSum)), RX + 14.f, FY + 58.f, Green, 28.f, 0, true, 112.f);
+	C.Text(CommaNum(FMath::RoundToInt(PowerSum)), RX + 14.f, FY + 58.f, UiValue, 28.f, 0, true, 112.f);
 	{
 		int32 Jokers = 0;
 		for (const auto& KV : G.Towers) Jokers += KV.second.IsJoker();
@@ -1577,7 +1575,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.6f));
 			if (bHov) C.Box(X, Y, W, H, WithAlpha(Col, 0.08f));
 			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), UiEdge, bHov ? 1.6f : 1.2f, bHot ? 0.5f + 0.8f * Pulse : bHov ? 0.9f : 0.4f);
-			C.Text(Name, X + 12.f, Y + H / 2.f + 5.f, Col, 13.f, 0, true, W - 34.f);
+			C.Text(Name, X + 12.f, Y + H / 2.f + 5.f, bHot ? FMath::Lerp(UiValue, Col, 0.5f + 0.5f * Pulse) : UiValue, 13.f, 0, true, W - 34.f); // 글자는 흰빛 (D-163), 찍을 노드가 있으면 깜빡
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
@@ -1592,7 +1590,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const int32 N = (int32)G.Charms.size();
 		C.Box(RX, CharmY, PW, H, Hex(TEXT("06060b"), 0.5f));
 		C.Glow(FCanvas::RoundRectPoints(RX, CharmY, PW, H, 10.f), UiEdge, 1.f, 0.3f);
-		C.Text(TrF(TEXT("부적 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, Gold, 12.f, 0, true);
+		C.Text(TrF(TEXT("부적 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, UiTitle, 12.f, 0, true);
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		C.Text(TrF(TEXT("다음 %d웨이브"), (W0 + CharmEvery - 1) / CharmEvery * CharmEvery), RX + PW - 14.f, CharmY + 22.f, Dim, 9.f, 2);
 		// 동그란 칸은 뺐다 (D-157): 이름·설명만
@@ -1600,7 +1598,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		for (int32 I = 0; I < N; ++I)
 		{
 			const float Y = CharmY + 50.f + I * 32.f;
-			C.Text(CharmName((int)G.Charms[I]), RX + 14.f, Y, Gold, 11.f, 0, true, PW - 28.f);
+			C.Text(CharmName((int)G.Charms[I]), RX + 14.f, Y, UiValue, 11.f, 0, true, PW - 28.f);
 			C.Text(CharmDesc((int)G.Charms[I]), RX + 14.f, Y + 14.f, Grey, 10.f, 0, false, PW - 28.f);
 		}
 	}
