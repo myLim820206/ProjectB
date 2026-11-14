@@ -313,13 +313,14 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintPanels(C); Part(4);
 	PaintBoardUi(F); Part(3); // 판 위 UI 를 패널 뒤에 그려 툴팁이 패널 위로 나갈 수 있게 (D-150)
 	PaintHandTip(C); // 손패 툴팁은 판 위 UI 위에 (D-214)
+	PaintHint(C); // 도움말 카드 (D-217)
 	PaintScreens(C); Part(5);
 	PaintTree(C);
 	// 화면 번쩍임과 덮개 화면 (제목, 게임 오버), 메뉴
 	const FPDGame& G = Game;
 	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Red = Hex(TEXT("ff6a6a"));
 	if (FlashT > 0.f) C.Box(0.f, 0.f, DesignW, DesignH, WithAlpha(FlashCol, FlashT * 0.45f));
-	if (bPaused && !bMenu && !bSettings && !bTutorial && !bTree && !bUpg && !bCodex) // 일시정지 (D-169): 판을 어둡게 + 큰 글자
+	if (bPaused && !bMenu && !bSettings && !bTree && !bUpg && !bCodex) // 일시정지 (D-169): 판을 어둡게 + 큰 글자
 	{
 		const float Pulse2 = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
 		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.55f));
@@ -332,7 +333,6 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 			LastRankPos >= 0 ? TrF(TEXT("개인 랭킹 %d위"), LastRankPos + 1) : FString(Tr(TEXT("개인 랭킹 20위 밖")))}, Tr(TEXT("R 키 또는 화면을 눌러 다시")));
 	if (bMenu) PaintMenu(C);
 	if (bSettings) PaintSettings(C);
-	if (bTutorial) PaintTutorial(C);
 	if (bRanking) PaintRanking(C);
 	if (LoadT > 0.f) PaintLoading(C);
 	// 디버그 표시 (D-133, F3): 맨 위 왼쪽 아래 구석에
@@ -2365,7 +2365,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
 	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
 	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
-	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("튜토리얼"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
 	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
 	{
 		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 빈 자리 (D-162)
@@ -2380,195 +2380,6 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	const float FootY = TitleBtnPos((int32)ETitleItem::Count, bHasRunSave).Y + 14.f;
 	if (Game.BestWave > 0) C.TextCentered(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), CX, FootY, Grey, 12.f, false);
 	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), CX, DesignH - 30.f, Dim, 11.f, false);
-}
-
-// 튜토리얼 (D-166): 설명 장면 8장. 그림은 판에서 쓰는 카드·조커 스프라이트와 네온 선으로
-void SPDBoardWidget::PaintTutorial(FCanvas& C) const
-{
-	const FLinearColor Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("5f6878")), Gold = Hex(TEXT("ffd96a"));
-	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.85f));
-	C.Box(TutX, TutY, TutW, TutH, Hex(TEXT("06060b"), 0.96f));
-	C.Glow(FCanvas::RoundRectPoints(TutX, TutY, TutW, TutH, 12.f), UiEdge, 1.4f, 0.7f);
-	const int32 P = FMath::Clamp(TutPage, 0, TutPages - 1);
-	static const TCHAR* Titles[TutPages] = {TEXT("목표"), TEXT("카드 = 타워"), TEXT("족보"), TEXT("연쇄"), TEXT("합성"), TEXT("조커"), TEXT("성장"), TEXT("조작")};
-	static const TCHAR* Body[TutPages][3] = {
-		{TEXT("적이 길을 따라 몰려온다. 끝까지 가면 목숨이 준다"), TEXT("손패의 카드를 판의 빈 칸에 놓으면 타워가 된다"), TEXT("목숨이 다 떨어지기 전에 최대한 많은 웨이브를 버텨라")},
-		{TEXT("무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화"), TEXT("숫자는 공격력 (A가 가장 세다)"), TEXT("Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로")},
-		{TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지"), TEXT("모양은 상관없다 (일자·ㄱ자·네모 모두 된다)"), TEXT("왼쪽 족보 목록에 족보마다 효과가 나온다")},
-		{TEXT("족보끼리 맞닿으면 연쇄 보너스"), TEXT("맞닿은 족보 하나마다 위력 +25%"), TEXT("번개로 이어진 족보가 연쇄다")},
-		{TEXT("왼쪽 족보 목록에서 족보를 누르고, 판에서 합쳐질 칸을 클릭"), TEXT("합성하면 재료가 한 타워로 모여 레벨이 오른다"), TEXT("같은 레벨끼리만 다시 족보가 된다")},
-		{TEXT("왼쪽 '조커' 줄: 만들 수 있는 조커를 고르고 재료 칸을 클릭"), TEXT("조커는 적을 처치하거나 족보를 먹으면 레벨이 오른다"), TEXT("J 키: 조커 도감에서 레시피 보기")},
-		{TEXT("웨이브를 막으면 카드를 받는다"), TEXT("5웨이브마다 부적 하나 (또는 즉시 보상)"), TEXT("골드로 스킬 트리(K)와 골드 강화(U)")},
-		{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Space: 웨이브 시작 · F: 배속 · Esc: 메뉴"), TEXT("왼쪽 족보 목록 클릭 → 칸 클릭: 합성 · 조커 줄: 조커 만들기")}};
-	C.Text(FString::Printf(TEXT("%d / %d"), P + 1, TutPages), TutX + TutW - 24.f, TutY + 36.f, Dim, 11.f, 2);
-	C.Text(TEXT("튜토리얼"), TutX + 24.f, TutY + 36.f, Dim, 11.f, 0, true);
-	C.TextCentered(Titles[P], DesignW / 2.f, TutY + 40.f, UiTitle, 24.f, true);
-	// 그림 칸
-	const float GX = TutX + 30.f, GY = TutY + 70.f, GW = TutW - 60.f, GH = 240.f, CXg = GX + GW / 2.f, CYg = GY + GH / 2.f;
-	C.Box(GX, GY, GW, GH, Hex(TEXT("0a0b14"), 0.9f));
-	C.Lines(FCanvas::RectPoints(GX, GY, GW, GH), WithAlpha(UiEdge, 0.25f), 1.f);
-	const bool bImg = UseAtlas();
-	auto Card = [&](const FPDCard& Cd, int32 Lv, bool bStrong, float X, float Y, float S) {
-		if (bImg)
-		{
-			if (bStrong) { const float Hh = CS * 0.4f * S * 0.98f; C.Box(X - Hh, Y - Hh, Hh * 2.f, Hh * 2.f, WithAlpha(SuitColor(Cd.Suit), 0.1f)); }
-			C.Sprite(C.NextLayer(), &Atlas->Brushes[TowerSprite(Cd, Lv, false)], X, Y, S, SuitColor(Cd.Suit));
-			if (bStrong) C.Sprite(C.NextLayer(), &Atlas->Brushes[TowerSprite(Cd, Lv, false)], X, Y, S, WithAlpha(SuitColor(Cd.Suit), 0.5f));
-		}
-		else C.CardShape(Cd, X, Y, CS * 0.4f * S, 1.f, bStrong, Pulse);
-	};
-	auto Joker = [&](int32 K, float X, float Y, float S) {
-		if (bImg) C.Sprite(C.NextLayer(), &Atlas->Brushes[AtlasJoker0 + K], X, Y, S, FLinearColor::White);
-		else C.JokerTower(K, X, Y, CS * 0.4f * S, 1.f, Pulse);
-	};
-	const float Cell = CS * 1.5f; // 그림 속 칸 (판보다 크게)
-	auto Floor = [&](const TArray<FVector2f>& Cells, EPDHand H, const FString& Label) { // 족보 장판 + 이름표
-		const FLinearColor HC = HandColor(H);
-		float MinX = 1e9f, MinY = 1e9f, MaxX = -1e9f;
-		for (const FVector2f& Cc : Cells)
-		{
-			C.Box(Cc.X - Cell / 2.f + 2.f, Cc.Y - Cell / 2.f + 2.f, Cell - 4.f, Cell - 4.f, WithAlpha(HC, 0.16f));
-			C.Glow(FCanvas::RoundRectPoints(Cc.X - Cell / 2.f + 2.f, Cc.Y - Cell / 2.f + 2.f, Cell - 4.f, Cell - 4.f, 7.f), HC, 1.6f, 0.7f);
-			MinX = FMath::Min(MinX, Cc.X); MaxX = FMath::Max(MaxX, Cc.X); MinY = FMath::Min(MinY, Cc.Y);
-		}
-		C.Badge(Label, (MinX + MaxX) / 2.f, MinY - Cell / 2.f - 12.f, HC, 1.f);
-	};
-	switch (P)
-	{
-	case 0: // 길 + 적 + 타워
-	{
-		TArray<FVector2f> Path{{GX + 20.f, CYg + 40.f}, {CXg - 80.f, CYg + 40.f}, {CXg - 80.f, CYg - 50.f}, {CXg + 120.f, CYg - 50.f}, {CXg + 120.f, CYg + 60.f}, {GX + GW - 20.f, CYg + 60.f}};
-		C.Dashed(Path, Hex(TEXT("7fd6ff"), 0.6f), 2.f);
-		float Len = 0.f; for (int32 I = 0; I + 1 < Path.Num(); ++I) Len += FVector2f::Distance(Path[I], Path[I + 1]);
-		for (int32 E = 0; E < 4; ++E) // 길을 따라 걷는 적
-		{
-			float D = FMath::Fmod(Clock * 60.f + E * Len / 4.f, Len);
-			for (int32 I = 0; I + 1 < Path.Num(); ++I)
-			{
-				const float L = FVector2f::Distance(Path[I], Path[I + 1]);
-				if (D <= L) { C.Glow(FCanvas::CirclePoints(Path[I] + (Path[I + 1] - Path[I]) * (D / L), 8.f, 16), Hex(TEXT("ff6a6a")), 1.6f, 0.9f); break; }
-				D -= L;
-			}
-		}
-		Card({14, EPDSuit::Spade}, 1, false, CXg - 20.f, CYg + 10.f, 1.4f);
-		Card({9, EPDSuit::Heart}, 1, false, CXg + 50.f, CYg + 10.f, 1.4f);
-		C.Text(TEXT("♥ 목숨"), GX + GW - 24.f, CYg + 90.f, Hex(TEXT("ff6a6a")), 13.f, 2, true);
-		break;
-	}
-	case 1: // 무늬 넷
-	{
-		const FPDCard Cs[4] = {{14, EPDSuit::Spade}, {7, EPDSuit::Heart}, {9, EPDSuit::Diamond}, {5, EPDSuit::Club}};
-		for (int32 I = 0; I < 4; ++I)
-		{
-			const float X = GX + GW * (I + 0.5f) / 4.f;
-			Card(Cs[I], 1, false, X, CYg - 14.f, 2.f);
-			C.TextCentered(SuitName(Cs[I].Suit), X, CYg + 80.f, SuitColor(Cs[I].Suit), 15.f, true);
-		}
-		break;
-	}
-	case 2: // 원 페어 (일자) + 플러시 (ㄱ자)
-	{
-		const FVector2f A(CXg - 200.f, CYg + 20.f), B(CXg + 80.f, CYg - 10.f);
-		Floor({A, A + FVector2f(Cell, 0.f)}, EPDHand::Pair, HandName(EPDHand::Pair));
-		Card({7, EPDSuit::Spade}, 1, true, A.X, A.Y, 1.3f);
-		Card({7, EPDSuit::Heart}, 1, true, A.X + Cell, A.Y, 1.3f);
-		Floor({B, B + FVector2f(Cell, 0.f), B + FVector2f(Cell, Cell)}, EPDHand::Flush, FString(HandName(EPDHand::Flush)) + TEXT("3"));
-		Card({2, EPDSuit::Diamond}, 1, true, B.X, B.Y, 1.3f);
-		Card({9, EPDSuit::Diamond}, 1, true, B.X + Cell, B.Y, 1.3f);
-		Card({12, EPDSuit::Diamond}, 1, true, B.X + Cell, B.Y + Cell, 1.3f);
-		break;
-	}
-	case 3: // 맞닿은 족보 둘 + 번개
-	{
-		const FVector2f A(CXg - Cell * 1.5f, CYg + 10.f), B(CXg + Cell * 0.5f, CYg + 10.f);
-		Floor({A, A + FVector2f(Cell, 0.f)}, EPDHand::Pair, HandName(EPDHand::Pair));
-		Floor({B, B + FVector2f(Cell, 0.f), B + FVector2f(Cell * 2.f, 0.f)}, EPDHand::Straight, FString(HandName(EPDHand::Straight)) + TEXT("3"));
-		Card({8, EPDSuit::Club}, 1, true, A.X, A.Y, 1.3f);
-		Card({8, EPDSuit::Heart}, 1, true, A.X + Cell, A.Y, 1.3f);
-		Card({9, EPDSuit::Spade}, 1, true, B.X, B.Y, 1.3f);
-		Card({10, EPDSuit::Diamond}, 1, true, B.X + Cell, B.Y, 1.3f);
-		Card({11, EPDSuit::Club}, 1, true, B.X + Cell * 2.f, B.Y, 1.3f);
-		TArray<FVector2f> Bolt{A + FVector2f(Cell, 0.f)};
-		for (int32 S = 1; S < 5; ++S) Bolt.Add(FMath::Lerp(A + FVector2f(Cell, 0.f), B, S / 5.f) + FVector2f(0.f, 8.f * FMath::Sin(Clock * 20.f + S * 2.1f)));
-		Bolt.Add(B);
-		C.Glow(Bolt, FLinearColor::White, 1.6f, 1.2f);
-		C.TextCentered(TEXT("+25%"), CXg, CYg + 70.f, Gold, 18.f, true);
-		break;
-	}
-	case 4: // 셋 → 레벨 2
-	{
-		for (int32 I = 0; I < 3; ++I) Card({6, EPDSuit::Heart}, 1, true, GX + 90.f + I * Cell, CYg, 1.3f);
-		C.Glow({{CXg - 30.f, CYg}, {CXg + 50.f, CYg}}, Gold, 2.f, 1.f);
-		C.Glow({{CXg + 36.f, CYg - 12.f}, {CXg + 50.f, CYg}, {CXg + 36.f, CYg + 12.f}}, Gold, 2.f, 1.f);
-		Card({6, EPDSuit::Heart}, 2, true, CXg + 160.f, CYg, 2.f);
-		C.TextCentered(TEXT("Lv 2"), CXg + 160.f, CYg + 84.f, Gold, 15.f, true);
-		C.Badge(TrF(TEXT("합성 · %s"), HandShort(EPDHand::Triple)), GX + 90.f + Cell, CYg - 62.f, Gold, 1.f);
-		break;
-	}
-	case 5: // 조커 셋
-	{
-		for (int32 I = 0; I < 3; ++I)
-		{
-			const float X = GX + GW * (I + 0.5f) / 3.f;
-			Joker(I * 3, X, CYg - 10.f, 1.9f);
-			C.TextCentered(JokerName(I * 3), X, CYg + 80.f, JokerPink, 14.f, true);
-		}
-		break;
-	}
-	case 6: // 보상·성장: 부적 카드 + 버튼 둘
-	{
-		const float RX0 = GX + 60.f, RW = 170.f, RH = 170.f, RY0 = CYg - RH / 2.f;
-		C.Box(RX0, RY0, RW, RH, Hex(TEXT("0a0b14")));
-		C.Glow(FCanvas::RoundRectPoints(RX0, RY0, RW, RH, 12.f), Gold, 1.6f, 0.8f);
-		C.Text(TEXT("부적"), RX0 + 14.f, RY0 + 24.f, Gold, 11.f);
-		C.TextCentered(CharmName(0), RX0 + RW / 2.f, RY0 + 76.f, Gold, 17.f, true, RW - 16.f);
-		C.TextCentered(CharmDesc(0), RX0 + RW / 2.f, RY0 + 110.f, Fg, 11.f, false, RW - 16.f);
-		const TCHAR* Btns[2] = {TEXT("스킬 트리"), TEXT("골드 강화")};
-		const TCHAR* Keys[2] = {TEXT("K"), TEXT("U")};
-		for (int32 I = 0; I < 2; ++I)
-		{
-			const float BX = CXg + 40.f, BY = CYg - 60.f + I * 70.f, BW = 220.f, BH = 46.f;
-			C.Glow(FCanvas::RoundRectPoints(BX, BY, BW, BH, 10.f), UiEdge, 1.4f, 0.6f);
-			C.Text(Btns[I], BX + 16.f, BY + BH / 2.f + 6.f, UiValue, 15.f, 0, true, BW - 50.f);
-			C.Text(Keys[I], BX + BW - 14.f, BY + BH / 2.f + 5.f, Dim, 11.f, 2);
-		}
-		break;
-	}
-	default: // 조작: 키 그림
-	{
-		const TCHAR* Caps[6] = {TEXT("1~9"), TEXT("Space"), TEXT("F"), TEXT("G"), TEXT("Esc"), TEXT("J")};
-		const TCHAR* What[6] = {TEXT("카드 고르기"), TEXT("웨이브 시작"), TEXT("배속"), TEXT("합성"), TEXT("메뉴"), TEXT("조커 도감")};
-		for (int32 I = 0; I < 6; ++I)
-		{
-			const float X = GX + 40.f + (I % 3) * (GW - 80.f) / 3.f, Y = GY + 50.f + (I / 3) * 100.f, KW = 76.f, KH = 40.f;
-			C.Glow(FCanvas::RoundRectPoints(X, Y, KW, KH, 8.f), UiEdge, 1.4f, 0.6f);
-			C.TextCentered(Caps[I], X + KW / 2.f, Y + KH / 2.f, UiValue, 14.f, true, KW - 6.f);
-			C.Text(What[I], X + KW + 14.f, Y + KH / 2.f + 5.f, Fg, 13.f, 0, false, (GW - 80.f) / 3.f - KW - 20.f);
-		}
-		break;
-	}
-	}
-	// 설명 세 줄
-	for (int32 L = 0; L < 3; ++L) C.TextCentered(Body[P][L], DesignW / 2.f, GY + GH + 30.f + L * 24.f, L == 0 ? UiValue : Fg, L == 0 ? 15.f : 13.f, L == 0, TutW - 60.f);
-	// 쪽 점
-	for (int32 I = 0; I < TutPages; ++I)
-	{
-		const FVector2f D(DesignW / 2.f + (I - (TutPages - 1) * 0.5f) * 16.f, TutBtnY + TutBtnH / 2.f);
-		if (I == P) C.Box(D.X - 3.f, D.Y - 3.f, 6.f, 6.f, UiEdge);
-		C.Glow(FCanvas::CirclePoints(D, 4.f, 12), WithAlpha(UiEdge, I == P ? 1.f : 0.4f), 1.f, 0.3f);
-	}
-	// 버튼
-	auto Btn = [&](float X, const FString& S, bool bMain) {
-		const bool bHov = InRect(Mouse, X, TutBtnY, TutBtnW, TutBtnH);
-		if (bMain || bHov) C.Box(X, TutBtnY, TutBtnW, TutBtnH, WithAlpha(UiEdge, bMain ? 0.12f + 0.06f * Pulse : 0.08f));
-		C.Glow(FCanvas::RoundRectPoints(X, TutBtnY, TutBtnW, TutBtnH, 8.f), UiEdge, bMain || bHov ? 1.6f : 1.1f, bMain ? 1.f + 0.4f * Pulse : 0.4f);
-		C.TextCentered(S, X + TutBtnW / 2.f, TutBtnY + TutBtnH / 2.f, bMain ? FLinearColor::White : Fg, 14.f, true, TutBtnW - 8.f);
-	};
-	Btn(TutNextX, P + 1 >= TutPages ? (bTutThenStart ? TEXT("시작하기") : TEXT("닫기")) : TEXT("다음"), true);
-	if (P > 0) Btn(TutPrevX, TEXT("이전"), false);
-	if (P + 1 < TutPages) Btn(TutSkipX, TEXT("건너뛰기"), false);
-	C.TextCentered(TEXT("←→ 넘기기 · Enter 다음 · Esc 닫기"), DesignW / 2.f, TutY + TutH + 22.f, Dim, 11.f, false);
 }
 
 // 랭킹 창 (D-168): 개인 랭킹 탭 (상위 20) + 리더보드 탭 (스팀, 준비 중)
@@ -2659,6 +2470,67 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 }
 
 // 왼쪽 족보 안내 (D-119): 이름 + 효과 한 줄. 판 위에 있는 족보는 밝게, 개수 표시
+// 도움말 카드 (D-217): 가리킬 자리 둘레에 숨 쉬는 고리 + 카드에서 이어지는 선, 카드엔 제목·설명·[알겠어]·[도움말 끄기]
+void SPDBoardWidget::PaintHint(FCanvas& C) const
+{
+	HintOkRect = HintOffRect = HintCardRect = FBox2f(FVector2f(-1.f, -1.f), FVector2f(-1.f, -1.f));
+	if (HintNow < 0 || bMenu || bSettings || bTree || bUpg || bCodex || bRanking || Game.Phase == EPDPhase::Title) return;
+	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("골드 쓰기"), TEXT("보상 고르기")};
+	static const TCHAR* Body[(int32)EHint::Count][2] = {
+		{TEXT("손패 카드를 누르고 판의 빈 칸을 클릭하면"), TEXT("그 카드가 타워가 돼요")},
+		{TEXT("카드를 붙여 놓아 포커 족보(원 페어·스트레이트…)를"), TEXT("만들면 타워가 강해져요")},
+		{TEXT("붙어 있는 카드가 족보가 됐어요"), TEXT("왼쪽 목록에서 족보마다 효과를 볼 수 있어요")},
+		{TEXT("준비가 되면 Space 또는"), TEXT("[웨이브 시작] 버튼을 누르세요")},
+		{TEXT("왼쪽 목록의 '합성 ×N' 줄을 누르고"), TEXT("판에서 합쳐질 칸을 클릭해 보세요")},
+		{TEXT("족보끼리 맞닿으면 연쇄 보너스로"), TEXT("이어진 족보가 모두 더 강해져요")},
+		{TEXT("왼쪽 '조커' 줄을 눌러 조커를 고르고"), TEXT("재료를 클릭해 조커를 만들어 보세요")},
+		{TEXT("왼쪽 '먹이기' 줄에서 조커를 고르고"), TEXT("옆 족보를 먹여 레벨을 올려 보세요")},
+		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
+		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
+		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("위쪽에 보스 이름이 보여요")},
+		{TEXT("골드로 스킬 트리(K)나"), TEXT("골드 강화(U)를 살 수 있어요")},
+		{TEXT("카드 셋 중 하나를 고르거나"), TEXT("S로 넘기세요")}};
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+	const FLinearColor Edge = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("8a94a6"));
+	constexpr float TW = 330.f, TH = 104.f;
+	FBox2f Tg;
+	const bool bTg = HintTarget(HintNow, Tg);
+	// 카드 자리: 가리킬 자리의 오른쪽 → 위 → 왼쪽 → 아래 중 화면 안이고 안 겹치는 곳. 없으면 판 위쪽 가운데
+	FVector2f P(FX + Cols * CS / 2.f - TW / 2.f, FY + 50.f);
+	if (bTg)
+	{
+		const FVector2f Ctr = Tg.GetCenter();
+		const FVector2f Cand[4] = {{Tg.Max.X + 24.f, Ctr.Y - TH / 2.f}, {Ctr.X - TW / 2.f, Tg.Min.Y - 24.f - TH}, {Tg.Min.X - 24.f - TW, Ctr.Y - TH / 2.f}, {Ctr.X - TW / 2.f, Tg.Max.Y + 24.f}};
+		for (const FVector2f& Cn : Cand)
+		{
+			const FVector2f Q(FMath::Clamp(Cn.X, 8.f, DesignW - TW - 8.f), FMath::Clamp(Cn.Y, HudY + HudH + 6.f, DesignH - TH - 8.f));
+			if (!FBox2f(Q, Q + FVector2f(TW, TH)).Intersect(Tg)) { P = Q; break; }
+		}
+		// 고리 + 선
+		C.Glow(FCanvas::RoundRectPoints(Tg.Min.X - 4.f, Tg.Min.Y - 4.f, Tg.GetSize().X + 8.f, Tg.GetSize().Y + 8.f, 8.f), Gold, 2.4f, 1.f + 1.2f * Pulse);
+		const FVector2f From(FMath::Clamp(Ctr.X, P.X, P.X + TW), FMath::Clamp(Ctr.Y, P.Y, P.Y + TH));
+		const FVector2f To(FMath::Clamp(From.X, Tg.Min.X - 4.f, Tg.Max.X + 4.f), FMath::Clamp(From.Y, Tg.Min.Y - 4.f, Tg.Max.Y + 4.f));
+		C.Glow({From, To}, WithAlpha(Gold, 0.9f), 1.8f, 0.8f);
+		C.Glow(FCanvas::CirclePoints(To, 3.f + Pulse * 2.f, 12), Gold, 1.6f, 0.8f);
+	}
+	HintCardRect = FBox2f(P, P + FVector2f(TW, TH));
+	C.Box(P.X, P.Y, TW, TH, Hex(TEXT("06060b"), 0.96f));
+	C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TW, TH, 10.f), Edge, 1.4f, 0.6f + 0.3f * Pulse);
+	C.Text(TEXT("도움말"), P.X + 12.f, P.Y + 16.f, Dim, 9.f, 0, true);
+	C.Text(Title[HintNow], P.X + 12.f, P.Y + 34.f, Gold, 14.f, 0, true, TW - 24.f);
+	C.Text(Body[HintNow][0], P.X + 12.f, P.Y + 54.f, Fg, 11.f, 0, false, TW - 24.f);
+	C.Text(Body[HintNow][1], P.X + 12.f, P.Y + 70.f, Fg, 11.f, 0, false, TW - 24.f);
+	const FVector2f Ok(P.X + TW - 12.f - 76.f, P.Y + TH - 26.f);
+	HintOkRect = FBox2f(Ok, Ok + FVector2f(76.f, 20.f));
+	const bool bOkH = HintOkRect.IsInside(Mouse);
+	C.Box(Ok.X, Ok.Y, 76.f, 20.f, WithAlpha(Edge, bOkH ? 0.22f : 0.1f));
+	C.Glow(FCanvas::RoundRectPoints(Ok.X, Ok.Y, 76.f, 20.f, 6.f), Edge, 1.2f, bOkH ? 1.f : 0.5f);
+	C.TextCentered(TEXT("알겠어"), Ok.X + 38.f, Ok.Y + 10.f, UiValue, 11.f, true, 72.f);
+	const FVector2f Off(P.X + 12.f, P.Y + TH - 24.f);
+	HintOffRect = FBox2f(Off, Off + FVector2f(90.f, 16.f));
+	C.Text(TEXT("도움말 끄기"), Off.X, Off.Y + 9.f, HintOffRect.IsInside(Mouse) ? Fg : Dim, 9.f, 0, false, 90.f);
+}
+
 // 손패 카드 툴팁 (D-177, D-214): 판 위 UI 다음에 그린다 (예전엔 패널과 함께 그려 판 위 딱지·빛이 툴팁 위로 비쳤다)
 void SPDBoardWidget::PaintHandTip(FCanvas& C) const
 {
@@ -2668,7 +2540,7 @@ void SPDBoardWidget::PaintHandTip(FCanvas& C) const
 	for (int32 I = 0; I < (int32)G.Hand.size(); ++I)
 	{
 		const float X = HandCardX(I, (int32)G.Hand.size());
-		if (!InRect(Mouse, X, HandY - 12.f, CardW, CardH + 12.f) || bMenu || bSettings || bTutorial) continue;
+		if (!InRect(Mouse, X, HandY - 12.f, CardW, CardH + 12.f) || bMenu || bSettings) continue;
 		const FPDCard& Card = G.Hand[I];
 		FPDTower T;
 		T.Card = Card;
@@ -2913,7 +2785,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	C.Box(SetBoxX, SetBoxY, SetBoxW, SetBoxH, Hex(TEXT("06060b"), 0.95f));
 	C.Glow(FCanvas::RoundRectPoints(SetBoxX, SetBoxY, SetBoxW, SetBoxH, 10.f), Cyan, 1.4f, 0.7f);
 	C.TextCentered(TEXT("설정"), DesignW / 2.f, SetBoxY + 40.f, Cyan, 24.f, true);
-	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("도움말"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		if (bOn) C.Box(X, Y, W, SetBtnH, WithAlpha(Col, 0.12f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, 6.f), Col, bOn ? 1.6f : 1.1f, bOn ? (bRowSel ? 1.f + 0.5f * Pulse : 0.9f) : 0.35f);
@@ -2959,6 +2831,13 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			const bool bOn = Row == (int32)ESetRow::VSync ? Settings.bVSync : Row == (int32)ESetRow::WorldFx ? Settings.bWorldFx : Row == (int32)ESetRow::Shake ? Settings.bShake : Settings.bSound;
 			const FVector2f B = SetBtnPos(Row, 0);
 			Button(B.X, B.Y, SetBtnW(Row, 0), bOn ? TEXT("켜짐") : TEXT("꺼짐"), bOn ? Good : Grey, bOn, bRowSel);
+			break;
+		}
+		case ESetRow::Help: // 도움말 (D-217): 켜기·끄기 + 처음부터 다시
+		{
+			const FVector2f B0 = SetBtnPos(Row, 0), B1 = SetBtnPos(Row, 1);
+			Button(B0.X, B0.Y, SetBtnW(Row, 0), Settings.bHints ? TEXT("켜짐") : TEXT("꺼짐"), Settings.bHints ? Good : Grey, Settings.bHints, bRowSel);
+			Button(B1.X, B1.Y, SetBtnW(Row, 1), TEXT("처음부터 다시"), Cyan, false, bRowSel);
 			break;
 		}
 		case ESetRow::Volume:

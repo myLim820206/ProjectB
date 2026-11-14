@@ -441,14 +441,13 @@ constexpr float CdxDetX = 884.f, CdxDetW = 380.f;
 constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
 inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
-enum class EMenuItem : uint8_t { Resume, NewGame, Tutorial, Settings, Quit, Count };
+enum class EMenuItem : uint8_t { Resume, NewGame, Settings, Quit, Count }; // 튜토리얼은 뺐다 (D-217, 도움말로)
 constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
 constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 // 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
-enum class ETitleItem : uint8_t { Continue, Start, Tutorial, Ranking, Settings, Quit, Count }; // 이어하기는 중단 저장이 있을 때만 (D-162)
-// 튜토리얼 (D-166): 설명 장면 넘기기. 처음 게임 시작할 때 한 번, 시작 화면·메뉴에서 다시
-constexpr int32 TutPages = 8;
+enum class ETitleItem : uint8_t { Continue, Start, Ranking, Settings, Quit, Count }; // 이어하기는 중단 저장이 있을 때만 (D-162)
+// 큰 창 자리 (랭킹이 쓴다. 튜토리얼 화면 D-166 은 D-217 에 뺐다)
 constexpr float TutW = 780.f, TutH = 500.f, TutX = DesignW / 2.f - TutW / 2.f, TutY = 104.f;
 constexpr float TutBtnW = 120.f, TutBtnH = 38.f, TutBtnY = TutY + TutH - 56.f;
 constexpr float TutNextX = TutX + TutW - 24.f - TutBtnW, TutPrevX = TutNextX - 12.f - TutBtnW, TutSkipX = TutX + 24.f;
@@ -460,18 +459,18 @@ inline FVector2f TitleBtnPos(int I, bool bCont) { const int K = bCont ? I : I - 
 constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
-	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("튜토리얼"), TEXT("설정"), TEXT("게임 종료")};
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("설정"), TEXT("게임 종료")};
 	return Tr(N[I]);
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
-enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Close, Count };
-constexpr float SetW = 560.f, SetRowH = 40.f, SetRowGap = 6.f, SetLabelW = 200.f, SetBtnH = 32.f;
+enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Help, Close, Count }; // Help: 도움말 켜기·처음부터 (D-217)
+constexpr float SetW = 560.f, SetRowH = 38.f, SetRowGap = 4.f, SetLabelW = 200.f, SetBtnH = 30.f;
 constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 140.f; // 언어 줄이 늘어 조금 위로 (D-159)
 constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
-inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Lang ? (int)EPDLang::Count : Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : 1; }
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Lang ? (int)EPDLang::Count : Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : Row == (int)ESetRow::Help ? 2 : 1; }
 inline FLinearColor LevelDotColor() { return GPDCardTheme == 1 ? FLinearColor::White : Hex(TEXT("ffd96a")); } // 타워 레벨 점 (흑백이면 흰빛)
 inline float SetBtnW(int Row, int Idx)
 {
@@ -479,6 +478,7 @@ inline float SetBtnW(int Row, int Idx)
 	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return 112.f;
 	if (SetBarRow(Row)) return Idx == 1 ? 220.f : 40.f;
 	if (Row == (int)ESetRow::Close) return 160.f;
+	if (Row == (int)ESetRow::Help) return Idx == 0 ? 120.f : 150.f;
 	return 120.f;
 }
 inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
@@ -488,6 +488,7 @@ inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
 	if (SetBarRow(Row)) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
 	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
+	if (Row == (int)ESetRow::Help) return FVector2f(Idx == 0 ? X0 : X0 + 128.f, Y);
 	return FVector2f(X0, Y);
 }
 // 손패 카드 왼쪽 X. 카드가 많으면 판 너비 안에 들어오게 간격을 좁힌다

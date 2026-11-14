@@ -51,6 +51,7 @@ void SPDBoardWidget::HandleEvents()
 {
 	for (const FPDEvent& E : Game.Events)
 	{
+		HintEv |= 1u << ((int32)E.Kind & 31); // 도움말이 볼 사건 (D-217)
 		const FVector2f P = CellPx(E.X, E.Y);
 		switch (E.Kind)
 		{

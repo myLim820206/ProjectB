@@ -25,7 +25,7 @@ constexpr int CharmMax = 5;
 constexpr int NumWaves = 15; // 1회차 (보스 3종이 한 바퀴). 진행은 무한이고 목숨이 0이 되면 끝. 이 뒤로는 적 체력이 더 천천히 오른다
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
-constexpr int DrawPerWave = 3;
+constexpr int DrawPerWave = 5; // 웨이브를 막으면 받는 카드 (D-216, 예전 3)
 constexpr float AutoStartDelay = 60.f; // D-185: 모든 웨이브 1분. 웨이브를 막고 보상을 고르면 이 시간(실제 초) 뒤 다음 웨이브가 저절로 시작 (첫 웨이브는 직접)
 // 초반 완화 (D-106): EasyWaves 웨이브까지는 적 체력을 낮추고, 다음 웨이브까지 덱을 짤 시간을 더 준다
 constexpr int EasyWaves = 5;

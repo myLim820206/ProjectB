@@ -81,7 +81,6 @@ private:
 	void PaintMenu(FCanvas& C) const;      // Esc 메뉴 창
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
 	void TitleSelect(int32 Item);          // 시작 화면 항목 실행 (D-153)
-	void PaintTutorial(FCanvas& C) const;  // 튜토리얼 장면 (D-166)
 	// 랭킹 (D-168): 게임 오버마다 기록 하나 (웨이브·처치·최고 판 위력·날짜), 상위 20개를 Saved/SaveGames/Ranking.txt 에
 	struct FRankEntry { int32 Wave = 0; int32 Kills = 0; float Power = 0.f; int64 Time = 0; };
 	TArray<FRankEntry> Ranking;
@@ -94,13 +93,19 @@ private:
 	void SaveRanking() const;
 	void RecordRun();
 	void PaintRanking(FCanvas& C) const;
-	void OpenTutorial(bool bThenStart);
-	void CloseTutorial();
-	bool bTutorial = false;                // 튜토리얼 창 (여는 동안 게임은 멈춘다)
 	bool bPaused = false;                  // 일시정지 (D-169): 위쪽 띠 버튼 또는 P. 멈춘 동안에도 카드 놓기·합성은 된다
-	int32 TutPage = 0;
-	bool bTutThenStart = false;            // 닫으면 새 판 시작 (처음 게임 시작에서 연 경우)
-	bool bTutorialSeen = false;            // 한 번 봤다 (진행 파일에 저장)
+	// 도움말 (D-217): 게임하면서 상황에 맞춰 뜨는 작은 카드. 한 번 본 것은 진행 파일에 남아 다시 안 뜬다. 설정에서 끄기·처음부터
+	enum class EHint : uint8 { Place, Synergy, FirstHand, StartWave, Fuse, Chain, Joker, Feed, HandFull, Swap, Boss, Shop, Reward, Count };
+	uint32 HintSeen = 0;                   // 본 도움말 (1 << EHint)
+	int32 HintNow = -1;                    // 지금 뜬 도움말 (-1 = 없음)
+	float HintAge = 0.f;
+	int32 HintSwaps0 = 0;                  // 자리바꿈 도움말을 띄울 때 자리바꿈 수
+	uint32 HintEv = 0;                     // 이번 틱에 난 사건 (1 << FPDEvent::EKind)
+	mutable FBox2f HintOkRect, HintOffRect, HintCardRect;
+	void UpdateHints(float Dt);
+	void FinishHint();                     // 지금 도움말을 본 것으로
+	bool HintTarget(int32 H, FBox2f& Out) const; // 가리킬 자리
+	void PaintHint(FCanvas& C) const;
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
@@ -159,6 +164,7 @@ private:
 		bool bVSync = false;      // 수직 동기화
 		int32 CardTheme = 0;      // 카드 색 (D-154): 0 네온, 1 흑백, 2 빨강·하양
 		int32 Lang = -1;          // 언어 (D-159, EPDLang). -1 = 아직 없음 → 시스템 언어로
+		bool bHints = true;       // 도움말 (D-217)
 	};
 	FSettings Settings;
 	bool bSettings = false;                // 설정 창 (메뉴에서 연다, 여는 동안 메뉴도 열려 있어 게임은 멈춤)

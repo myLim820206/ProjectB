@@ -302,6 +302,7 @@ void SPDBoardWidget::LoadUserData()
 		Settings.CardTheme = FMath::Clamp(Settings.CardTheme, 0, 2);
 		GPDCardTheme = Settings.CardTheme;
 		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
+		GConfig->GetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	}
 	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
 	if (Settings.Lang < 0 || Settings.Lang >= (int32)EPDLang::Count) Settings.Lang = LangFromSystem(); // 처음 켜면 시스템 언어 (D-159)
@@ -335,7 +336,7 @@ void SPDBoardWidget::LoadUserData()
 			if (!L.Split(TEXT("="), &Key, &Val)) continue;
 			if (Key == TEXT("Discovered")) Game.Discovered |= (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("BestWave")) Game.BestWave = FMath::Max(Game.BestWave, FCString::Atoi(*Val));
-			else if (Key == TEXT("Tutorial")) bTutorialSeen = FCString::Atoi(*Val) != 0;
+			else if (Key == TEXT("Hints")) HintSeen = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 		}
 	SavedDiscovered = Game.Discovered;
 	SavedBest = Game.BestWave;
@@ -354,6 +355,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
+	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -361,7 +363,7 @@ void SPDBoardWidget::SaveProgress()
 {
 	SavedDiscovered = Game.Discovered;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nTutorial=%d\n"), SavedDiscovered, SavedBest, bTutorialSeen ? 1 : 0), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\n"), SavedDiscovered, SavedBest, HintSeen), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -423,6 +425,7 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 		if (Settings.MusicVolume > 0.f && !Settings.bSound) SetSound(true);
 		else SaveSettings();
 		break;
+	case ESetRow::Help: Settings.bHints = !Settings.bHints; if (!Settings.bHints) HintNow = -1; SaveSettings(); break;
 	case ESetRow::Close: bSettings = false; return;
 	default: return;
 	}
@@ -441,7 +444,8 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			if (Row == (int32)ESetRow::Lang) { Settings.Lang = I; GPDLang = I; SaveSettings(); UiSound(EPDSound::Move); }
 			else if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
 			else if (Row == (int32)ESetRow::CardTheme) { Settings.CardTheme = I; GPDCardTheme = I; SaveSettings(); UiSound(EPDSound::Move); }
-			else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
+				else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
+				else if (Row == (int32)ESetRow::Help && I == 1) { HintSeen = 0; HintNow = -1; SaveProgress(); UiSound(EPDSound::Move); } // 도움말 처음부터 (D-217)
 			else if (SetBarRow(Row))
 			{
 				if (I == 1) // 막대: 누른 자리로
@@ -513,7 +517,6 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				Game.Phase = EPDPhase::Build;
 				LoadT = -1.f;
 				PDDebugStress(Game);
-				{ int32 TP = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdtut="), TP)) { bTutorial = true; TutPage = FMath::Clamp(TP, 0, TutPages - 1); } } // 시험용: 튜토리얼 N쪽 띄우기
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdpause"))) bPaused = true; // 시험용: 일시정지 화면
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdwalk"))) { Game.Towers.clear(); Game.RebuildMods(); } // 시험용: 타워 없이 적이 걷는 모습
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdhandtip")) && Game.Hand.size() > 0) Mouse = FVector2f(HandCardX(0, (int32)Game.Hand.size()) + CardW / 2.f, HandY + CardH / 2.f); // 시험용: 첫 손패 카드에 마우스
@@ -548,7 +551,11 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
 	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
-	if (!bTree && !bUpg && !bMenu && !bTutorial && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
+	{
+		const float AutoT0 = Game.AutoStartT;
+		if (!bTree && !bUpg && !bMenu && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
+		if (HintNow >= 0 && AutoT0 >= 0.f && Game.AutoStartT >= 0.f && Game.Phase == EPDPhase::Build) Game.AutoStartT = AutoT0; // 도움말이 떠 있는 동안 자동 시작 시계는 멈춤 (D-217)
+	}
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
 	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다
@@ -571,6 +578,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (InFeed()) RefreshFeedList();
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
+	UpdateHints(Dt);
 	if (!InCraft()) { CraftPicks.clear(); CraftJoker = -1; }
 	else
 	{
@@ -801,6 +809,109 @@ void SPDBoardWidget::CraftRightClick(int32 Cell)
 	UiSound(EPDSound::Move);
 }
 
+// 도움말 (D-217): 조건이 맞는 첫 도움말 하나를 띄우고, 시킨 일을 하면(또는 [알겠어]) 본 것으로 남긴다
+void SPDBoardWidget::FinishHint()
+{
+	if (HintNow < 0) return;
+	HintSeen |= 1u << HintNow;
+	HintNow = -1;
+	SaveProgress();
+}
+
+void SPDBoardWidget::UpdateHints(float Dt)
+{
+	const uint32 Ev = HintEv;
+	HintEv = 0;
+	const bool bPlay = Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave || Game.Phase == EPDPhase::Reward;
+	if (!Settings.bHints || !bPlay || LoadT > 0.f) { HintNow = -1; return; }
+	auto Has = [Ev](FPDEvent::EKind K) { return (Ev >> (int32)K) & 1u; };
+	auto AnyFuse = [this]() { for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I) if (Game.CanFuse(I)) return true; return false; };
+	auto AnyChain = [this]() { for (const FPDSynergy& S : Game.Synergies) if (S.Chain >= 2) return true; return false; };
+	auto CanShop = [this]() {
+		if (Game.Gold >= Game.PointPrice()) return true;
+		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) if (Game.Upg[U] < UpgradeMax && Game.Gold >= UpgradeCost(Game.Upg[U])) return true;
+		return false; };
+	const bool bBuild = Game.Phase == EPDPhase::Build, bWave = Game.Phase == EPDPhase::Wave;
+	// 지금 뜬 도움말: 끝났나, 조건이 사라졌나(본 것으로 치지 않고 내림)
+	if (HintNow >= 0)
+	{
+		HintAge += Dt;
+		bool bDone = false, bGone = false;
+		switch ((EHint)HintNow)
+		{
+		case EHint::Place: bDone = Has(FPDEvent::EKind::Place); break;
+		case EHint::Synergy: bDone = !Game.Synergies.empty(); break;
+		case EHint::FirstHand: case EHint::Chain: bDone = HintAge > 15.f; break;
+		case EHint::StartWave: bDone = bWave; break;
+		case EHint::Fuse: bDone = Has(FPDEvent::EKind::Fuse); bGone = !bDone && !AnyFuse(); break;
+		case EHint::Joker: bDone = Has(FPDEvent::EKind::JokerFuse); bGone = !bDone && JGroups.empty(); break;
+		case EHint::Feed: bDone = Has(FPDEvent::EKind::Feed); bGone = !bDone && Game.FeedTargets().empty(); break;
+		case EHint::HandFull: bDone = Has(FPDEvent::EKind::Discard) || Has(FPDEvent::EKind::Place); bGone = !bDone && (int32)Game.Hand.size() < Game.HandMax(); break;
+		case EHint::Swap: bDone = Game.Swaps < HintSwaps0; bGone = Game.Swaps <= 0 && !bDone; break;
+		case EHint::Boss: bDone = bWave; break;
+		case EHint::Shop: bDone = bTree || bUpg; bGone = !bDone && !CanShop(); break;
+		case EHint::Reward: bDone = Game.Phase != EPDPhase::Reward; break;
+		default: bGone = true; break;
+		}
+		if (bDone) FinishHint();
+		else if (bGone) HintNow = -1;
+		return;
+	}
+	if (bMenu || bSettings || bTree || bUpg || bCodex) return;
+	for (int32 H = 0; H < (int32)EHint::Count; ++H)
+	{
+		if ((HintSeen >> H) & 1u) continue;
+		bool bOn = false;
+		switch ((EHint)H)
+		{
+		case EHint::Place: bOn = bBuild && Game.Towers.empty() && !Game.Hand.empty(); break;
+		case EHint::Synergy: bOn = bBuild && !Game.Towers.empty() && Game.Synergies.empty() && ((HintSeen >> (int32)EHint::Place) & 1u); break;
+		case EHint::FirstHand: bOn = !Game.Synergies.empty() && Game.Phase != EPDPhase::Reward; break;
+		case EHint::StartWave: bOn = bBuild && !Game.Towers.empty() && Game.Wave == 0; break;
+		case EHint::Fuse: bOn = (bBuild || bWave) && AnyFuse(); break;
+		case EHint::Chain: bOn = (bBuild || bWave) && AnyChain(); break;
+		case EHint::Joker: bOn = (bBuild || bWave) && !JGroups.empty(); break;
+		case EHint::Feed: bOn = (bBuild || bWave) && !Game.FeedTargets().empty(); break;
+		case EHint::HandFull: bOn = (bBuild || bWave) && !Game.Hand.empty() && (int32)Game.Hand.size() >= Game.HandMax(); break;
+		case EHint::Swap: bOn = (bBuild || bWave) && Game.Swaps > 0; break;
+		case EHint::Boss: bOn = bBuild && Game.Wave > 0 && Game.NextBossWave() == Game.Wave + 1; break;
+		case EHint::Shop: bOn = (bBuild || bWave) && Game.Wave > 0 && CanShop(); break;
+		case EHint::Reward: bOn = Game.Phase == EPDPhase::Reward; break;
+		default: break;
+		}
+		if (!bOn) continue;
+		HintNow = H;
+		HintAge = 0.f;
+		HintSwaps0 = Game.Swaps;
+		return;
+	}
+}
+
+bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
+{
+	auto Cells = [&](const std::vector<int>& Cs) {
+		if (Cs.empty()) return false;
+		FVector2f Mn(1e9f, 1e9f), Mx(-1e9f, -1e9f);
+		for (int K : Cs) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); Mn = FVector2f(FMath::Min(Mn.X, C0.X), FMath::Min(Mn.Y, C0.Y)); Mx = FVector2f(FMath::Max(Mx.X, C0.X + CS), FMath::Max(Mx.Y, C0.Y + CS)); }
+		Out = FBox2f(Mn, Mx);
+		return true; };
+	auto Row = [&](int32 R) { Out = FBox2f(FVector2f(LX + 8.f, HandRowY0 + R * HandRowH), FVector2f(LX + LW - 8.f, HandRowY0 + (R + 1) * HandRowH)); return true; };
+	switch ((EHint)H)
+	{
+	case EHint::Place: case EHint::HandFull: Out = FBox2f(FVector2f(FX + 92.f, HandY - 14.f), FVector2f(FX + Cols * CS, HandY + CardH + 2.f)); return true;
+	case EHint::FirstHand: return !Game.Synergies.empty() && Cells(Game.Synergies[0].Cells);
+	case EHint::Chain: for (const FPDSynergy& S : Game.Synergies) if (S.Chain >= 2) return Cells(S.Cells); return false;
+	case EHint::StartWave: Out = FBox2f(FVector2f(RBtnX, StartBtnY), FVector2f(RBtnX + RBtnW, StartBtnY + StartBtnH)); return true;
+	case EHint::Fuse: for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I) if (Game.CanFuse(I)) return Row((int32)Game.Synergies[I].Kind); return false;
+	case EHint::Joker: return Row(JokerFilterId);
+	case EHint::Feed: return Row(FeedFilterId);
+	case EHint::Swap: Out = FBox2f(FVector2f(SwapBtnX, SwapBtnY), FVector2f(SwapBtnX + SwapBtnW, SwapBtnY + SwapBtnH)); return true;
+	case EHint::Boss: Out = FBox2f(FVector2f(30.f, HudY + 34.f), FVector2f(310.f, HudY + 50.f)); return true;
+	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + TreeBtnW * 2.f + 8.f, TreeBtnY + TreeBtnH)); return true;
+	default: return false;
+	}
+}
+
 bool SPDBoardWidget::InFeed() const { return HandFilter == FeedFilterId; }
 
 void SPDBoardWidget::RefreshFeedList()
@@ -951,15 +1062,13 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		if (bRight || !InRect(P, TutX, TutY, TutW, TutH) || InRect(P, TutNextX, TutBtnY, TutBtnW, TutBtnH)) bRanking = false;
 		return;
 	}
-	if (bTutorial) // 튜토리얼 (D-166): 이전 · 다음/시작하기 · 건너뛰기, 오른쪽 클릭 = 이전
-	{
-		if (bRight) { TutPage = FMath::Max(0, TutPage - 1); return; }
-		if (InRect(P, TutNextX, TutBtnY, TutBtnW, TutBtnH)) { if (TutPage + 1 >= TutPages) CloseTutorial(); else { ++TutPage; UiSound(EPDSound::Move); } }
-		else if (TutPage > 0 && InRect(P, TutPrevX, TutBtnY, TutBtnW, TutBtnH)) { --TutPage; UiSound(EPDSound::Move); }
-		else if (TutPage + 1 < TutPages && InRect(P, TutSkipX, TutBtnY, TutBtnW, TutBtnH)) CloseTutorial();
-		return;
-	}
 	if (bSettings) { if (bRight) bSettings = false; else SettingsClick(P); return; }
+	if (HintNow >= 0 && !bRight && !bMenu && !bTree && !bUpg && !bCodex) // 도움말 카드 (D-217): [알겠어] = 닫기, [도움말 끄기] = 설정 끄기, 카드 안 다른 곳은 먹는다
+	{
+		if (HintOkRect.IsInside(P)) { FinishHint(); UiSound(EPDSound::Move); return; }
+		if (HintOffRect.IsInside(P)) { Settings.bHints = false; HintNow = -1; SaveSettings(); UiSound(EPDSound::Move); return; }
+		if (HintCardRect.IsInside(P)) return;
+	}
 	if (bMenu)
 	{
 		const int32 Item = MenuHoverAt(P);
@@ -1255,32 +1364,13 @@ int32 SPDBoardWidget::MenuHoverAt(FVector2f P) const
 	return -1;
 }
 
-// 튜토리얼 (D-166)
-void SPDBoardWidget::OpenTutorial(bool bThenStart)
-{
-	bTutorial = true;
-	TutPage = 0;
-	bTutThenStart = bThenStart;
-	Sel = -1;
-	UiSound(EPDSound::Move);
-}
-
-void SPDBoardWidget::CloseTutorial()
-{
-	bTutorial = false;
-	if (!bTutorialSeen) { bTutorialSeen = true; SaveProgress(); }
-	if (bTutThenStart) { bTutThenStart = false; bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); }
-}
 
 void SPDBoardWidget::TitleSelect(int32 Item)
 {
 	switch ((ETitleItem)Item)
 	{
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
-	case ETitleItem::Start:
-		if (!bTutorialSeen) { OpenTutorial(true); break; } // 처음이면 튜토리얼부터 (D-166)
-		bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
-	case ETitleItem::Tutorial: OpenTutorial(false); break;
+	case ETitleItem::Start: bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Ranking: bRanking = true; RankTab = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
@@ -1297,7 +1387,6 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 	{
 	case EMenuItem::Resume: bMenu = false; break;
 	case EMenuItem::NewGame: RestartRun(); break;
-	case EMenuItem::Tutorial: bMenu = false; OpenTutorial(false); break;
 	case EMenuItem::Settings: bSettings = true; SetSel = 0; break;
 	case EMenuItem::Quit:
 		bMenu = false;
@@ -1373,13 +1462,6 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	{
 		if (K == EKeys::Left || K == EKeys::Right || K == EKeys::A || K == EKeys::D || K == EKeys::Tab) RankTab = 1 - RankTab;
 		else if (K == EKeys::Escape || K == EKeys::Enter) bRanking = false;
-		return FReply::Handled();
-	}
-	if (bTutorial) // 튜토리얼 (D-166): ←→ 넘기기, Enter 다음, Esc 닫기
-	{
-		if (K == EKeys::Left || K == EKeys::A) TutPage = FMath::Max(0, TutPage - 1);
-		else if (K == EKeys::Right || K == EKeys::D || K == EKeys::Enter || K == EKeys::SpaceBar) { if (TutPage + 1 >= TutPages) CloseTutorial(); else ++TutPage; }
-		else if (K == EKeys::Escape) CloseTutorial();
 		return FReply::Handled();
 	}
 	if (bSettings) { SettingsKey(K); return FReply::Handled(); }
