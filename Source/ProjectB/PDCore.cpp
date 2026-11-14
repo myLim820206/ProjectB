@@ -1788,11 +1788,7 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	Sh.Dmg = Spd <= 0.f ? Dmg : 0.f;
 	Sh.R = (float)(int)Pr.Kind;
 	Ev(Sh);
-	if (Sounds.size() < 256) // 발사 소리 (D-155). 번개는 전기 소리 (D-156). 쌓이지 않게 (화면이 프레임마다 가져간다)
-	{
-		if (Pr.Kind == EPDShot::Arc) Sfx(EPDSound::Zap, 0);
-		else Sfx(EPDSound::Shot, (int)Pr.Suit, Pr.bHand ? 1 : 0);
-	}
+	if (Sounds.size() < 256) Sfx(EPDSound::Shot, (int)Pr.Suit, Pr.bHand ? 1 : 0); // 발사 소리 (D-155). 쌓이지 않게 (화면이 프레임마다 가져간다). 전기 소리는 뺐다 (D-171)
 	if (Spd <= 0.f) { Explode(Pr, &Target); return; }
 	const float DX = P.X - TX, DY = P.Y - TY, Len = std::max(0.01f, std::hypot(DX, DY));
 	if (Pr.Kind == EPDShot::Missile) // 미사일: 옆으로 튀어 나갔다가 휘어 들어간다
@@ -1821,11 +1817,7 @@ void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 	{
 		At = Path.At(Target->D);
 		Hit(*Target, P.Dmg, P.Slow);
-		if (Sounds.size() < 256) // 타격 소리 (D-155). 번개에 맞으면 짧은 전기 소리를 더한다 (D-156)
-		{
-			Sfx(EPDSound::Hit, (int)P.Suit, P.Crits > 0 ? 1 : 0);
-			if (P.Kind == EPDShot::Arc) Sfx(EPDSound::Zap, 1);
-		}
+		if (Sounds.size() < 256) Sfx(EPDSound::Hit, (int)P.Suit, P.Crits > 0 ? 1 : 0); // 타격 소리 (D-155)
 	}
 	if (P.Splash > 0.f)
 	{
