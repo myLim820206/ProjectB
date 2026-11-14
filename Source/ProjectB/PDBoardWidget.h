@@ -95,6 +95,11 @@ private:
 	void StartMode(int32 M);
 	void PaintModeSel(FCanvas& C) const;
 	int32 NewlyOpened = -1;                // 방금 클리어로 열린 모드 (클리어 화면 안내, -1 = 없음)
+	// 영구 강화 (D-230): 판이 끝나면 칩, 시작 화면 '영구 강화'에서 8종을 칩으로 올린다 (진행 파일에 저장)
+	int32 MetaChips = 0;
+	int32 LastChips = 0;                   // 방금 끝난 판에서 받은 칩
+	bool MetaBuy(int32 U, int32 N);        // N레벨까지 살 수 있는 만큼 (산 레벨이 있으면 true)
+	void PaintUpgrades(FCanvas& C) const;
 	int32 LastRankPos = -1;                // 방금 판이 몇 위로 들어갔나 (-1 = 못 들어감)
 	bool bRankRecorded = false;            // 이번 게임 오버를 이미 기록했다
 	float PeakPower = 0.f;                 // 이번 판 최고 판 위력

@@ -417,17 +417,17 @@ inline FString UpgradeEffect(int U, int Level)
 	const float V = UpgradeStep((EPDUpgrade)U) * Level;
 	switch ((EPDUpgrade)U)
 	{
-	case EPDUpgrade::Attack: return TrF(TEXT("모든 타워 공격력 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
-	case EPDUpgrade::Speed: return TrF(TEXT("모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)"), V * 100.f);
-	case EPDUpgrade::Crit: return TrF(TEXT("치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)"), (BaseCrit + V) * 100.f);
-	case EPDUpgrade::CritMult: return TrF(TEXT("치명타 배율 ×%.2f  (레벨당 +0.01)"), BaseCritMult + V);
-	default: return TrF(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)"), V * 100.f);
+	case EPDUpgrade::Attack: return TrF(TEXT("모든 타워 공격력 +%.0f%%  (레벨당 +3%%)"), V * 100.f);
+	case EPDUpgrade::Speed: return TrF(TEXT("모든 타워 공격 속도 +%.0f%%  (레벨당 +2%%)"), V * 100.f);
+	case EPDUpgrade::Crit: return TrF(TEXT("치명타 확률 %.0f%%  (레벨당 +1%%p)"), (BaseCrit + V) * 100.f);
+	case EPDUpgrade::CritMult: return TrF(TEXT("치명타 배율 ×%.2f  (레벨당 +0.05)"), BaseCritMult + V);
+	default: return TrF(TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +4%%)"), V * 100.f);
 	}
 }
 inline FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? SuitColor((EPDSuit)(U - (int)EPDUpgrade::Spade)) : U >= (int)EPDUpgrade::Crit ? Hex(TEXT("ff9a6a")) : Hex(TEXT("ffd96a")); }
 constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.f;
 constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
-const int32 UpgSteps[4] = {1, 10, 100, UpgradeMax};
+const int32 UpgSteps[4] = {1, 5, 10, UpgradeMax}; // 영구 강화 (D-230, 상한 20)
 inline FVector2f UpgButtonPos(int Row, int K) { return FVector2f(UpgRowX + UpgRowW - 4 * (UpgBtnW + 8.f) + K * (UpgBtnW + 8.f), UpgRowY + Row * UpgRowH + (UpgRowH - UpgBtnH) / 2.f); }
 // 웨이브 시작 버튼 아래 2×2 버튼 (D-119): 트리 K · 강화 U / 도감 J · 메뉴 Esc
 constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 36.f;
@@ -446,7 +446,7 @@ constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
 constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 // 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
-enum class ETitleItem : uint8_t { Continue, Start, Ranking, Settings, Quit, Count }; // 이어하기는 중단 저장이 있을 때만 (D-162)
+enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Ranking, Settings, Quit, Count }; // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
 // 큰 창 자리 (랭킹이 쓴다. 튜토리얼 화면 D-166 은 D-217 에 뺐다)
 constexpr float TutW = 780.f, TutH = 500.f, TutX = DesignW / 2.f - TutW / 2.f, TutY = 104.f;
 constexpr float TutBtnW = 120.f, TutBtnH = 38.f, TutBtnY = TutY + TutH - 56.f;

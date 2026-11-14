@@ -327,18 +327,19 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.TextCentered(TEXT("일시정지"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f - 14.f, WithAlpha(UiTitle, 0.75f + 0.25f * Pulse2), 40.f, true, Cols * CS - 40.f);
 		C.TextCentered(TEXT("스페이스·P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f + 26.f, Hex(TEXT("cfd8e6")), 13.f, false, Cols * CS - 40.f);
 	}
-	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) { PaintTitle(C); if (bModeSel) PaintModeSel(C); }
+	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) { PaintTitle(C); if (bModeSel) PaintModeSel(C); if (bUpg) PaintUpgrades(C); }
 	else if (G.Phase == EPDPhase::Clear) // 클리어 (D-229)
 	{
 		static const TCHAR* ModeNames[(int32)EPDMode::Count] = {TEXT("30 웨이브"), TEXT("60 웨이브"), TEXT("100 웨이브"), TEXT("무한")};
 		TArray<FString> Body = {TrF(TEXT("%s 모드 클리어 · 처치 %d · 레벨 %d"), Tr(ModeNames[(int32)G.Mode]), G.Kills, G.Level),
 			LastRankPos >= 0 ? TrF(TEXT("개인 랭킹 %d위"), LastRankPos + 1) : FString(Tr(TEXT("개인 랭킹 20위 밖")))};
+		Body.Add(TrF(TEXT("칩 +%d (모은 칩 %s)"), LastChips, *CommaNum(MetaChips)));
 		if (NewlyOpened >= 0) Body.Add(TrF(TEXT("새 모드가 열렸다: %s"), Tr(ModeNames[NewlyOpened])));
 		C.Overlay(TEXT("CLEAR!"), Hex(TEXT("ffd96a")), Body, Tr(TEXT("Enter 또는 화면을 눌러 시작 화면으로")));
 	}
 	else if (G.Phase == EPDPhase::Over)
 		C.Overlay(TEXT("GAME OVER"), Red, {TrF(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), TrF(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? Tr(TEXT("  (갱신!)")) : TEXT("")),
-			LastRankPos >= 0 ? TrF(TEXT("개인 랭킹 %d위"), LastRankPos + 1) : FString(Tr(TEXT("개인 랭킹 20위 밖")))}, Tr(TEXT("R 키 또는 화면을 눌러 다시")));
+			LastRankPos >= 0 ? TrF(TEXT("개인 랭킹 %d위"), LastRankPos + 1) : FString(Tr(TEXT("개인 랭킹 20위 밖"))), TrF(TEXT("칩 +%d (모은 칩 %s)"), LastChips, *CommaNum(MetaChips))}, Tr(TEXT("R 키 또는 화면을 눌러 다시")));
 	if (bMenu) PaintMenu(C);
 	if (bSettings) PaintSettings(C);
 	if (bRanking) PaintRanking(C);
@@ -2198,25 +2199,44 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		C.Text(TEXT("카드 클릭: 크게 보기 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
 	}
 
-	// ---- 영구 강화 (U, D-228): 판 안에서는 지금 레벨만 본다. 사는 곳은 시작 화면
-	if (bUpg)
+	if (bUpg && G.Phase != EPDPhase::Title) PaintUpgrades(C); // 영구 강화 (U): 판 안에서는 보기만 (D-228)
+}
+
+// 영구 강화 창 (D-230): 시작 화면에서는 칩으로 산다, 판 안에서는 지금 레벨만 본다
+void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
+{
+	const FPDGame& G = Game;
+	const FLinearColor Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6"));
+	const bool bShop = G.Phase == EPDPhase::Title;
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
+	C.Text(TEXT("영구 강화"), UpgRowX, 52.f, Hex(TEXT("ff9a6a")), 22.f, 0, true);
+	C.Text(bShop ? TrF(TEXT("칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)"), *CommaNum(MetaChips)) : FString(Tr(TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"))),
+		UpgRowX, 82.f, Gold, 12.f, 0, false, UpgRowW);
+	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
 	{
-		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
-		C.Text(TEXT("영구 강화"), UpgRowX, 52.f, Hex(TEXT("ff9a6a")), 22.f, 0, true);
-		C.Text(TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"), UpgRowX, 82.f, Gold, 12.f, 0, false, UpgRowW);
-		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
+		const float Y = UpgRowY + U * UpgRowH;
+		const int32 Lv = G.Upg[U];
+		const FLinearColor Col = UpgradeColor(U);
+		C.Lines(FCanvas::RectPoints(UpgRowX, Y + 4.f, UpgRowW, UpgRowH - 8.f), WithAlpha(Col, 0.25f), 1.f);
+		C.Text(UpgradeName(U), UpgRowX + 16.f, Y + 24.f, Col, 15.f, 0, true, 180.f);
+		C.Text(FString::Printf(TEXT("Lv %d / %d"), Lv, UpgradeMax), UpgRowX + 200.f, Y + 24.f, Lv >= UpgradeMax ? Gold : Fg, 13.f, 0, true);
+		C.Text(UpgradeEffect(U, Lv), UpgRowX + 16.f, Y + 46.f, Grey, 11.f, 0, false, UpgRowW - 4.f * (UpgBtnW + 8.f) - 24.f);
+		if (!bShop) continue;
+		for (int32 K = 0; K < 4; ++K)
 		{
-			const float Y = UpgRowY + U * UpgRowH;
-			const int32 Lv = G.Upg[U];
-			const FLinearColor Col = UpgradeColor(U);
-			C.Lines(FCanvas::RectPoints(UpgRowX, Y + 4.f, UpgRowW, UpgRowH - 8.f), WithAlpha(Col, 0.25f), 1.f);
-			C.Text(UpgradeName(U), UpgRowX + 16.f, Y + 24.f, Col, 15.f, 0, true, 180.f);
-			C.Text(FString::Printf(TEXT("Lv %d / %d"), Lv, UpgradeMax), UpgRowX + 200.f, Y + 24.f, Lv >= UpgradeMax ? Gold : Fg, 13.f, 0, true);
-			C.Text(UpgradeEffect(U, Lv), UpgRowX + 16.f, Y + 46.f, Grey, 11.f, 0, false, UpgRowW - 4.f * (UpgBtnW + 8.f) - 24.f);
+			const FVector2f B = UpgButtonPos(U, K);
+			int32 N = 0, Cost = 0;
+			for (int32 L = Lv; L < UpgradeMax && N < UpgSteps[K] && Cost + UpgradeCost(L) <= (K < 3 ? INT32_MAX : MetaChips); ++L) { Cost += UpgradeCost(L); ++N; }
+			const bool bCan = N > 0 && Cost <= MetaChips;
+			const bool bHov = InRect(Mouse, B.X, B.Y, UpgBtnW, UpgBtnH);
+			C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, UpgBtnW, UpgBtnH, 6.f), WithAlpha(Col, bCan ? 1.f : 0.3f), bHov ? 1.8f : 1.2f, bCan ? (bHov ? 1.2f : 0.5f) : 0.15f);
+			C.TextCentered(K < 3 ? FString::Printf(TEXT("+%d"), UpgSteps[K]) : FString(Tr(TEXT("최대"))), B.X + UpgBtnW / 2.f, B.Y + 10.f, WithAlpha(Col, bCan ? 1.f : 0.4f), 11.f, true);
+			C.TextCentered(N > 0 ? FString::Printf(TEXT("%d"), Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 22.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
 		}
-		C.TextCentered(TEXT("U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
-		PaintCloseButton(C, Hex(TEXT("ff9a6a")));
 	}
+	C.TextCentered(bShop ? FString(Tr(TEXT("버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기"))) : FString(Tr(TEXT("U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"))),
+		DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
+	PaintCloseButton(C, Hex(TEXT("ff9a6a")));
 }
 
 // 스킬 트리 창 (K, D-119): 위쪽 띠, 노드마다 하는 일 아이콘, 범례, 설명
@@ -2382,7 +2402,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
 	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
 	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
-	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
 	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
 	{
 		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 빈 자리 (D-162)

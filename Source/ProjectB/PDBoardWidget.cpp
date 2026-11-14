@@ -338,6 +338,13 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("BestWave")) Game.BestWave = FMath::Max(Game.BestWave, FCString::Atoi(*Val));
 			else if (Key == TEXT("Hints")) HintSeen = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("Modes")) ModesCleared = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
+			else if (Key == TEXT("Chips")) MetaChips = FMath::Max(0, FCString::Atoi(*Val));
+			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
+			{
+				TArray<FString> Parts;
+				Val.ParseIntoArray(Parts, TEXT(","));
+				for (int32 U = 0; U < Parts.Num() && U < (int32)EPDUpgrade::Count; ++U) Game.Upg[U] = FMath::Clamp(FCString::Atoi(*Parts[U]), 0, UpgradeMax);
+			}
 		}
 	SavedDiscovered = Game.Discovered;
 	SavedBest = Game.BestWave;
@@ -367,7 +374,9 @@ void SPDBoardWidget::SaveProgress()
 {
 	SavedDiscovered = Game.Discovered;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared), *PDProgressPath());
+	FString UpgS;
+	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -508,14 +517,16 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		bRankRecorded = true;
 		RecordRun();
 		NewlyOpened = -1;
+		LastChips = Game.RunChips(); // 영구 강화용 칩 (D-230)
+		MetaChips += LastChips;
 		if (Game.Phase == EPDPhase::Clear) // 클리어 (D-229): 다음 모드를 연다
 		{
 			TArray<int32> Before;
 			for (int32 M = 0; M < (int32)EPDMode::Count; ++M) if (ModeOpen(M)) Before.Add(M);
 			ModesCleared |= 1u << (int32)Game.Mode;
 			for (int32 M = 0; M < (int32)EPDMode::Count; ++M) if (ModeOpen(M) && !Before.Contains(M) && NewlyOpened < 0) NewlyOpened = M;
-			SaveProgress();
 		}
+		SaveProgress();
 	}
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
@@ -1101,6 +1112,17 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else if (!InRect(P, MenuX - 30.f, MenuItemY0 - 80.f, MenuW + 60.f, (int32)EMenuItem::Count * (MenuItemH + MenuGap) + 110.f)) bMenu = false; // 창 바깥 클릭 = 닫기
 		return;
 	}
+	if (Game.Phase == EPDPhase::Title && bUpg) // 영구 강화 (D-230): 시작 화면에서 칩으로 산다
+	{
+		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bUpg = false; return; }
+		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
+			for (int32 K = 0; K < 4; ++K)
+			{
+				const FVector2f B = UpgButtonPos(U, K);
+				if (InRect(P, B.X, B.Y, UpgBtnW, UpgBtnH) && !MetaBuy(U, UpgSteps[K])) UiSound(EPDSound::Denied);
+			}
+		return;
+	}
 	if (Game.Phase == EPDPhase::Title && bModeSel) // 모드 고르기 (D-229): 카드 클릭 = 시작, 창 밖·오른쪽 클릭 = 닫기
 	{
 		if (bRight) { bModeSel = false; return; }
@@ -1335,6 +1357,22 @@ TArray<int32> SPDBoardWidget::RankList(int32 Mode) const
 	return Out;
 }
 
+bool SPDBoardWidget::MetaBuy(int32 U, int32 N)
+{
+	if (Game.Phase != EPDPhase::Title || U < 0 || U >= (int32)EPDUpgrade::Count) return false;
+	int32 Done = 0;
+	while (Done < N && Game.Upg[U] < UpgradeMax && MetaChips >= UpgradeCost(Game.Upg[U]))
+	{
+		MetaChips -= UpgradeCost(Game.Upg[U]);
+		Game.Upg[U]++;
+		Done++;
+	}
+	if (Done == 0) return false;
+	UiSound(EPDSound::Rotate);
+	SaveProgress();
+	return true;
+}
+
 bool SPDBoardWidget::ModeOpen(int32 M) const
 {
 	switch ((EPDMode)M)
@@ -1446,6 +1484,7 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 	{
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Start: bModeSel = true; ModeSel = ModeOpen((int32)Game.Mode) ? (int32)Game.Mode : 0; UiSound(EPDSound::Move); break; // 모드 고르기 창 (D-229)
+	case ETitleItem::Upgrades: bUpg = true; UiSound(EPDSound::Move); break;
 	case ETitleItem::Ranking: bRanking = true; RankTab = (int32)Game.Mode; UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:

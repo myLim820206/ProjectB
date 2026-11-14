@@ -156,9 +156,9 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned);
 
 // ---------------------------------------------------------------- 강화 (D-228: 판 안 골드 강화 → 판 밖 영구 강화로 옮기는 중)
 enum class EPDUpgrade : uint8_t { Attack, Speed, Crit, CritMult, Spade, Heart, Diamond, Club, Count };
-constexpr int UpgradeMax = 9999;
+constexpr int UpgradeMax = 20; // 영구 강화 레벨 상한 (D-230)
 constexpr float BaseCrit = 0.05f, BaseCritMult = 1.5f; // 기본 치명타 5%, ×1.5. 100%를 넘으면 한 방에 치명타가 여러 번
-int UpgradeCost(int Level);           // Level → Level+1 값
+int UpgradeCost(int Level);           // Level → Level+1 칩 값 (D-230: 5 + 5 × 레벨)
 float UpgradeStep(EPDUpgrade U);      // 레벨당 효과
 void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>& Lv);
 
@@ -494,6 +494,7 @@ public:
 	EPDPhase Phase = EPDPhase::Title;
 	EPDMode Mode = EPDMode::Endless; // NewGame 전에 정한다 (D-229)
 	int Goal() const { return ModeGoal(Mode); }
+	int RunChips() const { return Wave + 2 * (Level - 1) + (Phase == EPDPhase::Clear ? Goal() : 0); } // 판이 끝나면 받는 칩 (D-230): 웨이브 + 2 × 오른 레벨 + 클리어 덤(목표 웨이브)
 	bool IsFinalWave(int W) const { return Goal() > 0 && W == Goal(); }
 	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
 	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다

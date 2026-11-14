@@ -1175,7 +1175,7 @@ static void UnitTests()
 		for (int I = 0; I < TreeNodeCount(); ++I) for (const FPDNodeFx& Fx : TreeNode(I).Fx) bNew = bNew || (Fx.Stat == EPDStat::HandDmg && (Fx.Param & (1 << (int)EPDHand::Five)) && TreeNode(I).Kind == EPDNode::Notable);
 		Expect(bNew, "새 족보(파이브 카드)를 키우는 특급 노드가 있음");
 	}
-	{ // 강화 효과 (D-228: 레벨은 판 밖 영구 강화가 채운다)
+	{ // 영구 강화 효과 (D-228, D-230): 레벨 0~20, 칩 값 5 + 5 × 레벨
 		FPDGame G(9);
 		G.NewGame(true);
 		G.Upg[(int)EPDUpgrade::Attack] = 3;
@@ -1183,15 +1183,21 @@ static void UnitTests()
 		FPDTower T;
 		T.Card = C(9);
 		const float D0 = TowerStats(T, 0).Dmg;
-		Expect(std::abs(TowerStats(T, 0, &G.Mods).Dmg / D0 - 1.03f) < 1e-4f, "공격 +1%/레벨");
-		G.Upg[(int)EPDUpgrade::Crit] = 1450; // 5% + 145% = 150%
+		Expect(std::abs(TowerStats(T, 0, &G.Mods).Dmg / D0 - 1.09f) < 1e-4f, "공격 +3%/레벨");
+		G.Upg[(int)EPDUpgrade::Crit] = 145; // 5% + 145% = 150% (상한 20을 넘긴 값은 시험용)
 		G.Upg[(int)EPDUpgrade::Spade] = 10;
 		G.RebuildMods();
 		const FPDTowerStats S = TowerStats(T, 0, &G.Mods);
 		Expect(std::abs(S.Crit - 1.5f) < 1e-3f && std::abs(S.CritFactor() - (1.f + 1.5f * 0.5f)) < 1e-3f, "치명타 확률 150% = 치명타 1~2번 (기대 배율 1.75)");
+		FPDGame N(9);
+		N.Upg[(int)EPDUpgrade::Attack] = 5;
+		N.NewGame(true);
+		Expect(std::abs(N.Mods.UpgDmg - 0.15f) < 1e-4f, "새 판을 시작하면 영구 강화가 바로 걸린다");
+		N.Wave = 12; N.Level = 9;
+		Expect(N.RunChips() == 12 + 16, "칩 = 웨이브 + 2 × 오른 레벨");
 		long long Total = 0;
 		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);
-		Expect(Total > 90000000LL, "9999레벨까지 약 " + std::to_string(Total / 1000000) + "백만 골드");
+		Expect(UpgradeMax == 20 && Total == 1050, "20레벨까지 한 종류 칩 " + std::to_string(Total));
 	}
 }
 

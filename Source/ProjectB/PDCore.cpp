@@ -111,16 +111,16 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned)
 
 bool FPDTreeMods::Up(const FPDTower& T) const { return T.IsJoker() && (Up(T.Joker) || T.JLevel >= JokerUpLevel); }
 
-int UpgradeCost(int Level) { return 10 + 2 * Level; } // 10, 12, 14 … 9999레벨까지 약 1억
+int UpgradeCost(int Level) { return 5 + 5 * Level; } // 칩 5, 10, 15 … 20레벨까지 한 종류 1,050 (D-230)
 float UpgradeStep(EPDUpgrade U)
 {
 	switch (U)
 	{
-	case EPDUpgrade::Attack: return 0.01f;    // 공격력 +1%
-	case EPDUpgrade::Speed: return 0.01f;     // 공격 속도 +1%
-	case EPDUpgrade::Crit: return 0.001f;     // 치명타 확률 +0.1%p (100% 넘으면 한 방에 여러 번)
-	case EPDUpgrade::CritMult: return 0.01f;  // 치명타 배율 +0.01
-	default: return 0.02f;                    // 무늬 강화: 그 무늬 공격력 +2%
+	case EPDUpgrade::Attack: return 0.03f;    // 공격력 +3% (D-230 영구 강화, 20레벨 +60%)
+	case EPDUpgrade::Speed: return 0.02f;     // 공격 속도 +2%
+	case EPDUpgrade::Crit: return 0.01f;      // 치명타 확률 +1%p (100% 넘으면 한 방에 여러 번)
+	case EPDUpgrade::CritMult: return 0.05f;  // 치명타 배율 +0.05
+	default: return 0.04f;                    // 무늬 강화: 그 무늬 공격력 +4%
 	}
 }
 void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>& Lv)
@@ -775,7 +775,8 @@ void FPDGame::NewGame(bool bStart)
 	Swaps = 0;
 	XpCarry = 0.f;
 	TreeOwned = FPDTreeBits(1);
-	Mods = FPDTreeMods{};
+	Mods = BuildTreeMods(TreeOwned);
+	ApplyUpgrades(Mods, Upg); // 영구 강화 (D-230)
 	Time = 0.f;
 	Towers.clear();
 	Synergies.clear();
