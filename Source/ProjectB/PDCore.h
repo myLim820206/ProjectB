@@ -186,7 +186,7 @@ struct FPDTower
 };
 // 조커 레벨 (D-098): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +15% (D-191), 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
 constexpr int JokerMaxLevel = 9999;
-constexpr float JokerLevelDmg = 0.15f; // 레벨마다 위력 +15% (D-191, 예전 10%)
+constexpr float JokerLevelDmg = 0.5f; // 레벨마다 위력 +50% (D-196, 예전 15%)
 constexpr float JokerFeedAbsorb = 0.6f; // 먹이기: 먹인 타워 위력의 60% 를 조커 위력에 바로 더한다 (D-191)
 constexpr int JokerUpLevel = 10;
 inline float JokerXpNeed(int Level) { return 20.f + 10.f * (Level - 1); }
@@ -209,14 +209,22 @@ struct FPDJokerMerge
 	int Joker = -1;
 	std::vector<int> Cells;
 };
-// 조커 재료 묶음 (D-115, D-118): 서로 맞닿은 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개 또는 2개가 레시피와 정확히 맞을 때.
-// 이어진 것이 더 많아도 그것만 쓴다. 3개 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
+// 조커 재료 묶음 (D-115, D-118): 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개 또는 2개가 레시피와 정확히 맞을 때.
+// 판 어디에 있어도 된다 (D-195, 예전엔 서로 맞닿아야 했다). 3개 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
 struct FPDJokerGroup
 {
 	std::vector<int> SynergyIdx; // 족보 번호
 	std::vector<int> FusedCells; // 따로 선 합성 타워 칸
 	std::vector<int> Cells;      // 쓰이는 칸 전부
 	EPDJoker Result = EPDJoker::Clown;
+};
+// 조커 재료 하나 (D-195): 조커가 없는 족보 하나, 또는 족보에 안 든 합성 타워(레벨 2+) 하나
+struct FPDJokerNode
+{
+	int Syn = -1;            // 족보 번호 (-1 이면 합성 타워)
+	int Fused = -1;          // 합성 타워 칸
+	std::vector<int> Cells;  // 재료 칸
+	EPDHand Kind = EPDHand::Count; // 족보 (합성 타워는 기억하는 족보)
 };
 // 대장: 족보마다 조커 하나 (지휘 능력과 도감 표시). 조커마다 레시피에 자기 대장 족보가 들어 있다
 EPDJoker CaptainOf(EPDHand H);
@@ -414,6 +422,11 @@ public:
 	bool Fuse(int SynergyIdx, int TargetCell = -1);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
 	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
 	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
+	// 조커 만들기 (D-195): 플레이어가 재료를 직접 고른다 (JokerNodes 번호 2~3개, 거리 상관없음)
+	std::vector<FPDJokerNode> JokerNodes() const;
+	EPDJoker JokerCraftResult(const std::vector<int>& Nodes) const; // 레시피와 맞으면 그 조커, 아니면 Count
+	bool JokerCraft(const std::vector<int>& Nodes, int TargetCell); // TargetCell = 재료 칸 중 하나 (-1 = 기본 칸)
+	bool JokerFuseGroup(const FPDJokerGroup& G, int TargetCell);
 	std::vector<FPDFeed> FeedTargets() const;        // 조커에 먹일 수 있는 족보 (족보마다 하나)
 	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치). 조커는 먹이가 되지 않는다
 	std::vector<FPDJokerMerge> JokerMerges() const;  // 같은 조커끼리 맞닿은 묶음 (2개 이상)

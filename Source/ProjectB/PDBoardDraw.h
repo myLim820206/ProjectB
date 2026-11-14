@@ -34,6 +34,7 @@ constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 �
 constexpr int32 HandRowsN = (int32)EPDHand::Count + 1;
 constexpr float HandY = FY + Rows * CS + 14.f;
 constexpr float SwapBtnX = FX, SwapBtnY = HandY + 54.f, SwapBtnW = 86.f, SwapBtnH = 28.f; // 자리바꿈 버튼 (D-149, 덱 글자 아래)
+constexpr float CraftBtnX = FX, CraftBtnY = SwapBtnY + SwapBtnH + 6.f, CraftBtnW = 86.f, CraftBtnH = 28.f; // 조커 만들기 버튼 (D-195, 자리바꿈 아래)
 constexpr float CardW = 70.f, CardH = 98.f;
 constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
 constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
@@ -217,7 +218,7 @@ inline FString JokerRecipe2Text(int K)
 	const auto& R = JokerRecipe2((EPDJoker)K);
 	return TrF(TEXT("2개: %s + %s"), HandShort(R[0]), HandShort(R[1]));
 }
-inline FString JokerRuleText() { return TEXT("맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의"); }
+inline FString JokerRuleText() { return TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 · 판 어디에 있어도 된다 · 3개 쪽이 카드가 많아 세다"); }
 inline FString JokerCommand(int K) { return TrF(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
 const FLinearColor UiEdge = FLinearColor(FColor::FromHex(TEXT("7fd6ff"))); // UI 창·패널·버튼 테두리는 모두 이 색 (D-160)

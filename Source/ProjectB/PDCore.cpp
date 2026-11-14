@@ -671,7 +671,7 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	if (Tm.Key(EPDKeystone::Crowd) && bAlone) St.Dmg *= 0.5f;
 	if (T.IsJoker())
 	{
-		St.Dmg *= 1.f + JokerLevelDmg * (T.JLevel - 1); // 조커 레벨: 레벨마다 위력 +15% (D-191)
+		St.Dmg *= 1.f + JokerLevelDmg * (T.JLevel - 1); // 조커 레벨: 레벨마다 위력 +50% (D-196)
 		const bool bUp = Tm.Up(T);
 		switch ((EPDJoker)T.Joker)
 		{
@@ -1354,50 +1354,24 @@ bool FPDGame::FuseSynergy(int SynergyIdx, FPDSynergy& Out) const
 std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 {
 	std::vector<FPDJokerGroup> Out;
-	if (!InPlay()) return Out;
-	if (Mods.Key(EPDKeystone::Smith)) return Out; // 대장장이: 조커 포탑을 만들 수 없다
-	// 재료 후보: 조커가 없는 족보 + 족보에 안 든 합성 타워
-	struct FNode
-	{
-		int Syn;
-		int Fused;
-		std::vector<int> Cells;
-	};
-	std::vector<FNode> Nodes;
-	std::set<int> InSyn;
-	for (int I = 0; I < (int)Synergies.size(); ++I)
-	{
-		bool bJoker = false;
-		for (int K : Synergies[I].Cells) { InSyn.insert(K); bJoker = bJoker || Towers.at(K).IsJoker(); }
-		if (!bJoker) Nodes.push_back({I, -1, Synergies[I].Cells});
-	}
-	for (const auto& KV : Towers)
-		if (KV.second.Level >= 2 && !KV.second.IsJoker() && !InSyn.count(KV.first)) Nodes.push_back({-1, KV.first, {KV.first}});
-	auto Touch = [](const FNode& A, const FNode& B) {
-		for (int P : A.Cells) for (int Q : B.Cells) if (PDCellDist(P, Q) <= 1) return true; // 맞닿거나 카드를 나눠 씀
-		return false;
-	};
-	auto KindOf = [&](const FNode& N) { return N.Syn >= 0 ? (int)Synergies[N.Syn].Kind : Towers.at(N.Fused).FuseHand; };
-	// 맞닿은 3개 조합(한 줄기로 이어짐)과 2개 조합 중 레시피와 정확히 맞는 것 (D-115, D-118)
+	const std::vector<FPDJokerNode> Nodes = JokerNodes();
+	// 3개 조합과 2개 조합 중 레시피와 정확히 맞는 것 (D-115, D-118). 거리는 상관없다 (D-195)
 	struct FCand { int N[3]; int Count; EPDJoker J; int Value; };
 	std::vector<FCand> Cands;
 	const int NN = (int)Nodes.size();
-	std::vector<std::vector<char>> Adj(NN, std::vector<char>(NN, 0));
-	for (int I = 0; I < NN; ++I) for (int J = I + 1; J < NN; ++J) Adj[I][J] = Adj[J][I] = Touch(Nodes[I], Nodes[J]);
 	std::vector<int> Kind(NN);
-	for (int I = 0; I < NN; ++I) Kind[I] = KindOf(Nodes[I]);
+	for (int I = 0; I < NN; ++I) Kind[I] = Nodes[I].Kind == EPDHand::Count ? -1 : (int)Nodes[I].Kind;
 	for (int I = 0; I < NN; ++I)
 		for (int J = I + 1; J < NN; ++J)
 		{
 			if (Kind[I] < 0 || Kind[J] < 0) continue;
-			if (Adj[I][J])
 			{
 				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J]});
 				if (R != EPDJoker::Count) Cands.push_back({{I, J, -1}, 2, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J])});
 			}
 			for (int K = J + 1; K < NN; ++K)
 			{
-				if (Kind[K] < 0 || Adj[I][J] + Adj[J][K] + Adj[I][K] < 2) continue; // 이어지지 않음
+				if (Kind[K] < 0) continue;
 				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J], (EPDHand)Kind[K]});
 				if (R != EPDJoker::Count) Cands.push_back({{I, J, K}, 3, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J]) + HandBaseValue((EPDHand)Kind[K])});
 			}
@@ -1450,11 +1424,73 @@ static int PDFuseTarget(const std::vector<int>& Cells, int Wanted)
 	return std::find(Cells.begin(), Cells.end(), Wanted) != Cells.end() ? Wanted : -1;
 }
 
+std::vector<FPDJokerNode> FPDGame::JokerNodes() const
+{
+	std::vector<FPDJokerNode> Nodes;
+	if (!InPlay()) return Nodes;
+	if (Mods.Key(EPDKeystone::Smith)) return Nodes; // 대장장이: 조커 포탑을 만들 수 없다
+	// 재료 후보: 조커가 없는 족보 + 족보에 안 든 합성 타워
+	std::set<int> InSyn;
+	for (int I = 0; I < (int)Synergies.size(); ++I)
+	{
+		bool bJoker = false;
+		for (int K : Synergies[I].Cells) { InSyn.insert(K); bJoker = bJoker || Towers.at(K).IsJoker(); }
+		if (!bJoker) { FPDJokerNode N; N.Syn = I; N.Cells = Synergies[I].Cells; N.Kind = Synergies[I].Kind; Nodes.push_back(N); }
+	}
+	for (const auto& KV : Towers)
+		if (KV.second.Level >= 2 && !KV.second.IsJoker() && !InSyn.count(KV.first) && KV.second.FuseHand >= 0)
+		{
+			FPDJokerNode N;
+			N.Fused = KV.first;
+			N.Cells = {KV.first};
+			N.Kind = (EPDHand)KV.second.FuseHand;
+			Nodes.push_back(N);
+		}
+	return Nodes;
+}
+
+EPDJoker FPDGame::JokerCraftResult(const std::vector<int>& Picks) const
+{
+	if (Picks.size() != 2 && Picks.size() != 3) return EPDJoker::Count;
+	const std::vector<FPDJokerNode> Nodes = JokerNodes();
+	std::vector<EPDHand> Hands;
+	for (size_t I = 0; I < Picks.size(); ++I)
+	{
+		if (Picks[I] < 0 || Picks[I] >= (int)Nodes.size()) return EPDJoker::Count;
+		for (size_t J = 0; J < I; ++J) if (Picks[J] == Picks[I]) return EPDJoker::Count; // 같은 재료 두 번
+		Hands.push_back(Nodes[Picks[I]].Kind);
+	}
+	return MatchJokerRecipe(Hands);
+}
+
+bool FPDGame::JokerCraft(const std::vector<int>& Picks, int TargetCell)
+{
+	const EPDJoker R = JokerCraftResult(Picks);
+	if (R == EPDJoker::Count) return false;
+	const std::vector<FPDJokerNode> Nodes = JokerNodes();
+	FPDJokerGroup G;
+	for (int P : Picks)
+	{
+		const FPDJokerNode& N = Nodes[P];
+		if (N.Syn >= 0) G.SynergyIdx.push_back(N.Syn);
+		else G.FusedCells.push_back(N.Fused);
+		G.Cells.insert(G.Cells.end(), N.Cells.begin(), N.Cells.end());
+	}
+	std::sort(G.Cells.begin(), G.Cells.end());
+	G.Cells.erase(std::unique(G.Cells.begin(), G.Cells.end()), G.Cells.end()); // 나눠 쓴 카드는 한 번만
+	G.Result = R;
+	return JokerFuseGroup(G, TargetCell);
+}
+
 bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 {
 	const std::vector<FPDJokerGroup> Groups = JokerGroups();
 	if (GroupIdx < 0 || GroupIdx >= (int)Groups.size()) return false;
-	const FPDJokerGroup& G = Groups[GroupIdx];
+	return JokerFuseGroup(Groups[GroupIdx], TargetCell);
+}
+
+bool FPDGame::JokerFuseGroup(const FPDJokerGroup& G, int TargetCell)
+{
 	const int Target = PDFuseTarget(G.Cells, TargetCell);
 	if (Target < 0) return false;
 	FPDTower J;

@@ -784,6 +784,24 @@ static void UnitTests()
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Groups = G.JokerGroups();
 		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Star && Groups[0].Cells.size() == 3, "합성 타워 플러시·로열·스트플 한 줄 → 스타");
+		// 조커 만들기 (D-195): 멀리 떨어진 재료를 직접 고른다
+		G.Towers.clear();
+		Put(G.Towers, 0, Row, C(4), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::Flush;
+		Put(G.Towers, 7, Row, C(14, Di), 2); G.Towers[CellKey(7, Row)].FuseHand = (int)EPDHand::RoyalFlush;
+		Put(G.Towers, 12, Row, C(3, He), 2); G.Towers[CellKey(12, Row)].FuseHand = (int)EPDHand::StraightFlush;
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		{
+			const std::vector<FPDJokerNode> Ns = G.JokerNodes();
+			int NF = -1, NR = -1, NS = -1;
+			for (int I = 0; I < (int)Ns.size(); ++I) { if (Ns[I].Kind == EPDHand::Flush) NF = I; if (Ns[I].Kind == EPDHand::RoyalFlush) NR = I; if (Ns[I].Kind == EPDHand::StraightFlush) NS = I; }
+			const bool bNodes = Ns.size() == 3 && NF >= 0 && NR >= 0 && NS >= 0;
+			const bool bTwo = bNodes && G.JokerCraftResult({NR, NS}) == EPDJoker::Star;
+			const bool bBad = bNodes && G.JokerCraftResult({NF, NS}) == EPDJoker::Hatter && G.JokerCraftResult({NF, NF}) == EPDJoker::Count && G.JokerCraftResult({NF}) == EPDJoker::Count;
+			const bool bOutside = bNodes && !G.JokerCraft({NF, NR, NS}, CellKey(3, Row));
+			const bool bMade = bNodes && G.JokerCraft({NF, NR, NS}, CellKey(7, Row));
+			Expect(bTwo && bBad && bOutside && bMade && G.Towers.size() == 1 && G.Towers.at(CellKey(7, Row)).Joker == (int)EPDJoker::Star,
+				"조커 만들기: 떨어진 플러시·로열·스트플을 골라 스타, 재료 밖 칸·같은 재료 두 번은 거절");
+		}
 		// 합성 타워는 족보를 기억한다
 		G.Towers.clear();
 		Put(G.Towers, 0, Row, C(6)); Put(G.Towers, 1, Row, C(6, He));
