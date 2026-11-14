@@ -1328,9 +1328,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					const float In = 4.f, X0 = C0.X + (bL ? 0.f : In), X1 = C0.X + CS - (bR ? 0.f : In), Y0 = C0.Y + (bU ? 0.f : In), Y1 = C0.Y + CS - (bD ? 0.f : In);
 					// 마우스가 안 올라간 후보는 한 단계 눌러 둔다 (D-204): 옅은 어둠 + 옅은 채움 + 가는 테두리. 올라간 족보만 밝게
 					if (!bHov && bAnyFuseHov) F.Box(C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.6f));
-					F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Pick, bHov ? 0.38f + 0.14f * Wv : bAnyFuseHov ? 0.06f : 0.14f + 0.08f * Wv));
-					const FLinearColor Ec = WithAlpha(Pick, bHov ? 1.f : bAnyFuseHov ? 0.5f : 0.9f);
-					const float Ew = bHov ? 3.4f : bAnyFuseHov ? 1.3f : 2.2f, Eg = bHov ? 1.6f + 1.f * Wv : bAnyFuseHov ? 0.3f : 0.9f + 0.6f * Wv;
+					F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Pick, (bHov ? 0.38f + 0.14f * Wv : bAnyFuseHov ? 0.06f : 0.14f + 0.08f * Wv) * 0.9f));
+					const FLinearColor Ec = WithAlpha(Pick, (bHov ? 1.f : bAnyFuseHov ? 0.5f : 0.9f) * 0.9f);
+					const float Ew = bHov ? 3.4f : bAnyFuseHov ? 1.3f : 2.2f, Eg = (bHov ? 1.6f + 1.f * Wv : bAnyFuseHov ? 0.3f : 0.9f + 0.6f * Wv) * 0.9f; // 눈부셔서 10% 낮춤 (D-208)
 					if (!bU) F.Glow({FVector2f(X0, Y0), FVector2f(X1, Y0)}, Ec, Ew, Eg);
 					if (!bD) F.Glow({FVector2f(X0, Y1), FVector2f(X1, Y1)}, Ec, Ew, Eg);
 					if (!bL) F.Glow({FVector2f(X0, Y0), FVector2f(X0, Y1)}, Ec, Ew, Eg);
@@ -1341,13 +1341,13 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				bFuseHov = true;
 				const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
 				const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), TargetCol, 3.8f, 1.8f + Wv);
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), WithAlpha(TargetCol, 0.9f), 3.8f, (1.8f + Wv) * 0.9f);
 				for (int32 Ring = 0; Ring < 2; ++Ring)
 				{
 					const float U = FMath::Fmod(Clock * 1.4f + Ring * 0.5f, 1.f), Gr = 2.f + 12.f * U;
-					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.9f * (1.f - U)), 2.2f, 1.f);
+					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.81f * (1.f - U)), 2.2f, 1.f);
 				}
-				for (int K : FS.Cells) if (K != HKey) F.Dashed({CellCenter(K), CellCenter(HKey)}, WithAlpha(TargetCol, 0.7f), 1.6f, 4.f, 5.f);
+				for (int K : FS.Cells) if (K != HKey) F.Dashed({CellCenter(K), CellCenter(HKey)}, WithAlpha(TargetCol, 0.63f), 1.6f, 4.f, 5.f);
 				F.Badge(TEXT("여기로 합성"), C0.X + CS / 2.f, C0.Y + CS + 20.f, TargetCol, 1.f); // 어두운 바탕 딱지로 칸 아래에 (D-205): 위쪽은 족보 이름표·퍼지는 고리와 겹쳐 안 보였다
 			}
 		}
