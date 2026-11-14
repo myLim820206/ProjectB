@@ -515,6 +515,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				PDDebugStress(Game);
 				{ int32 TP = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdtut="), TP)) { bTutorial = true; TutPage = FMath::Clamp(TP, 0, TutPages - 1); } } // 시험용: 튜토리얼 N쪽 띄우기
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdpause"))) bPaused = true; // 시험용: 일시정지 화면
+				if (FParse::Param(FCommandLine::Get(), TEXT("pdwalk"))) { Game.Towers.clear(); Game.RebuildMods(); } // 시험용: 타워 없이 적이 걷는 모습
 				{ int32 RT = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdrank="), RT)) { bRanking = true; RankTab = RT; if (Ranking.Num() == 0) for (int32 I = 0; I < 13; ++I) { FRankEntry E; E.Wave = 40 - I * 2; E.Kills = 2000 - I * 97; E.Power = 900000.f / (I + 1); E.Time = FDateTime::Now().ToUnixTimestamp() - I * 86400; Ranking.Add(E); } LastRankPos = 2; } } // 시험용: 랭킹 창 (기록이 없으면 보기용 가짜, 저장 안 함)
 				GPDDebug.bShow = true;
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔

@@ -65,6 +65,12 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 		const FVector2f P = AtlasCellCenter(AtlasJoker0 + K);
 		if (Vis(P)) F.JokerTower(K, P.X, P.Y, R, 1.f, 0.5f);
 	}
+	for (int32 Sh = 0; Sh < SoldierShapes; ++Sh) // 카드병정 적 (D-175): 흰색, 걷기 4프레임
+		for (int32 Fr = 0; Fr < SoldierFrames; ++Fr)
+		{
+			const FVector2f P = AtlasCellCenter(AtlasSoldier0 + Sh * SoldierFrames + Fr);
+			if (Vis(P)) F.CardSoldier(Sh, P + FVector2f(0.f, SoldierFoot), Sh == 7 ? SoldierBossBakeR : SoldierBakeR, Fr / (float)SoldierFrames, FLinearColor::White);
+		}
 	// 이펙트 모양 (D-141): 흰색, 반지름 AtlasFxR, 0도에서 시작 (그릴 때 색·크기·회전)
 	const FLinearColor W = FLinearColor::White;
 	const float RR = AtlasFxR, Th = AtlasFxTh;
@@ -583,6 +589,21 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			for (int K = 0; K <= N; ++K) { const float A = Rot + K / (float)N * TwoPi; Pts.Add(P + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R); }
 			return Pts;
 		};
+		if (UseAtlas()) // 카드병정 (D-175): 걸은 거리로 걷기 프레임 (멈추거나 느려지면 걸음도 느려진다), 적 색으로 물들임
+		{
+			const int32 Sh = SoldierShape(E.Type);
+			const int32 Fr = (int32)(FMath::Fmod(E.D * 2.2f, 1.f) * SoldierFrames) % SoldierFrames;
+			const float Sc = bBoss ? 0.95f : Sh == 6 ? 0.42f : 0.48f;
+			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Col);
+			if (E.Type == EPDEnemy::Warden) // 보호막 켜짐/꺼짐은 그대로 보여 준다
+			{
+				if (E.Shield > 0.f) F.Glow(FCanvas::CirclePoints(P, 30.f + 2.f * Pulse, 40), Col, 2.2f, 1.6f);
+				else F.Dashed(FCanvas::CirclePoints(P, 28.f, 40), WithAlpha(Col, 0.5f), 1.4f, 4.f, 5.f);
+			}
+			else if (E.Type == EPDEnemy::Charger && E.StateT > 0.f) // 돌진 중 속도선
+				for (const float Yy : {-10.f, 0.f, 10.f}) F.Lines({P + FVector2f(-22.f, Yy), P + FVector2f(-44.f, Yy)}, WithAlpha(Col, 0.7f), 1.6f);
+		}
+		else
 		switch (E.Type)
 		{
 		case EPDEnemy::Fast: F.Glow({{P.X + 10.f, P.Y}, {P.X - 7.f, P.Y - 8.f}, {P.X - 7.f, P.Y + 8.f}, {P.X + 10.f, P.Y}}, Col, 2.f); break;

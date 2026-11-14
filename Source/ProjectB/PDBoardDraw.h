@@ -548,7 +548,24 @@ constexpr int32 AtlasFx0 = AtlasJoker0 + 10, AtlasFxN = 53;
 // 그 밖 (D-143): 족보 빗금 칸, 합성 가능 꺾쇠 칸, 가로 빛선 (조각·입자 꼬리)
 constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1, AtlasLine = AtlasHatch + 2;
 // 선 스프라이트 (D-146): 가로 띠 (가운데 꽉, 위아래 가장자리만 부드럽게). 모든 선은 이걸 늘여 찍는다
-constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4, AtlasN = AtlasHatch + 5;
+constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4;
+// 카드병정 적 (D-175): 모양 8 × 걷기 4프레임, 흰색으로 구워 그릴 때 적 색으로 물들인다. 칸 가운데가 몸 가운데, 발은 +SoldierFoot
+constexpr int32 SoldierShapes = 8, SoldierFrames = 4, AtlasSoldier0 = AtlasHatch + 5, AtlasN = AtlasSoldier0 + SoldierShapes * SoldierFrames;
+constexpr float SoldierFoot = 37.f, SoldierBakeR = 29.f, SoldierBossBakeR = 23.f;
+inline int32 SoldierShape(EPDEnemy T)
+{
+	switch (T)
+	{
+	case EPDEnemy::Normal: return 0;
+	case EPDEnemy::Fast: return 1;
+	case EPDEnemy::Tank: return 2;
+	case EPDEnemy::Armored: return 3;
+	case EPDEnemy::Splitter: return 4;
+	case EPDEnemy::Regen: return 5;
+	case EPDEnemy::Mini: return 6;
+	default: return 7; // 보스는 모두 왕 (색으로 구분)
+	}
+}
 // 띠는 굵기별로 여러 줄: Slate 선 셰이더와 같은 모양 (굵기+2px 너비, 가장자리 smoothstep) 을 굵기마다 구워 둔다
 constexpr int32 LineBands = 10;
 constexpr float LineBandT[LineBands] = {0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f, 9.f, 14.f, 22.f}; // 띠마다 대표 굵기 (화면 px)
@@ -558,7 +575,7 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 5; // 5: 카드 칸을 흰색으로 굽고 그릴 때 물들임 (D-154) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+constexpr int32 AtlasVersion = 6; // 5: 카드 칸을 흰색으로 굽고 그릴 때 물들임 (D-154), 6: 카드병정 적 (D-175) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
@@ -913,6 +930,111 @@ struct SPDBoardWidget::FCanvas
 			Glow(Star, Col, Thick, GlowK);
 			break;
 		}
+		}
+	}
+	// ---- 카드병정 적 (D-175, 미리보기 tools/neon/soldiers.py): 세로로 긴 카드 몸통에 눈코입, 짧은 팔다리, 종류마다 무기.
+	// Shape: 0 보통(♠ 창) 1 빠름(♦ 속도선) 2 탱크(♣ 도끼) 3 방패병(♥ 방패) 4 분열체(♦ 찢어진 금) 5 재생자(♣ 떠오르는 +) 6 조각(♥ 작게) 7 보스(♠ 왕관·홀·망토)
+	// Foot = 발바닥, R = 크기, T = 걷기 위상 0..1. 흰색으로 아틀라스에 구워 두고 그릴 때 적 색으로 물들인다
+	void CardSoldier(int32 Kd, FVector2f Foot, float R, float T, const FLinearColor& Col)
+	{
+		static const float WK[8] = {1.f, 0.85f, 1.2f, 1.f, 1.f, 1.f, 0.6f, 1.35f}, HK[8] = {1.f, 0.95f, 1.15f, 1.f, 1.f, 1.f, 0.6f, 1.35f};
+		static const EPDSuit SuitOf[8] = {EPDSuit::Spade, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart, EPDSuit::Spade};
+		const float wk = WK[Kd], hk = HK[Kd];
+		const float Ph = T * TwoPi, Sw = FMath::Sin(Ph), Bob = FMath::Abs(FMath::Sin(Ph)) * 0.05f * R;
+		const float Lean = Kd == 1 ? FMath::DegreesToRadians(8.f) : 0.f;
+		const float BW = 0.76f * R * wk, BH = 1.18f * R * hk, LegL = 0.32f * R * hk;
+		const FVector2f Hip(Foot.X, Foot.Y - LegL - Bob);
+		auto Rt = [&](FVector2f P) { return Lean == 0.f ? P : Hip + Rot2(P - Hip, Lean); };
+		auto RtA = [&](TArray<FVector2f> A) { for (FVector2f& P : A) P = Rt(P); return A; };
+		const float Th = Kd == 2 ? 2.2f : 1.6f;
+		for (const float S : {1.f, -1.f}) // 다리: 번갈아 앞뒤로
+		{
+			const float A = FMath::DegreesToRadians(26.f) * Sw * S;
+			const FVector2f F2(Hip.X + FMath::Sin(A) * LegL, Hip.Y + FMath::Cos(A) * LegL);
+			Glow({FVector2f(Hip.X - S * 0.12f * BW, Hip.Y), F2, F2 + FVector2f(0.12f * R, 0.f)}, Col, 1.4f, 0.6f);
+		}
+		const float Top = Hip.Y - BH;
+		const FVector2f BC(Foot.X, Top + BH / 2.f);
+		Glow(RtA(RoundRectPoints(BC.X - BW / 2.f, Top, BW, BH, 0.12f * R)), Col, Th, 0.8f); // 몸통 카드
+		if (Kd == 4) { TArray<FVector2f> Z; for (int32 K = 0; K <= 6; ++K) Z.Add(FVector2f(BC.X + (K % 2 ? 0.08f : -0.08f) * BW, Top + BH * K / 6.f)); Lines(RtA(Z), Col, 1.1f); }
+		const float Pr = 0.085f * R * FMath::Min(wk, hk); // 귀퉁이 무늬
+		Shape(SuitOf[Kd], Rt(BC + FVector2f(-BW / 2.f + 0.12f * R * wk, -BH / 2.f + 0.14f * R * hk)).X, Rt(BC + FVector2f(-BW / 2.f + 0.12f * R * wk, -BH / 2.f + 0.14f * R * hk)).Y, Pr, Col, 1.f, 0.4f);
+		Shape(SuitOf[Kd], Rt(BC + FVector2f(BW / 2.f - 0.12f * R * wk, BH / 2.f - 0.14f * R * hk)).X, Rt(BC + FVector2f(BW / 2.f - 0.12f * R * wk, BH / 2.f - 0.14f * R * hk)).Y, Pr, Col, 1.f, 0.4f);
+		const FVector2f FC(BC.X, BC.Y - 0.04f * R); // 얼굴
+		const float Ex = 0.16f * R * FMath::Min(wk, 1.1f), Ey = 0.1f * R, Er = 0.09f * R;
+		for (const float S : {-1.f, 1.f})
+		{
+			const FVector2f EC(FC.X + S * Ex, FC.Y - Ey);
+			Lines(RtA(CirclePoints(EC, Er, 12)), Col, 1.3f);
+			Lines(RtA(CirclePoints(EC + FVector2f(0.02f * R, 0.01f * R), Er * 0.35f, 8)), Col, 1.1f);
+			if (Kd == 2 || Kd == 7) Lines({Rt(EC + FVector2f(-S * 0.09f * R, -0.12f * R)), Rt(EC + FVector2f(S * 0.07f * R, -0.08f * R))}, Col, 1.3f); // 짙은 눈썹
+		}
+		Lines(RtA({FC + FVector2f(0.f, -0.02f * R), FC + FVector2f(-0.04f * R, 0.09f * R), FC + FVector2f(0.02f * R, 0.09f * R)}), Col, 1.1f); // 코
+		const float Mw = 0.2f * R;
+		if (Kd == 1) Lines(RtA({FC + FVector2f(-Mw, 0.2f * R), FC + FVector2f(Mw, 0.2f * R)}), Col, 1.2f); // 이를 악문 입
+		else if (Kd == 5) { TArray<FVector2f> M; for (int32 A = 20; A <= 160; A += 20) M.Add(FC + FVector2f(FMath::Cos(FMath::DegreesToRadians((float)A)) * Mw, 0.14f * R + FMath::Sin(FMath::DegreesToRadians((float)A)) * 0.1f * R)); Lines(RtA(M), Col, 1.2f); } // 웃는 입
+		else { const float Op = 0.03f * R + 0.04f * R * FMath::Abs(Sw); Lines(RtA({FC + FVector2f(-Mw * 0.7f, 0.2f * R), FC + FVector2f(0.f, 0.2f * R + Op), FC + FVector2f(Mw * 0.7f, 0.2f * R), FC + FVector2f(0.f, 0.2f * R - Op * 0.3f), FC + FVector2f(-Mw * 0.7f, 0.2f * R)}), Col, 1.2f); } // 오물오물
+		if (Kd == 7) // 왕관
+			Glow(RtA({FVector2f(BC.X - 0.3f * R, Top), FVector2f(BC.X - 0.3f * R, Top - 0.28f * R), FVector2f(BC.X - 0.15f * R, Top - 0.12f * R), FVector2f(BC.X, Top - 0.34f * R), FVector2f(BC.X + 0.15f * R, Top - 0.12f * R), FVector2f(BC.X + 0.3f * R, Top - 0.28f * R), FVector2f(BC.X + 0.3f * R, Top)}), Col, 1.5f, 0.7f);
+		const float ShY = Top + 0.22f * BH; // 팔 (짧게, 다리와 반대로)
+		FVector2f RH = Foot;
+		for (const float S : {1.f, -1.f})
+		{
+			const FVector2f Sh = Rt(FVector2f(BC.X + S * BW / 2.f, ShY));
+			const float A = -FMath::DegreesToRadians(30.f) * Sw * S;
+			const FVector2f H(Sh.X + S * 0.14f * R + FMath::Sin(A) * 0.07f * R, Sh.Y + 0.26f * R * FMath::Cos(A * 0.5f));
+			Lines({Sh, H}, Col, 1.4f);
+			if (S > 0.f) RH = H;
+		}
+		switch (Kd)
+		{
+		case 0: // 창
+		{
+			const FVector2f Tip(RH.X + 0.05f * R, RH.Y - 1.25f * R);
+			Lines({RH + FVector2f(0.f, 0.35f * R), Tip}, Col, 1.3f);
+			Lines({Tip, Tip + FVector2f(-0.08f * R, 0.2f * R), Tip + FVector2f(0.f, -0.12f * R), Tip + FVector2f(0.08f * R, 0.2f * R), Tip}, Col, 1.3f);
+			break;
+		}
+		case 2: // 도끼
+		{
+			const FVector2f A0(RH.X, RH.Y - 1.f * R);
+			Lines({RH + FVector2f(0.f, 0.25f * R), A0}, Col, 1.7f);
+			Glow({A0, A0 + FVector2f(0.32f * R, -0.12f * R), A0 + FVector2f(0.36f * R, 0.22f * R), A0 + FVector2f(0.f, 0.2f * R)}, Col, 1.6f, 0.6f);
+			break;
+		}
+		case 3: // 방패
+		{
+			const FVector2f SC(BC.X + 0.72f * BW, BC.Y + 0.12f * R);
+			Glow({SC + FVector2f(0.f, -0.42f * R), SC + FVector2f(0.32f * R, -0.28f * R), SC + FVector2f(0.28f * R, 0.2f * R), SC + FVector2f(0.f, 0.45f * R), SC + FVector2f(-0.28f * R, 0.2f * R), SC + FVector2f(-0.32f * R, -0.28f * R), SC + FVector2f(0.f, -0.42f * R)}, Col, 1.8f, 0.7f);
+			Shape(EPDSuit::Heart, SC.X, SC.Y, 0.15f * R, Col, 1.f, 0.4f);
+			break;
+		}
+		case 5: // 떠오르는 + 둘
+			for (int32 K = 0; K < 2; ++K)
+			{
+				const float U = FMath::Fmod(T + K * 0.5f, 1.f), A = 0.12f * R;
+				const FVector2f P(BC.X + (K ? 0.45f : -0.45f) * BW, Top - U * 0.6f * R);
+				const FLinearColor C2 = WithAlpha(Col, 1.f - U);
+				Lines({P - FVector2f(A, 0.f), P + FVector2f(A, 0.f)}, C2, 1.3f);
+				Lines({P - FVector2f(0.f, A), P + FVector2f(0.f, A)}, C2, 1.3f);
+			}
+			break;
+		case 7: // 홀 + 망토
+		{
+			const FVector2f Tip(RH.X, RH.Y - 1.1f * R);
+			Lines({RH + FVector2f(0.f, 0.2f * R), Tip}, Col, 1.5f);
+			Glow(CirclePoints(Tip - FVector2f(0.f, 0.1f * R), 0.1f * R, 14), Col, 1.4f, 0.6f);
+			Lines({Rt(FVector2f(BC.X - BW / 2.f - 0.05f * R, Top + 0.1f * R)), FVector2f(BC.X - BW / 2.f - 0.43f * R - 0.08f * R * Sw, Hip.Y + 0.15f * R), FVector2f(BC.X - BW / 2.f - 0.05f * R, Hip.Y + 0.05f * R)}, Col, 1.2f);
+			break;
+		}
+		case 1: // 뒤로 흩날리는 속도선
+			for (int32 K = 0; K < 3; ++K)
+			{
+				const float Y = Top + BH * (0.25f + 0.25f * K), X0 = BC.X - BW / 2.f - 0.15f * R;
+				Lines({FVector2f(X0, Y), FVector2f(X0 - (0.3f + 0.15f * FMath::Fmod(T * 3.f + K, 1.f)) * R, Y)}, WithAlpha(Col, 0.6f), 1.1f);
+			}
+			break;
+		default: break;
 		}
 	}
 	// 카드(=타워): 둥근 사각 틀 안에 숫자와 작은 무늬 기호 (docs/15-art-style.md: 판 위 물체는 둥근 사각 틀 안에 작은 기호)
