@@ -791,6 +791,24 @@ static void UnitTests()
 		const bool bPicked = G.Fuse(0, CellKey(2, Row));
 		Expect(!bBad && AfterBad == 3 && bPicked && G.Towers.size() == 1 && G.Towers.count(CellKey(2, Row)) == 1 && G.Towers.at(CellKey(2, Row)).X == 2,
 			"합성 위치: 트리플을 오른쪽 끝 칸에 모음, 재료 밖 칸은 거절");
+		Expect(bPicked && G.Towers.begin()->second.Card == C(4, Di), "합성 대표 카드는 고른 칸의 숫자·무늬 (D-193): 4 다이아");
+		G.Towers.clear();
+		Put(G.Towers, 0, Row, C(7)); Put(G.Towers, 1, Row, C(7, He)); Put(G.Towers, 2, Row, C(13)); Put(G.Towers, 3, Row, C(13, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		{
+			int Tp = -1;
+			for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::TwoPair) Tp = I;
+			const bool bTp = Tp >= 0 && G.Fuse(Tp, CellKey(1, Row));
+			Expect(bTp && G.Towers.size() == 1 && G.Towers.at(CellKey(1, Row)).Card == C(7, He), "투페어를 7 하트 칸에 합성하면 7 하트 (예전엔 K)");
+		}
+		// 고른 칸이 와일드면 예전처럼 표결
+		G.Towers.clear();
+		Put(G.Towers, 0, Row, C(9)); Put(G.Towers, 1, Row, FPDCard{0, EPDSuit::Wild}); Put(G.Towers, 2, Row, C(9, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		{
+			const bool bW = !G.Synergies.empty() && G.CanFuse(0) && G.Fuse(0, CellKey(1, Row));
+			Expect(bW && G.Towers.size() == 1 && G.Towers.at(CellKey(1, Row)).Card.Rank == 9 && !G.Towers.at(CellKey(1, Row)).Card.IsWild(), "와일드 칸에 합성하면 나머지 카드 표결로 9");
+		}
 		G.Towers.clear();
 		Put(G.Towers, 0, Row, C(4)); Put(G.Towers, 1, Row, C(4, He)); Put(G.Towers, 2, Row, C(4, Di));
 		G.Synergies = ApplyEffects(G.Towers, 0);

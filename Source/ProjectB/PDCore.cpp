@@ -1634,7 +1634,8 @@ bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 	// 합쳐질 칸: 고른 칸 (재료 칸 중 하나), 안 골랐으면 족보 가운데에 가장 가까운 칸
 	const int Target = PDFuseTarget(S.Cells, TargetCell);
 	if (Target < 0) return false;
-	// 대표 카드: 가장 많은 숫자(같으면 높은 쪽) + 가장 많은 무늬. 와일드는 표를 던지지 않는다
+	// 대표 카드 (D-193): 합쳐질 칸(고른 칸)의 숫자·무늬를 그대로 쓴다.
+	// 그 칸이 와일드면 예전처럼 표결: 가장 많은 숫자(같으면 높은 쪽) + 가장 많은 무늬. 와일드는 표를 던지지 않는다
 	std::map<int, int> RankCnt;
 	std::map<int, int> SuitCnt;
 	FPDTrait Old;
@@ -1654,7 +1655,8 @@ bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 	FPDTower F;
 	F.X = Target % Cols;
 	F.Y = Target / Cols;
-	if (RankCnt.empty()) F.Card = {0, EPDSuit::Wild};
+	if (!Towers.at(Target).Card.IsWild()) F.Card = Towers.at(Target).Card;
+	else if (RankCnt.empty()) F.Card = {0, EPDSuit::Wild};
 	else
 	{
 		int BestR = 0, BestC = -1, BestS = 0, BestSC = -1;
