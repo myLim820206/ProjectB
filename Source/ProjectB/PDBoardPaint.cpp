@@ -1163,11 +1163,10 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		if (!bPv) DrawBadges(Hov, 1.f);
 	}
 	if (bPv) DrawBadges(Preview, 1.f);
-	// 합성 위치 고르는 중: 재료 칸을 깜빡이고, 마우스가 올라간 칸·기본 칸을 표시
+	// 합성 위치 고르는 중: 재료 칸을 깜빡이고, 마우스가 올라간 칸을 표시 (기본 칸 없음, D-194)
 	if (!PickCells.empty())
 	{
 		const FLinearColor PickCol = bPickJoker ? JokerPink : Gold;
-		const int32 Def = DefaultFuseCell(PickCells);
 		const int32 HoverKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 		const bool bHoverIn = std::find(PickCells.begin(), PickCells.end(), HoverKey) != PickCells.end();
 		// 눈에 띄게 (D-149): 재료가 아닌 칸은 어둡게 덮고, 재료 칸은 색이 오가는 채움 + 빗금 + 굵은 테두리
@@ -1185,7 +1184,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (int K : PickCells)
 		{
 			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-			const bool bTarget = bHoverIn ? K == HoverKey : K == Def; // 지금 클릭하면 모일 칸
+			const bool bTarget = bHoverIn && K == HoverKey; // 지금 클릭하면 모일 칸
 			// 모일 칸은 다른 색 (D-149): 하늘색으로 진하게 + 퍼지는 테두리 두 겹 + "여기". 나머지 재료 칸은 금색으로 한 단계 옅게
 			const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
 			const FLinearColor Pc = bTarget ? FMath::Lerp(TargetCol, FLinearColor::White, 0.35f * Wv) : FMath::Lerp(PickCol, FLinearColor::White, 0.2f * Wv);
@@ -1199,18 +1198,16 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.9f * (1.f - U)), 2.2f, 1.f);
 				}
 			if (bTarget) F.TextCentered(TEXT("여기"), C0.X + CS / 2.f, C0.Y - 10.f, TargetCol, 12.f, true, CS + 20.f);
-			if (K == Def) F.TextCentered(TEXT("기본"), C0.X + CS / 2.f, C0.Y + CS - 8.f, WithAlpha(FLinearColor::White, 0.9f), 9.f, true, CS - 4.f);
 		}
 		// 다른 칸에서 고른 칸으로 빨려 드는 선
-		const int32 Target = bHoverIn ? HoverKey : Def;
 		for (int K : PickCells)
-			if (K != Target) F.Dashed({CellCenter(K), CellCenter(Target)}, WithAlpha(Hex(TEXT("5ff2ff")), 0.7f), 1.6f, 4.f, 5.f);
+			if (bHoverIn && K != HoverKey) F.Dashed({CellCenter(K), CellCenter(HoverKey)}, WithAlpha(Hex(TEXT("5ff2ff")), 0.7f), 1.6f, 4.f, 5.f);
 		// 자리 고르는 중 (D-123): 판 가운데에 큰 글자 (바탕 없이 반투명, 아래 칸이 비쳐 보이게)
 		{
 			const float MX = FX + Cols * CS / 2.f, MY = FY + Rows * CS / 2.f;
 			const FLinearColor Big = WithAlpha(PickCol, 0.55f + 0.3f * Pulse);
 			F.TextCentered(bPickJoker ? TEXT("조커 자리를 고르세요") : TEXT("합성 타워 자리를 고르세요"), MX, MY - 14.f, Big, 34.f, true, Cols * CS - 40.f);
-			F.TextCentered(TEXT("빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소"), MX, MY + 22.f, WithAlpha(Fg, 0.75f), 13.f, false, Cols * CS - 40.f);
+			F.TextCentered(TEXT("빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소"), MX, MY + 22.f, WithAlpha(Fg, 0.75f), 13.f, false, Cols * CS - 40.f);
 		}
 	}
 	// 족보 필터 (D-148): 합성 못 하는 족보도 합성 표시와 똑같이 칸을 밝힌다 (타워 위에 그려야 보인다). 합성 되는 족보는 아래 합성 표시가 그림

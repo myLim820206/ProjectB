@@ -245,10 +245,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("진짜 선(F6)"), TEXT("Real lines (F6)"), TEXT("実線(F6)"), TEXT("真实线条(F6)"), TEXT("真實線條(F6)")},
 	{TEXT("합성 타워·조커 위에는 놓을 수 없다"), TEXT("Can't place on fused towers or Jokers"), TEXT("合成タワー・ジョーカーの上には置けない"), TEXT("不能放在合成塔或小丑上"), TEXT("不能放在合成塔或小丑上")},
 	{TEXT("여기"), TEXT("Here"), TEXT("ここ"), TEXT("这里"), TEXT("這裡")},
-	{TEXT("기본"), TEXT("Default"), TEXT("基本"), TEXT("默认"), TEXT("預設")},
 	{TEXT("조커 자리를 고르세요"), TEXT("Choose the Joker's spot"), TEXT("ジョーカーの場所を選んでください"), TEXT("请选择小丑的位置"), TEXT("請選擇小丑的位置")},
 	{TEXT("합성 타워 자리를 고르세요"), TEXT("Choose the fused tower's spot"), TEXT("合成タワーの場所を選んでください"), TEXT("请选择合成塔的位置"), TEXT("請選擇合成塔的位置")},
-	{TEXT("빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소"), TEXT("Click one of the glowing tiles · button again / G: default tile · Esc / right-click: cancel"), TEXT("光る素材マスを1つクリック · ボタンをもう一度 / G: 基本マス · Esc / 右クリック: キャンセル"), TEXT("点击一个发光的素材格 · 再按按钮 / G: 默认格 · Esc / 右键: 取消"), TEXT("點擊一個發光的素材格 · 再按按鈕 / G: 預設格 · Esc / 右鍵: 取消")},
+	{TEXT("빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소"), TEXT("Click one of the glowing tiles · Esc / right-click: cancel"), TEXT("光る素材マスを1つクリック · Esc / 右クリック: キャンセル"), TEXT("点击一个发光的素材格 · Esc / 右键: 取消"), TEXT("點擊一個發光的素材格 · Esc / 右鍵: 取消")},
 	{TEXT("먹이%d"), TEXT("Feed%d"), TEXT("エサ%d"), TEXT("喂%d"), TEXT("餵%d")},
 	{TEXT("위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s"), TEXT("Power +%.0f%% · XP +%.0f → Lv %d%s"), TEXT("威力 +%.0f%% · 経験値 +%.0f → レベル %d%s"), TEXT("威力 +%.0f%% · 经验 +%.0f → 等级 %d%s"), TEXT("威力 +%.0f%% · 經驗 +%.0f → 等級 %d%s")},
 	{TEXT("%s 먹이기: 먹일 족보의 [먹이기] 클릭 · 다른 곳 클릭 / Esc: 취소"), TEXT("Feeding %s: click [Feed] on a hand · click elsewhere / Esc: cancel"), TEXT("%s にエサ: 与える役の [エサ] をクリック · 他をクリック / Esc: キャンセル"), TEXT("喂养 %s: 点击要喂的牌型的 [喂养] · 点击别处 / Esc: 取消"), TEXT("餵養 %s: 點擊要餵的牌型的 [餵養] · 點擊別處 / Esc: 取消")},
@@ -462,6 +461,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT(""), TEXT(""), TEXT(""), TEXT("")},
+	{TEXT("기본"), TEXT("Default"), TEXT("基本"), TEXT("默认"), TEXT("預設")},
+	{TEXT("빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소"), TEXT("Click one of the glowing tiles · button again / G: default tile · Esc / right-click: cancel"), TEXT("光る素材マスを1つクリック · ボタンをもう一度 / G: 基本マス · Esc / 右クリック: キャンセル"), TEXT("点击一个发光的素材格 · 再按按钮 / G: 默认格 · Esc / 右键: 取消"), TEXT("點擊一個發光的素材格 · 再按按鈕 / G: 預設格 · Esc / 右鍵: 取消")},
 	{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체"), TEXT("Click a card (number key) → click a tile: place · placing on a tower replaces it"), TEXT("カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換"), TEXT("点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换"), TEXT("點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換")},
 	{TEXT("타워 위에 카드를 놓으면 교체된다"), TEXT("Placing a card on a tower replaces it"), TEXT("タワーの上にカードを置くと交換される"), TEXT("把卡牌放在塔上会替换它"), TEXT("把卡牌放在塔上會替換它")},
 	{TEXT("경험치 +%.0f → 레벨 %d%s"), TEXT("XP +%.0f → level %d%s"), TEXT("経験値 +%.0f → レベル %d%s"), TEXT("经验 +%.0f → 等级 %d%s"), TEXT("經驗 +%.0f → 等級 %d%s")},
@@ -489,4 +490,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 488;
+static const int32 PDLangRowCount = 489;

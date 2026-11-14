@@ -244,10 +244,9 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 진짜 선(F6)	Real lines (F6)	実線(F6)	真实线条(F6)	真實線條(F6)	PDBoardPaint.cpp
 합성 타워·조커 위에는 놓을 수 없다	Can't place on fused towers or Jokers	合成タワー・ジョーカーの上には置けない	不能放在合成塔或小丑上	不能放在合成塔或小丑上	PDBoardPaint.cpp
 여기	Here	ここ	这里	這裡	PDBoardPaint.cpp
-기본	Default	基本	默认	預設	PDBoardPaint.cpp
 조커 자리를 고르세요	Choose the Joker's spot	ジョーカーの場所を選んでください	请选择小丑的位置	請選擇小丑的位置	PDBoardPaint.cpp
 합성 타워 자리를 고르세요	Choose the fused tower's spot	合成タワーの場所を選んでください	请选择合成塔的位置	請選擇合成塔的位置	PDBoardPaint.cpp
-빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · button again / G: default tile · Esc / right-click: cancel	光る素材マスを1つクリック · ボタンをもう一度 / G: 基本マス · Esc / 右クリック: キャンセル	点击一个发光的素材格 · 再按按钮 / G: 默认格 · Esc / 右键: 取消	點擊一個發光的素材格 · 再按按鈕 / G: 預設格 · Esc / 右鍵: 取消	PDBoardPaint.cpp
+빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · Esc / right-click: cancel	光る素材マスを1つクリック · Esc / 右クリック: キャンセル	点击一个发光的素材格 · Esc / 右键: 取消	點擊一個發光的素材格 · Esc / 右鍵: 取消	PDBoardPaint.cpp
 먹이%d	Feed%d	エサ%d	喂%d	餵%d	PDBoardPaint.cpp
 위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s	Power +%.0f%% · XP +%.0f → Lv %d%s	威力 +%.0f%% · 経験値 +%.0f → レベル %d%s	威力 +%.0f%% · 经验 +%.0f → 等级 %d%s	威力 +%.0f%% · 經驗 +%.0f → 等級 %d%s	PDBoardPaint.cpp
 %s 먹이기: 먹일 족보의 [먹이기] 클릭 · 다른 곳 클릭 / Esc: 취소	Feeding %s: click [Feed] on a hand · click elsewhere / Esc: cancel	%s にエサ: 与える役の [エサ] をクリック · 他をクリック / Esc: キャンセル	喂养 %s: 点击要喂的牌型的 [喂养] · 点击别处 / Esc: 取消	餵養 %s: 點擊要餵的牌型的 [餵養] · 點擊別處 / Esc: 取消	PDBoardPaint.cpp
@@ -461,6 +460,8 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
+기본	Default	基本	默认	預設	PDLangTable.inl
+빛나는 재료 칸 중 하나를 클릭 · 버튼 다시 / G: 기본 칸 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · button again / G: default tile · Esc / right-click: cancel	光る素材マスを1つクリック · ボタンをもう一度 / G: 基本マス · Esc / 右クリック: キャンセル	点击一个发光的素材格 · 再按按钮 / G: 默认格 · Esc / 右键: 取消	點擊一個發光的素材格 · 再按按鈕 / G: 預設格 · Esc / 右鍵: 取消	PDLangTable.inl
 카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체	Click a card (number key) → click a tile: place · placing on a tower replaces it	カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換	点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換	PDLangTable.inl
 타워 위에 카드를 놓으면 교체된다	Placing a card on a tower replaces it	タワーの上にカードを置くと交換される	把卡牌放在塔上会替换它	把卡牌放在塔上會替換它	PDLangTable.inl
 경험치 +%.0f → 레벨 %d%s	XP +%.0f → level %d%s	経験値 +%.0f → レベル %d%s	经验 +%.0f → 等级 %d%s	經驗 +%.0f → 等級 %d%s	PDLangTable.inl

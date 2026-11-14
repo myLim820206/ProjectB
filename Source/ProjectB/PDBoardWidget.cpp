@@ -792,14 +792,14 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		if (Id >= 0 && !Game.BuyNode(Id)) UiSound(EPDSound::Denied);
 		return;
 	}
-	// 합성 위치 고르는 중: 재료 칸 클릭 = 그 칸으로, 같은 버튼 다시 = 기본 칸, 그 밖(오른쪽 클릭 포함) = 취소
+	// 합성 위치 고르는 중: 재료 칸 클릭 = 그 칸으로, 같은 버튼 다시 = 계속 고르기 (기본 칸 없음, D-194), 그 밖(오른쪽 클릭 포함) = 취소
 	if (!PickCells.empty())
 	{
 		const int32 Key = CellAt(P);
 		bool bSameBtn = false;
 		if (bPickJoker) { FPDJokerGroup Tmp; Tmp.Cells = PickCells; const FVector2f B = JokerButtonCenter(Tmp); bSameBtn = InBox(P, B, JokerBtnW, JokerBtnH); }
 		else if (const int32 Pi = FindPickIndex(); Pi >= 0) { const FVector2f B = FuseButtonCenter(Game.Synergies, Pi); bSameBtn = InBox(P, B, FuseBtnW(FuseSyn(Game, Pi)), FuseH); }
-		if (!bRight && bSameBtn) FinishPick(-1);
+		if (!bRight && bSameBtn) return;
 		else if (!bRight && Key >= 0 && std::find(PickCells.begin(), PickCells.end(), Key) != PickCells.end()) FinishPick(Key);
 		else PickCells.clear();
 		return;
@@ -1200,7 +1200,12 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (!PickCells.empty())
 	{
 		if (K == EKeys::Escape) { PickCells.clear(); return FReply::Handled(); }
-		if (K == EKeys::G || K == EKeys::Enter) { FinishPick(-1); return FReply::Handled(); }
+		if (K == EKeys::G || K == EKeys::Enter) // 마우스가 재료 칸 위에 있을 때만 그 칸으로 (기본 칸 없음, D-194)
+		{
+			const int32 HK = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+			if (std::find(PickCells.begin(), PickCells.end(), HK) != PickCells.end()) FinishPick(HK);
+			return FReply::Handled();
+		}
 	}
 	if (Game.Phase == EPDPhase::Reward)
 	{
@@ -1218,7 +1223,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (K == EKeys::SpaceBar && (Game.Phase == EPDPhase::Wave || bPaused)) bPaused = !bPaused; // 스페이스: 웨이브 중엔 일시정지/계속 (D-183)
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
 	else if (K == EKeys::Escape) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
-	else if (K == EKeys::G) DoFuse(HoveredSynergy());
+	else if (K == EKeys::G) { const int32 Hs = HoveredSynergy(); if (Hs >= 0 && Game.CanFuse(Hs)) StartPick(FuseSyn(Game, Hs).Cells, false); } // 자리부터 고른다 (D-194)
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
