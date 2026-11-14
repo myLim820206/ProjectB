@@ -1514,7 +1514,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 	}
 	if (PowerList.empty()) C.Text(TEXT("타워를 놓으면 위력이 보인다"), RX + 14.f, FY + 100.f, Dim, 10.f, 0, false, PW - 28.f);
 	static const TCHAR* SuitSym[] = {TEXT("♠"), TEXT("♥"), TEXT("♦"), TEXT("♣"), TEXT("★")};
-	for (int32 I = 0; I < 3 && I < (int32)PowerList.size(); ++I)
+	for (int32 I = 0; I < PowTopN && I < (int32)PowerList.size(); ++I) // 딜러 순위 (D-164): 이름 · 몫 막대 · 초당 피해 · 몫
 	{
 		auto It = G.Towers.find(PowerList[I].first);
 		if (It == G.Towers.end()) continue;
@@ -1525,9 +1525,9 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			: FString::Printf(TEXT("%s%s Lv%d"), T.Card.IsWild() ? TEXT("") : *RankText(T.Card.Rank), SuitSym[(int)T.Card.Suit], T.Level);
 		const float Share = PowerSum > 0.f ? PowerList[I].second / PowerSum : 0.f;
 		C.Text(Name, RX + 14.f, Y + 4.f, Col, 10.f, 0, true, 84.f);
-		C.Box(RX + 102.f, Y - 4.f, 72.f * Share, 8.f, WithAlpha(Col, 0.4f));
-		C.Lines(FCanvas::RectPoints(RX + 102.f, Y - 4.f, 72.f, 8.f), WithAlpha(Col, 0.5f), 1.f);
-		C.Text(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Share * 100.f)), RX + PW - 14.f, Y + 4.f, Col, 10.f, 2);
+		C.Box(RX + 100.f, Y - 4.f, 44.f * Share, 8.f, WithAlpha(Col, 0.4f));
+		C.Lines(FCanvas::RectPoints(RX + 100.f, Y - 4.f, 44.f, 8.f), WithAlpha(Col, 0.5f), 1.f);
+		C.Text(FString::Printf(TEXT("%s · %d%%"), *ShortNum(PowerList[I].second), FMath::RoundToInt(Share * 100.f)), RX + PW - 14.f, Y + 4.f, UiValue, 10.f, 2, false, PW - 160.f);
 	}
 
 	// ---- 웨이브 시작 (Space)

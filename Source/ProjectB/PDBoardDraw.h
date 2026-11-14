@@ -37,7 +37,8 @@ constexpr float CardW = 70.f, CardH = 98.f;
 constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
 constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
 constexpr float RBtnX = RX, RBtnW = PW;     // 오른쪽 패널 버튼 줄
-constexpr float PowCardH = 146.f;           // 판 위력 카드 (오른쪽 맨 위)
+constexpr float PowCardH = 250.f;           // 판 위력 카드 (오른쪽 맨 위). 딜러 7위까지 (D-164: 부적 칸을 줄이고 늘림)
+constexpr int32 PowTopN = 7;
 constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 46.f;
 constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 22.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
 constexpr float HelpX = DesignW - 110.f, HelpY = DesignH - 22.f, HelpW = 94.f, HelpH = 18.f; // "? 도움말" (마우스를 올리면 키 안내)
