@@ -294,6 +294,13 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	const FPDGame& G = Game;
 	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Red = Hex(TEXT("ff6a6a"));
 	if (FlashT > 0.f) C.Box(0.f, 0.f, DesignW, DesignH, WithAlpha(FlashCol, FlashT * 0.45f));
+	if (bPaused && !bMenu && !bSettings && !bTutorial && !bTree && !bUpg && !bCodex) // 일시정지 (D-169): 판을 어둡게 + 큰 글자
+	{
+		const float Pulse2 = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
+		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.55f));
+		C.TextCentered(TEXT("일시정지"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f - 14.f, WithAlpha(UiTitle, 0.75f + 0.25f * Pulse2), 40.f, true, Cols * CS - 40.f);
+		C.TextCentered(TEXT("P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f + 26.f, Hex(TEXT("cfd8e6")), 13.f, false, Cols * CS - 40.f);
+	}
 	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) PaintTitle(C);
 	else if (G.Phase == EPDPhase::Over)
 		C.Overlay(TEXT("GAME OVER"), Red, {TrF(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), TrF(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? Tr(TEXT("  (갱신!)")) : TEXT("")),
@@ -1444,8 +1451,17 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 	// 목숨·골드
 	// 글자 색 통일 (D-163): 값은 흰빛, 목숨은 5 이하일 때만 빨갛게 깜빡. 판 위력은 오른쪽 카드에만 (위쪽 띠에서 뺐다)
 	C.Text(TrF(TEXT("목숨 %d"), G.Lives), 860.f, HudY + 27.f, G.Lives <= 5 ? WithAlpha(Red, 0.6f + 0.4f * Pulse) : UiValue, 17.f, 0, true, 120.f);
-	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 990.f, HudY + 27.f, UiValue, 17.f, 0, true, 160.f);
-	C.Text(TrF(TEXT("다음 노드 %s"), *CommaNum(G.PointPrice())), 990.f, HudY + 43.f, G.Gold >= G.PointPrice() ? UiTitle : Dim, 9.f, 0, false, 160.f);
+	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 980.f, HudY + 27.f, UiValue, 17.f, 0, true, 150.f);
+	C.Text(TrF(TEXT("다음 노드 %s"), *CommaNum(G.PointPrice())), 980.f, HudY + 43.f, G.Gold >= G.PointPrice() ? UiTitle : Dim, 9.f, 0, false, 150.f);
+	{ // 일시정지 버튼 (D-169): 멈춘 동안은 재생 삼각형, 평소엔 두 막대
+		const bool bHov = InRect(Mouse, PauseBtnX, HudBtnY, HudBtnS, HudBtnS);
+		if (bPaused) C.Box(PauseBtnX, HudBtnY, HudBtnS, HudBtnS, WithAlpha(UiEdge, 0.12f + 0.08f * Pulse));
+		C.Glow(FCanvas::RoundRectPoints(PauseBtnX, HudBtnY, HudBtnS, HudBtnS, 8.f), UiEdge, bHov || bPaused ? 1.6f : 1.1f, bPaused ? 1.f + 0.5f * Pulse : bHov ? 1.f : 0.3f);
+		const float Mx = PauseBtnX + HudBtnS / 2.f, My = HudBtnY + HudBtnS / 2.f;
+		const FLinearColor Ic = bPaused || bHov ? FLinearColor::White : UiEdge;
+		if (bPaused) C.Glow({{Mx - 4.f, My - 7.f}, {Mx + 7.f, My}, {Mx - 4.f, My + 7.f}, {Mx - 4.f, My - 7.f}}, Ic, 1.6f, 0.6f);
+		else { C.Glow({{Mx - 4.f, My - 7.f}, {Mx - 4.f, My + 7.f}}, Ic, 2.2f, 0.5f); C.Glow({{Mx + 4.f, My - 7.f}, {Mx + 4.f, My + 7.f}}, Ic, 2.2f, 0.5f); }
+	}
 	// 속도 (F) · 설정
 	{
 		const bool bHov = InRect(Mouse, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS);

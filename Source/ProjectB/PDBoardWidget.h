@@ -96,6 +96,7 @@ private:
 	void OpenTutorial(bool bThenStart);
 	void CloseTutorial();
 	bool bTutorial = false;                // 튜토리얼 창 (여는 동안 게임은 멈춘다)
+	bool bPaused = false;                  // 일시정지 (D-169): 위쪽 띠 버튼 또는 P. 멈춘 동안에도 카드 놓기·합성은 된다
 	int32 TutPage = 0;
 	bool bTutThenStart = false;            // 닫으면 새 판 시작 (처음 게임 시작에서 연 경우)
 	bool bTutorialSeen = false;            // 한 번 봤다 (진행 파일에 저장)

@@ -42,6 +42,7 @@ constexpr float PowCardH = 250.f;           // 판 위력 카드 (오른쪽 맨 
 constexpr int32 PowTopN = 7;
 constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 46.f;
 constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 22.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
+constexpr float PauseBtnX = SpeedBtnX - HudBtnS - 8.f; // 일시정지 (D-169, P)
 constexpr float HelpX = DesignW - 110.f, HelpY = DesignH - 22.f, HelpW = 94.f, HelpH = 18.f; // "? 도움말" (마우스를 올리면 키 안내)
 constexpr float TwoPi = 6.2831853f;
 constexpr float YoungAge = 0.35f; // 막 놓인 타워 (커졌다 줄어드는 동안은 움직이는 층에서 그림, D-137)

@@ -228,6 +228,8 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 닫기  K	Close  K	閉じる  K	关闭  K	關閉  K	PDBoardPaint.cpp
 닫기  U	Close  U	閉じる  U	关闭  U	關閉  U	PDBoardPaint.cpp
 닫기  J	Close  J	閉じる  J	关闭  J	關閉  J	PDBoardPaint.cpp
+일시정지	Paused	一時停止	已暂停	已暫停	PDBoardPaint.cpp
+P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P or button: resume · you can still place and fuse while paused	P かボタン: 再開 · 停止中もカードの設置・合成はできる	P 或按钮: 继续 · 暂停时仍可放置卡牌和合成	P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成	PDBoardPaint.cpp
 웨이브 %d에서 무너졌다 · 처치 %d	Fell at wave %d · %d kills	ウェーブ %d で崩れた · 撃破 %d	在第%d波失守 · 击杀 %d	在第%d波失守 · 擊殺 %d	PDBoardPaint.cpp
 최고 기록 %d웨이브%s	Best record: wave %d%s	最高記録 %dウェーブ%s	最高纪录 第%d波%s	最高紀錄 第%d波%s	PDBoardPaint.cpp
   (갱신!)	  (new!)	  (更新!)	  (刷新!)	  (刷新!)	PDBoardPaint.cpp

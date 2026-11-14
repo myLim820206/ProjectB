@@ -229,6 +229,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("닫기  K"), TEXT("Close  K"), TEXT("閉じる  K"), TEXT("关闭  K"), TEXT("關閉  K")},
 	{TEXT("닫기  U"), TEXT("Close  U"), TEXT("閉じる  U"), TEXT("关闭  U"), TEXT("關閉  U")},
 	{TEXT("닫기  J"), TEXT("Close  J"), TEXT("閉じる  J"), TEXT("关闭  J"), TEXT("關閉  J")},
+	{TEXT("일시정지"), TEXT("Paused"), TEXT("一時停止"), TEXT("已暂停"), TEXT("已暫停")},
+	{TEXT("P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), TEXT("P or button: resume · you can still place and fuse while paused"), TEXT("P かボタン: 再開 · 停止中もカードの設置・合成はできる"), TEXT("P 或按钮: 继续 · 暂停时仍可放置卡牌和合成"), TEXT("P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成")},
 	{TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), TEXT("Fell at wave %d · %d kills"), TEXT("ウェーブ %d で崩れた · 撃破 %d"), TEXT("在第%d波失守 · 击杀 %d"), TEXT("在第%d波失守 · 擊殺 %d")},
 	{TEXT("최고 기록 %d웨이브%s"), TEXT("Best record: wave %d%s"), TEXT("最高記録 %dウェーブ%s"), TEXT("最高纪录 第%d波%s"), TEXT("最高紀錄 第%d波%s")},
 	{TEXT("  (갱신!)"), TEXT("  (new!)"), TEXT("  (更新!)"), TEXT("  (刷新!)"), TEXT("  (刷新!)")},
@@ -476,4 +478,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 475;
+static const int32 PDLangRowCount = 477;

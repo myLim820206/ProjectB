@@ -514,6 +514,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				LoadT = -1.f;
 				PDDebugStress(Game);
 				{ int32 TP = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdtut="), TP)) { bTutorial = true; TutPage = FMath::Clamp(TP, 0, TutPages - 1); } } // 시험용: 튜토리얼 N쪽 띄우기
+				if (FParse::Param(FCommandLine::Get(), TEXT("pdpause"))) bPaused = true; // 시험용: 일시정지 화면
 				{ int32 RT = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdrank="), RT)) { bRanking = true; RankTab = RT; if (Ranking.Num() == 0) for (int32 I = 0; I < 13; ++I) { FRankEntry E; E.Wave = 40 - I * 2; E.Kills = 2000 - I * 97; E.Power = 900000.f / (I + 1); E.Time = FDateTime::Now().ToUnixTimestamp() - I * 86400; Ranking.Add(E); } LastRankPos = 2; } } // 시험용: 랭킹 창 (기록이 없으면 보기용 가짜, 저장 안 함)
 				GPDDebug.bShow = true;
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔
@@ -537,7 +538,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	const double TickT0 = FPlatformTime::Seconds();
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
-	if (!bTree && !bUpg && !bMenu && !bTutorial) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
+	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
+	if (!bTree && !bUpg && !bMenu && !bTutorial && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
 	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다
@@ -832,6 +834,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; Sel = -1; return; }
 	// 위쪽 띠 버튼 (D-119): 속도, 설정
 	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
+	if (!bRight && InRect(P, PauseBtnX, HudBtnY, HudBtnS, HudBtnS) && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { bPaused = !bPaused; UiSound(EPDSound::Move); return; } // 일시정지 (D-169)
 	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bSettings = true; SetSel = 0; Sel = -1; return; }
 	// 먹이기 모드 (D-131): [먹이기] 버튼 → 먹이기, 다른 조커 → 그 조커로, 그 밖 → 끄기 (판 위를 눌렀으면 거기서 끝)
 	if (FeedJoker >= 0)
@@ -997,7 +1000,7 @@ bool SPDBoardWidget::ContinueRun()
 void SPDBoardWidget::RestartRun()
 {
 	Game.NewGame(true);
-	PeakPower = 0.f; LastRankPos = -1;
+	PeakPower = 0.f; LastRankPos = -1; bPaused = false;
 	Sel = -1;
 	bTree = bUpg = bCodex = bMenu = bSettings = false;
 	PowerRef = 0.f;
@@ -1211,6 +1214,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::U) { bUpg = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = NextSpeed(Game.Speed);
+	else if (K == EKeys::P || K == EKeys::Pause) bPaused = !bPaused; // 일시정지 (D-169)
 	else if (K == EKeys::M) SetSound(!Settings.bSound);
 	else return FReply::Unhandled();
 	return FReply::Handled();
