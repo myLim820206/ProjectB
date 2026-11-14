@@ -441,7 +441,7 @@ enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Clear }; // Re
 // 모드 (D-225, D-229): 30 · 60 · 100웨이브를 버티면 클리어, 무한은 끝없음. 15웨이브 뒤 적 체력 성장 배율이 모드마다 다르다
 enum class EPDMode : uint8_t { W30, W60, W100, Endless, Count };
 inline int ModeGoal(EPDMode M) { return M == EPDMode::W30 ? 30 : M == EPDMode::W60 ? 60 : M == EPDMode::W100 ? 100 : 0; } // 0 = 끝없음
-inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.6f : M == EPDMode::W60 ? 1.32f : M == EPDMode::W100 ? 1.18f : 1.3f; }
+inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.9f : M == EPDMode::W60 ? 1.37f : M == EPDMode::W100 ? 1.2f : 1.3f; } // D-235: 봇이 너무 쉽게 깨서 올림 (예전 1.6 · 1.32 · 1.18)
 constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)
 
 // 부하 시험 배율 (D-135, F4 치트): 웨이브 적 체력·마리 수. 평소 1
