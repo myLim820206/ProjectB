@@ -1154,12 +1154,16 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.Badge(Lb, P.X, Y, HandColor(S.Kind), Alpha);
 		}
 	};
-	// 이름표는 마우스가 올라간 타워의 족보만 (장판 색으로 구분, D-099). 놓기 미리보기는 그대로 보여 줌
+	// 마우스가 올라간 타워의 족보·연쇄는 이름표 대신 타워 툴팁 한 곳에 (D-202). 이름표는 합성 모드(고른 족보)·놓기 미리보기만
+	std::vector<FPDSynergy> HovSyn;
 	{
 		std::vector<FPDSynergy> Hov;
 		const int HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 		for (const FPDSynergy& S : G.Synergies)
-			if (std::find(S.Cells.begin(), S.Cells.end(), HKey) != S.Cells.end() || (HandFilter >= 0 && (int32)S.Kind == HandFilter)) Hov.push_back(S); // 필터로 고른 족보는 이름표도 (D-148)
+		{
+			if (std::find(S.Cells.begin(), S.Cells.end(), HKey) != S.Cells.end()) HovSyn.push_back(S);
+			if (HandFilter >= 0 && (int32)S.Kind == HandFilter) Hov.push_back(S); // 필터로 고른 족보는 이름표도 (D-148)
+		}
 		if (!bPv && FeedJoker < 0) DrawBadges(Hov, 1.f); // 먹이기 중엔 [먹이기] 버튼이 족보 이름을 대신한다 (D-197)
 	}
 	if (bPv) DrawBadges(Preview, 1.f);
@@ -1578,12 +1582,39 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				}
 				return Best;
 			};
+			// 족보·연쇄 줄 (D-202): "풀하우스 · 투 페어 · 포카드 · 연쇄 ×4.5" 를 족보 색으로 이어 쓰고 넘치면 다음 줄
+			auto SynLines = [&](bool bDraw, float X0, float Y0, float W) -> int32 {
+				if (HovSyn.empty()) return 0;
+				const FSlateFontInfo Fn = FCanvas::Font(11.f, true);
+				float X = X0;
+				int32 Lines = 1;
+				int32 Chain = 1;
+				auto Put = [&](const FString& S, const FLinearColor& Col) {
+					const float Wd = FCanvas::Measure(S, Fn).X;
+					if (X > X0 && X + Wd > X0 + W) { X = X0; ++Lines; }
+					if (bDraw) F.Text(S, X, Y0 + (Lines - 1) * 16.f, Col, 11.f, 0, true);
+					X += Wd;
+				};
+				for (int32 I = 0; I < (int32)HovSyn.size(); ++I)
+				{
+					const FPDSynergy& S = HovSyn[I];
+					FString L = HandName(S.Kind);
+					if (S.Kind == EPDHand::Flush || S.Kind == EPDHand::Straight) L += FString::FromInt(S.N);
+					if (I > 0) Put(TEXT(" · "), Grey);
+					Put(L, HandColor(S.Kind));
+					Chain = FMath::Max(Chain, S.Chain);
+				}
+				if (Chain >= 2) { Put(TEXT(" · "), Grey); Put(TrF(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (Chain - 1))), Gold); }
+				return Lines;
+			};
 			if (T.IsJoker())
 			{
-				const FVector2f Pj = PlaceTip(246.f, 140.f);
+				const float SynH = SynLines(false, 0.f, 0.f, 226.f) * 16.f;
+				const FVector2f Pj = PlaceTip(246.f, 140.f + SynH);
 				const float JX = Pj.X, JY = Pj.Y;
-				F.Box(JX, JY, 246.f, 140.f, Hex(TEXT("06060b"), 0.94f));
-				F.Glow(FCanvas::RoundRectPoints(JX, JY, 246.f, 140.f, 8.f), JokerPink, 1.2f, 0.4f);
+				F.Box(JX, JY, 246.f, 140.f + SynH, Hex(TEXT("06060b"), 0.94f));
+				F.Glow(FCanvas::RoundRectPoints(JX, JY, 246.f, 140.f + SynH, 8.f), JokerPink, 1.2f, 0.4f);
+				SynLines(true, JX + 10.f, JY + 150.f, 226.f);
 				F.Text(TrF(TEXT("%s 대장: %s"), HandName(CaptainHand((EPDJoker)T.Joker)), JokerName(T.Joker)), JX + 10.f, JY + 18.f, JokerPink, 12.f, 0, true, 226.f);
 				F.Text(PowLine, JX + 10.f, JY + 36.f, PowCol, 11.f, 0, true, 226.f);
 				// 조커도 공격력·연사·치명·사거리 (D-187): 일반 타워 툴팁과 같은 두 줄
@@ -1598,7 +1629,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 			else
 			{
-			const float BH = T.Level >= 2 ? 92.f : 76.f;
+			const float BH0 = T.Level >= 2 ? 92.f : 76.f;
+			const float BH = BH0 + SynLines(false, 0.f, 0.f, 220.f) * 16.f;
 			const FVector2f P = PlaceTip(240.f, BH);
 			const float BX = P.X, BYp = P.Y;
 			F.Box(BX, BYp, 240.f, BH, Hex(TEXT("06060b"), 0.94f));
@@ -1614,6 +1646,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), BX + 10.f, BYp + 54.f, Fg, 11.f, 0, false, 220.f);
 			F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), BX + 10.f, BYp + 70.f, Grey, 11.f, 0, false, 220.f);
 			if (T.Level >= 2) F.Text(TrF(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 10.f, BYp + 86.f, Gold, 10.f, 0, false, 220.f);
+			SynLines(true, BX + 10.f, BYp + BH0 + 10.f, 220.f);
 			}
 		}
 	}
