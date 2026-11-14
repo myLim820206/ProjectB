@@ -428,7 +428,10 @@ static void UnitTests()
 		{ // 군단장: 주변 적만
 			FPDGame G = Fresh(EPDEnemy::Warlord, 3.f);
 			FPDEnemy Near = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 20); Near.D = 4.f;
+			// 먼 적: 길이 지그재그라 길로 6칸이어도 직선으론 가까울 수 있다. 오라는 직선거리라 직선으로 4칸 넘게 떨어진 자리를 고른다
 			FPDEnemy Far = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 20); Far.D = 9.f;
+			const FPDPoint WQ = G.Path.At(3.f);
+			while (Far.D < G.Path.Length - 1.f && std::hypot(G.Path.At(Far.D).X - WQ.X, G.Path.At(Far.D).Y - WQ.Y) <= Boss::AuraRange + 1.5f) Far.D += 0.5f;
 			G.Enemies.push_back(Near);
 			G.Enemies.push_back(Far);
 			Expect(G.InWarlordAura(G.Enemies[1]) && !G.InWarlordAura(G.Enemies[2]) && !G.InWarlordAura(G.Enemies[0]), "군단장: 1칸 옆 적은 오라 안, 6칸 떨어진 적과 자신은 밖");
@@ -824,9 +827,9 @@ static void UnitTests()
 			G.Wave = 12;
 			Put(G.Towers, 0, Row, C(7));
 			Put(G.Towers, 2, Row, C(7), 3);
-			FPDTower Jk;
-			Jk.Card = {0, EPDSuit::Wild}; Jk.X = 4; Jk.Y = Row; Jk.Joker = (int)EPDJoker::Clown;
-			G.Towers[CellKey(4, Row)] = Jk;
+			FPDTower SellJk;
+			SellJk.Card = {0, EPDSuit::Wild}; SellJk.X = 4; SellJk.Y = Row; SellJk.Joker = (int)EPDJoker::Clown;
+			G.Towers[CellKey(4, Row)] = SellJk;
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			const int B = 2 + 12 / 5, G0 = G.Gold;
 			const bool bPrice = G.SellPrice(CellKey(0, Row)) == B && G.SellPrice(CellKey(2, Row)) == B * 9 && G.SellPrice(CellKey(4, Row)) == B * 10 && G.SellPrice(CellKey(9, Row)) == 0;
