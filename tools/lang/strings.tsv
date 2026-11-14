@@ -69,6 +69,20 @@ ko	en	ja	zh-Hans	zh-Hant	file
 서리	Frost	霜	冰霜	冰霜	PDBoardDraw.h
 연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDBoardDraw.h
 관통탄	Piercing Rounds	貫通弾	穿甲弹	穿甲彈	PDBoardDraw.h
+에이스	Ace	エース	王牌	王牌	PDBoardDraw.h
+짝수	Evens	偶数	偶数	偶數	PDBoardDraw.h
+홀수	Odds	奇数	奇数	奇數	PDBoardDraw.h
+풀하우스 팬	Full House Fan	フルハウス好き	葫芦迷	葫蘆迷	PDBoardDraw.h
+네잎클로버	Four-Leaf Clover	四つ葉のクローバー	四叶草	四葉草	PDBoardDraw.h
+왕실 근위	Royal Guard	王室近衛	皇家卫队	皇家衛隊	PDBoardDraw.h
+유리 대포	Glass Cannon	ガラスの大砲	玻璃大炮	玻璃大炮	PDBoardDraw.h
+장거리 사격	Long Shot	長距離射撃	远程射击	遠程射擊	PDBoardDraw.h
+대폭발	Big Bang	大爆発	大爆炸	大爆炸	PDBoardDraw.h
+과부하	Overclock	オーバークロック	超频	超頻	PDBoardDraw.h
+조커 팬	Joker Fan	ジョーカー好き	小丑迷	小丑迷	PDBoardDraw.h
+먹보	Glutton	食いしん坊	贪吃鬼	貪吃鬼	PDBoardDraw.h
+대장간 불꽃	Forge Fire	鍛冶場の炎	锻炉之火	鍛爐之火	PDBoardDraw.h
+현상금	Bounty	賞金	赏金	賞金	PDBoardDraw.h
 ♥ 타워 공격력 +40%	♥ towers ATK +40%	♥ タワー攻撃力 +40%	♥ 塔攻击力 +40%	♥ 塔攻擊力 +40%	PDBoardDraw.h
 ♠ 타워 공격력 +40%	♠ towers ATK +40%	♠ タワー攻撃力 +40%	♠ 塔攻击力 +40%	♠ 塔攻擊力 +40%	PDBoardDraw.h
 ♦ 타워 공격력 +40%	♦ towers ATK +40%	♦ タワー攻撃力 +40%	♦ 塔攻击力 +40%	♦ 塔攻擊力 +40%	PDBoardDraw.h
@@ -87,6 +101,20 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 둔화 더 강하게, ♣ 주변도 둔화	Stronger slow, ♣ slows nearby too	減速が強くなり ♣ の周りも減速	减速更强, ♣ 周围也减速	減速更強, ♣ 周圍也減速	PDBoardDraw.h
 처치 시 주변 적에게 최대 체력 15% 피해	On kill, deals 15% max HP to nearby enemies	撃破時、周りの敵に最大体力15%のダメージ	击杀时对周围敌人造成最大生命15%伤害	擊殺時對周圍敵人造成最大生命15%傷害	PDBoardDraw.h
 적의 방패를 무시	Ignores enemy shields	敵の盾を無視	无视敌人护盾	無視敵人護盾	PDBoardDraw.h
+A 타워 공격력 ×3	A towers ATK ×3	A のタワー攻撃力 ×3	A 塔攻击力 ×3	A 塔攻擊力 ×3	PDBoardDraw.h
+짝수(2~10) 타워 공격력 +40%	Even (2-10) towers ATK +40%	偶数(2~10)のタワー攻撃力 +40%	偶数(2~10)塔攻击力 +40%	偶數(2~10)塔攻擊力 +40%	PDBoardDraw.h
+홀수(3~9) 타워 연사 +30%	Odd (3-9) towers fire rate +30%	奇数(3~9)のタワー連射 +30%	奇数(3~9)塔连射 +30%	奇數(3~9)塔連射 +30%	PDBoardDraw.h
+풀하우스 공격력 ×1.5 → ×2.25	Full House ATK ×1.5 → ×2.25	フルハウス攻撃力 ×1.5 → ×2.25	葫芦攻击力 ×1.5 → ×2.25	葫蘆攻擊力 ×1.5 → ×2.25	PDBoardDraw.h
+포카드 공격력 ×3.5 → ×5.25	Four of a Kind ATK ×3.5 → ×5.25	フォーカード攻撃力 ×3.5 → ×5.25	四条攻击力 ×3.5 → ×5.25	四條攻擊力 ×3.5 → ×5.25	PDBoardDraw.h
+로열·스트레이트 플러시 공격력 ×1.5 더	Royal and Straight Flush ATK ×1.5 more	ロイヤル・ストレートフラッシュ攻撃力さらに ×1.5	皇家同花顺·同花顺攻击力再 ×1.5	皇家同花順·同花順攻擊力再 ×1.5	PDBoardDraw.h
+모든 타워 공격력 +30% / 고를 때 목숨 −3	All towers ATK +30% / lose 3 lives when picked	全タワー攻撃力 +30% / 選ぶとライフ −3	所有塔攻击力 +30% / 选择时生命 −3	所有塔攻擊力 +30% / 選擇時生命 −3	PDBoardDraw.h
+♠ 타워 사거리 +30%	♠ towers range +30%	♠ のタワー射程 +30%	♠ 塔射程 +30%	♠ 塔射程 +30%	PDBoardDraw.h
+♥ 타워 폭발 범위 +0.5칸	♥ towers blast radius +0.5 cells	♥ のタワー爆発範囲 +0.5マス	♥ 塔爆炸范围 +0.5格	♥ 塔爆炸範圍 +0.5格	PDBoardDraw.h
+♦ 타워 연사 +30%	♦ towers fire rate +30%	♦ のタワー連射 +30%	♦ 塔连射 +30%	♦ 塔連射 +30%	PDBoardDraw.h
+조커 위력 +30%	Joker power +30%	ジョーカー威力 +30%	小丑威力 +30%	小丑威力 +30%	PDBoardDraw.h
+먹이기 경험치 +50%	Feeding XP +50%	食べさせる経験値 +50%	喂食经验 +50%	餵食經驗 +50%	PDBoardDraw.h
+합성 타워 공격력 +30%	Fused towers ATK +30%	合成タワー攻撃力 +30%	合成塔攻击力 +30%	合成塔攻擊力 +30%	PDBoardDraw.h
+처치 경험치 +25%	Kill XP +25%	撃破経験値 +25%	击杀经验 +25%	擊殺經驗 +25%	PDBoardDraw.h
 장미 칠하는 정원사	The Rose Painters	バラを塗る庭師	涂玫瑰的园丁	塗玫瑰的園丁	PDBoardDraw.h
 트위들덤과 트위들디	Tweedledum and Tweedledee	トゥイードルダムとトゥイードルディー	叮当兄和叮当弟	叮噹兄和叮噹弟	PDBoardDraw.h
 도도새	The Dodo	ドードー	渡渡鸟	渡渡鳥	PDBoardDraw.h
@@ -420,6 +448,12 @@ Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jok
 칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)	Chips %s · You earn chips when a run ends (wave + 2 × levels gained + clear bonus)	チップ %s · ラン終了時にチップを得る (ウェーブ + 2 × 上がったレベル + クリアボーナス)	筹码 %s · 一局结束时获得筹码 (波次 + 2 × 提升的等级 + 通关奖励)	籌碼 %s · 一局結束時獲得籌碼 (波次 + 2 × 提升的等級 + 通關獎勵)	PDBoardPaint.cpp
 판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다	Upgrades that stay after a run. Raise them with chips on the title screen	ラン終了後も残る強化。タイトル画面でチップを使って上げる	一局结束后仍保留的强化。在标题画面用筹码提升	一局結束後仍保留的強化。在標題畫面用籌碼提升	PDBoardPaint.cpp
 최대	Max	最大	最大	最大	PDBoardPaint.cpp
+부적 상자 I	Charm Box I	お守り箱 I	护符箱 I	護符箱 I	PDBoardPaint.cpp
+부적 상자 II	Charm Box II	お守り箱 II	护符箱 II	護符箱 II	PDBoardPaint.cpp
+부적 상자 III	Charm Box III	お守り箱 III	护符箱 III	護符箱 III	PDBoardPaint.cpp
+%s · 새 부적 %d종	%s · %d new charms	%s · 新しいお守り %d種	%s · 新护符 %d种	%s · 新護符 %d種	PDBoardPaint.cpp
+열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
+칩 %d	%d chips	チップ %d	筹码 %d	籌碼 %d	PDBoardPaint.cpp
 버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기	Click a button: upgrade with chips   U or Esc · right-click: close	ボタンをクリック: チップで強化   U または Esc · 右クリック: 閉じる	点击按钮: 用筹码强化   U 或 Esc · 右键: 关闭	點擊按鈕: 用籌碼強化   U 或 Esc · 右鍵: 關閉	PDBoardPaint.cpp
 U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U or Esc · right-click: close   (the game pauses while open)	U または Esc · 右クリック: 閉じる   (開いている間はゲームが止まる)	U 或 Esc · 右键: 关闭   (打开时游戏暂停)	U 或 Esc · 右鍵: 關閉   (打開時遊戲暫停)	PDBoardPaint.cpp
 남은 포인트 %d	Points left %d	残りポイント %d	剩余点数 %d	剩餘點數 %d	PDBoardPaint.cpp

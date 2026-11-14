@@ -1121,6 +1121,24 @@ static void UnitTests()
 		for (int I = 0; I < (int)M2.size(); ++I) if (M2[I].Upper >= 0) Ci = I;
 		Expect(Ci >= 0 && G.MergeJokers(Ci) && G.Towers.size() == 1 && std::abs(G.Towers.begin()->second.Mult - 4.f * 2.2f) < 1e-3f && G.Towers.begin()->second.Joker == UpperBase + 26, "왕관의 무게: 잭 + 체셔 → 재버워키, 위력 합 × 2.2");
 	}
+	{ // 부적 상자 (D-233): 잠긴 부적은 안 나오고, 열면 나온다. 에이스 ×3, 유리 대포 목숨 −3
+		FPDGame G(31);
+		G.NewGame(true);
+		bool bLocked = true, bSeen = false;
+		for (int K = 0; K < 200; ++K) for (const FPDReward& R : G.RollRewards()) if (R.bCharm) bLocked = bLocked && R.Id < CharmBaseCount;
+		G.CharmUnlocked = 0xFFFFFFFFu >> (32 - (int)EPDCharm::Count);
+		for (int K = 0; K < 200 && !bSeen; ++K) for (const FPDReward& R : G.RollRewards()) if (R.bCharm) bSeen = bSeen || R.Id >= CharmBaseCount;
+		Expect((int)EPDCharm::Count == 32 && bLocked && bSeen, "부적 32개: 상자로 열기 전엔 새 부적이 안 나오고, 열면 나온다");
+		FPDTower A;
+		A.Card = C(14);
+		const float D0 = TowerStats(A, 0).Dmg;
+		Expect(std::abs(TowerStats(A, 1u << (int)EPDCharm::Aces).Dmg / D0 - 3.f) < 1e-4f, "에이스: A 공격력 ×3");
+		G.Phase = EPDPhase::Reward;
+		G.Lives = 10;
+		G.Rewards = {{true, (int)EPDCharm::GlassCannon}};
+		G.TakeReward(0);
+		Expect(G.Lives == 7 && G.Has(EPDCharm::GlassCannon), "유리 대포: 고르면 목숨 −3");
+	}
 	{ // 포인트 구매
 		FPDGame G(5);
 		G.NewGame(true);

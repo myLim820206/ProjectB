@@ -2288,6 +2288,25 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 			C.TextCentered(N > 0 ? FString::Printf(TEXT("%d"), Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 22.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
 		}
 	}
+	if (bShop) // 부적 상자 (D-233): 새 부적을 연다
+	{
+		static const TCHAR* Names[3] = {TEXT("부적 상자 I"), TEXT("부적 상자 II"), TEXT("부적 상자 III")};
+		for (int32 I = 0; I < 3; ++I)
+		{
+			const FPDCharmBox& B = CharmBoxes[I];
+			const uint32 Bits = ((1u << B.Count) - 1u) << B.First;
+			const bool bOwned = (G.CharmUnlocked & Bits) == Bits, bCan = !bOwned && MetaChips >= B.Price;
+			const float X = BoxBtnX(I);
+			const bool bHov = InRect(Mouse, X, BoxBtnY, BoxBtnW, BoxBtnH);
+			const FLinearColor Col = bOwned ? Grey : JokerPink;
+			C.Box(X, BoxBtnY, BoxBtnW, BoxBtnH, Hex(TEXT("0a0b14"), 0.92f));
+			C.Glow(FCanvas::RoundRectPoints(X, BoxBtnY, BoxBtnW, BoxBtnH, 8.f), WithAlpha(Col, bCan || bOwned ? 1.f : 0.4f), bHov ? 1.6f : 1.1f, bCan ? (bHov ? 1.2f : 0.6f) : 0.2f);
+			C.Text(TrF(TEXT("%s · 새 부적 %d종"), Tr(Names[I]), B.Count), X + 12.f, BoxBtnY + 18.f, bOwned ? Grey : FLinearColor::White, 12.f, 0, true, BoxBtnW - 24.f);
+			FString List;
+			for (int32 J = B.First; J < B.First + B.Count; ++J) List += (J > B.First ? TEXT(", ") : TEXT("")) + FString(CharmName(J));
+			C.Text(bOwned ? FString(Tr(TEXT("열림"))) + TEXT(" · ") + List : TrF(TEXT("칩 %d"), B.Price) + TEXT(" · ") + List, X + 12.f, BoxBtnY + 34.f, bOwned ? Dim : (bCan ? Gold : Dim), 9.f, 0, false, BoxBtnW - 24.f);
+		}
+	}
 	C.TextCentered(bShop ? FString(Tr(TEXT("버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기"))) : FString(Tr(TEXT("U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"))),
 		DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
 	PaintCloseButton(C, Hex(TEXT("ff9a6a")));

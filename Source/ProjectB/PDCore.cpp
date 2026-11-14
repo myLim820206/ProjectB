@@ -489,11 +489,11 @@ static FPDTrait HandTrait(EPDHand H, int N, uint32_t Charms = 0)
 	case EPDHand::Triple: T.Dmg = 2.f; break;
 	case EPDHand::Straight: T.Rate = 1.f + (HasCharm(Charms, EPDCharm::LineLover) ? 0.5f : 0.25f) * (N - 1); break;
 	case EPDHand::Flush: T.Splash = 0.5f + 0.25f * N + (HasCharm(Charms, EPDCharm::WideFlush) ? 0.75f : 0.f); break;
-	case EPDHand::FullHouse: T.Dmg = 1.5f; T.Rate = 1.5f; T.Splash = 1.5f; break;
-	case EPDHand::Four: T.Dmg = 3.5f; break;
-	case EPDHand::StraightFlush: T.Dmg = 2.f; T.Rate = 2.f; T.Splash = 2.f; break;
+	case EPDHand::FullHouse: T.Dmg = HasCharm(Charms, EPDCharm::FullHouseFan) ? 2.25f : 1.5f; T.Rate = 1.5f; T.Splash = 1.5f; break;
+	case EPDHand::Four: T.Dmg = HasCharm(Charms, EPDCharm::FourLeaf) ? 5.25f : 3.5f; break;
+	case EPDHand::StraightFlush: T.Dmg = HasCharm(Charms, EPDCharm::RoyalGuard) ? 3.f : 2.f; T.Rate = 2.f; T.Splash = 2.f; break;
 	case EPDHand::Five: T.Dmg = 5.f; break;
-	case EPDHand::RoyalFlush: T.Dmg = 2.5f; T.Rate = 2.5f; T.Splash = 2.5f; break;
+	case EPDHand::RoyalFlush: T.Dmg = HasCharm(Charms, EPDCharm::RoyalGuard) ? 3.75f : 2.5f; T.Rate = 2.5f; T.Splash = 2.5f; break;
 	default: break;
 	}
 	return T;
@@ -710,6 +710,17 @@ FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* 
 	if (HasCharm(Charms, EPDCharm::Lucky7) && R == 7) St.Dmg *= 2.5f;
 	if (HasCharm(Charms, EPDCharm::Scope)) St.Range *= 1.15f;
 	if (HasCharm(Charms, EPDCharm::Frost) && T.Card.Suit == EPDSuit::Club) { St.Slow = std::min(0.75f, St.Slow + 0.2f); St.Splash = std::max(St.Splash, 0.6f); }
+	// 부적 상자 (D-233)
+	const bool bNum = !T.Card.IsWild() && !T.IsJoker();
+	if (HasCharm(Charms, EPDCharm::Aces) && bNum && R == 14) St.Dmg *= 3.f;
+	if (HasCharm(Charms, EPDCharm::EvenNums) && bNum && R <= 10 && R % 2 == 0) St.Dmg *= 1.4f;
+	if (HasCharm(Charms, EPDCharm::OddNums) && bNum && R <= 9 && R % 2 == 1) St.Rate *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::GlassCannon)) St.Dmg *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::LongShot) && bNum && T.Card.Suit == EPDSuit::Spade) St.Range *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::BigBang) && bNum && T.Card.Suit == EPDSuit::Heart) St.Splash += 0.5f;
+	if (HasCharm(Charms, EPDCharm::Overclock) && bNum && T.Card.Suit == EPDSuit::Diamond) St.Rate *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::JokerFan) && T.IsJoker()) St.Dmg *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::Forge) && !T.IsJoker() && T.Level >= 2) St.Dmg *= 1.3f;
 	// 스킬 트리: 작은·특급 노드는 같은 종류끼리 더해서 한 번에 곱한다 (increased)
 	const int Si = T.Card.IsWild() ? 4 : (int)T.Card.Suit;
 	const int K = T.Eff.Kind;
@@ -1169,7 +1180,7 @@ std::vector<FPDReward> FPDGame::RollRewards()
 {
 	std::vector<FPDReward> Out;
 	std::vector<int> Pool;
-	for (int J = 0; J < (int)EPDCharm::Count; ++J) if (std::find(Charms.begin(), Charms.end(), (EPDCharm)J) == Charms.end()) Pool.push_back(J);
+	for (int J = 0; J < (int)EPDCharm::Count; ++J) if (((CharmUnlocked >> J) & 1u) && std::find(Charms.begin(), Charms.end(), (EPDCharm)J) == Charms.end()) Pool.push_back(J); // 잠긴 부적은 안 나옴 (D-233)
 	std::shuffle(Pool.begin(), Pool.end(), Rng);
 	const bool bWild = std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < WildChance;
 	const bool bSwap = !bWild && std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < SwapChance; // 자리바꿈 (D-149)
@@ -1190,7 +1201,7 @@ void FPDGame::TakeReward(int Index)
 	if (Index >= 0 && Index < (int)Rewards.size())
 	{
 		const FPDReward R = Rewards[Index];
-		if (R.bCharm) { if ((int)Charms.size() < CharmMax) Charms.push_back((EPDCharm)R.Id); }
+		if (R.bCharm) { if ((int)Charms.size() < CharmMax) { Charms.push_back((EPDCharm)R.Id); if ((EPDCharm)R.Id == EPDCharm::GlassCannon) Lives = std::max(1, Lives - 3); } } // 유리 대포: 목숨 −3
 		else if (R.Id == (int)EPDInstant::Wild)
 		{
 			const FPDCard W{0, EPDSuit::Wild};
@@ -1828,7 +1839,7 @@ bool FPDGame::Feed(int SynergyIdx, int JokerKey)
 	FPDTower& J = Towers.at(JKey);
 	const int Old = J.JLevel;
 	J.Mult += Gain; // 먹인 위력 흡수 (D-191)
-	J.JXp += FeedXp;
+	J.JXp += FeedXp * (Has(EPDCharm::Feeder) ? 1.5f : 1.f); // 먹이 상자 부적 (D-233)
 	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
 	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
@@ -1996,7 +2007,7 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	K.X = P.X;
 	K.Y = P.Y;
 	K.Enemy = E.Type;
-	K.A = AddXp(KillXp(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave))); // 마리 수가 늘어도 웨이브당 골드는 그대로
+	K.A = AddXp(KillXp(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave)) * (Has(EPDCharm::Bounty) ? 1.25f : 1.f)); // 마리 수가 늘어도 웨이브당 골드는 그대로
 	Ev(K);
 	for (FPDEnemy& O : Enemies) // 흡수자: 주변에서 적이 죽으면 회복
 		if (&O != &E && !O.bDead && O.Type == EPDEnemy::Devourer)

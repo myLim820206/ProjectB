@@ -188,7 +188,9 @@ inline const TCHAR* BossSkillText(EPDEnemy T)
 inline const TCHAR* CharmName(int J)
 {
 	static const TCHAR* N[] = {TEXT("하트 애호가"), TEXT("스페이드 애호가"), TEXT("다이아 애호가"), TEXT("클로버 애호가"), TEXT("연결고리"), TEXT("쌍둥이"), TEXT("일직선"),
-		TEXT("넓은 물결"), TEXT("그림 카드"), TEXT("작은 수"), TEXT("행운의 7"), TEXT("큰 손"), TEXT("보급"), TEXT("재활용"), TEXT("조준경"), TEXT("서리"), TEXT("연쇄 폭발"), TEXT("관통탄")};
+		TEXT("넓은 물결"), TEXT("그림 카드"), TEXT("작은 수"), TEXT("행운의 7"), TEXT("큰 손"), TEXT("보급"), TEXT("재활용"), TEXT("조준경"), TEXT("서리"), TEXT("연쇄 폭발"), TEXT("관통탄"),
+		TEXT("에이스"), TEXT("짝수"), TEXT("홀수"), TEXT("풀하우스 팬"), TEXT("네잎클로버"), TEXT("왕실 근위"), TEXT("유리 대포"), TEXT("장거리 사격"), TEXT("대폭발"),
+		TEXT("과부하"), TEXT("조커 팬"), TEXT("먹보"), TEXT("대장간 불꽃"), TEXT("현상금")};
 	return Tr(N[J]);
 }
 inline const TCHAR* CharmDesc(int J)
@@ -196,7 +198,10 @@ inline const TCHAR* CharmDesc(int J)
 	static const TCHAR* N[] = {TEXT("♥ 타워 공격력 +40%"), TEXT("♠ 타워 공격력 +40%"), TEXT("♦ 타워 공격력 +40%"), TEXT("♣ 타워 공격력 +40%"), TEXT("연쇄 보너스 +25% → +45%"),
 		TEXT("원 페어·투 페어 ×1.5 → ×2"), TEXT("스트레이트 연사 한 장마다 +0.25 더"), TEXT("플러시 범위 +0.75칸"), TEXT("J·Q·K 타워 공격력 +60%"), TEXT("2~6 타워 연사 +60%"),
 		TEXT("숫자 7 타워 공격력 ×2.5"), TEXT("손패 최대 +2"), TEXT("웨이브마다 카드 +1"), TEXT("카드를 버리면 1장 뽑기"), TEXT("모든 타워 사거리 +15%"),
-		TEXT("둔화 더 강하게, ♣ 주변도 둔화"), TEXT("처치 시 주변 적에게 최대 체력 15% 피해"), TEXT("적의 방패를 무시")};
+		TEXT("둔화 더 강하게, ♣ 주변도 둔화"), TEXT("처치 시 주변 적에게 최대 체력 15% 피해"), TEXT("적의 방패를 무시"),
+		TEXT("A 타워 공격력 ×3"), TEXT("짝수(2~10) 타워 공격력 +40%"), TEXT("홀수(3~9) 타워 연사 +30%"), TEXT("풀하우스 공격력 ×1.5 → ×2.25"), TEXT("포카드 공격력 ×3.5 → ×5.25"),
+		TEXT("로열·스트레이트 플러시 공격력 ×1.5 더"), TEXT("모든 타워 공격력 +30% / 고를 때 목숨 −3"), TEXT("♠ 타워 사거리 +30%"), TEXT("♥ 타워 폭발 범위 +0.5칸"),
+		TEXT("♦ 타워 연사 +30%"), TEXT("조커 위력 +30%"), TEXT("먹이기 경험치 +50%"), TEXT("합성 타워 공격력 +30%"), TEXT("처치 경험치 +25%")};
 	return Tr(N[J]);
 }
 // 상위 조커 30종 (D-231, docs/18 4절 순서)
@@ -486,6 +491,9 @@ inline FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? S
 constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.f;
 constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
 const int32 UpgSteps[4] = {1, 5, 10, UpgradeMax}; // 영구 강화 (D-230, 상한 20)
+// 부적 상자 버튼 3개 (D-233): 영구 강화 창 아래
+constexpr float BoxBtnW = 300.f, BoxBtnH = 44.f, BoxBtnY = UpgRowY + 8 * UpgRowH + 6.f;
+inline float BoxBtnX(int I) { return UpgRowX + I * (BoxBtnW + 40.f); }
 inline FVector2f UpgButtonPos(int Row, int K) { return FVector2f(UpgRowX + UpgRowW - 4 * (UpgBtnW + 8.f) + K * (UpgBtnW + 8.f), UpgRowY + Row * UpgRowH + (UpgRowH - UpgBtnH) / 2.f); }
 // 웨이브 시작 버튼 아래 2×2 버튼 (D-119): 트리 K · 강화 U / 도감 J · 메뉴 Esc
 constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 36.f;

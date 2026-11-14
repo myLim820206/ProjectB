@@ -69,8 +69,28 @@ enum class EPDCharm : uint8_t
 	Frost,      // 둔화 강화, ♣ 주변도 둔화
 	ChainBlast, // 처치 시 주변 적에게 최대 체력 15% 피해
 	Pierce,     // 방패 무시
+	// 부적 상자 (D-233): 처음엔 잠겨 있고, 영구 강화 창에서 칩으로 상자를 사면 열린다
+	Aces,         // A 공격력 ×3
+	EvenNums,     // 짝수 카드 공격력 +40%
+	OddNums,      // 홀수 카드 연사 +30%
+	FullHouseFan, // 풀하우스 위력 ×1.5
+	FourLeaf,     // 포카드 위력 ×1.5
+	RoyalGuard,   // 로열·스트레이트 플러시 위력 ×1.5
+	GlassCannon,  // 모든 타워 공격력 +30%, 고를 때 목숨 −3
+	LongShot,     // ♠ 사거리 +30%
+	BigBang,      // ♥ 폭발 범위 +0.5칸
+	Overclock,    // ♦ 연사 +30%
+	JokerFan,     // 조커 위력 +30%
+	Feeder,       // 먹이기 경험치 +50%
+	Forge,        // 합성 타워 위력 +30%
+	Bounty,       // 처치 경험치 +25%
 	Count
 };
+constexpr int CharmBaseCount = 18;                            // 처음부터 열린 부적
+constexpr uint32_t CharmBaseMask = (1u << CharmBaseCount) - 1u;
+// 부적 상자 3개 (D-233): 상자마다 열리는 부적 범위와 칩 값
+struct FPDCharmBox { int First, Count, Price; };
+constexpr FPDCharmBox CharmBoxes[3] = {{18, 5, 100}, {23, 5, 250}, {28, 4, 450}};
 inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;
@@ -479,6 +499,7 @@ public:
 	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
+	uint32_t CharmUnlocked = CharmBaseMask;          // 나올 수 있는 부적 (부적 상자로 늘어남, D-233)
 	int UpperNeed(const FPDTower& T) const;          // 이 조커가 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
 	std::vector<FPDReward> RollRewards();
 	uint32_t CharmMask() const;

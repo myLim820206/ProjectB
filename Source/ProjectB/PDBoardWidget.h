@@ -99,6 +99,7 @@ private:
 	int32 MetaChips = 0;
 	int32 LastChips = 0;                   // 방금 끝난 판에서 받은 칩
 	bool MetaBuy(int32 U, int32 N);        // N레벨까지 살 수 있는 만큼 (산 레벨이 있으면 true)
+	bool BuyCharmBox(int32 I);             // 부적 상자 (D-233)
 	void PaintUpgrades(FCanvas& C) const;
 	int32 LastRankPos = -1;                // 방금 판이 몇 위로 들어갔나 (-1 = 못 들어감)
 	bool bRankRecorded = false;            // 이번 게임 오버를 이미 기록했다
