@@ -1285,25 +1285,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I)) continue;
-			if (!SynRevealed(I)) // 평소 (D-113, D-126): 재료 칸 모서리에 금색 꺾쇠가 숨 쉬듯 반짝 (점은 D-161 에 뺐다)
-			{
-				const float Br = 0.55f + 0.45f * FMath::Sin(Clock * 3.f + I * 0.9f);
-				const bool bImg = UseAtlas();
-				const int32 BrL = bImg ? F.NextLayer() : 0;
-				for (int K : G.Synergies[I].Cells)
-				{
-					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-					if (bImg) { F.Image(BrL, &Atlas->BracketBrush, C0.X - BracketPad, C0.Y - BracketPad, CS + BracketPad * 2.f, CS + BracketPad * 2.f, WithAlpha(Gold, 0.55f + 0.45f * Br)); continue; } // 구운 꺾쇠 (D-143)
-					const float A = 3.f, B = CS - 3.f, L = 10.f;
-					const FLinearColor Cc = WithAlpha(Gold, 0.55f + 0.45f * Br);
-					F.Glow({C0 + FVector2f(A, A + L), C0 + FVector2f(A, A), C0 + FVector2f(A + L, A)}, Cc, 1.8f, 0.6f + 0.6f * Br);
-					F.Glow({C0 + FVector2f(B - L, A), C0 + FVector2f(B, A), C0 + FVector2f(B, A + L)}, Cc, 1.8f, 0.6f + 0.6f * Br);
-					F.Glow({C0 + FVector2f(B, B - L), C0 + FVector2f(B, B), C0 + FVector2f(B - L, B)}, Cc, 1.8f, 0.6f + 0.6f * Br);
-					F.Glow({C0 + FVector2f(A + L, B), C0 + FVector2f(A, B), C0 + FVector2f(A, B - L)}, Cc, 1.8f, 0.6f + 0.6f * Br);
-				}
-				// 아래 변의 금색 점은 뺐다 (D-161): 모서리 꺾쇠만
-				continue;
-			}
+			if (!SynRevealed(I)) continue; // 평소엔 아무것도 (D-198): 금색 꺾쇠는 장판 색과 겹치는 표시라 뺐다. 마우스를 올리면 [합성] 버튼
 			const FVector2f B = FuseButtonCenter(G.Synergies, I);
 			const FPDSynergy FS = FuseSyn(G, I); // 조커를 뺀 실제 합성 칸 (D-128)
 			const float BW = FuseBtnW(FS);
