@@ -26,10 +26,10 @@ constexpr int NumWaves = 15; // 1회차 (보스 3종이 한 바퀴). 진행은 �
 constexpr int StartLives = 20;
 constexpr int StartHand = 5;
 constexpr int DrawPerWave = 3;
-constexpr float AutoStartDelay = 5.f; // 웨이브를 막고 보상을 고르면 이 시간(실제 초) 뒤 다음 웨이브가 저절로 시작 (첫 웨이브는 직접)
+constexpr float AutoStartDelay = 60.f; // D-185: 모든 웨이브 1분. 웨이브를 막고 보상을 고르면 이 시간(실제 초) 뒤 다음 웨이브가 저절로 시작 (첫 웨이브는 직접)
 // 초반 완화 (D-106): EasyWaves 웨이브까지는 적 체력을 낮추고, 다음 웨이브까지 덱을 짤 시간을 더 준다
 constexpr int EasyWaves = 5;
-constexpr float EasyAutoStartDelay = 12.f;
+constexpr float EasyAutoStartDelay = 60.f; // D-185: 초반도 똑같이 1분 (예전 12초, 그 뒤 5초)
 inline float AutoStartDelayFor(int NextWave) { return NextWave <= EasyWaves ? EasyAutoStartDelay : AutoStartDelay; }
 inline float EarlyHpK(int W) { return W <= EasyWaves ? 0.55f + 0.09f * (float)(W < 1 ? 0 : W - 1) : 1.f; } // 1웨이브 ×0.55 → 5웨이브 ×0.91
 constexpr float ChainStep = 0.25f; // 연쇄: 맞닿은 족보 하나마다 공격력 +25% (연결고리 부적이면 +45%)

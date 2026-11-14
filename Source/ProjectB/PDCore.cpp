@@ -1076,7 +1076,7 @@ void FPDGame::EndWave()
 		Phase = EPDPhase::Reward;
 		Rewards = RollRewards();
 	}
-	else // 그 사이는 창 없이 AutoStartDelayFor 초(초반 12초, 그 뒤 5초) 뒤 다음 웨이브
+	else // 그 사이는 창 없이 AutoStartDelayFor 초(1분, D-185) 뒤 다음 웨이브
 	{
 		Rewards.clear();
 		Phase = EPDPhase::Build;
@@ -1137,7 +1137,7 @@ void FPDGame::TakeReward(int Index)
 	}
 	Rewards.clear();
 	Phase = EPDPhase::Build;
-	AutoStartT = AutoStartDelayFor(Wave + 1); // 부적을 고르면 5초(초반은 12초) 뒤 다음 웨이브
+	AutoStartT = AutoStartDelayFor(Wave + 1); // 부적을 고르면 1분(D-185) 뒤 다음 웨이브
 }
 
 std::vector<FPDSynergy> FPDGame::PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers) const

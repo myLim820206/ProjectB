@@ -567,11 +567,11 @@ static void UnitTests()
 		G.Phase = EPDPhase::Reward;
 		G.TakeReward(-1);
 		G.Speed = 3;
-		for (int K = 0; K < 98; ++K) G.Tick(0.05f); // 4.9초
+		for (int K = 0; K < (int)(AutoStartDelay / 0.05f) - 2; ++K) G.Tick(0.05f); // 대기 시간 0.1초 전
 		const bool bNotYet = G.Phase == EPDPhase::Build;
-		for (int K = 0; K < 4; ++K) G.Tick(0.05f);   // 5.1초
-		Expect(bFirstWaits && bNotYet && G.Phase == EPDPhase::Wave && G.Wave == EasyWaves + 1 && G.AutoStartT < 0.f, "자동 시작: 첫 웨이브는 기다림, 보상 뒤 5초(속도 ×3 이어도)에 다음 웨이브");
-		Expect(AutoStartDelayFor(2) == EasyAutoStartDelay && AutoStartDelayFor(EasyWaves + 1) == AutoStartDelay, "초반(5웨이브까지)은 다음 웨이브까지 12초");
+		for (int K = 0; K < 4; ++K) G.Tick(0.05f);   // 대기 시간 0.1초 뒤
+		Expect(bFirstWaits && bNotYet && G.Phase == EPDPhase::Wave && G.Wave == EasyWaves + 1 && G.AutoStartT < 0.f, "자동 시작: 첫 웨이브는 기다림, 보상 뒤 대기 시간(1분)(속도 ×3 이어도)에 다음 웨이브");
+		Expect(AutoStartDelayFor(2) == EasyAutoStartDelay && AutoStartDelayFor(EasyWaves + 1) == AutoStartDelay, "다음 웨이브까지 대기 시간 (D-185: 모두 1분)");
 		Expect(std::fabs(EarlyHpK(1) - 0.55f) < 1e-4f && EarlyHpK(5) < 1.f && EarlyHpK(6) == 1.f, "초반 적 체력: 1웨이브 ×0.55, 6웨이브부터 ×1");
 	}
 	{ // 발사체 고르기: 조커 → 무늬 (족보는 발사체를 바꾸지 않는다, D-170)
