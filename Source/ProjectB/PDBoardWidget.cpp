@@ -824,7 +824,7 @@ void SPDBoardWidget::UpdateHints(float Dt)
 	HintEv = 0;
 	const bool bPlay = Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave || Game.Phase == EPDPhase::Reward;
 	if (!Settings.bHints || !bPlay || LoadT > 0.f) { HintNow = -1; return; }
-	auto Has = [Ev](FPDEvent::EKind K) { return (Ev >> (int32)K) & 1u; };
+	auto Has = [Ev](FPDEvent::EKind K) { return ((Ev >> (int32)K) & 1u) != 0; };
 	auto AnyFuse = [this]() { for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I) if (Game.CanFuse(I)) return true; return false; };
 	auto AnyChain = [this]() { for (const FPDSynergy& S : Game.Synergies) if (S.Chain >= 2) return true; return false; };
 	auto CanShop = [this]() {
