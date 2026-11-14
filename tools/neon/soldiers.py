@@ -75,14 +75,12 @@ def soldier(kind, cx, cy, R, t, flop=False):
     top = hip[1] - bh
     body_c = (cx, top + bh / 2)
     # 흐느적 (D-182 시안): 카드 윗부분이 걸음보다 조금 늦게 좌우로 휘청 (위로 갈수록 크게), 몸 전체도 살짝 흔들린다
-    bend = 0.2 * R if flop else 0.0
-    wob = (math.radians(2.5) * math.sin(ph - 0.4)) if flop else 0.0
+    bend = (0.26 * R * math.sin(ph - 0.9)) if flop else 0.0
+    wob = (math.radians(5) * math.sin(ph - 0.4)) if flop else 0.0
 
     def W(q):
-        # S자 물결: 위에서 아래로 흘러내리는 파도 (높이에 따라 위상이 달라 몸이 S자로 꿈틀), 발 쪽은 붙어 있다
         v = min(1.0, max(0.0, (q[1] - top) / bh)) if bh > 0 else 0.0
-        dx = bend * math.sin(ph * 1.0 - v * 3.6) * (1 - v) ** 0.6 if flop else 0.0
-        return rot((q[0] + dx, q[1]), hip, lean + wob)
+        return rot((q[0] + bend * (1 - v) ** 2, q[1]), hip, lean + wob)
     P = []
     r = 0.12 * R
     for (ox, oy, a0) in ((bw / 2 - r, -bh / 2 + r, -90), (bw / 2 - r, bh / 2 - r, 0), (-bw / 2 + r, bh / 2 - r, 90), (-bw / 2 + r, -bh / 2 + r, 180)):
@@ -293,7 +291,7 @@ def flop_sheet(out):
         for f in range(8):
             for pts, c, wd in soldier(k, 200 + f * 132, y + 125, R, f / 8, flop=True):
                 M.ln(pts, c, wd)
-    M.tx(20, H_ - 20, '흐느적 8프레임 (몸통이 위에서 아래로 S자 물결)', (95, 104, 120), 11, 'lm')
+    M.tx(20, H_ - 20, '흐느적 8프레임 (카드 윗부분이 걸음보다 늦게 휘청)', (95, 104, 120), 11, 'lm')
     img = Image.new('RGB', (W_ * S, H_ * S), neon.BG)
     M.draw(img).resize((W_, H_), Image.LANCZOS).save(out)
 
