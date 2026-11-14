@@ -570,6 +570,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("스킬 트리(K)에서 노드를 찍어 보세요"), TEXT("Spend it on a node in the Skill Tree (K)"), TEXT("スキルツリー(K)でノードを取ろう"), TEXT("在技能树(K)中点亮节点吧"), TEXT("在技能樹(K)中點亮節點吧")},
 	{TEXT("카드 셋 중 하나를 고르거나"), TEXT("Pick one of the three cards, or"), TEXT("3枚のカードから1枚選ぶか"), TEXT("从三张卡中选一张, 或"), TEXT("從三張卡中選一張, 或")},
 	{TEXT("S로 넘기세요"), TEXT("press S to skip"), TEXT("S でスキップしましょう"), TEXT("按 S 跳过"), TEXT("按 S 跳過")},
+	{TEXT("맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요"), TEXT("You can combine two adjacent jokers into an Upper Joker"), TEXT("隣り合う2体のジョーカーを合わせて上位ジョーカーを作れます"), TEXT("可以把相邻的两个小丑合成为上位小丑"), TEXT("可以把相鄰的兩個小丑合成為上位小丑")},
+	{TEXT("두 조커 사이의 금색 버튼을 눌러 보세요"), TEXT("Press the gold button between them"), TEXT("2体の間の金色のボタンを押してみよう"), TEXT("点击两者之间的金色按钮试试"), TEXT("點擊兩者之間的金色按鈕試試")},
 	{TEXT("도움말"), TEXT("Hints"), TEXT("ヒント"), TEXT("提示"), TEXT("提示")},
 	{TEXT("알겠어"), TEXT("Got it"), TEXT("わかった"), TEXT("知道了"), TEXT("知道了")},
 	{TEXT("도움말 끄기"), TEXT("Turn off hints"), TEXT("ヒントを切る"), TEXT("关闭提示"), TEXT("關閉提示")},
@@ -755,4 +757,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 754;
+static const int32 PDLangRowCount = 756;

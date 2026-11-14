@@ -569,6 +569,8 @@ Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タ
 스킬 트리(K)에서 노드를 찍어 보세요	Spend it on a node in the Skill Tree (K)	スキルツリー(K)でノードを取ろう	在技能树(K)中点亮节点吧	在技能樹(K)中點亮節點吧	PDBoardPaint.cpp
 카드 셋 중 하나를 고르거나	Pick one of the three cards, or	3枚のカードから1枚選ぶか	从三张卡中选一张, 或	從三張卡中選一張, 或	PDBoardPaint.cpp
 S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	按 S 跳過	PDBoardPaint.cpp
+맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요	You can combine two adjacent jokers into an Upper Joker	隣り合う2体のジョーカーを合わせて上位ジョーカーを作れます	可以把相邻的两个小丑合成为上位小丑	可以把相鄰的兩個小丑合成為上位小丑	PDBoardPaint.cpp
+두 조커 사이의 금색 버튼을 눌러 보세요	Press the gold button between them	2体の間の金色のボタンを押してみよう	点击两者之间的金色按钮试试	點擊兩者之間的金色按鈕試試	PDBoardPaint.cpp
 도움말	Hints	ヒント	提示	提示	PDBoardPaint.cpp
 알겠어	Got it	わかった	知道了	知道了	PDBoardPaint.cpp
 도움말 끄기	Turn off hints	ヒントを切る	关闭提示	關閉提示	PDBoardPaint.cpp
