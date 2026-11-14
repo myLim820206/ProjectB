@@ -2290,8 +2290,8 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 	}
 	if (bShop) // 부적 상자 (D-233): 새 부적을 연다
 	{
-		static const TCHAR* Names[3] = {TEXT("부적 상자 I"), TEXT("부적 상자 II"), TEXT("부적 상자 III")};
-		for (int32 I = 0; I < 3; ++I)
+		static const TCHAR* Names[CharmBoxCount] = {TEXT("부적 상자 I"), TEXT("부적 상자 II"), TEXT("부적 상자 III"), TEXT("부적 상자 IV")};
+		for (int32 I = 0; I < CharmBoxCount; ++I)
 		{
 			const FPDCharmBox& B = CharmBoxes[I];
 			const FPDCharmBits Bits = ((FPDCharmBits(1) << B.Count) - 1u) << B.First;

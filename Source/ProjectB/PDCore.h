@@ -84,6 +84,17 @@ enum class EPDCharm : uint8_t
 	Feeder,       // 먹이기 경험치 +50%
 	Forge,        // 합성 타워 위력 +30%
 	Bounty,       // 처치 경험치 +25%
+	// 부적 상자 IV (D-234)
+	QueenGuard,   // Q 연사 +80%
+	KingsReach,   // K 사거리 +40%, 공격력 +30%
+	ChainFever,   // 연쇄 3 이상에 든 타워 공격력 +30%
+	LongHand,     // 5장 족보 타워 공격력 +35%
+	Triad,        // 3장 족보 타워 공격력 +40%
+	Loner,        // 족보에 안 든 타워 공격력 +60%
+	WildHeart,    // 와일드 카드 타워 공격력 ×2
+	Herald,       // 레벨업할 때마다 목숨 +1
+	BossHunter,   // 보스에게 주는 피해 +40%
+	Sweeper,      // 웨이브 통과 경험치 ×2
 	Count
 };
 constexpr int CharmBaseCount = 18;                            // 처음부터 열린 부적
@@ -91,7 +102,8 @@ using FPDCharmBits = uint64_t; // 부적 비트 (D-233: 32개를 넘기려고 64
 constexpr FPDCharmBits CharmBaseMask = (FPDCharmBits(1) << CharmBaseCount) - 1u;
 // 부적 상자 3개 (D-233): 상자마다 열리는 부적 범위와 칩 값
 struct FPDCharmBox { int First, Count, Price; };
-constexpr FPDCharmBox CharmBoxes[3] = {{18, 5, 100}, {23, 5, 250}, {28, 4, 450}};
+constexpr int CharmBoxCount = 4;
+constexpr FPDCharmBox CharmBoxes[CharmBoxCount] = {{18, 5, 100}, {23, 5, 250}, {28, 4, 450}, {32, 10, 700}};
 inline bool HasCharm(FPDCharmBits Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;

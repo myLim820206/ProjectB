@@ -1125,7 +1125,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 				const FVector2f B = UpgButtonPos(U, K);
 				if (InRect(P, B.X, B.Y, UpgBtnW, UpgBtnH) && !MetaBuy(U, UpgSteps[K])) UiSound(EPDSound::Denied);
 			}
-		for (int32 I = 0; I < 3; ++I) if (InRect(P, BoxBtnX(I), BoxBtnY, BoxBtnW, BoxBtnH) && !BuyCharmBox(I)) UiSound(EPDSound::Denied); // 부적 상자 (D-233)
+		for (int32 I = 0; I < CharmBoxCount; ++I) if (InRect(P, BoxBtnX(I), BoxBtnY, BoxBtnW, BoxBtnH) && !BuyCharmBox(I)) UiSound(EPDSound::Denied); // 부적 상자 (D-233)
 		return;
 	}
 	if (Game.Phase == EPDPhase::Title && bModeSel) // 모드 고르기 (D-229): 카드 클릭 = 시작, 창 밖·오른쪽 클릭 = 닫기
@@ -1382,7 +1382,7 @@ bool SPDBoardWidget::MetaBuy(int32 U, int32 N)
 
 bool SPDBoardWidget::BuyCharmBox(int32 I)
 {
-	if (Game.Phase != EPDPhase::Title || I < 0 || I >= 3) return false;
+	if (Game.Phase != EPDPhase::Title || I < 0 || I >= CharmBoxCount) return false;
 	const FPDCharmBox& B = CharmBoxes[I];
 	const FPDCharmBits Bits = ((FPDCharmBits(1) << B.Count) - 1u) << B.First;
 	if ((Game.CharmUnlocked & Bits) == Bits || MetaChips < B.Price) return false;

@@ -1126,9 +1126,9 @@ static void UnitTests()
 		G.NewGame(true);
 		bool bLocked = true, bSeen = false;
 		for (int K = 0; K < 200; ++K) for (const FPDReward& R : G.RollRewards()) if (R.bCharm) bLocked = bLocked && R.Id < CharmBaseCount;
-		G.CharmUnlocked = 0xFFFFFFFFu >> (32 - (int)EPDCharm::Count);
+		G.CharmUnlocked = ~FPDCharmBits(0);
 		for (int K = 0; K < 200 && !bSeen; ++K) for (const FPDReward& R : G.RollRewards()) if (R.bCharm) bSeen = bSeen || R.Id >= CharmBaseCount;
-		Expect((int)EPDCharm::Count == 32 && bLocked && bSeen, "부적 32개: 상자로 열기 전엔 새 부적이 안 나오고, 열면 나온다");
+		Expect((int)EPDCharm::Count == 42 && bLocked && bSeen, "부적 42개: 상자로 열기 전엔 새 부적이 안 나오고, 열면 나온다");
 		FPDTower A;
 		A.Card = C(14);
 		const float D0 = TowerStats(A, 0).Dmg;
@@ -1286,7 +1286,7 @@ static int Coverage(const FPDGame& G, int X, int Y, float Range)
 // 판 위력: 코어의 판 위력 어림 × 타워마다 사거리 안 길 칸 수
 static double Power(FPDGame& G, FPDTowerMap& Tw)
 {
-	const uint32_t M = G.CharmMask();
+	const FPDCharmBits M = G.CharmMask();
 	ApplyEffects(Tw, M, &G.Mods);
 	return SumBoardPower(Tw, M, &G.Mods, [&G](const FPDTower& T, float Range) { return (double)Coverage(G, T.X, T.Y, Range); });
 }

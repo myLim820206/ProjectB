@@ -721,6 +721,13 @@ FPDTowerStats TowerStats(const FPDTower& T, FPDCharmBits Charms, const FPDTreeMo
 	if (HasCharm(Charms, EPDCharm::Overclock) && bNum && T.Card.Suit == EPDSuit::Diamond) St.Rate *= 1.3f;
 	if (HasCharm(Charms, EPDCharm::JokerFan) && T.IsJoker()) St.Dmg *= 1.3f;
 	if (HasCharm(Charms, EPDCharm::Forge) && !T.IsJoker() && T.Level >= 2) St.Dmg *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::QueenGuard) && bNum && R == 12) St.Rate *= 1.8f;          // 상자 IV (D-234)
+	if (HasCharm(Charms, EPDCharm::KingsReach) && bNum && R == 13) { St.Range *= 1.4f; St.Dmg *= 1.3f; }
+	if (HasCharm(Charms, EPDCharm::ChainFever) && T.Eff.Chain >= 3) St.Dmg *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::LongHand) && T.Eff.N == 5) St.Dmg *= 1.35f;
+	if (HasCharm(Charms, EPDCharm::Triad) && T.Eff.N == 3) St.Dmg *= 1.4f;
+	if (HasCharm(Charms, EPDCharm::Loner) && T.Eff.Kind < 0 && !T.IsJoker()) St.Dmg *= 1.6f;
+	if (HasCharm(Charms, EPDCharm::WildHeart) && T.Card.IsWild() && !T.IsJoker()) St.Dmg *= 2.f;
 	// 스킬 트리: 작은·특급 노드는 같은 종류끼리 더해서 한 번에 곱한다 (increased)
 	const int Si = T.Card.IsWild() ? 4 : (int)T.Card.Suit;
 	const int K = T.Eff.Kind;
@@ -970,6 +977,7 @@ int FPDGame::AddXp(float Amount, bool bBonus)
 	}
 	if (Ups > 0)
 	{
+		if (Has(EPDCharm::Herald)) Lives += Ups; // 전령 (D-234)
 		FPDEvent E;
 		E.Kind = FPDEvent::EKind::LevelUp;
 		E.A = Level;
@@ -1143,7 +1151,7 @@ void FPDGame::EndWave()
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + Mods.DrawAdd, &Got);
-	AddXp(5.f + Wave); // 웨이브 통과 덤
+	AddXp((5.f + Wave) * (Has(EPDCharm::Sweeper) ? 2.f : 1.f)); // 웨이브 통과 덤 (청소부 ×2, D-234)
 	if (Goal() > 0 && Wave >= Goal()) // 모드 목표 달성 (D-229)
 	{
 		Phase = EPDPhase::Clear;
@@ -1989,6 +1997,7 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 {
 	if (E.bDead || E.Untargetable()) return; // 유령: 무적인 동안은 안 맞음
 	const float Armor = E.Armor + (InWarlordAura(E) ? Boss::AuraArmor : 0.f);
+	if (Has(EPDCharm::BossHunter) && EnemyDef(E.Type).bBoss) Dmg *= 1.4f; // 보스 사냥꾼 (D-234)
 	if (Armor > 0.f && !Has(EPDCharm::Pierce)) Dmg = std::max(Dmg * 0.25f, Dmg - Armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
 	if (E.Shield > 0.f) { const float A = std::min(E.Shield, Dmg); E.Shield -= A; Dmg -= A; } // 수호자 보호막이 먼저 받는다
 	E.Hp -= Dmg;
