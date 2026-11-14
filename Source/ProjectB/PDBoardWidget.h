@@ -295,6 +295,8 @@ public:
 	int32 PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 판 배경 굽는 그림
 private:
 	int32 FeedJoker = -1;                  // 먹이기 목록에서 고른 조커 칸 (D-213, -1 = 목록만)
+	int32 SellCell = -1;                   // 판매 (D-221): 오른쪽 클릭한 타워 칸. 그 아래 [판매] 버튼을 누르면 판다
+	mutable FBox2f SellBtnRect;
 	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만
 	bool bSwapMode = false;                // 자리바꿈 모드 (D-149): 옮길 타워 → 바꿀 자리 순서로 클릭
 	int32 SwapFrom = -1;                   // 자리바꿈: 고른 타워 칸

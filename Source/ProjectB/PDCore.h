@@ -413,6 +413,9 @@ public:
 	bool Place(int HandIdx, int X, int Y);   // 카드 설치 (타워 위면 교체)
 	bool SwapTowers(int From, int To);       // 자리바꿈 (D-149): 타워 둘의 자리를 바꾸거나 빈 칸으로 옮김, Swaps 하나 씀
 	void Discard(int HandIdx);
+	// 판매 (D-221): 판 위 타워를 팔아 조금의 골드. 기본 B = 2 + 웨이브/5, 카드 B · 합성 타워 B × 레벨² · 조커 B × 10
+	int SellPrice(int Cell) const; // 팔 수 없으면 0
+	bool SellTower(int Cell);
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;

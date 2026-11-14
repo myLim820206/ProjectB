@@ -819,6 +819,20 @@ static void UnitTests()
 			Expect(bTwo && bBad && bOutside && bMade && G.Towers.size() == 1 && G.Towers.at(CellKey(7, Row)).Joker == (int)EPDJoker::Star,
 				"조커 만들기: 떨어진 플러시·로열·스트플을 골라 스타, 재료 밖 칸·같은 재료 두 번은 거절");
 		}
+		{ // 판매 (D-221): 카드 B, 합성 타워 B × 레벨², 조커 B × 10 (B = 2 + 웨이브/5)
+			G.Towers.clear();
+			G.Wave = 12;
+			Put(G.Towers, 0, Row, C(7));
+			Put(G.Towers, 2, Row, C(7), 3);
+			FPDTower Jk;
+			Jk.Card = {0, EPDSuit::Wild}; Jk.X = 4; Jk.Y = Row; Jk.Joker = (int)EPDJoker::Clown;
+			G.Towers[CellKey(4, Row)] = Jk;
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			const int B = 2 + 12 / 5, G0 = G.Gold;
+			const bool bPrice = G.SellPrice(CellKey(0, Row)) == B && G.SellPrice(CellKey(2, Row)) == B * 9 && G.SellPrice(CellKey(4, Row)) == B * 10 && G.SellPrice(CellKey(9, Row)) == 0;
+			const bool bSold = G.SellTower(CellKey(2, Row)) && !G.Towers.count(CellKey(2, Row)) && G.Gold == G0 + B * 9 && !G.SellTower(CellKey(2, Row));
+			Expect(bPrice && bSold, "판매: 카드 4, Lv3 합성 36, 조커 40 골드 (웨이브 12), 판 타워만 팔림");
+		}
 		{ // 족보에 든 합성 타워도 기억한 족보로 재료 (D-220): 로열 A♠ Lv2 가 Lv2 A♦ 와 원 페어
 			G.Towers.clear();
 			Put(G.Towers, 0, Row, C(14), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::RoyalFlush;

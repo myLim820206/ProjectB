@@ -576,6 +576,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	JGroups = Game.JokerGroups();
 	if (FeedJoker >= 0 && (!InFeed() || !Game.Towers.count(FeedJoker) || !Game.Towers.at(FeedJoker).IsJoker() || Game.Phase == EPDPhase::Reward || Sel >= 0)) FeedJoker = -1; // 조커가 없어졌거나 카드를 고름
 	if (InFeed()) RefreshFeedList();
+	if (SellCell >= 0 && (!Game.Towers.count(SellCell) || Sel >= 0 || HandFilter >= 0 || bSwapMode || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) SellCell = -1; // 판매 버튼 끄기
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
 	UpdateHints(Dt);
@@ -1067,6 +1068,11 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (bSettings) { if (bRight) bSettings = false; else SettingsClick(P); return; }
+	if (SellCell >= 0 && !bMenu && !bTree && !bUpg && !bCodex) // 판매 버튼 (D-221): 누르면 팔고, 다른 곳을 누르면 버튼만 끄고 그 클릭은 그대로
+	{
+		if (!bRight && SellBtnRect.IsInside(P)) { if (Game.SellTower(SellCell)) SellCell = -1; else UiSound(EPDSound::Denied); return; }
+		SellCell = -1;
+	}
 	if (HintNow >= 0 && !bRight && !bMenu && !bTree && !bUpg && !bCodex) // 도움말 카드 (D-217): [알겠어] = 닫기, [도움말 끄기] = 설정 끄기, 카드 안 다른 곳은 먹는다
 	{
 		if (HintOkRect.IsInside(P)) { FinishHint(); UiSound(EPDSound::Move); return; }
@@ -1234,6 +1240,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (bRight)
 	{
 		if (HandHit >= 0) { Game.Discard(HandHit); if (Sel == HandHit) Sel = -1; else if (Sel > HandHit) --Sel; }
+		else if (const int32 Cell = CellAt(P); Sel < 0 && HandFilter < 0 && Cell >= 0 && Game.SellPrice(Cell) > 0) { SellCell = Cell; UiSound(EPDSound::Move); } // 타워 오른쪽 클릭 = 판매 버튼 (D-221)
 		else Sel = -1;
 		return;
 	}
@@ -1531,7 +1538,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		}
 	if (K == EKeys::SpaceBar && (Game.Phase == EPDPhase::Wave || bPaused)) bPaused = !bPaused; // 스페이스: 웨이브 중엔 일시정지/계속 (D-183)
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
-	else if (K == EKeys::Escape) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && CraftJoker >= 0) { CraftJoker = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
+	else if (K == EKeys::Escape) { if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && CraftJoker >= 0) { CraftJoker = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }

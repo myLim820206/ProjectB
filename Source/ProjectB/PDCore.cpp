@@ -1804,6 +1804,34 @@ void FPDGame::Discard(int HandIdx)
 	Sfx(EPDSound::HardDrop);
 }
 
+int FPDGame::SellPrice(int Cell) const
+{
+	if (!InPlay()) return 0;
+	auto It = Towers.find(Cell);
+	if (It == Towers.end()) return 0;
+	const int B = 2 + Wave / 5;
+	const FPDTower& T = It->second;
+	return T.IsJoker() ? B * 10 : B * T.Level * T.Level;
+}
+
+bool FPDGame::SellTower(int Cell)
+{
+	const int Price = SellPrice(Cell);
+	if (Price <= 0) return false;
+	const FPDTower T = Towers.at(Cell);
+	Towers.erase(Cell);
+	Gold += Price; // 골드 덤(트리)은 안 붙는다
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	FPDEvent E;
+	E.Kind = FPDEvent::EKind::Discard;
+	E.X = T.X + 0.5f;
+	E.Y = T.Y + 0.5f;
+	E.A = Price;
+	Ev(E);
+	Sfx(EPDSound::Rotate);
+	return true;
+}
+
 bool FPDGame::GainJokerXp(int Key, float Xp)
 {
 	auto It = Towers.find(Key);

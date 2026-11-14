@@ -1630,6 +1630,23 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 		}
 	}
+	// 판매 버튼 (D-221): 오른쪽 클릭한 타워 둘레에 금색 고리, 아래에 [판매 +N 골드]
+	SellBtnRect = FBox2f(FVector2f(-1.f, -1.f), FVector2f(-1.f, -1.f));
+	if (SellCell >= 0 && G.Towers.count(SellCell))
+	{
+		const int32 Price = G.SellPrice(SellCell);
+		const FVector2f C0 = CellPx((float)(SellCell % Cols), (float)(SellCell / Cols));
+		F.Glow(FCanvas::RoundRectPoints(C0.X + 1.f, C0.Y + 1.f, CS - 2.f, CS - 2.f, 8.f), Gold, 2.4f, 1.f + 0.6f * Pulse);
+		constexpr float BW = 120.f, BHt = 24.f;
+		const float BX = FMath::Clamp(C0.X + CS / 2.f - BW / 2.f, FX, FX + Cols * CS - BW), BY = C0.Y + CS + 6.f > FY + Rows * CS - BHt ? C0.Y - 6.f - BHt : C0.Y + CS + 6.f;
+		SellBtnRect = FBox2f(FVector2f(BX, BY), FVector2f(BX + BW, BY + BHt));
+		const bool bH = SellBtnRect.IsInside(Mouse);
+		F.Box(BX, BY, BW, BHt, Hex(TEXT("06060b"), 0.94f));
+		if (bH) F.Box(BX, BY, BW, BHt, WithAlpha(Gold, 0.18f));
+		F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, BHt, 7.f), Gold, bH ? 1.8f : 1.3f, bH ? 1.2f : 0.7f + 0.3f * Pulse);
+		F.TextCentered(TrF(TEXT("판매 +%d 골드"), Price), BX + BW / 2.f, BY + BHt / 2.f, bH ? FLinearColor::White : Gold, 11.f, true, BW - 8.f);
+		BadgeRects.Add(SellBtnRect);
+	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
 	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward)
 	{
@@ -1805,7 +1822,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 			else
 			{
-			const float BH0 = T.Level >= 2 ? 92.f : 76.f;
+			const float BH0 = (T.Level >= 2 ? 92.f : 76.f) + 16.f; // + 판매 안내 줄 (D-221)
 			const float BH = BH0 + SynLines(false, 0.f, 0.f, 220.f) * 16.f;
 			const FVector2f P = PlaceTip(240.f, BH);
 			const float BX = P.X, BYp = P.Y;
@@ -1822,6 +1839,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), BX + 10.f, BYp + 54.f, Fg, 11.f, 0, false, 220.f);
 			F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), BX + 10.f, BYp + 70.f, Grey, 11.f, 0, false, 220.f);
 			if (T.Level >= 2) F.Text(TrF(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 10.f, BYp + 86.f, Gold, 10.f, 0, false, 220.f);
+			F.Text(TrF(TEXT("오른쪽 클릭: 판매 (+%d 골드)"), G.SellPrice(It->first)), BX + 10.f, BYp + BH0 - 6.f, Hex(TEXT("5f6878")), 9.f, 0, false, 220.f);
 			SynLines(true, BX + 10.f, BYp + BH0 + 10.f, 220.f);
 			}
 		}

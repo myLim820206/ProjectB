@@ -264,6 +264,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기"), TEXT("Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off"), TEXT("%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる"), TEXT("合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭"), TEXT("合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉")},
 	{TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), TEXT("%s: nothing to fuse (max level or a Joker inside) · Esc: off"), TEXT("%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる"), TEXT("%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭"), TEXT("%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉")},
 	{TEXT("조커 합치기"), TEXT("Merge Jokers"), TEXT("ジョーカー合体"), TEXT("合并小丑"), TEXT("合併小丑")},
+	{TEXT("판매 +%d 골드"), TEXT("Sell +%d gold"), TEXT("売却 +%d ゴールド"), TEXT("出售 +%d 金币"), TEXT("出售 +%d 金幣")},
 	{TEXT("위력 %s/초 (판의 %d%%)"), TEXT("Power %s/s (%d%% of board)"), TEXT("威力 %s/秒 (盤の%d%%)"), TEXT("威力 %s/秒 (占全场%d%%)"), TEXT("威力 %s/秒 (占全場%d%%)")},
 	{TEXT("연쇄 ×%s (족보 %d개가 이어짐)"), TEXT("Chain ×%s (%d hands linked)"), TEXT("連鎖 ×%s (役 %d 個がつながる)"), TEXT("连锁 ×%s (%d 个牌型相连)"), TEXT("連鎖 ×%s (%d 個牌型相連)")},
 	{TEXT("이 타워에 적용: 공격 ×%.2f · 연사 ×%.2f · 사거리 ×%.2f%s"), TEXT("On this tower: damage ×%.2f · rate ×%.2f · range ×%.2f%s"), TEXT("このタワーに適用: 攻撃 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s"), TEXT("本塔生效: 攻击 ×%.2f · 连射 ×%.2f · 射程 ×%.2f%s"), TEXT("本塔生效: 攻擊 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s")},
@@ -289,6 +290,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT(" · 강화"), TEXT(" · upgraded"), TEXT(" · 強化"), TEXT(" · 强化"), TEXT(" · 強化")},
 	{TEXT("%s %s · 레벨 %d"), TEXT("%s %s · Level %d"), TEXT("%s %s · レベル %d"), TEXT("%s %s · 等级 %d"), TEXT("%s %s · 等級 %d")},
 	{TEXT("특성 공격 ×%.1f 연사 ×%.1f"), TEXT("Trait ATK ×%.1f rate ×%.1f"), TEXT("特性 攻撃 ×%.1f 連射 ×%.1f"), TEXT("特性 攻击 ×%.1f 连射 ×%.1f"), TEXT("特性 攻擊 ×%.1f 連射 ×%.1f")},
+	{TEXT("오른쪽 클릭: 판매 (+%d 골드)"), TEXT("Right-click: sell (+%d gold)"), TEXT("右クリック: 売却 (+%d ゴールド)"), TEXT("右键: 出售 (+%d 金币)"), TEXT("右鍵: 出售 (+%d 金幣)")},
 	{TEXT("보스 웨이브 · %s"), TEXT("Boss wave · %s"), TEXT("ボスウェーブ · %s"), TEXT("首领波次 · %s"), TEXT("首領波次 · %s")},
 	{TEXT("다음 보스  %d웨이브 · %s"), TEXT("Next boss  wave %d · %s"), TEXT("次のボス  %dウェーブ · %s"), TEXT("下个首领  第%d波 · %s"), TEXT("下個首領  第%d波 · %s")},
 	{TEXT("남은 적 %d / %d"), TEXT("Enemies left %d / %d"), TEXT("残りの敵 %d / %d"), TEXT("剩余敌人 %d / %d"), TEXT("剩餘敵人 %d / %d")},
@@ -588,4 +590,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 587;
+static const int32 PDLangRowCount = 589;

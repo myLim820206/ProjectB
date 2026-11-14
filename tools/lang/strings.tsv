@@ -263,6 +263,7 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 %s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기	Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off	%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる	合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭	合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉	PDBoardPaint.cpp
 %s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
+판매 +%d 골드	Sell +%d gold	売却 +%d ゴールド	出售 +%d 金币	出售 +%d 金幣	PDBoardPaint.cpp
 위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
 연쇄 ×%s (족보 %d개가 이어짐)	Chain ×%s (%d hands linked)	連鎖 ×%s (役 %d 個がつながる)	连锁 ×%s (%d 个牌型相连)	連鎖 ×%s (%d 個牌型相連)	PDBoardPaint.cpp
 이 타워에 적용: 공격 ×%.2f · 연사 ×%.2f · 사거리 ×%.2f%s	On this tower: damage ×%.2f · rate ×%.2f · range ×%.2f%s	このタワーに適用: 攻撃 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s	本塔生效: 攻击 ×%.2f · 连射 ×%.2f · 射程 ×%.2f%s	本塔生效: 攻擊 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s	PDBoardPaint.cpp
@@ -288,6 +289,7 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
 %s %s · 레벨 %d	%s %s · Level %d	%s %s · レベル %d	%s %s · 等级 %d	%s %s · 等級 %d	PDBoardPaint.cpp
 특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardPaint.cpp
+오른쪽 클릭: 판매 (+%d 골드)	Right-click: sell (+%d gold)	右クリック: 売却 (+%d ゴールド)	右键: 出售 (+%d 金币)	右鍵: 出售 (+%d 金幣)	PDBoardPaint.cpp
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDBoardPaint.cpp
 다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDBoardPaint.cpp
 남은 적 %d / %d	Enemies left %d / %d	残りの敵 %d / %d	剩余敌人 %d / %d	剩餘敵人 %d / %d	PDBoardPaint.cpp
