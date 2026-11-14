@@ -427,6 +427,11 @@ public:
 	EPDJoker JokerCraftResult(const std::vector<int>& Nodes) const; // 레시피와 맞으면 그 조커, 아니면 Count
 	bool JokerCraft(const std::vector<int>& Nodes, int TargetCell); // TargetCell = 재료 칸 중 하나 (-1 = 기본 칸)
 	bool JokerFuseGroup(const FPDJokerGroup& G, int TargetCell);
+	// 조커 목록 (D-210): 그 조커를 만들 가장 좋은 재료 (JokerNodes 번호). 3개 레시피가 되면 3개, 아니면 2개, 안 되면 빈 것.
+	// 레시피 족보마다 위력 배율이 큰 후보 4개까지 중에서, 만든 뒤 판 위력이 가장 높은 조합
+	std::vector<int> BestJokerPicks(EPDJoker J) const;
+	// 3개 레시피에서 판에 모자란 족보 수 (같은 족보가 둘 필요하면 둘 다 세야). Missing = 모자란 족보 하나 (없으면 Count)
+	int JokerMissing(EPDJoker J, EPDHand* Missing = nullptr) const;
 	std::vector<FPDFeed> FeedTargets() const;        // 조커에 먹일 수 있는 족보 (족보마다 하나)
 	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치). 조커는 먹이가 되지 않는다
 	std::vector<FPDJokerMerge> JokerMerges() const;  // 같은 조커끼리 맞닿은 묶음 (2개 이상)

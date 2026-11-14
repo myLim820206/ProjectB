@@ -124,9 +124,17 @@ private:
 	std::vector<std::vector<int>> CraftPicks; // 고른 재료 칸 묶음 (판이 바뀌어도 칸으로 다시 찾는다)
 	bool InCraft() const;
 	std::vector<int> CraftNodeIdx() const;   // CraftPicks → JokerNodes 번호 (못 찾은 재료는 빠진다)
-	std::vector<int> CraftHoverCells() const; // 마우스 칸을 클릭하면 고를 재료 칸 (없으면 빈 것)
+	// 조커 목록 (D-210): 조커 줄을 누르면 왼쪽 족보 목록 자리가 만들 수 있는 조커(+하나만 모자란 조커) 목록으로 바뀐다.
+	// 조커를 고르면 게임이 고른 가장 좋은 재료가 판에 표시되고, 재료 칸 클릭 = 그 칸에 조커, 흐린 후보 클릭 = 재료 바꾸기
+	struct FJokerEntry { int32 J = 0; bool bMake = false; PD::EPDHand Missing = PD::EPDHand::Count; std::vector<std::vector<int>> Best; };
+	std::vector<FJokerEntry> JokerList;
+	uint64 JokerListSig = 0;
+	int32 CraftJoker = -1;                   // 고른 조커 (-1 = 목록만 보는 중)
+	void RefreshJokerList();
+	int32 JokerListAt(FVector2f P) const;    // 왼쪽 목록 줄: -2 = 돌아가기, -1 = 없음, 그 밖 = JokerList 번호
+	void CraftSelect(int32 Entry);
 	void CraftClick(int32 Cell);
-	void CraftConfirm();                     // 레시피가 맞으면 자리 고르기로
+	void CraftRightClick(int32 Cell);
 	void ToggleCraft();
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
 	// ---- 설정 (D-110): GameUserSettings.ini [ProjectB.Settings]. 화면 모드는 엔진 GameUserSettings 가 저장

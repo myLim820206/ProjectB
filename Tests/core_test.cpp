@@ -798,6 +798,27 @@ static void UnitTests()
 			Expect(bTwo && bBad && bOutside && bMade && G.Towers.size() == 1 && G.Towers.at(CellKey(7, Row)).Joker == (int)EPDJoker::Star,
 				"조커 만들기: 떨어진 플러시·로열·스트플을 골라 스타, 재료 밖 칸·같은 재료 두 번은 거절");
 		}
+		{ // 조커 목록 (D-210): 가장 좋은 재료, 모자란 족보
+			G.Towers.clear();
+			Put(G.Towers, 0, Row, C(4), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::Flush;
+			Put(G.Towers, 3, Row, C(5), 2); G.Towers[CellKey(3, Row)].FuseHand = (int)EPDHand::Flush; G.Towers[CellKey(3, Row)].Mult = 9.f;
+			Put(G.Towers, 7, Row, C(14, Di), 2); G.Towers[CellKey(7, Row)].FuseHand = (int)EPDHand::RoyalFlush;
+			Put(G.Towers, 12, Row, C(3, He), 2); G.Towers[CellKey(12, Row)].FuseHand = (int)EPDHand::StraightFlush;
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			const std::vector<FPDJokerNode> Ns = G.JokerNodes();
+			const std::vector<int> B = G.BestJokerPicks(EPDJoker::Star);
+			bool bHasBig = false;
+			for (int N : B) bHasBig = bHasBig || (Ns[N].Fused == CellKey(3, Row));
+			EPDHand Miss = EPDHand::Count;
+			const int MissBell = G.JokerMissing(EPDJoker::Bell, &Miss);
+			Expect(B.size() == 3 && G.JokerCraftResult(B) == EPDJoker::Star && bHasBig && G.JokerMissing(EPDJoker::Star) == 0 && MissBell == 2,
+				"조커 목록: 스타 재료 3개를 고르고 배율 큰 플러시(5♠ ×9)를 쓴다, 방울은 풀하우스·스트레이트가 모자람");
+			G.Towers.erase(CellKey(0, Row)); G.Towers.erase(CellKey(3, Row));
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			const std::vector<int> B2 = G.BestJokerPicks(EPDJoker::Star);
+			const int MissStar = G.JokerMissing(EPDJoker::Star, &Miss);
+			Expect(B2.size() == 2 && MissStar == 1 && Miss == EPDHand::Flush, "플러시가 없으면 스타는 2개 레시피, 3개 레시피엔 플러시 하나가 모자람");
+		}
 		// 합성 타워는 족보를 기억한다
 		G.Towers.clear();
 		Put(G.Towers, 0, Row, C(6)); Put(G.Towers, 1, Row, C(6, He));

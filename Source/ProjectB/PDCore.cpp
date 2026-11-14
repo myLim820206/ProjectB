@@ -1478,6 +1478,66 @@ bool FPDGame::JokerCraft(const std::vector<int>& Picks, int TargetCell)
 	return JokerFuseGroup(G, TargetCell);
 }
 
+std::vector<int> FPDGame::BestJokerPicks(EPDJoker J) const
+{
+	const std::vector<FPDJokerNode> Ns = JokerNodes();
+	auto MultOf = [&](int N) { float M = 0.f; for (int K : Ns[N].Cells) M += Towers.at(K).Mult; return M; };
+	for (const int Count : {3, 2})
+	{
+		std::vector<EPDHand> Kinds;
+		if (Count == 3) for (EPDHand H : JokerRecipe(J)) Kinds.push_back(H);
+		else for (EPDHand H : JokerRecipe2(J)) Kinds.push_back(H);
+		std::sort(Kinds.begin(), Kinds.end());
+		std::vector<std::vector<int>> Cand(Count);
+		for (int S = 0; S < Count; ++S)
+		{
+			for (int I = 0; I < (int)Ns.size(); ++I) if (Ns[I].Kind == Kinds[S]) Cand[S].push_back(I);
+			std::stable_sort(Cand[S].begin(), Cand[S].end(), [&](int A, int B) { return MultOf(A) > MultOf(B); });
+			if (Cand[S].size() > 4) Cand[S].resize(4);
+		}
+		std::vector<int> Pick(Count, -1), Best;
+		double BestScore = -1.0;
+		std::function<void(int)> Go = [&](int S) {
+			if (S == Count)
+			{
+				FPDGame Copy = *this;
+				Copy.bMuted = true;
+				if (!Copy.JokerCraft(Pick, -1)) return;
+				const double Score = Copy.Power();
+				if (Score > BestScore) { BestScore = Score; Best = Pick; }
+				return;
+			}
+			for (int N : Cand[S])
+			{
+				if (S > 0 && Kinds[S] == Kinds[S - 1] && N <= Pick[S - 1]) continue; // 같은 족보 자리는 순서 하나만
+				if (std::find(Pick.begin(), Pick.begin() + S, N) != Pick.begin() + S) continue;
+				Pick[S] = N;
+				Go(S + 1);
+			}
+		};
+		Go(0);
+		if (!Best.empty()) return Best;
+	}
+	return {};
+}
+
+int FPDGame::JokerMissing(EPDJoker J, EPDHand* Missing) const
+{
+	const std::vector<FPDJokerNode> Ns = JokerNodes();
+	std::map<int, int> Need, Have;
+	for (EPDHand H : JokerRecipe(J)) Need[(int)H]++;
+	for (const FPDJokerNode& N : Ns) Have[(int)N.Kind]++;
+	int Miss = 0;
+	if (Missing) *Missing = EPDHand::Count;
+	for (const auto& KV : Need)
+	{
+		const int M = std::max(0, KV.second - Have[KV.first]);
+		if (M > 0 && Missing) *Missing = (EPDHand)KV.first;
+		Miss += M;
+	}
+	return Miss;
+}
+
 bool FPDGame::JokerFuse(int GroupIdx, int TargetCell)
 {
 	const std::vector<FPDJokerGroup> Groups = JokerGroups();

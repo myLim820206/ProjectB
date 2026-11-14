@@ -1215,50 +1215,90 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		}
 	}
 	// 족보 필터 (D-148): 합성 못 하는 족보도 합성 표시와 똑같이 칸을 밝힌다 (타워 위에 그려야 보인다). 합성 되는 족보는 아래 합성 표시가 그림
-	// 조커 만들기 모드 (D-195): 재료가 아닌 칸은 어둡게, 재료는 족보 색 테두리, 마우스 아래 재료는 밝게, 고른 재료는 분홍으로 채우고 번호
+	// 조커 목록 (D-210): 목록에서 마우스를 올린 조커는 게임이 고른 재료를 미리 보여 주고, 고른 조커는 재료(진하게)·바꿀 후보(흐리게)를 보여 준다.
+	// 아무것도 안 고르고 안 올렸으면 만들 수 있는 조커들의 재료를 옅게. 그 밖의 칸은 어둡게
+	bool bCraftHov = false; // 고른 재료 칸 위: 조커 전후 툴팁 (D-210)
 	if (InCraft() && !bPv && PickCells.empty() && G.Phase != EPDPhase::Reward)
 	{
 		const std::vector<FPDJokerNode> Ns = G.JokerNodes();
-		TSet<int32> InNode;
-		for (const FPDJokerNode& N : Ns) for (int K : N.Cells) InNode.Add(K);
+		int32 J = CraftJoker;
+		bool bPreview = false;
+		std::vector<std::vector<int>> Show;
+		if (J >= 0) Show = CraftPicks;
+		else if (const int32 R = JokerListAt(Mouse); R >= 0 && JokerList[R].bMake) { J = JokerList[R].J; Show = JokerList[R].Best; bPreview = true; }
+		std::vector<int> CandNodes; // 고른 조커의 레시피 족보인 재료 (바꿀 후보)
+		if (J >= 0 && !bPreview)
+		{
+			std::vector<EPDHand> Kinds;
+			for (EPDHand H : JokerRecipe((EPDJoker)J)) Kinds.push_back(H);
+			for (EPDHand H : JokerRecipe2((EPDJoker)J)) Kinds.push_back(H);
+			for (int32 I = 0; I < (int32)Ns.size(); ++I)
+			{
+				if (std::find(Kinds.begin(), Kinds.end(), Ns[I].Kind) == Kinds.end()) continue;
+				bool bPicked = false;
+				for (const std::vector<int>& Pk : Show) { std::vector<int> A = Pk, B = Ns[I].Cells; std::sort(A.begin(), A.end()); std::sort(B.begin(), B.end()); bPicked = bPicked || A == B; }
+				if (!bPicked) CandNodes.push_back(I);
+			}
+		}
+		TSet<int32> Lit;
+		if (J >= 0) { for (const std::vector<int>& Pk : Show) for (int K : Pk) Lit.Add(K); for (int N : CandNodes) for (int K : Ns[N].Cells) Lit.Add(K); }
+		else for (const FJokerEntry& E : JokerList) if (E.bMake) for (const std::vector<int>& Pk : E.Best) for (int K : Pk) Lit.Add(K);
 		{
 			const int32 DL = F.NextLayer();
 			for (int32 K = 0; K < Cols * Rows; ++K)
 			{
-				if (InNode.Contains(K)) continue;
+				if (Lit.Contains(K)) continue;
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.62f));
+				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.82f));
 			}
 			F.NextLayer();
 		}
-		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-		for (const FPDJokerNode& N : Ns)
-			for (int K : N.Cells)
+		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
+		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		if (J < 0) // 목록만: 재료 후보를 옅은 분홍 테두리로
+			for (int32 K : Lit)
 			{
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 4.f, C0.Y + 4.f, CS - 8.f, CS - 8.f, 6.f), WithAlpha(HandColor(N.Kind), 0.55f), 1.2f, 0.4f);
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), WithAlpha(JokerPink, 0.6f), 1.6f, 0.4f + 0.3f * Wv);
 			}
-		const std::vector<int> Hov = CraftHoverCells();
-		for (int K : Hov)
+		for (int N : CandNodes) // 바꿀 후보: 족보 색 가는 테두리, 마우스가 올라가면 밝게 + "바꾸기"
 		{
-			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-			F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(FLinearColor::White, 0.08f));
-			F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), FMath::Lerp(JokerPink, FLinearColor::White, 0.5f), 2.f, 1.2f);
+			const bool bH = std::find(Ns[N].Cells.begin(), Ns[N].Cells.end(), HKey) != Ns[N].Cells.end();
+			for (int K : Ns[N].Cells)
+			{
+				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 4.f, C0.Y + 4.f, CS - 8.f, CS - 8.f, 6.f), WithAlpha(HandColor(Ns[N].Kind), bH ? 0.95f : 0.5f), bH ? 2.2f : 1.3f, bH ? 1.f : 0.3f);
+			}
+			if (bH) { const FVector2f C0 = CellPx((float)HoverX, (float)HoverY); F.Badge(TEXT("클릭: 이 재료로 바꾸기"), C0.X + CS / 2.f, C0.Y + CS + 20.f, HandColor(Ns[N].Kind), 1.f); }
 		}
-		for (int32 Pi = 0; Pi < (int32)CraftPicks.size(); ++Pi)
+		for (int32 Pi = 0; Pi < (int32)Show.size(); ++Pi) // 고른 재료: 분홍 채움 + 굵은 테두리 + 번호
 		{
-			const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.25f * Wv);
-			for (int K : CraftPicks[Pi])
+			const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.2f * Wv);
+			for (int K : Show[Pi])
 			{
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pc, 0.26f + 0.12f * Wv));
-				if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pc, 0.45f + 0.2f * Wv));
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pc, 3.f, 1.4f + 0.8f * Wv);
+				F.Box(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, WithAlpha(Pc, (0.22f + 0.1f * Wv) * 0.9f));
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), WithAlpha(Pc, 0.9f), 2.6f, (1.2f + 0.7f * Wv) * 0.9f);
 			}
-			const int K0 = *std::min_element(CraftPicks[Pi].begin(), CraftPicks[Pi].end());
+			const int K0 = *std::min_element(Show[Pi].begin(), Show[Pi].end());
 			const FVector2f C0 = CellPx((float)(K0 % Cols), (float)(K0 / Cols));
 			F.Box(C0.X + 1.f, C0.Y + 1.f, 15.f, 15.f, Hex(TEXT("06060b"), 0.9f));
 			F.TextCentered(FString::Printf(TEXT("%d"), Pi + 1), C0.X + 8.5f, C0.Y + 9.f, JokerPink, 10.f, true);
+		}
+		if (J >= 0 && !bPreview && Lit.Contains(HKey)) // 고른 재료 칸 위: 그 칸에 조커가 생긴다
+		{
+			bool bOnPick = false;
+			for (const std::vector<int>& Pk : Show) bOnPick = bOnPick || std::find(Pk.begin(), Pk.end(), HKey) != Pk.end();
+			if (bOnPick)
+			{
+				bCraftHov = true;
+				const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
+				const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), WithAlpha(TargetCol, 0.9f), 3.8f, (1.8f + Wv) * 0.9f);
+				for (const std::vector<int>& Pk : Show) for (int K : Pk) if (K != HKey) F.Dashed({CellCenter(K), CellCenter(HKey)}, WithAlpha(TargetCol, 0.6f), 1.4f, 4.f, 5.f);
+				F.Badge(TEXT("여기에 조커"), C0.X + CS / 2.f, C0.Y + CS + 20.f, TargetCol, 1.f);
+				BadgeRects.Add(FBox2f(FVector2f(C0.X - 20.f, C0.Y + CS + 11.f), FVector2f(C0.X + CS + 20.f, C0.Y + CS + 29.f)));
+			}
 		}
 	}
 	// 합성 모드 (D-199): 왼쪽 족보 목록에서 고른 족보만. 판 위 [합성] 버튼·위력 배지는 없앴다. 다른 칸은 어둡게, 재료 칸은 반짝, 마우스 칸 = 합쳐질 칸
@@ -1451,18 +1491,11 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	{
 		if (InCraft())
 		{
-			F.Badge(TEXT("조커 만들기: 재료(족보·합성 타워)를 2~3개 클릭 · 같은 칸 다시 = 다른 족보 / 빼기 · Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
-			const std::vector<FPDJokerNode> Ns = G.JokerNodes();
-			const std::vector<int> Idx = CraftNodeIdx();
-			if (!Idx.empty())
+			if (CraftJoker < 0) F.Badge(TEXT("조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
+			else
 			{
-				FString Line;
-				for (int N : Idx) { if (!Line.IsEmpty()) Line += TEXT(" + "); Line += HandName(Ns[N].Kind); }
-				const EPDJoker R = G.JokerCraftResult(Idx);
-				const bool bKnown = R != EPDJoker::Count && ((G.Discovered >> (int)R) & 1u);
-				if (R != EPDJoker::Count) Line += TrF(TEXT(" → 조커: %s · Enter·G 또는 [만들기]"), bKnown ? JokerName((int)R) : TEXT("???"));
-				else if (Idx.size() >= 2) Line += Tr(TEXT(" → 맞는 레시피가 없다 (J: 도감)"));
-				F.Badge(Line, FX + Cols * CS / 2.f, FY + 36.f, R != EPDJoker::Count ? JokerPink : Hex(TEXT("cfd8e6")), 1.f);
+				F.Badge(TrF(TEXT("%s 만들기: 분홍 재료 칸 클릭 = 그 칸에 조커 · 흐린 후보 클릭 = 재료 바꾸기"), (G.Discovered >> CraftJoker) & 1u ? JokerName(CraftJoker) : TEXT("???")), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
+				F.Badge(TEXT("재료 위 오른쪽 클릭 = 빼기 (3개 → 2개) · 다른 곳 오른쪽 클릭 / Esc = 목록으로"), FX + Cols * CS / 2.f, FY + 32.f, Hex(TEXT("cfd8e6")), 1.f);
 			}
 		}
 		else
@@ -1591,7 +1624,35 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				if (Chain >= 2) { Put(TEXT(" · "), Grey); Put(TrF(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (Chain - 1))), Gold); }
 				return Lines;
 			};
-			if (bFuseHov && FuseHovSyn >= 0)
+			if (bCraftHov && CraftJoker >= 0)
+			{
+				// 조커 전후 (D-210): 사본에서 이 칸에 조커를 만들어 보고, 재료 위력 합 → 조커 위력, 이 칸 타워 → 조커
+				FPDGame Copy = G;
+				Copy.bMuted = true;
+				const int32 HK = It->first;
+				std::vector<int> Mats;
+				for (const std::vector<int>& Pk : CraftPicks) for (int K : Pk) if (std::find(Mats.begin(), Mats.end(), K) == Mats.end()) Mats.push_back(K);
+				if (Copy.JokerCraft(CraftNodeIdx(), HK) && Copy.Towers.count(HK))
+				{
+					const FPDTower& R = Copy.Towers.at(HK);
+					const FPDTowerStats Rs = TowerStats(R, Copy.CharmMask(), &Copy.Mods);
+					float PwB = 0.f, PwA = 0.f;
+					for (const auto& KV : PowerList) if (std::find(Mats.begin(), Mats.end(), KV.first) != Mats.end()) PwB += KV.second;
+					for (const auto& KV : Copy.TowerPowers()) if (KV.first == HK) PwA = KV.second;
+					const float Pct = PwB > 0.f ? (PwA / PwB - 1.f) * 100.f : 0.f;
+					constexpr float TW = 280.f, TH = 124.f;
+					const FVector2f P = PlaceTip(TW, TH);
+					F.Box(P.X, P.Y, TW, TH, Hex(TEXT("06060b"), 0.94f));
+					F.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TW, TH, 8.f), JokerPink, 1.2f, 0.4f);
+					F.Text(TrF(TEXT("만들면: %s · 재료 %d장"), (G.Discovered >> CraftJoker) & 1u ? JokerName(CraftJoker) : TEXT("???"), (int32)Mats.size()), P.X + 10.f, P.Y + 18.f, JokerPink, 12.f, 0, true, TW - 20.f);
+					F.Text(TrF(TEXT("위력 %s/초 → %s/초 (%s%.0f%%)"), *ShortNum(PwB), *ShortNum(PwA), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct), P.X + 10.f, P.Y + 38.f, Pct >= 0.f ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a")), 11.f, 0, true, TW - 20.f);
+					F.Text(TrF(TEXT("재료 %d장의 위력 합 → 조커 하나"), (int32)Mats.size()), P.X + 10.f, P.Y + 54.f, Grey, 9.f, 0, false, TW - 20.f);
+					F.Text(TrF(TEXT("공격력 %.0f → %.0f · 초당 %.1f → %.1f발"), St.Dmg, Rs.Dmg, St.Rate, Rs.Rate), P.X + 10.f, P.Y + 72.f, Fg, 11.f, 0, false, TW - 20.f);
+					F.Text(TrF(TEXT("사거리 %.1f → %.1f · 범위 %.1f → %.1f"), St.Range, Rs.Range, St.Splash, Rs.Splash), P.X + 10.f, P.Y + 90.f, Grey, 11.f, 0, false, TW - 20.f);
+					F.Text(JokerAbility(CraftJoker), P.X + 10.f, P.Y + 108.f, Fg, 10.f, 0, false, TW - 20.f);
+				}
+			}
+			else if (bFuseHov && FuseHovSyn >= 0)
 			{
 				// 합성 전후 (D-209): 사본에서 이 칸으로 합성해 보고, 재료 위력 합 → 결과 타워 위력, 이 칸 타워의 한 발·연사·사거리 → 결과
 				FPDGame Copy = G;
@@ -1749,18 +1810,6 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Glow(FCanvas::RoundRectPoints(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, 7.f), UiEdge, bHov || bSwapMode ? 1.7f : 1.2f, bSwapMode ? 1.2f + 0.5f * Pulse : bHov ? 1.f : 0.5f);
 		C.TextCentered(TrF(TEXT("자리바꿈 ×%d"), G.Swaps), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + 11.f, SwC, 11.f, true, SwapBtnW - 6.f);
 		C.TextCentered(bSwapMode ? TEXT("끄기 X") : TEXT("X"), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + 23.f, WithAlpha(SwC, 0.7f), 8.f, false, SwapBtnW - 6.f);
-	}
-	if (InCraft() || !JGroups.empty()) // 조커 만들기 버튼 (D-195): 만들 수 있으면 번쩍, 고른 재료가 맞으면 [만들기]
-	{
-		const bool bHov = InRect(Mouse, CraftBtnX, CraftBtnY, CraftBtnW, CraftBtnH);
-		const bool bReady = InCraft() && CraftPicks.size() >= 2 && G.JokerCraftResult(CraftNodeIdx()) != EPDJoker::Count;
-		const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
-		const bool bFlash = bReady || !InCraft();
-		C.Box(CraftBtnX, CraftBtnY, CraftBtnW, CraftBtnH, WithAlpha(JokerPink, bFlash ? 0.06f + 0.26f * Fl : 0.18f));
-		C.Glow(FCanvas::RoundRectPoints(CraftBtnX, CraftBtnY, CraftBtnW, CraftBtnH, 7.f), FMath::Lerp(UiEdge, JokerPink, 0.7f), bHov ? 1.8f : 1.3f, bFlash ? 0.5f + 1.2f * Fl : 1.2f + 0.5f * Pulse);
-		const FLinearColor Tc = bFlash ? FMath::Lerp(JokerPink, FLinearColor::White, Fl) : JokerPink;
-		C.TextCentered(bReady ? TEXT("만들기") : TEXT("조커 만들기"), CraftBtnX + CraftBtnW / 2.f, CraftBtnY + 11.f, Tc, 11.f, true, CraftBtnW - 6.f);
-		C.TextCentered(bReady ? TEXT("Enter") : InCraft() ? TEXT("끄기 C") : TEXT("C"), CraftBtnX + CraftBtnW / 2.f, CraftBtnY + 23.f, WithAlpha(JokerPink, 0.7f), 8.f, false, CraftBtnW - 6.f);
 	}
 	for (int32 I = 0; I < (int32)G.Hand.size(); ++I)
 	{
@@ -2267,9 +2316,9 @@ void SPDBoardWidget::PaintTutorial(FCanvas& C) const
 		{TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지"), TEXT("모양은 상관없다 (일자·ㄱ자·네모 모두 된다)"), TEXT("왼쪽 족보 목록에 족보마다 효과가 나온다")},
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스"), TEXT("맞닿은 족보 하나마다 위력 +25%"), TEXT("번개로 이어진 족보가 연쇄다")},
 		{TEXT("왼쪽 족보 목록에서 족보를 누르고, 판에서 합쳐질 칸을 클릭"), TEXT("합성하면 재료가 한 타워로 모여 레벨이 오른다"), TEXT("같은 레벨끼리만 다시 족보가 된다")},
-		{TEXT("[조커 만들기](C): 족보 2~3개를 골라 레시피와 맞으면 조커"), TEXT("조커는 적을 처치하거나 족보를 먹으면 레벨이 오른다"), TEXT("J 키: 조커 도감에서 레시피 보기")},
+		{TEXT("왼쪽 '조커' 줄: 만들 수 있는 조커를 고르고 재료 칸을 클릭"), TEXT("조커는 적을 처치하거나 족보를 먹으면 레벨이 오른다"), TEXT("J 키: 조커 도감에서 레시피 보기")},
 		{TEXT("웨이브를 막으면 카드를 받는다"), TEXT("5웨이브마다 부적 하나 (또는 즉시 보상)"), TEXT("골드로 스킬 트리(K)와 골드 강화(U)")},
-		{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Space: 웨이브 시작 · F: 배속 · Esc: 메뉴"), TEXT("왼쪽 족보 목록 클릭 → 칸 클릭: 합성 · C: 조커 만들기")}};
+		{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Space: 웨이브 시작 · F: 배속 · Esc: 메뉴"), TEXT("왼쪽 족보 목록 클릭 → 칸 클릭: 합성 · 조커 줄: 조커 만들기")}};
 	C.Text(FString::Printf(TEXT("%d / %d"), P + 1, TutPages), TutX + TutW - 24.f, TutY + 36.f, Dim, 11.f, 2);
 	C.Text(TEXT("튜토리얼"), TutX + 24.f, TutY + 36.f, Dim, 11.f, 0, true);
 	C.TextCentered(Titles[P], DesignW / 2.f, TutY + 40.f, UiTitle, 24.f, true);
@@ -2531,7 +2580,7 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 {
 	const FPDGame& G = Game;
-	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Dim = Hex(TEXT("5f6878")), Grey = Hex(TEXT("8a94a6"));
+	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Dim = Hex(TEXT("5f6878")), Grey = Hex(TEXT("8a94a6")), Fg = Hex(TEXT("cfd8e6"));
 	TSet<int32> PvKinds;
 	int32 Count[(int)EPDHand::Count] = {};
 	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
@@ -2546,50 +2595,91 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
 	constexpr float RowH = HandRowH;
 	const float Y0 = HandRowY0;
-	for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
+	if (InCraft()) // 조커 목록 (D-210): 족보 목록 자리에 돌아가기 줄 + 만들 수 있는 조커 + 하나만 모자란 조커(흐리게)
 	{
-		const EPDHand H = (EPDHand)I;
-		const float Y = Y0 + I * RowH;
-		const bool bPv = PvKinds.Contains(I), bOn = Count[I] > 0;
-		const FLinearColor HC = HandColor(H);
-		if (bPv) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.1f));
-		else if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(HC, 0.08f));
-		FString Name = HandName(H);
-		if (H == EPDHand::Flush) Name += Tr(TEXT(" (3~5장)"));
-		if (H == EPDHand::Straight) Name += Tr(TEXT(" (2~5장)"));
-		C.Text(Name, LX + 18.f, Y + 16.f, bPv ? Gold : bOn ? HC : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-		C.Text(HandEffect(H), LX + 18.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
-		if (HandFilter == I) // 족보 필터 (D-148): 고른 줄은 테두리
-			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), HC, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-		else if (FuseN[I] > 0 && HandFilter < 0) // 합성할 수 있으면 줄이 번쩍 (D-199, D-189 버튼과 같은 맥박)
+		const int32 HovR = JokerListAt(Mouse);
 		{
-			C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.03f + 0.12f * Fl));
-			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), Gold, 1.2f, 0.3f + 1.f * Fl);
+			const bool bH = HovR == -2;
+			if (bH) C.Box(LX + 8.f, Y0 + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Cyan, 0.08f));
+			C.Text(TEXT("← 족보 목록으로"), LX + 18.f, Y0 + RowH / 2.f, bH ? Cyan : Grey, 12.f, 0, true, LW - 70.f);
+			C.Text(TEXT("Esc"), LX + LW - 18.f, Y0 + RowH / 2.f, Dim, 9.f, 2);
 		}
-		if (FuseN[I] > 0) // 합성 가능 개수 (금색)
+		if (JokerList.empty()) C.Text(TEXT("만들 수 있는 조커가 없다"), LX + 18.f, Y0 + RowH * 1.5f, Dim, 11.f, 0, false, LW - 36.f);
+		const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
+		for (int32 R = 0; R < (int32)JokerList.size(); ++R)
 		{
-			C.Glow(FCanvas::RoundRectPoints(LX + LW - 62.f, Y + 6.f, 48.f, 16.f, 8.f), Gold, 1.1f, 0.6f);
-			C.TextCentered(TrF(TEXT("합성 ×%d"), FuseN[I]), LX + LW - 38.f, Y + 14.f, Gold, 9.f, true, 46.f);
-		}
-		else if (bOn)
-		{
-			C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), HC, 1.1f, 0.5f);
-			C.TextCentered(FString::Printf(TEXT("×%d"), Count[I]), LX + LW - 28.f, Y + 14.f, HC, 10.f, true);
+			const FJokerEntry& E = JokerList[R];
+			const float Y = Y0 + (R + 1) * RowH;
+			const bool bSel = E.J == CraftJoker, bH = HovR == R;
+			const bool bKnown = (G.Discovered >> E.J) & 1u;
+			if (bSel) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.18f));
+			else if (E.bMake) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, (bH ? 0.14f : 0.03f + 0.08f * Fl)));
+			if (bSel || (E.bMake && bH)) C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, bSel ? 1.2f : 0.8f);
+			const FLinearColor NameCol = E.bMake ? JokerPink : WithAlpha(Grey, 0.8f);
+			C.Text(bKnown ? FString(JokerName(E.J)) : FString(TEXT("???")), LX + 18.f, Y + 16.f, NameCol, 12.f, 0, true, LW - 90.f);
+			C.Text(FString::Printf(TEXT("×%s"), *FString::SanitizeFloat(JokerTier((EPDJoker)E.J))), LX + LW - 18.f, Y + 16.f, E.bMake ? Gold : Dim, 10.f, 2, true);
+			FString Sub;
+			if (E.bMake)
+			{
+				const std::vector<FPDJokerNode> Ns = G.JokerNodes();
+				for (const std::vector<int>& Pk : E.Best)
+					for (const FPDJokerNode& N : Ns)
+					{
+						std::vector<int> A = N.Cells, B = Pk; std::sort(A.begin(), A.end()); std::sort(B.begin(), B.end());
+						if (A == B) { if (!Sub.IsEmpty()) Sub += TEXT(" · "); Sub += HandName(N.Kind); break; }
+					}
+			}
+			else Sub = TrF(TEXT("%s 하나만 더 있으면"), HandName(E.Missing));
+			C.Text(Sub, LX + 18.f, Y + 31.f, E.bMake ? Fg : Dim, 9.f, 0, false, LW - 36.f);
 		}
 	}
-	{ // 조커 줄 (D-152): 만들 수 있는 조커 수, 클릭하면 조커 합성 버튼을 모두 펼친다
-		const float Y = Y0 + JokerFilterId * RowH;
-		const int32 NJ = (int32)JGroups.size();
-		const bool bOn = NJ > 0;
-		if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.08f));
-		if (HandFilter == JokerFilterId)
-			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-		C.Text(TEXT("조커"), LX + 18.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-		C.Text(TEXT("족보 2~3개를 골라 만든다 (C)"), LX + 18.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
-		if (bOn)
+	else
+	{
+		for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
 		{
-			C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), JokerPink, 1.1f, 0.5f);
-			C.TextCentered(FString::Printf(TEXT("×%d"), NJ), LX + LW - 28.f, Y + 14.f, JokerPink, 10.f, true);
+			const EPDHand H = (EPDHand)I;
+			const float Y = Y0 + I * RowH;
+			const bool bPv = PvKinds.Contains(I), bOn = Count[I] > 0;
+			const FLinearColor HC = HandColor(H);
+			if (bPv) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.1f));
+			else if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(HC, 0.08f));
+			FString Name = HandName(H);
+			if (H == EPDHand::Flush) Name += Tr(TEXT(" (3~5장)"));
+			if (H == EPDHand::Straight) Name += Tr(TEXT(" (2~5장)"));
+			C.Text(Name, LX + 18.f, Y + 16.f, bPv ? Gold : bOn ? HC : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
+			C.Text(HandEffect(H), LX + 18.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
+			if (HandFilter == I) // 족보 필터 (D-148): 고른 줄은 테두리
+				C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), HC, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
+			else if (FuseN[I] > 0 && HandFilter < 0) // 합성할 수 있으면 줄이 번쩍 (D-199, D-189 버튼과 같은 맥박)
+			{
+				C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.03f + 0.12f * Fl));
+				C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), Gold, 1.2f, 0.3f + 1.f * Fl);
+			}
+			if (FuseN[I] > 0) // 합성 가능 개수 (금색)
+			{
+				C.Glow(FCanvas::RoundRectPoints(LX + LW - 62.f, Y + 6.f, 48.f, 16.f, 8.f), Gold, 1.1f, 0.6f);
+				C.TextCentered(TrF(TEXT("합성 ×%d"), FuseN[I]), LX + LW - 38.f, Y + 14.f, Gold, 9.f, true, 46.f);
+			}
+			else if (bOn)
+			{
+				C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), HC, 1.1f, 0.5f);
+				C.TextCentered(FString::Printf(TEXT("×%d"), Count[I]), LX + LW - 28.f, Y + 14.f, HC, 10.f, true);
+			}
+		}
+		{ // 조커 줄 (D-152): 만들 수 있는 조커 수, 클릭하면 조커 합성 버튼을 모두 펼친다
+			const float Y = Y0 + JokerFilterId * RowH;
+			const int32 NJ = (int32)JGroups.size();
+			const bool bOn = NJ > 0;
+			if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.08f));
+			if (HandFilter == JokerFilterId)
+				C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
+			C.Text(TEXT("조커"), LX + 18.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
+			C.Text(TEXT("클릭: 만들 수 있는 조커 목록"), LX + 18.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
+			if (bOn)
+			{
+				C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), JokerPink, 1.1f, 0.5f);
+				C.TextCentered(FString::Printf(TEXT("×%d"), NJ), LX + LW - 28.f, Y + 14.f, JokerPink, 10.f, true);
+			}
 		}
 	}
 	const float FootY = Y0 + HandRowsN * RowH + 18.f;
