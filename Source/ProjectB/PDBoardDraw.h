@@ -217,6 +217,7 @@ inline FString JokerRecipe2Text(int K)
 inline FString JokerRuleText() { return TEXT("맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의"); }
 inline FString JokerCommand(int K) { return TrF(TEXT("지휘: %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand((EPDJoker)K))); }
 const FLinearColor JokerPink = FLinearColor(FColor::FromHex(TEXT("ff9ad5")));
+const FLinearColor UiEdge = FLinearColor(FColor::FromHex(TEXT("7fd6ff"))); // UI 창·패널·버튼 테두리는 모두 이 색 (D-160)
 // 발사체 색: 무늬 기본형은 무늬 색, 족보 발사체는 족보 색, 조커는 분홍
 inline FLinearColor ShotColor(EPDShot K, EPDSuit S)
 {

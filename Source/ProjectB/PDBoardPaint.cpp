@@ -26,7 +26,7 @@ FString TreeNodeName(int Id) { return TrS(TreeNodeNameKo(Id)); } // 언어팩 (D
 void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 {
 	const bool bHov = InRect(Mouse, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH);
-	C.Glow(FCanvas::RoundRectPoints(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, 8.f), Col, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.4f);
+	C.Glow(FCanvas::RoundRectPoints(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, 8.f), UiEdge, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.4f);
 	C.TextCentered(bTree ? TEXT("닫기  K") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
 }
 
@@ -1460,7 +1460,7 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 	}
 	{
 		const bool bHov = InRect(Mouse, SetOpenX, HudBtnY, HudBtnS, HudBtnS);
-		C.Glow(FCanvas::RoundRectPoints(SetOpenX, HudBtnY, HudBtnS, HudBtnS, 8.f), Grey, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.3f);
+		C.Glow(FCanvas::RoundRectPoints(SetOpenX, HudBtnY, HudBtnS, HudBtnS, 8.f), UiEdge, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.3f);
 		const PDIcon::FXf P(SetOpenX + HudBtnS / 2.f, HudBtnY + HudBtnS / 2.f, 9.f);
 		C.Glow(PDIcon::Burst(P, 8, 1.f, 0.72f, 11.25f), bHov ? Fg : Grey, 1.f, 0.4f); // 톱니바퀴
 		C.Glow(PDIcon::Ring(P, 0.f, 0.f, 0.32f, 1.f, 14), bHov ? Fg : Grey, 1.f, 0.4f);
@@ -1484,7 +1484,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const FLinearColor SwC = Hex(TEXT("6affc8"));
 		const bool bHov = InRect(Mouse, SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH);
 		if (bSwapMode) C.Box(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, WithAlpha(SwC, 0.18f));
-		C.Glow(FCanvas::RoundRectPoints(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, 7.f), SwC, bHov || bSwapMode ? 1.7f : 1.2f, bSwapMode ? 1.2f + 0.5f * Pulse : bHov ? 1.f : 0.5f);
+		C.Glow(FCanvas::RoundRectPoints(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, 7.f), UiEdge, bHov || bSwapMode ? 1.7f : 1.2f, bSwapMode ? 1.2f + 0.5f * Pulse : bHov ? 1.f : 0.5f);
 		C.TextCentered(TrF(TEXT("자리바꿈 ×%d"), G.Swaps), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + 11.f, SwC, 11.f, true, SwapBtnW - 6.f);
 		C.TextCentered(bSwapMode ? TEXT("끄기 X") : TEXT("X"), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + 23.f, WithAlpha(SwC, 0.7f), 8.f, false, SwapBtnW - 6.f);
 	}
@@ -1506,7 +1506,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 
 	// ---- 오른쪽: 판 위력 카드 (초당 피해 어림, 족보 덤, 가장 센 타워 셋)
 	C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.5f));
-	C.Glow(FCanvas::RoundRectPoints(RX, FY, PW, PowCardH, 10.f), Green, 1.f, 0.35f);
+	C.Glow(FCanvas::RoundRectPoints(RX, FY, PW, PowCardH, 10.f), UiEdge, 1.f, 0.35f);
 	C.Text(TEXT("판 위력"), RX + 14.f, FY + 22.f, Green, 13.f, 0, true);
 	C.Text(TEXT("초당 피해 어림"), RX + PW - 14.f, FY + 22.f, Dim, 9.f, 2);
 	C.Text(CommaNum(FMath::RoundToInt(PowerSum)), RX + 14.f, FY + 58.f, Green, 28.f, 0, true, 112.f);
@@ -1578,7 +1578,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			const bool bHov = InRect(Mouse, X, Y, W, H);
 			C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.6f));
 			if (bHov) C.Box(X, Y, W, H, WithAlpha(Col, 0.08f));
-			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), Col, bHov ? 1.6f : 1.2f, bHot ? 0.5f + 0.8f * Pulse : bHov ? 0.9f : 0.4f);
+			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), UiEdge, bHov ? 1.6f : 1.2f, bHot ? 0.5f + 0.8f * Pulse : bHov ? 0.9f : 0.4f);
 			C.Text(Name, X + 12.f, Y + H / 2.f + 5.f, Col, 13.f, 0, true, W - 34.f);
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
@@ -1593,7 +1593,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const float H = DesignH - 30.f - CharmY;
 		const int32 N = (int32)G.Charms.size();
 		C.Box(RX, CharmY, PW, H, Hex(TEXT("06060b"), 0.5f));
-		C.Glow(FCanvas::RoundRectPoints(RX, CharmY, PW, H, 10.f), Gold, 1.f, 0.3f);
+		C.Glow(FCanvas::RoundRectPoints(RX, CharmY, PW, H, 10.f), UiEdge, 1.f, 0.3f);
 		C.Text(TrF(TEXT("부적 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, Gold, 12.f, 0, true);
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		C.Text(TrF(TEXT("다음 %d웨이브"), (W0 + CharmEvery - 1) / CharmEvery * CharmEvery), RX + PW - 14.f, CharmY + 22.f, Dim, 9.f, 2);
@@ -1655,7 +1655,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 	{
 		const FLinearColor Green = Hex(TEXT("9cffb0"));
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
-		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), JokerPink, 1.f, 0.4f);
+		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
 		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
 		C.Text(TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)), 170.f, HudY + 32.f, Fg, 14.f, 0, true);
 		C.TextCentered(TEXT("맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커. 3개 쪽이 카드가 많아 세다"), 700.f, HudY + HudH / 2.f, Grey, 11.f, false, 640.f);
@@ -1777,7 +1777,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
 	// 위쪽 띠
-	C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), Purple, 1.f, 0.4f);
+	C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
 	C.Text(TEXT("스킬 트리"), 34.f, HudY + 33.f, Purple, 22.f, 0, true);
 	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 170.f, HudY + 32.f, Gold, 14.f, 0, true, 130.f);
 	C.Text(TrF(TEXT("다음 노드 %s 골드"), *CommaNum(G.PointPrice())), 310.f, HudY + 32.f, G.Gold >= G.PointPrice() ? Green : Grey, 13.f, 0, true, 200.f);
@@ -1938,7 +1938,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		const FLinearColor Col = I == 0 ? Gold : Cyan;
 		C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, Hex(TEXT("0a0b14"), 0.92f));
 		if (bSel) C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, WithAlpha(Col, 0.12f + 0.06f * Pulse));
-		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, 10.f), Col, bSel ? 2.2f : 1.3f, bSel ? 1.2f + 0.5f * Pulse : 0.5f);
+		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, 10.f), UiEdge, bSel ? 2.2f : 1.3f, bSel ? 1.2f + 0.5f * Pulse : 0.5f);
 		C.TextCentered(Labels[I], CX, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Col, 18.f, true);
 	}
 	const float FootY = TitleBtnPos((int32)ETitleItem::Count).Y + 14.f;
@@ -1996,12 +1996,11 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		const FLinearColor HC = HandColor(H);
 		if (bPv) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.1f));
 		else if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(HC, 0.08f));
-		C.Lines({FVector2f(LX + 18.f, Y + 10.f), FVector2f(LX + 18.f, Y + RowH - 10.f)}, WithAlpha(HC, bOn || bPv ? 1.f : 0.6f), 3.f);
 		FString Name = HandName(H);
 		if (H == EPDHand::Flush) Name += Tr(TEXT(" (3~5장)"));
 		if (H == EPDHand::Straight) Name += Tr(TEXT(" (2~5장)"));
-		C.Text(Name, LX + 30.f, Y + 16.f, bPv ? Gold : bOn ? HC : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-		C.Text(HandEffect(H), LX + 30.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
+		C.Text(Name, LX + 18.f, Y + 16.f, bPv ? Gold : bOn ? HC : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
+		C.Text(HandEffect(H), LX + 18.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
 		if (HandFilter == I) // 족보 필터 (D-148): 고른 줄은 테두리
 			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), HC, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
 		if (bOn)
@@ -2017,9 +2016,8 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.08f));
 		if (HandFilter == JokerFilterId)
 			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-		C.Lines({FVector2f(LX + 18.f, Y + 10.f), FVector2f(LX + 18.f, Y + RowH - 10.f)}, WithAlpha(JokerPink, bOn ? 1.f : 0.6f), 3.f);
-		C.Text(TEXT("조커"), LX + 30.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-		C.Text(TEXT("맞닿은 족보 3개(또는 2개)로 만든다"), LX + 30.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
+		C.Text(TEXT("조커"), LX + 18.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
+		C.Text(TEXT("맞닿은 족보 3개(또는 2개)로 만든다"), LX + 18.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
 		if (bOn)
 		{
 			C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), JokerPink, 1.1f, 0.5f);
@@ -2057,7 +2055,7 @@ void SPDBoardWidget::PaintMenu(FCanvas& C) const
 		const bool bSel = I == MenuSel;
 		const FLinearColor Col = (EMenuItem)I == EMenuItem::Quit ? Red : Cyan;
 		if (bSel) C.Box(B.X, B.Y, MenuW, MenuItemH, WithAlpha(Col, 0.08f));
-		C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, MenuW, MenuItemH, 8.f), Col, bSel ? 1.8f : 1.2f, bSel ? 1.0f + 0.5f * Pulse : 0.4f);
+		C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, MenuW, MenuItemH, 8.f), UiEdge, bSel ? 1.8f : 1.2f, bSel ? 1.0f + 0.5f * Pulse : 0.4f);
 		C.TextCentered(MenuItemName(I), B.X + MenuW / 2.f, B.Y + MenuItemH / 2.f, bSel ? FLinearColor::White : Fg, 16.f, true);
 	}
 	C.TextCentered(TEXT("↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, BoxY + BoxH - 18.f, Dim, 11.f, false);
