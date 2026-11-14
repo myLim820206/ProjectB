@@ -1036,6 +1036,34 @@ static void UnitTests()
 		for (int I = 0; I < N; ++I) for (int J = I + 1; J < N; ++J) MinGap = std::min(MinGap, std::hypot(TreeNode(I).X - TreeNode(J).X, TreeNode(I).Y - TreeNode(J).Y));
 		Expect(bPos && MinGap >= 24.f, "노드가 화면 안, 서로 24px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
 	}
+	{ // 모드 (D-229): 목표 웨이브, 최종 보스 체력 ×3, 목표 웨이브를 넘기면 클리어
+		Expect(ModeGoal(EPDMode::W30) == 30 && ModeGoal(EPDMode::W60) == 60 && ModeGoal(EPDMode::W100) == 100 && ModeGoal(EPDMode::Endless) == 0, "모드 목표 30 · 60 · 100 · 무한");
+		FPDGame G(11);
+		G.Mode = EPDMode::W30;
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Wave = 29;
+		G.StartWave();
+		float BossHp = 0.f, RefHp = 0.f;
+		for (const FPDEnemy& E : G.PendingForTest()) if (EnemyDef(E.Type).bBoss) BossHp = E.MaxHp;
+		FPDGame R(11);
+		R.Mode = EPDMode::W60;
+		R.NewGame(true);
+		const float K = std::pow(ModeGrowth(EPDMode::W30) / ModeGrowth(EPDMode::W60), 15.f);
+		R.Wave = 29;
+		R.StartWave();
+		for (const FPDEnemy& E : R.PendingForTest()) if (EnemyDef(E.Type).bBoss) RefHp = E.MaxHp;
+		Expect(BossHp > 0.f && RefHp > 0.f && std::abs(BossHp / (RefHp * K) - FinalBossHpK) < 0.01f, "30 모드 30웨이브 보스 = 최종 보스 (체력 ×3)");
+		G.ClearWaveForTest();
+		G.Update(0.05f);
+		bool bEv = false;
+		for (const FPDEvent& E : G.Events) bEv = bEv || E.Kind == FPDEvent::EKind::RunClear;
+		Expect(G.Phase == EPDPhase::Clear && bEv, "30웨이브를 넘기면 클리어 (사건 RunClear)");
+		FPDGame H(12);
+		H.NewGame(true);
+		const bool bLoad = H.LoadRun(G.SaveRun());
+		Expect(bLoad && H.Mode == EPDMode::W30, "중단 저장에 모드가 남는다");
+	}
 	{ // 포인트 구매
 		FPDGame G(5);
 		G.NewGame(true);
@@ -1238,6 +1266,8 @@ static void BotSpend(FPDGame& G, bool bTree)
 	}
 }
 
+static EPDMode GBotMode = EPDMode::Endless; // 봇 판의 모드 (D-229)
+static int GBotClears = 0;
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
 	double PointSum = 0, GoldSum = 0;
@@ -1250,12 +1280,13 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	for (int Run = 0; Run < Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
+		G.Mode = GBotMode;
 		if (bUpg) for (int& U : G.Upg) U = 10; // 영구 강화 흉내: 8종 모두 10레벨 (D-228, 3단계에서 칩 값으로 바꿈)
 		G.NewGame(true);
 		G.RebuildMods();
 		G.bMuted = true;
 		std::mt19937 R(77 + Run);
-		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over; ++Guard)
+		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
 			// 조커 먹이기: 판 위 위력을 15% 넘게 깎지 않는 족보 중 경험치가 가장 많은 것 (비운 칸은 바로 아래에서 다시 채움)
 			for (int Tries = 0; bJoker && Tries < 3 && !G.Hand.empty(); ++Tries)
@@ -1372,6 +1403,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		}
 		{ int Mx = 0; for (auto& KV : G.Towers) if (KV.second.IsJoker()) Mx = std::max(Mx, KV.second.JLevel); JLvSum += Mx; }
 		Hist[G.Wave]++;
+		GBotClears += G.Phase == EPDPhase::Clear;
 		WaveSum += G.Wave;
 		PointSum += G.Points;
 		GoldSum += G.XpEarned;
@@ -1396,6 +1428,19 @@ int main(int Argc, char** Argv)
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
 	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "base") BotTest(Runs, false, false, true, true);
 	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
+	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "modes") // 모드별 클리어율 (D-229): 트리까지 쓰는 봇, 강화 없음 / 영구 강화 8종 10레벨
+	{
+		static const char* Names[3] = {"30", "60", "100"};
+		for (int M = 0; M < 3; ++M)
+			for (int U = 0; U < 2; ++U)
+			{
+				GBotMode = (EPDMode)M;
+				GBotClears = 0;
+				BotTest(Runs, false, false, true, true, true, U == 1);
+				std::printf("   → %s 모드%s 클리어 %d / %d판\n", Names[M], U ? " (영구 강화 10레벨)" : "", GBotClears, Runs);
+			}
+		GBotMode = EPDMode::Endless;
+	}
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
 	return GFails ? 1 : 0;

@@ -82,10 +82,19 @@ private:
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
 	void TitleSelect(int32 Item);          // 시작 화면 항목 실행 (D-153)
 	// 랭킹 (D-168): 게임 오버마다 기록 하나 (웨이브·처치·최고 판 위력·날짜), 상위 20개를 Saved/SaveGames/Ranking.txt 에
-	struct FRankEntry { int32 Wave = 0; int32 Kills = 0; float Power = 0.f; int64 Time = 0; };
+	struct FRankEntry { int32 Wave = 0; int32 Kills = 0; float Power = 0.f; int64 Time = 0; int32 Mode = 3; }; // Mode = EPDMode (예전 기록은 무한)
 	TArray<FRankEntry> Ranking;
 	bool bRanking = false;                 // 랭킹 창
-	int32 RankTab = 0;                     // 0 개인 랭킹, 1 리더보드 (스팀 준비 중)
+	int32 RankTab = 3;                     // 랭킹 탭 = 모드 (D-229, 0 30 · 1 60 · 2 100 · 3 무한)
+	TArray<int32> RankList(int32 Mode) const; // 그 모드 기록 번호 (순위 순)
+	// 모드 (D-229): 시작 화면 '게임 시작' → 모드 고르기 창. 30 을 깨면 60·무한, 60 을 깨면 100 이 열린다
+	bool bModeSel = false;
+	int32 ModeSel = 0;
+	uint32 ModesCleared = 0;               // 클리어한 모드 (1 << EPDMode), 진행 파일에 저장
+	bool ModeOpen(int32 M) const;
+	void StartMode(int32 M);
+	void PaintModeSel(FCanvas& C) const;
+	int32 NewlyOpened = -1;                // 방금 클리어로 열린 모드 (클리어 화면 안내, -1 = 없음)
 	int32 LastRankPos = -1;                // 방금 판이 몇 위로 들어갔나 (-1 = 못 들어감)
 	bool bRankRecorded = false;            // 이번 게임 오버를 이미 기록했다
 	float PeakPower = 0.f;                 // 이번 판 최고 판 위력

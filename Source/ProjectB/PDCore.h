@@ -379,7 +379,7 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp, LevelUp } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp, LevelUp, RunClear } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
@@ -389,7 +389,12 @@ struct FPDEvent
 	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: A=새 레벨, B=오른 레벨 수, R=얻은 경험치 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도
 };
 
-enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over }; // Reward: 부적 창에서 고르는 중
+enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Clear }; // Reward: 부적 창에서 고르는 중, Clear: 모드 목표 웨이브를 넘김 (D-229)
+// 모드 (D-225, D-229): 30 · 60 · 100웨이브를 버티면 클리어, 무한은 끝없음. 15웨이브 뒤 적 체력 성장 배율이 모드마다 다르다
+enum class EPDMode : uint8_t { W30, W60, W100, Endless, Count };
+inline int ModeGoal(EPDMode M) { return M == EPDMode::W30 ? 30 : M == EPDMode::W60 ? 60 : M == EPDMode::W100 ? 100 : 0; } // 0 = 끝없음
+inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.6f : M == EPDMode::W60 ? 1.32f : M == EPDMode::W100 ? 1.18f : 1.3f; }
+constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)
 
 // 부하 시험 배율 (D-135, F4 치트): 웨이브 적 체력·마리 수. 평소 1
 inline float GPDDebugHpMul = 1.f;
@@ -400,6 +405,8 @@ class FPDGame
 public:
 	explicit FPDGame(uint32_t Seed = 0);
 	FPDEnemy SpawnTestEnemy(EPDEnemy T, float BaseHp, int W) { return MakeEnemy(T, BaseHp, W); } // 시험용
+	const std::vector<FPDEnemy>& PendingForTest() const { return Pending; } // 시험용
+	void ClearWaveForTest() { Pending.clear(); Enemies.clear(); } // 시험용: 이번 웨이브 적을 모두 없앰
 	void HitTest(FPDEnemy& E, float Dmg) { Hit(E, Dmg, 0.f); } // 시험용
 	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { HitSrc = SrcKey; Hit(E, Dmg, 0.f); HitSrc = -1; } // 시험용: 이 칸 타워가 때림
 	bool GainJokerXp(int Key, float Amount);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치
@@ -485,6 +492,9 @@ public:
 	void Update(float Dt);
 
 	EPDPhase Phase = EPDPhase::Title;
+	EPDMode Mode = EPDMode::Endless; // NewGame 전에 정한다 (D-229)
+	int Goal() const { return ModeGoal(Mode); }
+	bool IsFinalWave(int W) const { return Goal() > 0 && W == Goal(); }
 	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
 	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브

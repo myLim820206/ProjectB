@@ -799,7 +799,7 @@ std::string FPDGame::SaveRun() const
 	std::ostringstream O;
 	O.precision(9);
 	O << "pdrun 1\n";
-	O << "wave " << Wave << "\nlives " << Lives << "\nkills " << Kills << "\nleaks " << Leaks << "\ndiscarded " << Discarded << "\nrefills " << DeckRefills << "\n";
+	O << "mode " << (int)Mode << "\nwave " << Wave << "\nlives " << Lives << "\nkills " << Kills << "\nleaks " << Leaks << "\ndiscarded " << Discarded << "\nrefills " << DeckRefills << "\n";
 	O << "xp " << Xp << "\nlevel " << Level << "\npoints " << Points << "\nearned " << XpEarned << "\ncarry " << XpCarry << "\nswaps " << Swaps << "\nspeed " << Speed << "\n";
 	O << "upg"; for (int U : Upg) O << ' ' << U; O << "\n";
 	O << "tree " << TreeOwned.to_string() << "\n";
@@ -832,7 +832,8 @@ bool FPDGame::LoadRun(const std::string& S)
 	auto ReadCards = [&](std::vector<FPDCard>& V) { size_t K = 0; In >> K; for (size_t I = 0; I < K && In; ++I) { int R = 0, Su = 0; In >> R >> Su; V.push_back({R, (EPDSuit)Su}); } };
 	while (In >> Tag)
 	{
-		if (Tag == "wave") In >> N.Wave;
+		if (Tag == "mode") { int M = 0; In >> M; N.Mode = (EPDMode)std::clamp(M, 0, (int)EPDMode::Count - 1); }
+		else if (Tag == "wave") In >> N.Wave;
 		else if (Tag == "lives") In >> N.Lives;
 		else if (Tag == "kills") In >> N.Kills;
 		else if (Tag == "leaks") In >> N.Leaks;
@@ -1026,8 +1027,8 @@ float WaveScale(int W) { return (8.f + 2.f * W) / (float)WaveCount(W); }
 std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
-	// 무한 진행: NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 ×1.3씩
-	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(1.3f, (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
+	// NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 모드마다 다른 배율 (무한 ×1.3, D-229)
+	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(ModeGrowth(Mode), (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
 	const float Hp = BossHp * WaveScale(W) * MobHpBonus * GPDDebugHpMul; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
 	const int N = WaveCount(W) * GPDDebugCountMul;
 	for (int I = 0; I < N; ++I)
@@ -1041,7 +1042,7 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 		List.push_back(MakeEnemy(T, Hp, W));
 	}
 	// 보스: 5웨이브마다 BossOrder 13종이 차례로 돌아온다 (D-112)
-	if (W % 5 == 0) List.push_back(MakeEnemy(BossOrder[(W / 5 - 1) % 13], BossHp * GPDDebugHpMul, W));
+	if (W % 5 == 0) List.push_back(MakeEnemy(BossOrder[(W / 5 - 1) % 13], BossHp * GPDDebugHpMul * (IsFinalWave(W) ? FinalBossHpK : 1.f), W)); // 목표 웨이브는 최종 보스
 	return List;
 }
 
@@ -1070,6 +1071,18 @@ void FPDGame::EndWave()
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + Mods.DrawAdd, &Got);
 	AddXp(5.f + Wave); // 웨이브 통과 덤
+	if (Goal() > 0 && Wave >= Goal()) // 모드 목표 달성 (D-229)
+	{
+		Phase = EPDPhase::Clear;
+		BestWave = std::max(BestWave, Wave);
+		FPDEvent C;
+		C.Kind = FPDEvent::EKind::RunClear;
+		C.A = Wave;
+		C.B = (int)Mode;
+		Ev(C);
+		Sfx(EPDSound::Clear);
+		return;
+	}
 	if (Wave % CharmEvery == 0) // 부적 창은 5웨이브마다 (D-101)
 	{
 		Phase = EPDPhase::Reward;

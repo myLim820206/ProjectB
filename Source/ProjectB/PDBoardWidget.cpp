@@ -337,9 +337,13 @@ void SPDBoardWidget::LoadUserData()
 			if (Key == TEXT("Discovered")) Game.Discovered |= (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("BestWave")) Game.BestWave = FMath::Max(Game.BestWave, FCString::Atoi(*Val));
 			else if (Key == TEXT("Hints")) HintSeen = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
+			else if (Key == TEXT("Modes")) ModesCleared = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 		}
 	SavedDiscovered = Game.Discovered;
 	SavedBest = Game.BestWave;
+#if !UE_BUILD_SHIPPING
+	if (FParse::Param(FCommandLine::Get(), TEXT("pdunlock"))) ModesCleared = 0xF; // 시험용: 모드 모두 열기
+#endif
 }
 
 void SPDBoardWidget::SaveSettings() const
@@ -363,7 +367,7 @@ void SPDBoardWidget::SaveProgress()
 {
 	SavedDiscovered = Game.Discovered;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\n"), SavedDiscovered, SavedBest, HintSeen), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -496,10 +500,23 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		SaveCooldown -= InDeltaTime;
 		if (SaveCooldown <= 0.f) { SaveCooldown = 1.f; WriteRunSave(Game.SaveRun()); }
 	}
-	else if (Game.Phase == EPDPhase::Over && bHasRunSave) DeleteRunSave();
+	else if ((Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Clear) && bHasRunSave) DeleteRunSave();
 	// 개인 랭킹 (D-168): 판 위력 최고값을 따라가고, 게임 오버가 되면 한 번 기록
 	if (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave) { PeakPower = FMath::Max(PeakPower, PowerSum); bRankRecorded = false; }
-	if (Game.Phase == EPDPhase::Over && !bRankRecorded) { bRankRecorded = true; RecordRun(); }
+	if ((Game.Phase == EPDPhase::Over || Game.Phase == EPDPhase::Clear) && !bRankRecorded)
+	{
+		bRankRecorded = true;
+		RecordRun();
+		NewlyOpened = -1;
+		if (Game.Phase == EPDPhase::Clear) // 클리어 (D-229): 다음 모드를 연다
+		{
+			TArray<int32> Before;
+			for (int32 M = 0; M < (int32)EPDMode::Count; ++M) if (ModeOpen(M)) Before.Add(M);
+			ModesCleared |= 1u << (int32)Game.Mode;
+			for (int32 M = 0; M < (int32)EPDMode::Count; ++M) if (ModeOpen(M) && !Before.Contains(M) && NewlyOpened < 0) NewlyOpened = M;
+			SaveProgress();
+		}
+	}
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
 	if (SwapFrom >= 0 && !Game.Towers.count(SwapFrom)) SwapFrom = -1;
@@ -1060,8 +1077,8 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
 	if (bRanking) // 랭킹 (D-168): 탭 · 닫기, 창 밖·오른쪽 클릭 = 닫기
 	{
-		for (int32 I = 0; I < 2; ++I)
-			if (InRect(P, DesignW / 2.f - RankTabW - 6.f + I * (RankTabW + 12.f), RankTabY, RankTabW, RankTabH)) { RankTab = I; UiSound(EPDSound::Move); return; }
+		for (int32 I = 0; I < (int32)EPDMode::Count; ++I)
+			if (InRect(P, RankTabX(I), RankTabY, RankTabW, RankTabH)) { RankTab = I; UiSound(EPDSound::Move); return; }
 		if (bRight || !InRect(P, TutX, TutY, TutW, TutH) || InRect(P, TutNextX, TutBtnY, TutBtnW, TutBtnH)) bRanking = false;
 		return;
 	}
@@ -1084,6 +1101,18 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else if (!InRect(P, MenuX - 30.f, MenuItemY0 - 80.f, MenuW + 60.f, (int32)EMenuItem::Count * (MenuItemH + MenuGap) + 110.f)) bMenu = false; // 창 바깥 클릭 = 닫기
 		return;
 	}
+	if (Game.Phase == EPDPhase::Title && bModeSel) // 모드 고르기 (D-229): 카드 클릭 = 시작, 창 밖·오른쪽 클릭 = 닫기
+	{
+		if (bRight) { bModeSel = false; return; }
+		for (int32 M = 0; M < (int32)EPDMode::Count; ++M)
+		{
+			const FVector2f Cp = ModeCardPos(M);
+			if (InRect(P, Cp.X, Cp.Y, ModeCardW, ModeCardH)) { ModeSel = M; StartMode(M); return; }
+		}
+		if (!InRect(P, TutX, TutY, TutW, TutH)) bModeSel = false;
+		return;
+	}
+	if (Game.Phase == EPDPhase::Clear) { Game.NewGame(false); TitleSel = (int32)ETitleItem::Start; UiSound(EPDSound::Move); return; } // 클리어 화면 → 시작 화면
 	if (Game.Phase == EPDPhase::Title) // 시작 화면 (D-153): 버튼 클릭
 	{
 		for (int32 I = 0; I < (int32)ETitleItem::Count && !bRight; ++I)
@@ -1288,30 +1317,67 @@ void SPDBoardWidget::LoadRanking()
 		if (P.Num() < 4) continue;
 		FRankEntry E;
 		E.Wave = FCString::Atoi(*P[0]); E.Kills = FCString::Atoi(*P[1]); E.Power = FCString::Atof(*P[2]); E.Time = FCString::Atoi64(*P[3]);
+		E.Mode = P.Num() >= 5 ? FMath::Clamp(FCString::Atoi(*P[4]), 0, (int32)EPDMode::Count - 1) : (int32)EPDMode::Endless; // 예전 기록(모드 없음)은 무한
 		Ranking.Add(E);
 	}
 	Ranking.Sort([](const FRankEntry& A, const FRankEntry& B) { return A.Wave != B.Wave ? A.Wave > B.Wave : A.Kills != B.Kills ? A.Kills > B.Kills : A.Power > B.Power; });
-	if (Ranking.Num() > RankMax) Ranking.SetNum(RankMax);
+	for (int32 M = 0; M < (int32)EPDMode::Count; ++M) // 모드마다 상위 RankMax 개만
+	{
+		const TArray<int32> L = RankList(M);
+		for (int32 I = L.Num() - 1; I >= RankMax; --I) Ranking.RemoveAt(L[I]);
+	}
+}
+
+TArray<int32> SPDBoardWidget::RankList(int32 Mode) const
+{
+	TArray<int32> Out;
+	for (int32 I = 0; I < Ranking.Num(); ++I) if (Ranking[I].Mode == Mode) Out.Add(I);
+	return Out;
+}
+
+bool SPDBoardWidget::ModeOpen(int32 M) const
+{
+	switch ((EPDMode)M)
+	{
+	case EPDMode::W30: return true;
+	case EPDMode::W60: case EPDMode::Endless: return (ModesCleared & (1u << (int32)EPDMode::W30)) != 0;
+	case EPDMode::W100: return (ModesCleared & (1u << (int32)EPDMode::W60)) != 0;
+	default: return false;
+	}
+}
+
+void SPDBoardWidget::StartMode(int32 M)
+{
+	if (!ModeOpen(M)) { UiSound(EPDSound::Denied); return; }
+	Game.Mode = (EPDMode)M;
+	bModeSel = false;
+	bLoadContinue = false;
+	LoadT = LoadDur;
+	LoadTip = FMath::RandRange(0, 5);
+	UiSound(EPDSound::Start);
 }
 
 void SPDBoardWidget::SaveRanking() const
 {
 	FString S;
-	for (const FRankEntry& E : Ranking) S += FString::Printf(TEXT("%d %d %.0f %lld\n"), E.Wave, E.Kills, E.Power, E.Time);
+	for (const FRankEntry& E : Ranking) S += FString::Printf(TEXT("%d %d %.0f %lld %d\n"), E.Wave, E.Kills, E.Power, E.Time, E.Mode);
 	FFileHelper::SaveStringToFile(S, *PDRankPath());
 }
 
 void SPDBoardWidget::RecordRun()
 {
 	FRankEntry E;
-	E.Wave = Game.Wave; E.Kills = Game.Kills; E.Power = FMath::Max(PeakPower, PowerSum); E.Time = FDateTime::Now().ToUnixTimestamp();
+	E.Wave = Game.Wave; E.Kills = Game.Kills; E.Power = FMath::Max(PeakPower, PowerSum); E.Time = FDateTime::Now().ToUnixTimestamp(); E.Mode = (int32)Game.Mode;
 	auto Better = [](const FRankEntry& A, const FRankEntry& B) { return A.Wave != B.Wave ? A.Wave > B.Wave : A.Kills != B.Kills ? A.Kills > B.Kills : A.Power > B.Power; };
+	const TArray<int32> L = RankList(E.Mode); // 모드마다 따로 순위 (D-229)
 	int32 Pos = 0;
-	while (Pos < Ranking.Num() && !Better(E, Ranking[Pos])) ++Pos;
+	while (Pos < L.Num() && !Better(E, Ranking[L[Pos]])) ++Pos;
 	LastRankPos = Pos < RankMax ? Pos : -1;
+	RankTab = E.Mode;
 	if (LastRankPos < 0) return;
-	Ranking.Insert(E, Pos);
-	if (Ranking.Num() > RankMax) Ranking.SetNum(RankMax);
+	Ranking.Insert(E, Pos < L.Num() ? L[Pos] : Ranking.Num());
+	const TArray<int32> L2 = RankList(E.Mode);
+	for (int32 I = L2.Num() - 1; I >= RankMax; --I) Ranking.RemoveAt(L2[I]);
 	SaveRanking();
 }
 
@@ -1379,8 +1445,8 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 	switch ((ETitleItem)Item)
 	{
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
-	case ETitleItem::Start: bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
-	case ETitleItem::Ranking: bRanking = true; RankTab = 0; UiSound(EPDSound::Move); break;
+	case ETitleItem::Start: bModeSel = true; ModeSel = ModeOpen((int32)Game.Mode) ? (int32)Game.Mode : 0; UiSound(EPDSound::Move); break; // 모드 고르기 창 (D-229)
+	case ETitleItem::Ranking: bRanking = true; RankTab = (int32)Game.Mode; UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
 		if (OnQuit) OnQuit();
@@ -1469,7 +1535,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (LoadT > 0.f) return FReply::Handled(); // 로딩 중 (D-153)
 	if (bRanking) // 랭킹 (D-168): ←→ 탭, Esc·Enter 닫기
 	{
-		if (K == EKeys::Left || K == EKeys::Right || K == EKeys::A || K == EKeys::D || K == EKeys::Tab) RankTab = 1 - RankTab;
+		if (K == EKeys::Right || K == EKeys::D || K == EKeys::Tab) RankTab = (RankTab + 1) % (int32)EPDMode::Count;
+		else if (K == EKeys::Left || K == EKeys::A) RankTab = (RankTab + (int32)EPDMode::Count - 1) % (int32)EPDMode::Count;
 		else if (K == EKeys::Escape || K == EKeys::Enter) bRanking = false;
 		return FReply::Handled();
 	}
@@ -1485,6 +1552,15 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	}
 	// 도감·트리·강화 창이 열려 있지 않고 카드도 안 골랐으면 Esc = 메뉴
 	auto OpenMenu = [this]() { bMenu = true; MenuSel = 0; Sel = -1; };
+	if (Game.Phase == EPDPhase::Title && bModeSel) // 모드 고르기 (D-229): ←→ 고르기, Enter 시작, Esc 닫기
+	{
+		const int32 N = (int32)EPDMode::Count;
+		if (K == EKeys::Left || K == EKeys::A) { ModeSel = (ModeSel + N - 1) % N; UiSound(EPDSound::Move); }
+		else if (K == EKeys::Right || K == EKeys::D || K == EKeys::Tab) { ModeSel = (ModeSel + 1) % N; UiSound(EPDSound::Move); }
+		else if (K == EKeys::Enter || K == EKeys::SpaceBar) StartMode(ModeSel);
+		else if (K == EKeys::Escape) bModeSel = false;
+		return FReply::Handled();
+	}
 	if (Game.Phase == EPDPhase::Title)
 	{
 		const int32 N = (int32)ETitleItem::Count; // 시작 화면 (D-153): 위아래 고르기, Enter 결정
@@ -1493,6 +1569,11 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		else if (K == EKeys::Down || K == EKeys::S) { TitleSel = Lo + (TitleSel - Lo + 1) % M; UiSound(EPDSound::Move); }
 		else if (K == EKeys::Enter || K == EKeys::SpaceBar) TitleSelect(TitleSel);
 		else return FReply::Unhandled();
+		return FReply::Handled();
+	}
+	if (Game.Phase == EPDPhase::Clear) // 클리어 화면 (D-229)
+	{
+		if (K == EKeys::Enter || K == EKeys::SpaceBar || K == EKeys::Escape) { Game.NewGame(false); TitleSel = (int32)ETitleItem::Start; }
 		return FReply::Handled();
 	}
 	if (Game.Phase == EPDPhase::Over)

@@ -327,7 +327,15 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.TextCentered(TEXT("일시정지"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f - 14.f, WithAlpha(UiTitle, 0.75f + 0.25f * Pulse2), 40.f, true, Cols * CS - 40.f);
 		C.TextCentered(TEXT("스페이스·P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f + 26.f, Hex(TEXT("cfd8e6")), 13.f, false, Cols * CS - 40.f);
 	}
-	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) PaintTitle(C);
+	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) { PaintTitle(C); if (bModeSel) PaintModeSel(C); }
+	else if (G.Phase == EPDPhase::Clear) // 클리어 (D-229)
+	{
+		static const TCHAR* ModeNames[(int32)EPDMode::Count] = {TEXT("30 웨이브"), TEXT("60 웨이브"), TEXT("100 웨이브"), TEXT("무한")};
+		TArray<FString> Body = {TrF(TEXT("%s 모드 클리어 · 처치 %d · 레벨 %d"), Tr(ModeNames[(int32)G.Mode]), G.Kills, G.Level),
+			LastRankPos >= 0 ? TrF(TEXT("개인 랭킹 %d위"), LastRankPos + 1) : FString(Tr(TEXT("개인 랭킹 20위 밖")))};
+		if (NewlyOpened >= 0) Body.Add(TrF(TEXT("새 모드가 열렸다: %s"), Tr(ModeNames[NewlyOpened])));
+		C.Overlay(TEXT("CLEAR!"), Hex(TEXT("ffd96a")), Body, Tr(TEXT("Enter 또는 화면을 눌러 시작 화면으로")));
+	}
 	else if (G.Phase == EPDPhase::Over)
 		C.Overlay(TEXT("GAME OVER"), Red, {TrF(TEXT("웨이브 %d에서 무너졌다 · 처치 %d"), G.Wave, G.Kills), TrF(TEXT("최고 기록 %d웨이브%s"), G.BestWave, G.Wave >= G.BestWave ? Tr(TEXT("  (갱신!)")) : TEXT("")),
 			LastRankPos >= 0 ? TrF(TEXT("개인 랭킹 %d위"), LastRankPos + 1) : FString(Tr(TEXT("개인 랭킹 20위 밖")))}, Tr(TEXT("R 키 또는 화면을 눌러 다시")));
@@ -1855,7 +1863,7 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 	C.Box(16.f, HudY, DesignW - 32.f, HudH, Hex(TEXT("06060b"), 0.6f));
 	C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), Cyan, 1.f, 0.35f);
 	// 웨이브 + 다음 보스
-	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : FString::Printf(TEXT("WAVE %d"), G.Wave), 34.f, HudY + 26.f, Hex(TEXT("e8f0ff")), 22.f, 0, true, 150.f);
+	C.Text(G.Phase == EPDPhase::Title ? FString(TEXT("WAVE -")) : G.Goal() > 0 ? FString::Printf(TEXT("WAVE %d / %d"), G.Wave, G.Goal()) : FString::Printf(TEXT("WAVE %d"), G.Wave), 34.f, HudY + 26.f, Hex(TEXT("e8f0ff")), 22.f, 0, true, 170.f);
 	{
 		const int32 BW = G.NextBossWave();
 		const EPDEnemy B = FPDGame::BossOfWave(BW);
@@ -2391,6 +2399,44 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), CX, DesignH - 30.f, Dim, 11.f, false);
 }
 
+// 모드 고르기 창 (D-229): 카드 4장. 잠긴 모드는 흐리게 + 여는 조건, 클리어한 모드는 금색 표시
+void SPDBoardWidget::PaintModeSel(FCanvas& C) const
+{
+	const FLinearColor Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("5f6878")), Gold = Hex(TEXT("ffd96a")), Cyan = Hex(TEXT("7fd6ff")), Red = Hex(TEXT("ff6a6a"));
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.85f));
+	C.Box(TutX, TutY, TutW, TutH, Hex(TEXT("06060b"), 0.96f));
+	C.Glow(FCanvas::RoundRectPoints(TutX, TutY, TutW, TutH, 12.f), UiEdge, 1.4f, 0.7f);
+	C.TextCentered(TEXT("모드 고르기"), DesignW / 2.f, TutY + 34.f, UiTitle, 24.f, true);
+	C.TextCentered(TEXT("목표 웨이브를 버티면 클리어. 30 을 깨면 60 과 무한이, 60 을 깨면 100 이 열린다"), DesignW / 2.f, TutY + 66.f, Fg, 12.f, false, TutW - 60.f);
+	static const TCHAR* Big[(int32)EPDMode::Count] = {TEXT("30"), TEXT("60"), TEXT("100"), TEXT("∞")};
+	static const TCHAR* Sub[(int32)EPDMode::Count] = {TEXT("웨이브 버티기"), TEXT("웨이브 버티기"), TEXT("웨이브 버티기"), TEXT("끝없이")};
+	static const TCHAR* Need[(int32)EPDMode::Count] = {TEXT(""), TEXT("30 웨이브를 클리어하면 열림"), TEXT("60 웨이브를 클리어하면 열림"), TEXT("30 웨이브를 클리어하면 열림")};
+	static const TCHAR* Hint[(int32)EPDMode::Count] = {TEXT("처음은 여기서"), TEXT("길어진 판, 더 센 최종 보스"), TEXT("가장 긴 판"), TEXT("어디까지 버티나")};
+	for (int32 M = 0; M < (int32)EPDMode::Count; ++M)
+	{
+		const FVector2f P = ModeCardPos(M);
+		const bool bOpen = ModeOpen(M), bSel = ModeSel == M, bHov = InRect(Mouse, P.X, P.Y, ModeCardW, ModeCardH);
+		const bool bCleared = (ModesCleared & (1u << M)) != 0;
+		const FLinearColor Col = !bOpen ? Dim : M == (int32)EPDMode::Endless ? Cyan : Gold;
+		C.Box(P.X, P.Y, ModeCardW, ModeCardH, Hex(TEXT("0a0b14"), 0.92f));
+		if (bSel && bOpen) C.Box(P.X, P.Y, ModeCardW, ModeCardH, WithAlpha(Col, 0.08f + 0.06f * Pulse));
+		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, ModeCardW, ModeCardH, 12.f), Col, bSel || bHov ? 2.f : 1.3f, !bOpen ? 0.15f : bSel ? 1.2f + 0.5f * Pulse : bHov ? 0.9f : 0.5f);
+		C.TextCentered(Big[M], P.X + ModeCardW / 2.f, P.Y + 62.f, bOpen ? (bSel ? FLinearColor::White : Col) : Dim, 48.f, true);
+		C.TextCentered(Sub[M], P.X + ModeCardW / 2.f, P.Y + 108.f, bOpen ? Fg : Dim, 13.f, false, ModeCardW - 16.f);
+		if (!bOpen)
+			C.TextCentered(Need[M], P.X + ModeCardW / 2.f, P.Y + 150.f, WithAlpha(Red, 0.8f), 10.f, false, ModeCardW - 14.f);
+		else
+		{
+			const TArray<int32> L = RankList(M);
+			C.TextCentered(Hint[M], P.X + ModeCardW / 2.f, P.Y + 140.f, Dim, 10.f, false, ModeCardW - 14.f);
+			if (L.Num() > 0) C.TextCentered(TrF(TEXT("최고 %d웨이브"), Ranking[L[0]].Wave), P.X + ModeCardW / 2.f, P.Y + 162.f, Fg, 11.f, false, ModeCardW - 14.f);
+		}
+		if (bCleared) C.TextCentered(TEXT("클리어 ✓"), P.X + ModeCardW / 2.f, P.Y + ModeCardH - 20.f, Gold, 12.f, true, ModeCardW - 14.f);
+	}
+	C.Text(TEXT("←→ 고르기 · Enter 또는 클릭: 시작 · Esc 닫기"), TutX + 24.f, TutBtnY + TutBtnH / 2.f + 5.f, Dim, 11.f, 0, false, 400.f);
+}
+
 // 랭킹 창 (D-168): 개인 랭킹 탭 (상위 20) + 리더보드 탭 (스팀, 준비 중)
 void SPDBoardWidget::PaintRanking(FCanvas& C) const
 {
@@ -2400,31 +2446,31 @@ void SPDBoardWidget::PaintRanking(FCanvas& C) const
 	C.Box(TutX, TutY, TutW, TutH, Hex(TEXT("06060b"), 0.96f));
 	C.Glow(FCanvas::RoundRectPoints(TutX, TutY, TutW, TutH, 12.f), UiEdge, 1.4f, 0.7f);
 	C.TextCentered(TEXT("랭킹"), DesignW / 2.f, TutY + 34.f, UiTitle, 24.f, true);
-	static const TCHAR* Tabs[2] = {TEXT("개인 랭킹"), TEXT("리더보드")};
-	for (int32 I = 0; I < 2; ++I)
+	static const TCHAR* Tabs[(int32)EPDMode::Count] = {TEXT("30 웨이브"), TEXT("60 웨이브"), TEXT("100 웨이브"), TEXT("무한")}; // 탭 = 모드 (D-229)
+	for (int32 I = 0; I < (int32)EPDMode::Count; ++I)
 	{
-		const float X = DesignW / 2.f - RankTabW - 6.f + I * (RankTabW + 12.f);
+		const float X = RankTabX(I);
 		const bool bOn = RankTab == I, bHov = InRect(Mouse, X, RankTabY, RankTabW, RankTabH);
 		if (bOn) C.Box(X, RankTabY, RankTabW, RankTabH, WithAlpha(UiEdge, 0.14f));
 		C.Glow(FCanvas::RoundRectPoints(X, RankTabY, RankTabW, RankTabH, 8.f), UiEdge, bOn || bHov ? 1.6f : 1.1f, bOn ? 1.f : 0.35f);
 		C.TextCentered(Tabs[I], X + RankTabW / 2.f, RankTabY + RankTabH / 2.f, bOn ? FLinearColor::White : Fg, 14.f, true, RankTabW - 8.f);
 	}
 	const float TopY = RankTabY + RankTabH + 22.f;
-	if (RankTab == 0)
 	{
+		const TArray<int32> List = RankList(RankTab);
 		// 머리줄: 순위 · 웨이브 · 처치 · 최고 판 위력 · 날짜 (두 단으로 10개씩)
 		static const TCHAR* Heads[5] = {TEXT("순위"), TEXT("웨이브"), TEXT("처치"), TEXT("최고 위력"), TEXT("날짜")};
 		const float ColX[5] = {14.f, 62.f, 128.f, 196.f, 286.f};
 		const float HalfW = (TutW - 48.f) / 2.f;
 		for (int32 Side = 0; Side < 2; ++Side)
 			for (int32 K = 0; K < 5; ++K) C.Text(Heads[K], TutX + 24.f + Side * HalfW + ColX[K], TopY, Dim, 10.f, 0, true, 80.f);
-		if (Ranking.Num() == 0) C.TextCentered(TEXT("아직 기록이 없다. 게임 오버가 되면 여기에 남는다"), DesignW / 2.f, TopY + 120.f, Dim, 13.f, false, TutW - 60.f);
-		for (int32 I = 0; I < Ranking.Num() && I < RankMax; ++I)
+		if (List.Num() == 0) C.TextCentered(TEXT("아직 기록이 없다. 판이 끝나면 여기에 남는다"), DesignW / 2.f, TopY + 120.f, Dim, 13.f, false, TutW - 60.f);
+		for (int32 I = 0; I < List.Num() && I < RankMax; ++I)
 		{
-			const FRankEntry& E = Ranking[I];
+			const FRankEntry& E = Ranking[List[I]];
 			const int32 Side = I / 10, Row = I % 10;
 			const float X = TutX + 24.f + Side * HalfW, Y = TopY + 26.f + Row * 26.f;
-			const bool bNew = I == LastRankPos;
+			const bool bNew = I == LastRankPos && RankTab == (int32)Game.Mode;
 			if (bNew) C.Box(X, Y - 15.f, HalfW - 8.f, 22.f, WithAlpha(Gold, 0.08f + 0.06f * Pulse));
 			else if (Row % 2 == 0) C.Box(X, Y - 15.f, HalfW - 8.f, 22.f, Hex(TEXT("0a0b14"), 0.8f));
 			const FLinearColor Col = I == 0 ? Gold : I < 3 ? UiValue : Fg;
@@ -2435,14 +2481,6 @@ void SPDBoardWidget::PaintRanking(FCanvas& C) const
 			C.Text(ShortNum(E.Power), X + ColX[3], Y, Fg, 11.f, 0, false, 84.f);
 			C.Text(FString::Printf(TEXT("%04d-%02d-%02d"), D.GetYear(), D.GetMonth(), D.GetDay()), X + ColX[4], Y, Dim, 10.f, 0, false, HalfW - ColX[4] - 12.f);
 		}
-	}
-	else
-	{
-		const float CY = TopY + 120.f;
-		C.Glow(FCanvas::CirclePoints(FVector2f(DesignW / 2.f, CY - 40.f), 26.f, 32), UiEdge, 1.6f, 0.8f + 0.4f * Pulse);
-		C.TextCentered(TEXT("★"), DesignW / 2.f, CY - 40.f, UiEdge, 22.f, true);
-		C.TextCentered(TEXT("스팀 리더보드 준비 중"), DesignW / 2.f, CY + 12.f, UiValue, 18.f, true, TutW - 60.f);
-		C.TextCentered(TEXT("출시 때 스팀 계정으로 전 세계 플레이어와 최고 웨이브를 겨룬다"), DesignW / 2.f, CY + 42.f, Fg, 13.f, false, TutW - 60.f);
 	}
 	// 닫기 버튼 (튜토리얼 '다음' 자리)
 	const bool bHov = InRect(Mouse, TutNextX, TutBtnY, TutBtnW, TutBtnH);
