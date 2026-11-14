@@ -2654,7 +2654,33 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 					}
 			}
 			else Sub = TrF(TEXT("%s 하나만 더 있으면"), HandName(E.Missing));
-			C.Text(Sub, LX + 18.f, Y + 31.f, E.bMake ? Fg : Dim, 9.f, 0, false, LW - 36.f);
+			if (bSel) // 고른 조커 (D-212): 레시피 족보마다 고른 재료가 있으면 초록 체크 + 초록 글자
+			{
+				const std::vector<FPDJokerNode> Ns = G.JokerNodes();
+				std::vector<int> Have;
+				for (int N : CraftNodeIdx()) Have.push_back((int)Ns[N].Kind);
+				const FSlateFontInfo Fn = FCanvas::Font(9.f, false);
+				const FLinearColor Ok = Hex(TEXT("9cffb0"));
+				float X = LX + 18.f;
+				const float Ty = Y + 31.f;
+				int32 Slot = 0;
+				for (EPDHand H : JokerRecipe((EPDJoker)E.J))
+				{
+					if (Slot++ > 0) { C.Text(TEXT(" · "), X, Ty, Dim, 9.f); X += FCanvas::Measure(TEXT(" · "), Fn).X; }
+					auto It = std::find(Have.begin(), Have.end(), (int)H);
+					const bool bOk = It != Have.end();
+					if (bOk)
+					{
+						Have.erase(It);
+						C.Lines({FVector2f(X, Ty), FVector2f(X + 3.f, Ty + 3.f), FVector2f(X + 8.f, Ty - 4.f)}, Ok, 1.6f); // 체크 표시
+						X += 11.f;
+					}
+					const FString Nm = HandName(H);
+					C.Text(Nm, X, Ty, bOk ? Ok : Fg, 9.f, 0, bOk);
+					X += FCanvas::Measure(Nm, FCanvas::Font(9.f, bOk)).X;
+				}
+			}
+			else C.Text(Sub, LX + 18.f, Y + 31.f, E.bMake ? Fg : Dim, 9.f, 0, false, LW - 36.f);
 		}
 	}
 	else
