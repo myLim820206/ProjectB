@@ -319,6 +319,7 @@ private:
 	bool FilterPass(PD::EPDHand Kind) const { return HandFilter < 0 || (int32)Kind == HandFilter; }
 	int32 CodexSel = 0;                    // 도감 오른쪽에 크게 보여 줄 조커 (D-119)
 	bool bCodexUpper = false;              // 도감 상위 조커 쪽 (D-231)
+	bool bCodexCharm = false;              // 도감 부적 쪽 (D-234)
 	float PowerRef = 0.f;                  // 이번 웨이브 시작 때 판 위력 (위쪽 띠의 ±%)
 	// 위력 정보 (D-119): 그릴 때 한 번 계산해 패널·타워 정보가 같이 쓴다
 	mutable std::vector<std::pair<int, float>> PowerList; // 타워 칸 키, 위력 (큰 것부터)

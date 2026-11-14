@@ -442,6 +442,10 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("즉시"), TEXT("Instant"), TEXT("即時"), TEXT("即时"), TEXT("即時")},
 	{TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), TEXT("Pick with 1 · 2 · 3 or click   S: skip"), TEXT("1 · 2 · 3 かクリックで選ぶ   S: スキップ"), TEXT("按 1 · 2 · 3 或点击选择   S: 跳过"), TEXT("按 1 · 2 · 3 或點擊選擇   S: 跳過")},
 	{TEXT("부적 칸이 가득 찼다 (5/5)"), TEXT("Charm slots are full (5/5)"), TEXT("お守り枠がいっぱい (5/5)"), TEXT("护符栏已满 (5/5)"), TEXT("護符欄已滿 (5/5)")},
+	{TEXT("부적 %d / %d 열림"), TEXT("Charms %d / %d unlocked"), TEXT("お守り %d / %d 解放"), TEXT("护符 %d / %d 已解锁"), TEXT("護符 %d / %d 已解鎖")},
+	{TEXT("부적 상자 %s에서 열림"), TEXT("Unlocked by Charm Box %s"), TEXT("お守り箱 %s で解放"), TEXT("由护符箱 %s 解锁"), TEXT("由護符箱 %s 解鎖")},
+	{TEXT("가진 부적"), TEXT("Owned"), TEXT("所持中"), TEXT("已拥有"), TEXT("已擁有")},
+	{TEXT("Tab: 기본 조커 → 상위 조커 → 부적 · J / Esc: 닫기"), TEXT("Tab: Basic → Upper Jokers → Charms · J / Esc: close"), TEXT("Tab: 基本 → 上位ジョーカー → お守り · J / Esc: 閉じる"), TEXT("Tab: 基本 → 上位小丑 → 护符 · J / Esc: 关闭"), TEXT("Tab: 基本 → 上位小丑 → 護符 · J / Esc: 關閉")},
 	{TEXT("상위 조커 %d / 30 발견"), TEXT("Upper Jokers %d / 30 found"), TEXT("上位ジョーカー %d / 30 発見"), TEXT("上位小丑 %d / 30 已发现"), TEXT("上位小丑 %d / 30 已發現")},
 	{TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커"), TEXT("Two different jokers side by side, both Joker Level 10 (5 if you took its tree tip) → Upper Joker"), TEXT("異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 (ツリー末端を取ったジョーカーは5) → 上位ジョーカー"), TEXT("两个不同的小丑相邻，且都达到小丑等级10 (点了技能树末端的小丑为5) → 上位小丑"), TEXT("兩個不同的小丑相鄰，且都達到小丑等級10 (點了技能樹末端的小丑為5) → 上位小丑")},
 	{TEXT("만들면 열림"), TEXT("Unlocks when made"), TEXT("作ると解放"), TEXT("制作后解锁"), TEXT("製作後解鎖")},
@@ -757,4 +761,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 756;
+static const int32 PDLangRowCount = 760;

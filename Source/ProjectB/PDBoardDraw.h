@@ -509,7 +509,10 @@ constexpr float CdxCardX = 16.f, CdxCardY = 76.f, CdxCardW = 164.f, CdxCardH = 3
 constexpr float CdxDetX = 884.f, CdxDetW = 380.f;
 // 도감 쪽 탭 (D-231): 기본 조커 / 상위 조커. 위쪽 띠 안 오른쪽
 constexpr float CdxTabW = 150.f, CdxTabH = 30.f, CdxTabY = HudY + 10.f, CdxTabX0 = 820.f;
-inline float CdxTabX(int I) { return CdxTabX0 + I * (CdxTabW + 8.f); }
+inline float CdxTabX(int I) { return CdxTabX0 - 110.f + I * (CdxTabW - 30.f + 8.f); } // 탭 3개 (기본 · 상위 · 부적)
+// 부적 쪽 (D-234): 6 × 7 카드
+constexpr float ChCardW = 192.f, ChCardH = 76.f, ChCardGap = 6.f, ChCardY0 = 78.f;
+inline FVector2f CharmCardPos(int J) { return FVector2f(DesignW / 2.f - (6.f * ChCardW + 5.f * ChCardGap) / 2.f + (J % 6) * (ChCardW + ChCardGap), ChCardY0 + (J / 6) * (ChCardH + ChCardGap)); }
 // 상위 조커 쪽: 6 × 5 카드
 constexpr float UpCardW = 192.f, UpCardH = 112.f, UpCardGap = 8.f, UpCardY0 = 80.f;
 inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * UpCardW + 5.f * UpCardGap) / 2.f + (U % 6) * (UpCardW + UpCardGap), UpCardY0 + (U / 6) * (UpCardH + UpCardGap)); }

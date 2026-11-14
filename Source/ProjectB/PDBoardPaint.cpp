@@ -2124,13 +2124,36 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 	}
 
 	// ---- 상위 조커 도감 (D-231): 6 × 5. 만든 것은 그림·이름·능력, 못 만든 것은 실루엣 + 재료 하나 힌트
-	if (bCodex && bCodexUpper)
+	if (bCodex && bCodexCharm) // 부적 도감 (D-234): 42개. 잠긴 것은 어느 상자에서 열리는지
+	{
+		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
+		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
+		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
+		int32 NOpen = 0;
+		for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) NOpen += (G.CharmUnlocked >> J) & 1u;
+		C.Text(TrF(TEXT("부적 %d / %d 열림"), NOpen, (int32)EPDCharm::Count), 170.f, HudY + 32.f, Gold, 14.f, 0, true);
+		for (int32 J = 0; J < (int32)EPDCharm::Count; ++J)
+		{
+			const FVector2f P = CharmCardPos(J);
+			const bool bOpen = (G.CharmUnlocked >> J) & 1u, bHave = G.Has((EPDCharm)J);
+			C.Box(P.X, P.Y, ChCardW, ChCardH, Hex(TEXT("0a0b14"), 0.92f));
+			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, ChCardW, ChCardH, 8.f), WithAlpha(bHave ? Gold : Cyan, bOpen ? 1.f : 0.3f), bHave ? 1.6f : 1.1f, bOpen ? (bHave ? 0.9f : 0.4f) : 0.15f);
+			C.Text(CharmName(J), P.X + 10.f, P.Y + 20.f, bOpen ? (bHave ? Gold : UiValue) : Dim, 12.f, 0, true, ChCardW - 20.f);
+			int32 Box = -1;
+			for (int32 B = 0; B < CharmBoxCount; ++B) if (J >= CharmBoxes[B].First && J < CharmBoxes[B].First + CharmBoxes[B].Count) Box = B;
+			C.Text(bOpen ? FString(CharmDesc(J)) : TrF(TEXT("부적 상자 %s에서 열림"), Box == 0 ? TEXT("I") : Box == 1 ? TEXT("II") : Box == 2 ? TEXT("III") : TEXT("IV")),
+				P.X + 10.f, P.Y + 44.f, bOpen ? Fg : Dim, 10.f, 0, false, ChCardW - 20.f);
+			if (bHave) C.Text(TEXT("가진 부적"), P.X + ChCardW - 10.f, P.Y + 20.f, Gold, 9.f, 2, true);
+		}
+		C.Text(TEXT("Tab: 기본 조커 → 상위 조커 → 부적 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
+	}
+	if (bCodex && bCodexUpper && !bCodexCharm)
 	{
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
 		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
 		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
 		C.Text(TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound)), 170.f, HudY + 32.f, Gold, 14.f, 0, true);
-		C.Text(TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커"), 400.f, HudY + 32.f, Grey, 10.f, 0, false, 400.f);
+		C.Text(TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커"), 400.f, HudY + 32.f, Grey, 10.f, 0, false, 296.f);
 		for (int32 U = 0; U < UpperJokerCount; ++U)
 		{
 			const FVector2f P = UpperCardPos(U);
@@ -2158,14 +2181,14 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		C.Text(TEXT("Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
 	}
 	// ---- 조커 도감 (J, D-119): 카드 5×2 + 오른쪽에 고른 조커 크게
-	if (bCodex && !bCodexUpper)
+	if (bCodex && !bCodexUpper && !bCodexCharm)
 	{
 		const FLinearColor Green = Hex(TEXT("9cffb0"));
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
 		C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
 		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
 		C.Text(TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)), 170.f, HudY + 32.f, Fg, 14.f, 0, true);
-		C.TextCentered(TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다"), 520.f, HudY + HudH / 2.f, Grey, 11.f, false, 460.f);
+		C.TextCentered(TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다"), 480.f, HudY + HudH / 2.f, Grey, 11.f, false, 380.f);
 		PaintCloseButton(C, JokerPink);
 		auto TierCol = [&](float T) { return T >= 2.9f ? Gold : T >= 2.4f ? Hex(TEXT("ffa86a")) : Cyan; };
 		auto TierText = [](float T) { return FMath::IsNearlyEqual(T, FMath::RoundToFloat(T)) ? FString::Printf(TEXT("×%.0f"), T) : FString::Printf(TEXT("×%.1f"), T); };
@@ -2241,15 +2264,17 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 
 	if (bCodex) // 도감 쪽 탭 (D-231)
 	{
-		static const TCHAR* Tabs[2] = {TEXT("기본 조커"), TEXT("상위 조커")};
-		for (int32 I = 0; I < 2; ++I)
+		static const TCHAR* Tabs[3] = {TEXT("기본 조커"), TEXT("상위 조커"), TEXT("부적")};
+		const int32 Page = bCodexCharm ? 2 : bCodexUpper ? 1 : 0;
+		const float TW = CdxTabW - 30.f;
+		for (int32 I = 0; I < 3; ++I)
 		{
 			const float X = CdxTabX(I);
-			const bool bOn = bCodexUpper == (I == 1), bHov = InRect(Mouse, X, CdxTabY, CdxTabW, CdxTabH);
-			const FLinearColor Col = I == 1 ? Gold : JokerPink;
-			if (bOn) C.Box(X, CdxTabY, CdxTabW, CdxTabH, WithAlpha(Col, 0.14f));
-			C.Glow(FCanvas::RoundRectPoints(X, CdxTabY, CdxTabW, CdxTabH, 8.f), Col, bOn || bHov ? 1.6f : 1.1f, bOn ? 1.f : 0.35f);
-			C.TextCentered(Tabs[I], X + CdxTabW / 2.f, CdxTabY + CdxTabH / 2.f, bOn ? FLinearColor::White : Col, 12.f, true, CdxTabW - 8.f);
+			const bool bOn = Page == I, bHov = InRect(Mouse, X, CdxTabY, TW, CdxTabH);
+			const FLinearColor Col = I == 1 ? Gold : I == 2 ? Hex(TEXT("7fd6ff")) : JokerPink;
+			if (bOn) C.Box(X, CdxTabY, TW, CdxTabH, WithAlpha(Col, 0.14f));
+			C.Glow(FCanvas::RoundRectPoints(X, CdxTabY, TW, CdxTabH, 8.f), Col, bOn || bHov ? 1.6f : 1.1f, bOn ? 1.f : 0.35f);
+			C.TextCentered(Tabs[I], X + TW / 2.f, CdxTabY + CdxTabH / 2.f, bOn ? FLinearColor::White : Col, 12.f, true, TW - 8.f);
 		}
 		PaintCloseButton(C, JokerPink);
 	}

@@ -1163,8 +1163,8 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (bCodex) // 도감 (D-119): 카드 클릭 = 크게 보기, 닫기 버튼·오른쪽 클릭 = 닫기
 	{
 		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bCodex = false; return; }
-		for (int32 I = 0; I < 2; ++I) if (InRect(P, CdxTabX(I), CdxTabY, CdxTabW, CdxTabH)) { bCodexUpper = I == 1; UiSound(EPDSound::Move); return; } // 쪽 탭 (D-231)
-		if (bCodexUpper) return;
+		for (int32 I = 0; I < 3; ++I) if (InRect(P, CdxTabX(I), CdxTabY, CdxTabW - 30.f, CdxTabH)) { bCodexUpper = I == 1; bCodexCharm = I == 2; UiSound(EPDSound::Move); return; } // 쪽 탭 (D-231, D-234)
+		if (bCodexUpper || bCodexCharm) return;
 		for (int32 K = 0; K < (int32)EPDJoker::Count; ++K)
 		{
 			const FVector2f C0 = CodexCardPos(K);
@@ -1648,7 +1648,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bCodex)
 	{
 		if (K == EKeys::J || K == EKeys::Escape) bCodex = false;
-		else if (K == EKeys::Tab) bCodexUpper = !bCodexUpper; // 기본 ↔ 상위 조커 (D-231)
+		else if (K == EKeys::Tab) { const int32 Pg = (bCodexCharm ? 2 : bCodexUpper ? 1 : 0) + 1; bCodexUpper = Pg % 3 == 1; bCodexCharm = Pg % 3 == 2; } // 기본 → 상위 조커 → 부적 (D-231, D-234)
 		else if (K == EKeys::Left || K == EKeys::A) CodexSel = (CodexSel + 9) % 10; // 화살표로 넘겨 보기
 		else if (K == EKeys::Right || K == EKeys::D) CodexSel = (CodexSel + 1) % 10;
 		else if (K == EKeys::Up || K == EKeys::Down || K == EKeys::W || K == EKeys::S) CodexSel = (CodexSel + 5) % 10;
