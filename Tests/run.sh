@@ -5,5 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 CXX=${CXX:-g++}
 mkdir -p build
-"$CXX" -std=c++17 -O2 -Wall -Wextra -Wshadow -Werror -o build/core_test core_test.cpp ../Source/ProjectB/PDCore.cpp ../Source/ProjectB/PDSynth.cpp
+# 새 파일로 만든 뒤 바꿔치기: 돌고 있는 봇 시험의 실행 파일을 덮어쓰지 않는다
+OUT=build/core_test.$$
+"$CXX" -std=c++17 -O2 -Wall -Wextra -Wshadow -Werror -o "$OUT" core_test.cpp ../Source/ProjectB/PDCore.cpp ../Source/ProjectB/PDSynth.cpp
+mv -f "$OUT" build/core_test
 ./build/core_test "$@"

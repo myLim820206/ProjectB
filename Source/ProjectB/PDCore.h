@@ -87,11 +87,12 @@ enum class EPDCharm : uint8_t
 	Count
 };
 constexpr int CharmBaseCount = 18;                            // 처음부터 열린 부적
-constexpr uint32_t CharmBaseMask = (1u << CharmBaseCount) - 1u;
+using FPDCharmBits = uint64_t; // 부적 비트 (D-233: 32개를 넘기려고 64비트)
+constexpr FPDCharmBits CharmBaseMask = (FPDCharmBits(1) << CharmBaseCount) - 1u;
 // 부적 상자 3개 (D-233): 상자마다 열리는 부적 범위와 칩 값
 struct FPDCharmBox { int First, Count, Price; };
 constexpr FPDCharmBox CharmBoxes[3] = {{18, 5, 100}, {23, 5, 250}, {28, 4, 450}};
-inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
+inline bool HasCharm(FPDCharmBits Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;
 // 즉시 보상 (부적 칸을 쓰지 않음): 부적 창에서 와일드가 셋째 칸에 들거나, 부적 칸이 가득일 때 채움
@@ -293,7 +294,7 @@ struct FPDSynergy
 // 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 고르고(카드 공유 가능, 새 카드 한 장 이상, 같은 종류끼리는 공유 안 함), 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
-std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
+std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms = 0, const FPDTreeMods* Tree = nullptr);
 
 struct FPDTowerStats
 {
@@ -301,18 +302,18 @@ struct FPDTowerStats
 	float Crit = BaseCrit, CritMult = BaseCritMult; // 치명타 확률 (1 넘으면 여러 번), 배율
 	float CritFactor() const { return 1.f + Crit * (CritMult - 1.f); } // 기대 배율
 };
-FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
+FPDTowerStats TowerStats(const FPDTower& T, FPDCharmBits Charms = 0, const FPDTreeMods* Tree = nullptr);
 // 타워 하나의 어림 위력: 피해 × 연사 × 치명타 기대 × (1 + 범위 × 0.8)
 double TowerPower(const FPDTowerStats& S);
 // 판 위력 어림의 합: 타워마다 TowerPower × Weight(타워, 사거리). 조커 능력은 어림 배율
 // (희비극 ×1.8, 스타 ×4, 방울 ×1.3, 웃는 가면은 따라 하는 타워). Towers 는 ApplyEffects 를 마친 판. Weight 가 없으면 1
 // 봇(Tests/core_test.cpp)은 Weight 로 사거리 안 길 칸 수를 곱한다
 using FPDPowerWeight = std::function<double(const FPDTower& T, float Range)>;
-double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
+double SumBoardPower(const FPDTowerMap& Towers, FPDCharmBits Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
 // 타워 하나의 몫 (SumBoardPower 의 한 항): 조커 어림 배율까지
-double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
+double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, FPDCharmBits Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight = nullptr);
 // 판 위력 어림 (D-107, 화면 비교용): 사거리·적 위치는 보지 않는다
-float BoardPower(FPDTowerMap Towers, uint32_t Charms = 0, const FPDTreeMods* Tree = nullptr);
+float BoardPower(FPDTowerMap Towers, FPDCharmBits Charms = 0, const FPDTreeMods* Tree = nullptr);
 
 // ---------------------------------------------------------------- 길
 struct FPDPoint
@@ -499,10 +500,10 @@ public:
 	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
-	uint32_t CharmUnlocked = CharmBaseMask;          // 나올 수 있는 부적 (부적 상자로 늘어남, D-233)
+	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 부적 (부적 상자로 늘어남, D-233)
 	int UpperNeed(const FPDTower& T) const;          // 이 조커가 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
 	std::vector<FPDReward> RollRewards();
-	uint32_t CharmMask() const;
+	FPDCharmBits CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
 	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + Mods.HandAdd; }
 	// 스킬 트리

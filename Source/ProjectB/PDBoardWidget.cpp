@@ -340,7 +340,7 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("Modes")) ModesCleared = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("Chips")) MetaChips = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("Uppers")) Game.UpperFound |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 상위 조커 도감 (D-231)
-			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 부적 상자로 연 부적 (D-233)
+			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 부적 상자로 연 부적 (D-233)
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
@@ -380,7 +380,7 @@ void SPDBoardWidget::SaveProgress()
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%u\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, Game.CharmUnlocked), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -1384,7 +1384,7 @@ bool SPDBoardWidget::BuyCharmBox(int32 I)
 {
 	if (Game.Phase != EPDPhase::Title || I < 0 || I >= 3) return false;
 	const FPDCharmBox& B = CharmBoxes[I];
-	const uint32 Bits = ((1u << B.Count) - 1u) << B.First;
+	const FPDCharmBits Bits = ((FPDCharmBits(1) << B.Count) - 1u) << B.First;
 	if ((Game.CharmUnlocked & Bits) == Bits || MetaChips < B.Price) return false;
 	MetaChips -= B.Price;
 	Game.CharmUnlocked |= Bits;

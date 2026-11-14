@@ -478,7 +478,7 @@ struct FPDTrait
 {
 	float Dmg = 1.f, Rate = 1.f, Range = 1.f, Splash = 0.f;
 };
-static FPDTrait HandTrait(EPDHand H, int N, uint32_t Charms = 0)
+static FPDTrait HandTrait(EPDHand H, int N, FPDCharmBits Charms = 0)
 {
 	const float PairK = HasCharm(Charms, EPDCharm::Twins) ? 2.f : 1.5f;
 	FPDTrait T;
@@ -499,7 +499,7 @@ static FPDTrait HandTrait(EPDHand H, int N, uint32_t Charms = 0)
 	return T;
 }
 
-std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree)
+std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, const FPDTreeMods* Tree)
 {
 	static const FPDTreeMods NoTree;
 	const FPDTreeMods& Tm = Tree ? *Tree : NoTree;
@@ -694,7 +694,7 @@ float ShotSpeed(EPDShot K)
 	}
 }
 
-FPDTowerStats TowerStats(const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree)
+FPDTowerStats TowerStats(const FPDTower& T, FPDCharmBits Charms, const FPDTreeMods* Tree)
 {
 	static const FPDTreeMods NoTree;
 	const FPDTreeMods& Tm = Tree ? *Tree : NoTree;
@@ -1042,10 +1042,10 @@ bool FPDGame::BuyNode(int Id)
 	return true;
 }
 
-uint32_t FPDGame::CharmMask() const
+FPDCharmBits FPDGame::CharmMask() const
 {
-	uint32_t M = 0;
-	for (EPDCharm J : Charms) M |= 1u << (int)J;
+	FPDCharmBits M = 0;
+	for (EPDCharm J : Charms) M |= FPDCharmBits(1) << (int)J;
 	return M;
 }
 
@@ -1325,7 +1325,7 @@ bool FPDGame::Place(int HandIdx, int X, int Y)
 
 double TowerPower(const FPDTowerStats& S) { return (double)(S.Dmg * S.Rate * S.CritFactor()) * (1 + S.Splash * 0.8); }
 
-double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
+double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, FPDCharmBits Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
 {
 	auto W = [&](const FPDTower& At, float Range) { return Weight ? Weight(At, Range) : 1.0; };
 	{
@@ -1346,7 +1346,7 @@ double OneTowerPower(const FPDTowerMap& Towers, const FPDTower& T, uint32_t Char
 	}
 }
 
-double SumBoardPower(const FPDTowerMap& Towers, uint32_t Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
+double SumBoardPower(const FPDTowerMap& Towers, FPDCharmBits Charms, const FPDTreeMods* Tree, const FPDPowerWeight& Weight)
 {
 	double Sum = 0;
 	for (const auto& KV : Towers) Sum += OneTowerPower(Towers, KV.second, Charms, Tree, Weight);
@@ -1371,7 +1371,7 @@ float FPDGame::SynergyGain() const
 	return Without > 0 ? (float)(With / Without) : 1.f;
 }
 
-float BoardPower(FPDTowerMap Towers, uint32_t Charms, const FPDTreeMods* Tree)
+float BoardPower(FPDTowerMap Towers, FPDCharmBits Charms, const FPDTreeMods* Tree)
 {
 	ApplyEffects(Towers, Charms, Tree);
 	return (float)SumBoardPower(Towers, Charms, Tree);
@@ -2296,7 +2296,7 @@ void FPDGame::Update(float Dt)
 			Sfx(EPDSound::Denied);
 		}
 	}
-	const uint32_t Mask = CharmMask();
+	const FPDCharmBits Mask = CharmMask();
 	const FPDTreeMods* Tm = &Mods;
 	for (auto& KV : Towers)
 	{

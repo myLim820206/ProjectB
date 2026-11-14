@@ -2294,7 +2294,7 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 		for (int32 I = 0; I < 3; ++I)
 		{
 			const FPDCharmBox& B = CharmBoxes[I];
-			const uint32 Bits = ((1u << B.Count) - 1u) << B.First;
+			const FPDCharmBits Bits = ((FPDCharmBits(1) << B.Count) - 1u) << B.First;
 			const bool bOwned = (G.CharmUnlocked & Bits) == Bits, bCan = !bOwned && MetaChips >= B.Price;
 			const float X = BoxBtnX(I);
 			const bool bHov = InRect(Mouse, X, BoxBtnY, BoxBtnW, BoxBtnH);
