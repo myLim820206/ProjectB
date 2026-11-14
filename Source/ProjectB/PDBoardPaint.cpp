@@ -1303,7 +1303,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	TMap<int32, FLinearColor> SynCol;
 	if (bFuseMode)
 	{
-		const FLinearColor Pal[6] = {HandColor((EPDHand)HandFilter), Hex(TEXT("ffd96a")), Hex(TEXT("9cffb0")), Hex(TEXT("ff9ad5")), Hex(TEXT("b48cff")), Hex(TEXT("ffa86a"))};
+		// 서로 뚜렷이 다른 색 (D-201): 금 · 자홍 · 연두 · 파랑 · 주황 · 흰빛 (합쳐질 칸 하늘색 5ff2ff 과도 안 겹치게)
+		const FLinearColor Pal[6] = {Hex(TEXT("ffd24a")), Hex(TEXT("ff4fd8")), Hex(TEXT("7dff5a")), Hex(TEXT("5a8cff")), Hex(TEXT("ff8a3a")), Hex(TEXT("f0f0ff"))};
 		TMap<int32, int32> Used; // 칸 → 색 번호
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
@@ -1332,21 +1333,23 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			const bool bHov = std::find(FS.Cells.begin(), FS.Cells.end(), HKey) != FS.Cells.end();
 			// 재료 칸 색이 족보 색 → 흰빛 → 족보 색으로 천천히 오간다 (D-122)
 			const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
-			const FLinearColor Pick = FMath::Lerp(SynCol.FindRef(I), FLinearColor::White, 0.45f * Wv);
-			// 합성 대상 표시 (D-121): 재료 칸마다 족보 색 테두리 + 옅은 채움, 마우스가 올라간 족보는 더 밝게
+			const FLinearColor Pick = FMath::Lerp(SynCol.FindRef(I), FLinearColor::White, 0.2f * Wv);
+			// 합성 대상 표시 (D-121, D-201): 족보 하나를 한 덩어리로 — 채움은 같은 족보 칸끼리 이어 붙이고, 테두리는 덩어리 바깥 변에만.
+			// 그래서 같은 족보 둘이 붙어 있어도 사이에 틈과 테두리가 생기고 색도 달라 갈라져 보인다
+			auto SameSyn = [&FS](int X, int Y) { return X >= 0 && Y >= 0 && X < Cols && Y < Rows && std::find(FS.Cells.begin(), FS.Cells.end(), CellKey(X, Y)) != FS.Cells.end(); };
 			for (int K : FS.Cells)
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.34f : 0.22f) + 0.22f * Wv));
-					// 합성 시점의 빗금 (D-144): 합성될 칸에만
-					if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pick, 0.45f + 0.25f * Wv));
-					else for (float D = HatchStep; D < CS * 2.f; D += HatchStep)
-					{
-						const float Ax = FMath::Max(0.f, D - CS), Bx = FMath::Min(CS, D);
-						F.Lines({C0 + FVector2f(Ax, D - Ax), C0 + FVector2f(Bx, D - Bx)}, WithAlpha(Pick, 0.45f), 1.f);
-					}
-					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.4f : 2.8f, 1.4f + 1.4f * Wv);
-					F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
+					const int CX = K % Cols, CY = K / Cols;
+					const bool bL = SameSyn(CX - 1, CY), bR = SameSyn(CX + 1, CY), bU = SameSyn(CX, CY - 1), bD = SameSyn(CX, CY + 1);
+					const float In = 4.f, X0 = C0.X + (bL ? 0.f : In), X1 = C0.X + CS - (bR ? 0.f : In), Y0 = C0.Y + (bU ? 0.f : In), Y1 = C0.Y + CS - (bD ? 0.f : In);
+					F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Pick, (bHov ? 0.3f : 0.2f) + 0.12f * Wv));
+					const FLinearColor Ec = WithAlpha(Pick, 0.95f);
+					const float Ew = bHov ? 3.f : 2.4f, Eg = 1.2f + 0.8f * Wv;
+					if (!bU) F.Glow({FVector2f(X0, Y0), FVector2f(X1, Y0)}, Ec, Ew, Eg);
+					if (!bD) F.Glow({FVector2f(X0, Y1), FVector2f(X1, Y1)}, Ec, Ew, Eg);
+					if (!bL) F.Glow({FVector2f(X0, Y0), FVector2f(X0, Y1)}, Ec, Ew, Eg);
+					if (!bR) F.Glow({FVector2f(X1, Y0), FVector2f(X1, Y1)}, Ec, Ew, Eg);
 				}
 			if (bHov) // 마우스 칸 = 합쳐질 칸: 하늘색 테두리 + 퍼지는 고리 + "여기", 다른 재료 칸에서 점선
 			{
