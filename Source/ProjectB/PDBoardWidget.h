@@ -94,7 +94,7 @@ private:
 	// ---- 설정 (D-110): GameUserSettings.ini [ProjectB.Settings]. 화면 모드는 엔진 GameUserSettings 가 저장
 	struct FSettings
 	{
-		int32 WindowMode = 0; // 0 창, 1 전체화면, 2 테두리 없는 전체화면
+		int32 WindowMode = 2; // 0 창, 1 전체화면, 2 테두리 없는 전체화면 (기본, D-158)
 		bool bWorldFx = true; // 나이아가라 월드 이펙트
 		bool bShake = true;   // 화면 흔들림·번쩍임
 		bool bSound = true;
