@@ -551,7 +551,18 @@ constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1,
 constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4;
 // 카드병정 적 (D-175): 모양 8 × 걷기 4프레임, 흰색으로 구워 그릴 때 적 색으로 물들인다. 칸 가운데가 몸 가운데, 발은 +SoldierFoot
 constexpr int32 SoldierShapes = 20, SoldierFrames = 12, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176)
-constexpr int32 AtlasSnow = AtlasSoldier0 + SoldierShapes * SoldierFrames, AtlasN = AtlasSnow + 1; // 둔화 눈송이 (D-178)
+constexpr int32 AtlasSnow = AtlasSoldier0 + SoldierShapes * SoldierFrames; // 둔화 눈송이 (D-178)
+constexpr int32 AtlasShield = AtlasSnow + 1, AtlasN = AtlasShield + 1; // 방어력 방패 (D-186)
+constexpr float ShieldBakeS = 30.f; // 방패 칸: 가운데 기준 반폭 0.8S, 위아래 ±1.05S
+// 방패 윤곽 (D-186, 미리보기 tools/neon 방패 시안): 위는 살짝 솟고, 옆은 곧게 내려가다 아래 끝이 뾰족
+inline TArray<FVector2f> ShieldPoints(FVector2f C, float S)
+{
+	TArray<FVector2f> R = {C + FVector2f(-0.8f, -0.85f) * S, C + FVector2f(-0.4f, -0.95f) * S, C + FVector2f(0.f, -1.05f) * S, C + FVector2f(0.4f, -0.95f) * S, C + FVector2f(0.8f, -0.85f) * S, C + FVector2f(0.8f, -0.1f) * S};
+	for (int32 K = 1; K <= 10; ++K) { const float T = K / 10.f; R.Add(C + FVector2f(0.8f * FMath::Pow(1.f - T, 1.3f), -0.1f + 1.15f * FMath::Sin(T * HALF_PI)) * S); }
+	for (int32 K = R.Num() - 2; K >= 5; --K) { const FVector2f Q = R[K]; R.Add(FVector2f(2.f * C.X - Q.X, Q.Y)); } // 옮겨 담고 넣는다 (자기 원소를 넣으면 배열이 늘며 깨진다)
+	{ const FVector2f Q0 = R[0]; R.Add(Q0); }
+	return R;
+}
 constexpr float SoldierFoot = 37.f, SoldierBakeR = 29.f, SoldierBossBakeR = 23.f;
 inline int32 SoldierShape(EPDEnemy T)
 {
@@ -590,7 +601,7 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 8; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184)
+constexpr int32 AtlasVersion = 9; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186)
 constexpr int32 AtlasVersionPrev = 7; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14

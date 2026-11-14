@@ -75,6 +75,14 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 				for (const float B : {0.45f, 0.72f}) { const FVector2f Q = P + D * 30.f * B; const float L = B < 0.6f ? 9.f : 6.f; F.Glow({Q + (D - N) * L * 0.7f, Q, Q + (D + N) * L * 0.7f}, FLinearColor::White, 1.4f, 0.6f); }
 			}
 	}
+	{ // 방어력 방패 (D-186): 윤곽 + 가운데 세로줄, 흰색 (그릴 때 방어력 색으로)
+		const FVector2f P = AtlasCellCenter(AtlasShield);
+		if (Vis(P))
+		{
+			F.Glow(ShieldPoints(P, ShieldBakeS), FLinearColor::White, 2.2f, 0.8f);
+			F.Glow({P + FVector2f(0.f, -0.75f * ShieldBakeS), P + FVector2f(0.f, 0.92f * ShieldBakeS)}, FLinearColor::White, 1.6f, 0.6f);
+		}
+	}
 	for (int32 Sh = 0; Sh < SoldierShapes; ++Sh) // 카드병정 적 (D-175): 흰색, 걷기 4프레임
 		for (int32 Fr = 0; Fr < SoldierFrames; ++Fr)
 		{
@@ -773,7 +781,15 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		const float HpNow = FMath::Max(0.f, E.Hp / E.MaxHp), HpOld = FMath::Max(HpNow, HpShown.FindRef(E.Id));
 		if (HpOld > HpNow) F.Box(P.X - W / 2.f + W * HpNow, BY, W * (HpOld - HpNow), 3.f, Hex(TEXT("ffffff"), 0.85f)); // 방금 깎인 만큼
 		F.Box(P.X - W / 2.f, BY, W * HpNow, 3.f, EnemyColor(E.Type));
-		if (E.Armor > 0.f && !G.Has(EPDCharm::Pierce)) F.Box(P.X - W / 2.f, BY - 4.f, W, 2.f, Hex(TEXT("9fc3e8")));
+		if (E.Armor > 0.f && !G.Has(EPDCharm::Pierce)) // 방어력 (D-186): 체력 막대 왼쪽에 작은 방패 (아틀라스가 없으면 예전 막대)
+		{
+			if (UseAtlas())
+			{
+				const float Ss = bBoss ? 8.f : 6.f;
+				F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasShield], P.X - W / 2.f - Ss - 3.f, BY + 1.5f, Ss / ShieldBakeS, Hex(TEXT("9fc3e8")));
+			}
+			else F.Box(P.X - W / 2.f, BY - 4.f, W, 2.f, Hex(TEXT("9fc3e8")));
+		}
 	}
 }
 
@@ -1467,18 +1483,21 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			};
 			if (T.IsJoker())
 			{
-				const FVector2f Pj = PlaceTip(246.f, 108.f);
+				const FVector2f Pj = PlaceTip(246.f, 140.f);
 				const float JX = Pj.X, JY = Pj.Y;
-				F.Box(JX, JY, 246.f, 108.f, Hex(TEXT("06060b"), 0.94f));
-				F.Glow(FCanvas::RoundRectPoints(JX, JY, 246.f, 108.f, 8.f), JokerPink, 1.2f, 0.4f);
+				F.Box(JX, JY, 246.f, 140.f, Hex(TEXT("06060b"), 0.94f));
+				F.Glow(FCanvas::RoundRectPoints(JX, JY, 246.f, 140.f, 8.f), JokerPink, 1.2f, 0.4f);
 				F.Text(TrF(TEXT("%s 대장: %s"), HandName(CaptainHand((EPDJoker)T.Joker)), JokerName(T.Joker)), JX + 10.f, JY + 18.f, JokerPink, 12.f, 0, true, 226.f);
 				F.Text(PowLine, JX + 10.f, JY + 36.f, PowCol, 11.f, 0, true, 226.f);
-				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 54.f, Fg, 10.f, 0, false, 226.f);
-				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 70.f, Gold, 10.f, 0, false, 226.f);
-				F.Text(TrF(TEXT("클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 86.f, Grey, 10.f, 0, false, 226.f);
+				// 조커도 공격력·연사·치명·사거리 (D-187): 일반 타워 툴팁과 같은 두 줄
+				F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), JX + 10.f, JY + 54.f, Fg, 11.f, 0, false, 226.f);
+				F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), JX + 10.f, JY + 70.f, Grey, 11.f, 0, false, 226.f);
+				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 86.f, Fg, 10.f, 0, false, 226.f);
+				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 102.f, Gold, 10.f, 0, false, 226.f);
+				F.Text(TrF(TEXT("클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f);
 				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, (T.JLevel - 1) * 10)
 					: TrF(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), (T.JLevel - 1) * 10, T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
-					JX + 10.f, JY + 102.f, JokerPink, 10.f, 0, false, 226.f);
+					JX + 10.f, JY + 134.f, JokerPink, 10.f, 0, false, 226.f);
 			}
 			else
 			{
@@ -1705,13 +1724,21 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			const bool bHov = InRect(Mouse, X, Y, W, H);
 			C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.6f));
 			if (bHov) C.Box(X, Y, W, H, WithAlpha(Col, 0.08f));
-			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), UiEdge, bHov ? 1.6f : 1.2f, bHot ? 0.5f + 0.8f * Pulse : bHov ? 0.9f : 0.4f);
+			if (bHot) // 살 수 있으면 반짝 (D-186): 버튼 색으로 숨쉬듯 차오르고, 빛줄기가 왼쪽→오른쪽으로 훑고 지나간다
+			{
+				C.Box(X, Y, W, H, WithAlpha(Col, 0.10f + 0.12f * Pulse));
+				const float Ph = FMath::Fmod(Clock * 0.7f + (X > TreeBtnX ? 0.5f : 0.f), 1.f), Sx = X + 6.f + (W + 10.f) * Ph, Sl = H * 0.35f;
+				if (Sx - Sl > X + 4.f && Sx < X + W - 4.f) C.Glow({FVector2f(Sx, Y + 4.f), FVector2f(Sx - Sl, Y + H - 4.f)}, WithAlpha(FLinearColor::White, 0.7f), 1.6f, 1.f);
+			}
+			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), bHot ? FMath::Lerp(UiEdge, Col, 0.6f) : UiEdge, bHot ? 1.8f : bHov ? 1.6f : 1.2f, bHot ? 0.8f + 0.9f * Pulse : bHov ? 0.9f : 0.4f);
 			C.Text(Name, X + 12.f, Y + H / 2.f + 5.f, bHot ? FMath::Lerp(UiValue, Col, 0.5f + 0.5f * Pulse) : UiValue, 13.f, 0, true, W - 34.f); // 글자는 흰빛 (D-163), 찍을 노드가 있으면 깜빡
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
 		Btn(TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.Gold >= G.PointPrice());
-		Btn(UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH, TEXT("골드 강화"), TEXT("U"), Gold, false);
+		bool bUpgCan = false; // 골드 강화 하나라도 살 수 있으면 (D-186)
+		for (int32 U = 0; U < (int32)EPDUpgrade::Count && !bUpgCan; ++U) bUpgCan = G.Upg[U] < UpgradeMax && G.Gold >= UpgradeCost(G.Upg[U]);
+		Btn(UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH, TEXT("골드 강화"), TEXT("U"), Gold, bPlay && bUpgCan);
 		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("조커 도감"), TEXT("J"), JokerPink, false);
 		Btn(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, TEXT("메뉴"), TEXT("Esc"), Grey, false);
 	}
