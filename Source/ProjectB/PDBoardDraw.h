@@ -550,7 +550,7 @@ constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1,
 // 선 스프라이트 (D-146): 가로 띠 (가운데 꽉, 위아래 가장자리만 부드럽게). 모든 선은 이걸 늘여 찍는다
 constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4;
 // 카드병정 적 (D-175): 모양 8 × 걷기 4프레임, 흰색으로 구워 그릴 때 적 색으로 물들인다. 칸 가운데가 몸 가운데, 발은 +SoldierFoot
-constexpr int32 SoldierShapes = 20, SoldierFrames = 4, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176)
+constexpr int32 SoldierShapes = 20, SoldierFrames = 8, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176)
 constexpr int32 AtlasSnow = AtlasSoldier0 + SoldierShapes * SoldierFrames, AtlasN = AtlasSnow + 1; // 둔화 눈송이 (D-178)
 constexpr float SoldierFoot = 37.f, SoldierBakeR = 29.f, SoldierBossBakeR = 23.f;
 inline int32 SoldierShape(EPDEnemy T)
@@ -590,7 +590,8 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 7; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+constexpr int32 AtlasVersion = 8; // 8: 카드병정 흐느적 8프레임 (D-182)
+constexpr int32 AtlasVersionPrev = 7; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
@@ -704,8 +705,34 @@ struct SPDBoardWidget::FCanvas
 	int32 NextLayer() { return ++(*Layer); }
 	// 층 나누기 (D-120): 선은 지금 층에 모아 그린다 (같은 층의 선은 한 번에 묶여 그려져 그리기 호출이 크게 준다).
 	// 상자·글자는 새 층을 받고, 그 뒤의 선이 그 위에 오도록 층을 하나 더 올려 둔다 (그리는 순서는 그대로)
+	// 휘기 (D-182): 카드병정을 구울 때 몸 전체를 휜다. 위로 갈수록 Bend 만큼 옆으로 밀고(아래 끝은 그대로), 엉덩이를 축으로 Ang 만큼 돌린다
+	struct FWarp { bool bOn = false; FVector2f Hip = FVector2f(0.f, 0.f); float Top = 0.f, BH = 1.f, Bend = 0.f, Ang = 0.f; };
+	FWarp Warp;
+	FVector2f WarpP(FVector2f Q) const
+	{
+		const float V = FMath::Clamp((Q.Y - Warp.Top) / FMath::Max(1.f, Warp.BH), 0.f, 1.f);
+		Q.X += Warp.Bend * (1.f - V) * (1.f - V);
+		return Warp.Hip + Rot2(Q - Warp.Hip, Warp.Ang);
+	}
 	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
+		if (Warp.bOn) // 곧은 선도 휘어 보이게 잘게 나눠서 옮긴다
+		{
+			TArray<FVector2f> Q;
+			for (int32 I = 0; I < P.Num(); ++I)
+			{
+				if (I > 0)
+				{
+					const int32 N = FMath::Clamp((int32)(FVector2f::Distance(P[I - 1], P[I]) / 2.5f), 1, 64);
+					for (int32 K = 1; K < N; ++K) Q.Add(WarpP(FMath::Lerp(P[I - 1], P[I], K / (float)N)));
+				}
+				Q.Add(WarpP(P[I]));
+			}
+			Warp.bOn = false;
+			Lines(Q, Col, Thick);
+			Warp.bOn = true;
+			return;
+		}
 		if (LineAA) // 선 스프라이트 (D-146): 마디마다 띠 하나를 늘이고 돌려 찍는다. 같은 층이라 한 번에 그려진다
 		{
 			// Slate 선은 굵기 + 2px (양쪽 1px 거르기) 너비로 그리고 셰이더가 가장자리를 깎는다. 같은 너비로 찍고, 굵기에 가장 가까운 띠를 쓴다
@@ -964,8 +991,13 @@ struct SPDBoardWidget::FCanvas
 		const float Lean = Kd == 1 ? FMath::DegreesToRadians(8.f) : Kd == 10 ? FMath::DegreesToRadians(12.f) : 0.f;
 		const float BW = 0.76f * R * wk, BH = 1.18f * R * hk, LegL = 0.32f * R * hk;
 		const FVector2f Hip(Foot.X, Foot.Y - LegL - Bob);
-		auto Rt = [&](FVector2f P) { return Lean == 0.f ? P : Hip + Rot2(P - Hip, Lean); };
-		auto RtA = [&](TArray<FVector2f> A) { for (FVector2f& P : A) P = Rt(P); return A; };
+		// 흐느적 (D-182): 카드 윗부분이 걸음보다 늦게 좌우로 휘청 + 몸 전체 살짝 흔들림. 기울기도 함께 휘기에서 처리
+		struct FWarpScope { FWarp& W; ~FWarpScope() { W.bOn = false; } } WarpScope{Warp};
+		Warp.bOn = true; Warp.Hip = Hip; Warp.Top = Hip.Y - BH; Warp.BH = BH;
+		Warp.Bend = 0.26f * R * FMath::Sin(Ph - 0.9f);
+		Warp.Ang = Lean + FMath::DegreesToRadians(5.f) * FMath::Sin(Ph - 0.4f);
+		auto Rt = [&](FVector2f P) { return P; };
+		auto RtA = [&](TArray<FVector2f> A) { return A; };
 		const float Th = Kd == 2 ? 2.2f : 1.6f;
 		for (const float S : {1.f, -1.f}) // 다리: 번갈아 앞뒤로 (유령은 다리 없이 떠다닌다)
 		{
@@ -1006,12 +1038,12 @@ struct SPDBoardWidget::FCanvas
 		for (const float S : {1.f, -1.f})
 		{
 			const FVector2f Sh = Rt(FVector2f(BC.X + S * BW / 2.f, ShY));
-			const float A = -FMath::DegreesToRadians(30.f) * Sw * S;
+			const float A = -FMath::DegreesToRadians(45.f) * FMath::Sin(Ph - 0.6f) * S; // 팔도 늦게 크게 (D-182)
 			const FVector2f H(Sh.X + S * 0.14f * R + FMath::Sin(A) * 0.07f * R, Sh.Y + 0.26f * R * FMath::Cos(A * 0.5f));
 			Lines({Sh, H}, Col, 1.4f);
 			(S > 0.f ? RH : LH) = H;
 		}
-		if (bBossK) { BossGear(Kd, Col, BC, Top, BW, BH, Hip, Lean, RH, LH, R, T, Sw, Ph); return; }
+		if (bBossK) { BossGear(Kd, Col, BC, Top, BW, BH, Hip, 0.f, RH, LH, R, T, Sw, Ph); return; } // 기울기·휘기는 Warp 가 함
 		switch (Kd)
 		{
 		case 0: // 창
