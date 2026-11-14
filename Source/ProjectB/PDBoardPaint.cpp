@@ -1605,6 +1605,31 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.TextCentered(BannerText, FX + Cols * CS / 2.f - Sweep, CY - 8.f, WithAlpha(BannerCol, A), 40.f, true, Cols * CS - 20.f);
 		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false, Cols * CS - 20.f);
 	}
+	// 평소 마우스를 올린 타워의 족보 영역 (D-215): 합성 모드처럼 족보마다 한 덩어리 (족보 색, 바깥 변에만 테두리)
+	if (!bPv && HandFilter < 0 && PickCells.empty() && !bSwapMode && Sel < 0 && G.Phase != EPDPhase::Reward)
+	{
+		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
+		for (const FPDSynergy& S : HovSyn)
+		{
+			const std::vector<int>& Cells = S.Cells;
+			const FLinearColor Col = HandColor(S.Kind);
+			auto Same = [&Cells](int X, int Y) { return X >= 0 && Y >= 0 && X < Cols && Y < Rows && std::find(Cells.begin(), Cells.end(), CellKey(X, Y)) != Cells.end(); };
+			for (int K : Cells)
+			{
+				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+				const int CX = K % Cols, CY = K / Cols;
+				const bool bL = Same(CX - 1, CY), bR = Same(CX + 1, CY), bU = Same(CX, CY - 1), bD = Same(CX, CY + 1);
+				const float In = 4.f, X0 = C0.X + (bL ? 0.f : In), X1 = C0.X + CS - (bR ? 0.f : In), Y0 = C0.Y + (bU ? 0.f : In), Y1 = C0.Y + CS - (bD ? 0.f : In);
+				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, 0.12f + 0.06f * Wv));
+				const FLinearColor Ec = WithAlpha(Col, 0.85f);
+				const float Ew = 2.2f, Eg = 0.9f + 0.5f * Wv;
+				if (!bU) F.Glow({FVector2f(X0, Y0), FVector2f(X1, Y0)}, Ec, Ew, Eg);
+				if (!bD) F.Glow({FVector2f(X0, Y1), FVector2f(X1, Y1)}, Ec, Ew, Eg);
+				if (!bL) F.Glow({FVector2f(X0, Y0), FVector2f(X0, Y1)}, Ec, Ew, Eg);
+				if (!bR) F.Glow({FVector2f(X1, Y0), FVector2f(X1, Y1)}, Ec, Ew, Eg);
+			}
+		}
+	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
 	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward)
 	{
@@ -1642,28 +1667,37 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				return Best;
 			};
 			// 족보·연쇄 줄 (D-202): "풀하우스 · 투 페어 · 포카드 · 연쇄 ×4.5" 를 족보 색으로 이어 쓰고 넘치면 다음 줄
+			// 족보 줄 (D-202, D-215): 족보마다 "이름  효과" 한 줄, 연쇄 줄, 이 타워에 실제로 붙은 족보 배율 줄
 			auto SynLines = [&](bool bDraw, float X0, float Y0, float W) -> int32 {
 				if (HovSyn.empty()) return 0;
-				const FSlateFontInfo Fn = FCanvas::Font(11.f, true);
-				float X = X0;
-				int32 Lines = 1;
+				int32 Lines = 0;
 				int32 Chain = 1;
-				auto Put = [&](const FString& S, const FLinearColor& Col) {
-					const float Wd = FCanvas::Measure(S, Fn).X;
-					if (X > X0 && X + Wd > X0 + W) { X = X0; ++Lines; }
-					if (bDraw) F.Text(S, X, Y0 + (Lines - 1) * 16.f, Col, 11.f, 0, true);
-					X += Wd;
-				};
-				for (int32 I = 0; I < (int32)HovSyn.size(); ++I)
+				for (const FPDSynergy& S : HovSyn)
 				{
-					const FPDSynergy& S = HovSyn[I];
 					FString L = HandName(S.Kind);
 					if (S.Kind == EPDHand::Flush || S.Kind == EPDHand::Straight) L += FString::FromInt(S.N);
-					if (I > 0) Put(TEXT(" · "), Grey);
-					Put(L, HandColor(S.Kind));
+					if (bDraw)
+					{
+						const float Y = Y0 + Lines * 16.f;
+						F.Text(L, X0, Y, HandColor(S.Kind), 11.f, 0, true, W * 0.5f);
+						const float Nw = FMath::Min(W * 0.5f, FCanvas::Measure(L, FCanvas::Font(11.f, true)).X);
+						F.Text(HandEffect(S.Kind), X0 + Nw + 8.f, Y, Fg, 10.f, 0, false, W - Nw - 8.f);
+					}
+					++Lines;
 					Chain = FMath::Max(Chain, S.Chain);
 				}
-				if (Chain >= 2) { Put(TEXT(" · "), Grey); Put(TrF(TEXT("연쇄 ×%s"), *FString::SanitizeFloat(1.f + ChainStep * (Chain - 1))), Gold); }
+				if (Chain >= 2)
+				{
+					if (bDraw) F.Text(TrF(TEXT("연쇄 ×%s (족보 %d개가 이어짐)"), *FString::SanitizeFloat(1.f + ChainStep * (Chain - 1)), Chain), X0, Y0 + Lines * 16.f, Gold, 10.f, 0, false, W);
+					++Lines;
+				}
+				if (It != G.Towers.end())
+				{
+					const FPDEffects& E = It->second.Eff;
+					if (bDraw) F.Text(TrF(TEXT("이 타워에 적용: 공격 ×%.2f · 연사 ×%.2f · 사거리 ×%.2f%s"), E.Dmg, E.Rate, E.Range, E.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), E.Splash) : TEXT("")),
+						X0, Y0 + Lines * 16.f, Gold, 10.f, 0, true, W);
+					++Lines;
+				}
 				return Lines;
 			};
 			if (bFeedBtnHov && FeedHovSyn >= 0 && FeedJoker >= 0)
