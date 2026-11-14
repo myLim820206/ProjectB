@@ -64,21 +64,40 @@ def soldier(kind, cx, cy, R, t):
     if wpn == 'split':  # 가운데 찢어진 금
         zz = [(body_c[0] + (0.08 if k % 2 else -0.08) * bw, top + bh * k / 6) for k in range(7)]
         L.append(([rot(p, hip, lean) for p in zz], c, 1.2))
-    sym = neon.suit(st)(body_c[0], body_c[1] + 0.02 * R, 0.26 * R * min(wk, hk))
-    for s in sym:
-        L.append(([rot(p, hip, lean) for p in s], c, 1.3))
-    # 왼쪽 위 숫자 (작은 획): 보스는 K
-    # 머리 + 모자
-    head = rot((cx, top - 0.26 * R), hip, lean)
-    L.append((neon.circle(head[0], head[1], 0.2 * R, 20), c, 1.5))
-    if wpn == 'king':  # 왕관
-        crown = [(head[0] - 0.22 * R, head[1] - 0.16 * R), (head[0] - 0.22 * R, head[1] - 0.42 * R), (head[0] - 0.11 * R, head[1] - 0.28 * R),
-                 (head[0], head[1] - 0.46 * R), (head[0] + 0.11 * R, head[1] - 0.28 * R), (head[0] + 0.22 * R, head[1] - 0.42 * R),
-                 (head[0] + 0.22 * R, head[1] - 0.16 * R), (head[0] - 0.22 * R, head[1] - 0.16 * R)]
-        L.append((crown, HX('ffd96a'), 1.6))
-    else:  # 납작 모자
-        L.append(([(head[0] - 0.24 * R, head[1] - 0.14 * R), (head[0] + 0.24 * R, head[1] - 0.14 * R)], c, 1.4))
-        L.append(([(head[0] - 0.14 * R, head[1] - 0.14 * R), (head[0] - 0.12 * R, head[1] - 0.3 * R), (head[0] + 0.12 * R, head[1] - 0.3 * R), (head[0] + 0.14 * R, head[1] - 0.14 * R)], c, 1.4))
+    # 무늬는 카드 귀퉁이에 작게 (왼쪽 위, 오른쪽 아래), 가운데는 얼굴 (머리 없이 카드가 곧 몸이자 얼굴)
+    pr = 0.11 * R * min(wk, hk)
+    for (ox, oy) in ((-bw / 2 + 0.17 * R * wk, -bh / 2 + 0.2 * R * hk), (bw / 2 - 0.17 * R * wk, bh / 2 - 0.2 * R * hk)):
+        for s in neon.suit(st)(body_c[0] + ox, body_c[1] + oy, pr):
+            L.append(([rot(p, hip, lean) for p in s], c, 1.1))
+    fc = (body_c[0], body_c[1] - 0.04 * R)
+    ex, ey, er = 0.2 * R * min(wk, 1.1), 0.12 * R, 0.1 * R # 게임 크기에서도 보이게 눈을 크게
+    blink = (t * spd * 1.3) % 1.0 > 0.9  # 가끔 눈 깜빡
+    for s in (-1, 1):
+        e_c = (fc[0] + s * ex, fc[1] - ey)
+        if blink:
+            L.append(([rot((e_c[0] - er, e_c[1]), hip, lean), rot((e_c[0] + er, e_c[1]), hip, lean)], c, 1.4))
+        else:
+            L.append(([rot(p, hip, lean) for p in neon.circle(e_c[0], e_c[1], er, 12)], c, 1.4))
+            pup = (e_c[0] + 0.02 * R, e_c[1] + 0.01 * R)
+            L.append(([rot(p, hip, lean) for p in neon.circle(pup[0], pup[1], er * 0.35, 8)], c, 1.2))
+        if name in ('탱크', '보스: 왕'):  # 짙은 눈썹
+            L.append(([rot((e_c[0] - s * 0.09 * R, e_c[1] - 0.12 * R), hip, lean), rot((e_c[0] + s * 0.07 * R, e_c[1] - 0.08 * R), hip, lean)], c, 1.4))
+    nose = [(fc[0], fc[1] - 0.02 * R), (fc[0] - 0.04 * R, fc[1] + 0.09 * R), (fc[0] + 0.02 * R, fc[1] + 0.09 * R)]
+    L.append(([rot(p, hip, lean) for p in nose], c, 1.2))
+    mw = 0.2 * R
+    if name == '빠름':      # 이를 악문 입
+        mouth = [(fc[0] - mw, fc[1] + 0.2 * R), (fc[0] + mw, fc[1] + 0.2 * R)]
+    elif name == '재생자':  # 웃는 입
+        mouth = [(fc[0] + math.cos(math.radians(a)) * mw, fc[1] + 0.14 * R + math.sin(math.radians(a)) * 0.1 * R) for a in range(20, 161, 20)]
+    else:                   # 걸음마다 오물오물 (살짝 열렸다 닫힘)
+        op = 0.03 * R + 0.04 * R * abs(sw)
+        mouth = [(fc[0] - mw * 0.7, fc[1] + 0.2 * R), (fc[0], fc[1] + 0.2 * R + op), (fc[0] + mw * 0.7, fc[1] + 0.2 * R), (fc[0], fc[1] + 0.2 * R - op * 0.3), (fc[0] - mw * 0.7, fc[1] + 0.2 * R)]
+    L.append(([rot(p, hip, lean) for p in mouth], c, 1.3))
+    if wpn == 'king':  # 왕관은 카드 위에 바로
+        hx, hy = body_c[0], top
+        crown = [(hx - 0.3 * R, hy), (hx - 0.3 * R, hy - 0.28 * R), (hx - 0.15 * R, hy - 0.12 * R), (hx, hy - 0.34 * R), (hx + 0.15 * R, hy - 0.12 * R),
+                 (hx + 0.3 * R, hy - 0.28 * R), (hx + 0.3 * R, hy)]
+        L.append(([rot(p, hip, lean) for p in crown], HX('ffd96a'), 1.6))
     # 팔 (어깨에서, 다리와 반대로 흔든다)
     sh_y = top + 0.22 * bh
     for s in (1, -1):
@@ -100,7 +119,7 @@ def soldier(kind, cx, cy, R, t):
         L.append(([(rh[0], rh[1] + 0.25 * R), top_a], c, 1.8))
         L.append(([top_a, (top_a[0] + 0.32 * R, top_a[1] - 0.12 * R), (top_a[0] + 0.36 * R, top_a[1] + 0.22 * R), (top_a[0], top_a[1] + 0.2 * R)], c, 1.8))
     elif wpn == 'shield':
-        sc = (cx + 0.55 * bw, body_c[1] + 0.05 * R)
+        sc = (cx + 0.72 * bw, body_c[1] + 0.12 * R)
         sp = [(sc[0], sc[1] - 0.42 * R), (sc[0] + 0.32 * R, sc[1] - 0.28 * R), (sc[0] + 0.28 * R, sc[1] + 0.2 * R), (sc[0], sc[1] + 0.45 * R),
               (sc[0] - 0.28 * R, sc[1] + 0.2 * R), (sc[0] - 0.32 * R, sc[1] - 0.28 * R), (sc[0], sc[1] - 0.42 * R)]
         L.append((sp, c, 2.0))
@@ -129,7 +148,7 @@ def soldier(kind, cx, cy, R, t):
 
 
 def sheet(out):
-    W, H, S = 1280, 920, 2
+    W, H, S = 1280, 990, 2
     M = neon._Mock(S, W, H)
     R = 46
     for i, k in enumerate(KINDS):
@@ -141,6 +160,11 @@ def sheet(out):
             for pts, c, wd in soldier(k, x, y + 130, R * (1.0 if k[0] != '조각' else 1.0), f / 4):
                 M.ln(pts, c, wd)
         M.tx(colx + 30, y + 150, '걷기 4프레임', (95, 104, 120), 10, 'lm')
+    # 게임 크기 (판 칸 48 안에서 적 키 약 30)
+    M.tx(30, H - 20, '게임 크기', (95, 104, 120), 10, 'lm')
+    for i, k in enumerate(KINDS):
+        for pts, cc, wd in soldier(k, 140 + i * 60, H - 8, 13 if k[0] != '보스: 왕' else 17, 0.25):
+            M.ln(pts, cc, wd * 0.6)
     img = Image.new('RGB', (W * S, H * S), neon.BG)
     M.draw(img).resize((W, H), Image.LANCZOS).save(out)
 
