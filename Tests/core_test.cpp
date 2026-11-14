@@ -776,6 +776,14 @@ static void UnitTests()
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		Groups = G.JokerGroups();
 		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Cheshire && Groups[0].FusedCells.size() == 1, "포카드를 기억한 합성 타워 + 스트레이트 → 체셔 (2개 레시피)");
+		// 따로 선 합성 타워 셋: 플러시 4♠ · 로열 A♦ · 스트레이트 플러시 3♥ 한 줄 → 스타 (사용자 판)
+		G.Towers.clear();
+		Put(G.Towers, 0, Row, C(4), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::Flush;
+		Put(G.Towers, 1, Row, C(14, Di), 2); G.Towers[CellKey(1, Row)].FuseHand = (int)EPDHand::RoyalFlush;
+		Put(G.Towers, 2, Row, C(3, He), 2); G.Towers[CellKey(2, Row)].FuseHand = (int)EPDHand::StraightFlush;
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		Groups = G.JokerGroups();
+		Expect(Groups.size() == 1 && Groups[0].Result == EPDJoker::Star && Groups[0].Cells.size() == 3, "합성 타워 플러시·로열·스트플 한 줄 → 스타");
 		// 합성 타워는 족보를 기억한다
 		G.Towers.clear();
 		Put(G.Towers, 0, Row, C(6)); Put(G.Towers, 1, Row, C(6, He));
