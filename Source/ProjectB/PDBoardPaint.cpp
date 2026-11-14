@@ -1724,14 +1724,10 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			const bool bHov = InRect(Mouse, X, Y, W, H);
 			C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.6f));
 			if (bHov) C.Box(X, Y, W, H, WithAlpha(Col, 0.08f));
-			if (bHot) // 살 수 있으면 반짝 (D-186): 버튼 색으로 숨쉬듯 차오르고, 빛줄기가 왼쪽→오른쪽으로 훑고 지나간다
-			{
-				C.Box(X, Y, W, H, WithAlpha(Col, 0.10f + 0.12f * Pulse));
-				const float Ph = FMath::Fmod(Clock * 0.7f + (X > TreeBtnX ? 0.5f : 0.f), 1.f), Sx = X + 6.f + (W + 10.f) * Ph, Sl = H * 0.35f;
-				if (Sx - Sl > X + 4.f && Sx < X + W - 4.f) C.Glow({FVector2f(Sx, Y + 4.f), FVector2f(Sx - Sl, Y + H - 4.f)}, WithAlpha(FLinearColor::White, 0.7f), 1.6f, 1.f);
-			}
-			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), bHot ? FMath::Lerp(UiEdge, Col, 0.6f) : UiEdge, bHot ? 1.8f : bHov ? 1.6f : 1.2f, bHot ? 0.8f + 0.9f * Pulse : bHov ? 0.9f : 0.4f);
-			C.Text(Name, X + 12.f, Y + H / 2.f + 5.f, bHot ? FMath::Lerp(UiValue, Col, 0.5f + 0.5f * Pulse) : UiValue, 13.f, 0, true, W - 34.f); // 글자는 흰빛 (D-163), 찍을 노드가 있으면 깜빡
+			const float Fl = bHot ? FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f)) : 0.f; // 살 수 있으면 버튼 자체가 번쩍 (D-189): 버튼 색으로 차오르고 테두리가 함께 밝아짐
+			if (bHot) C.Box(X, Y, W, H, WithAlpha(Col, 0.06f + 0.32f * Fl));
+			C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 10.f), bHot ? FMath::Lerp(UiEdge, Col, 0.7f) : UiEdge, bHot ? 1.6f + 0.6f * Fl : bHov ? 1.6f : 1.2f, bHot ? 0.5f + 1.6f * Fl : bHov ? 0.9f : 0.4f);
+			C.Text(Name, X + 12.f, Y + H / 2.f + 5.f, bHot ? FMath::Lerp(Col, FLinearColor::White, Fl) : UiValue, 13.f, 0, true, W - 34.f); // 글자는 흰빛 (D-163), 살 수 있으면 번쩍임에 맞춰 버튼 색↔흰빛 (D-189)
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
