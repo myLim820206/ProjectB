@@ -75,7 +75,7 @@ inline bool HasCharm(uint32_t Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; 
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;
 // 즉시 보상 (부적 칸을 쓰지 않음): 부적 창에서 와일드가 셋째 칸에 들거나, 부적 칸이 가득일 때 채움
-enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Gold, Swap, Count }; // 골드 = 10 + 웨이브 × 4
+enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Xp, Swap, Count }; // 경험치 = 10 + 웨이브 × 4 (D-228)
 constexpr float WildChance = 0.5f; // 부적 창마다 와일드가 셋째 칸에 들 확률
 constexpr float SwapChance = 0.4f; // 와일드가 없을 때 자리바꿈이 셋째 칸에 들 확률 (D-149)
 constexpr int SwapPerReward = 2;    // 자리바꿈 보상 한 장 = 2번
@@ -110,7 +110,7 @@ struct FPDEffects
 // 포인트 값은 살 때마다 ×1.15 로 올라 무한 진행에서도 트리를 다 채우지 못한다.
 // 키스톤은 둘씩 짝이라 하나를 찍으면 짝은 그 판 동안 봉인되고, 판마다 최대 3개.
 enum class EPDNode : uint8_t { Start, Small, Notable, Keystone, Joker };
-enum class EPDStat : uint8_t { None, SuitDmg, SuitRate, SuitRange, SuitSplash, SuitSlow, HandDmg, HandRate, HandSplash, AllDmg, ChainAdd, FuseAdd, FusedDmg, GoldPct, HandMax, Draw, Lives, Keystone, Joker, JokerDmg, JokerAdd, AllRate, CritChance, CritMult };
+enum class EPDStat : uint8_t { None, SuitDmg, SuitRate, SuitRange, SuitSplash, SuitSlow, HandDmg, HandRate, HandSplash, AllDmg, ChainAdd, FuseAdd, FusedDmg, XpPct, HandMax, Draw, Lives, Keystone, Joker, JokerDmg, JokerAdd, AllRate, CritChance, CritMult };
 // 키스톤: (외골수, 잡식가) (큰 판, 작은 판) (대장장이, 광대의 길) (고독한 저격수, 군중) 이 짝. 짝 번호 = K ^ 1
 enum class EPDKeystone : uint8_t { Purist, Omni, BigTable, SmallTable, Smith, ClownPath, Lone, Crowd, Count };
 constexpr int KeystoneMax = 3;
@@ -141,7 +141,7 @@ struct FPDTreeMods
 {
 	float SuitDmg[5] = {}, SuitRate[5] = {}, SuitRange[5] = {}, SuitSplash[5] = {}, SuitSlow[5] = {};
 	float HandDmg[(int)EPDHand::Count] = {}, HandRate[(int)EPDHand::Count] = {}, HandSplash[(int)EPDHand::Count] = {};
-	float AllDmg = 0.f, ChainAdd = 0.f, FuseAdd = 0.f, FusedDmg = 0.f, GoldPct = 0.f, JokerDmg = 0.f, JokerAdd = 0.f;
+	float AllDmg = 0.f, ChainAdd = 0.f, FuseAdd = 0.f, FusedDmg = 0.f, XpPct = 0.f, JokerDmg = 0.f, JokerAdd = 0.f;
 	float AllRate = 0.f, CritChance = 0.f, CritMult = 0.f; // 공격 속도, 치명타 확률(+%p), 치명타 배율(+)
 	// 골드 강화 (트리와 따로 곱한다)
 	float UpgDmg = 0.f, UpgRate = 0.f, UpgSuit[4] = {}, UpgCrit = 0.f, UpgCritMult = 0.f;
@@ -154,7 +154,7 @@ struct FPDTreeMods
 };
 FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned);
 
-// ---------------------------------------------------------------- 골드 강화 (레벨 0~9999, 판 안에서만)
+// ---------------------------------------------------------------- 강화 (D-228: 판 안 골드 강화 → 판 밖 영구 강화로 옮기는 중)
 enum class EPDUpgrade : uint8_t { Attack, Speed, Crit, CritMult, Spade, Heart, Diamond, Club, Count };
 constexpr int UpgradeMax = 9999;
 constexpr float BaseCrit = 0.05f, BaseCritMult = 1.5f; // 기본 치명타 5%, ×1.5. 100%를 넘으면 한 방에 치명타가 여러 번
@@ -379,7 +379,7 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp, LevelUp } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
@@ -402,7 +402,7 @@ public:
 	FPDEnemy SpawnTestEnemy(EPDEnemy T, float BaseHp, int W) { return MakeEnemy(T, BaseHp, W); } // 시험용
 	void HitTest(FPDEnemy& E, float Dmg) { Hit(E, Dmg, 0.f); } // 시험용
 	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { HitSrc = SrcKey; Hit(E, Dmg, 0.f); HitSrc = -1; } // 시험용: 이 칸 타워가 때림
-	bool GainJokerXp(int Key, float Xp);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치
+	bool GainJokerXp(int Key, float Amount);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치
 	void NewGame(bool bStart);
 	// 중단 저장 (D-162): 준비 단계(Build)의 판을 글자로. 웨이브 중에 그만두면 그 웨이브 시작 직전(PreWaveSave)으로 돌아간다
 	std::string SaveRun() const;
@@ -461,21 +461,21 @@ public:
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
 	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + Mods.HandAdd; }
 	// 스킬 트리
-	enum class EBuy : uint8_t { Ok, Owned, NotLinked, Sealed, KeyCap, NoGold, Closed };
-	int PointPrice() const;              // 다음 포인트 값
+	enum class EBuy : uint8_t { Ok, Owned, NotLinked, Sealed, KeyCap, NoPoint, Closed };
+	// 레벨 (D-228): 적을 잡아 경험치 → 레벨업마다 트리 포인트 1. 다음 레벨까지 = 예전 n번째 포인트 골드 값 (20 × 1.22^(레벨-1))
+	int XpToNext() const;
+	int PointsLeft() const { return Level - 1 - Points; } // 남은 트리 포인트
 	int KeystoneCount() const;
 	bool TreeOwnedNode(int Id) const { return TreeOwned.test(Id); }
 	bool TreeSealed(int Id) const;       // 짝 키스톤을 찍어서 막힌 노드
 	EBuy CanBuy(int Id) const;
 	bool BuyNode(int Id);
-	int KillGold(EPDEnemy T, int W) const; // 골드 덤 적용 전
+	int KillXp(EPDEnemy T, int W) const; // 경험치 덤 적용 전
 	// 보스 능력 (D-112)
 	bool InWarlordAura(const FPDEnemy& E) const; // 군단장 주변 (군단장 자신은 아님)
 	bool Hexed(const FPDTower& T) const;          // 저주술사 근처 타워
 	float FuseMult() const;              // 합성 배율 (기본 1.5)
 	float JokerMult() const;             // 조커 배율 (기본 1.2)
-	int UpgradeBatchCost(EPDUpgrade U, int N) const; // N레벨 올리는 값 (최대치에서 잘림)
-	int Upgrade(EPDUpgrade U, int N);    // 살 수 있는 만큼 최대 N레벨 올림, 올린 레벨 수
 	void RebuildMods();
 	bool Buildable(int X, int Y) const;
 	// 손패를 놓을 수 있나 (D-192): 빈 칸이거나 Lv1 카드 타워(교체하면 그 카드는 손으로). 합성 타워·조커 위에는 못 놓는다
@@ -488,12 +488,11 @@ public:
 	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
 	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
-	int Gold = 0, Points = 0, GoldEarned = 0; // 골드, 산 포인트 수, 판에서 번 골드 합
+	int Xp = 0, Level = 1, Points = 0, XpEarned = 0; // 다음 레벨까지 모은 경험치, 레벨, 쓴 트리 포인트, 판에서 번 경험치 합
 	int Swaps = 0;                            // 남은 자리바꿈 (보상, D-149)
-	float GoldCarry = 0.f;                    // 골드 덤의 소수 부분
+	float XpCarry = 0.f;                      // 경험치 덤의 소수 부분
 	FPDTreeBits TreeOwned = FPDTreeBits(1);   // 찍은 노드 (0번 시작점은 처음부터)
-	std::array<int, (int)EPDUpgrade::Count> Upg = {}; // 골드 강화 레벨
-	int GoldUpg = 0;                          // 강화에 쓴 골드
+	std::array<int, (int)EPDUpgrade::Count> Upg = {}; // 강화 레벨 (판 밖 영구 강화가 채운다, D-228. 새 판에도 유지)
 	FPDTreeMods Mods;
 	int Speed = 1;
 	float Time = 0.f;
@@ -515,7 +514,7 @@ private:
 	void Draw(int N, int* OutGot = nullptr);
 	void EndWave();
 	void Hit(FPDEnemy& E, float Dmg, float Slow);
-	int AddGold(float Amount);
+	int AddXp(float Amount, bool bBonus = true); // 경험치를 더하고 레벨업 (bBonus = 트리 경험치 덤 적용)
 	void Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash, float Slow, int Crits);
 	bool InPlay() const { return Phase == EPDPhase::Build || Phase == EPDPhase::Wave; } // 설치·합성·구매를 할 수 있는 단계
 	void AddFreshDeck(); // 52장 한 벌을 덱에 넣고 섞는다

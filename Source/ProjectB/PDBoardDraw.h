@@ -251,12 +251,12 @@ inline TArray<FVector2f> ArcPts(FVector2f C, float R, float Mid, float Half, int
 }
 inline const TCHAR* InstantName(int I)
 {
-	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("골드"), TEXT("자리바꿈")};
+	static const TCHAR* N[] = {TEXT("와일드 카드"), TEXT("보충"), TEXT("수리"), TEXT("경험치"), TEXT("자리바꿈")};
 	return Tr(N[I]);
 }
 inline const TCHAR* InstantDesc(int I)
 {
-	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("골드 +(10 + 웨이브 × 4)"), TEXT("타워 둘의 자리를 바꾸거나 빈 칸으로 옮기기 2번 (레벨·조커 그대로)")};
+	static const TCHAR* N[] = {TEXT("아무 숫자·무늬로 치는 카드 1장 (드물게 나옴)"), TEXT("카드 2장 뽑기"), TEXT("목숨 +3"), TEXT("경험치 +(10 + 웨이브 × 4)"), TEXT("타워 둘의 자리를 바꾸거나 빈 칸으로 옮기기 2번 (레벨·조커 그대로)")};
 	return Tr(N[I]);
 }
 // 보상 카드 위치 (판 가운데 3장)
@@ -388,7 +388,7 @@ inline FString TreeFxText(const FPDNodeFx& F)
 	case EPDStat::AllRate: return TrF(TEXT("모든 타워 공격 속도 +%d%%"), Pct);
 	case EPDStat::CritChance: return TrF(TEXT("치명타 확률 +%d%%p"), Pct);
 	case EPDStat::CritMult: return TrF(TEXT("치명타 배율 +%.2f"), F.Value);
-	case EPDStat::GoldPct: return TrF(TEXT("골드 +%d%%"), Pct);
+	case EPDStat::XpPct: return TrF(TEXT("경험치 +%d%%"), Pct);
 	case EPDStat::HandMax: return TrF(TEXT("손패 최대 +%d"), (int)F.Value);
 	case EPDStat::Draw: return TrF(TEXT("웨이브마다 카드 +%d"), (int)F.Value);
 	case EPDStat::Lives: return TrF(TEXT("목숨 +%d (찍을 때)"), (int)F.Value);

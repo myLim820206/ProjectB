@@ -107,7 +107,7 @@ void SPDBoardWidget::HandleEvents()
 		case FPDEvent::EKind::Kill:
 		{
 			DeathFx(P, E.Enemy);
-			if (EnemyDef(E.Enemy).bBoss) Floats.Add({TrF(TEXT("+%d 골드"), E.A), P - FVector2f(0.f, 40.f), 0.f, 1.4f, 22.f, Hex(TEXT("ffd96a"))});
+			if (EnemyDef(E.Enemy).bBoss) Floats.Add({TrF(TEXT("+%d 경험치"), E.A), P - FVector2f(0.f, 40.f), 0.f, 1.4f, 22.f, Hex(TEXT("ffd96a"))});
 			break;
 		}
 		case FPDEvent::EKind::Leak:
@@ -218,7 +218,7 @@ void SPDBoardWidget::HandleEvents()
 				Rings.Add({P, 10.f, 110.f, 0.3f, 0.9f, 3.f, JokerPink});
 				Burst(P, 40, JokerPink, 80.f, 260.f, 0.8f, 2.6f, true);
 				PushWorldFx(EWorldFx::Synergy, P, JokerPink, 2.f);
-				Floats.Add({TrF(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
+				Floats.Add({TrF(TEXT("조커 레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.6f, 22.f, JokerPink});
 				Shake = FMath::Max(Shake, 0.25f);
 			}
 			else Floats.Add({TrF(TEXT("경험치 +%.0f"), E.R), P - FVector2f(0.f, 26.f), 0.f, 1.2f, 14.f, JokerPink});
@@ -333,7 +333,7 @@ void SPDBoardWidget::HandleEvents()
 			Rings.Add({P, 8.f, 90.f, 0.15f, 0.75f, 3.f, Col}); // 터져 나가는 고리
 			Burst(P, 50, Col, 80.f, 300.f, 0.8f, 2.8f, true);
 			PushWorldFx(EWorldFx::Fuse, P, Col, (float)E.A);
-			Floats.Add({TrF(TEXT("레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.5f, 28.f, Hex(TEXT("ffd96a"))});
+			Floats.Add({TrF(TEXT("합성 레벨 %d!"), E.A), P - FVector2f(0.f, 30.f), 0.f, 1.5f, 28.f, Hex(TEXT("ffd96a"))});
 			FlashT = FMath::Max(FlashT, 0.2f);
 			FlashCol = Col;
 			Shake = FMath::Max(Shake, 0.25f + 0.08f * E.A);
@@ -343,6 +343,13 @@ void SPDBoardWidget::HandleEvents()
 			TreeBuyId = E.A;
 			TreeBuyT = 0.8f;
 			break;
+		case FPDEvent::EKind::LevelUp: // 레벨업 (D-228): 위쪽 레벨 글자 옆에서 금빛 글자 + 불꽃
+		{
+			const FVector2f At(1050.f, HudY + 70.f);
+			Floats.Add({E.B > 1 ? TrF(TEXT("레벨 %d! 포인트 +%d"), E.A, E.B) : TrF(TEXT("레벨 %d! 포인트 +1"), E.A), At, 0.f, 1.6f, 18.f, Hex(TEXT("ffd96a"))});
+			Burst(At - FVector2f(0.f, 30.f), 24, Hex(TEXT("ffd96a")), 50.f, 200.f, 0.7f, 2.2f, true);
+			break;
+		}
 		case FPDEvent::EKind::Reward:
 		{
 			const FString Name = E.A ? CharmName(E.B) : InstantName(E.B);

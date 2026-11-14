@@ -1644,7 +1644,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.Box(BX, BY, BW, BHt, Hex(TEXT("06060b"), 0.94f));
 		if (bH) F.Box(BX, BY, BW, BHt, WithAlpha(Gold, 0.18f));
 		F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, BHt, 7.f), Gold, bH ? 1.8f : 1.3f, bH ? 1.2f : 0.7f + 0.3f * Pulse);
-		F.TextCentered(TrF(TEXT("판매 +%d 골드"), Price), BX + BW / 2.f, BY + BHt / 2.f, bH ? FLinearColor::White : Gold, 11.f, true, BW - 8.f);
+		F.TextCentered(TrF(TEXT("판매 +%d 경험치"), Price), BX + BW / 2.f, BY + BHt / 2.f, bH ? FLinearColor::White : Gold, 11.f, true, BW - 8.f);
 		BadgeRects.Add(SellBtnRect);
 	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
@@ -1739,7 +1739,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Box(P.X, P.Y, TW, TH, Hex(TEXT("06060b"), 0.94f));
 					F.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TW, TH, 8.f), JokerPink, 1.2f, 0.4f);
 					F.Text(TrF(TEXT("%s 먹이기 → %s"), *HandLabel(G.Synergies[FeedHovSyn]), JokerName(J0.Joker)), P.X + 10.f, P.Y + 18.f, JokerPink, 12.f, 0, true, TW - 20.f);
-					F.Text(TrF(TEXT("레벨 %d → %d · 경험치 %.0f → %.0f"), J0.JLevel, J1.JLevel, J0.JXp, J1.JXp), P.X + 10.f, P.Y + 36.f, Fg, 11.f, 0, false, TW - 20.f);
+					F.Text(TrF(TEXT("조커 레벨 %d → %d · 경험치 %.0f → %.0f"), J0.JLevel, J1.JLevel, J0.JXp, J1.JXp), P.X + 10.f, P.Y + 36.f, Fg, 11.f, 0, false, TW - 20.f);
 					F.Text(TrF(TEXT("조커 위력 %s/초 → %s/초 (%s%.0f%%)"), *ShortNum(PwB), *ShortNum(PwA), Pj >= 0.f ? TEXT("+") : TEXT(""), Pj), P.X + 10.f, P.Y + 54.f, Pj >= 0.f ? Up : Down, 11.f, 0, true, TW - 20.f);
 					F.Text(TrF(TEXT("판 위력 %s → %s (%s%.0f%%) · 먹인 카드 %d장은 사라짐"), *ShortNum(BoardB), *ShortNum(BoardA), Pb >= 0.f ? TEXT("+") : TEXT(""), Pb, Gone), P.X + 10.f, P.Y + 72.f, Pb >= 0.f ? Up : Down, 10.f, 0, false, TW - 20.f);
 				}
@@ -1816,8 +1816,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 86.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 102.f, Gold, 10.f, 0, false, 226.f);
 				F.Text(TrF(TEXT("클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f);
-				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("레벨 %d (최대) · 위력 +%d%%"), T.JLevel, FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f))
-					: TrF(TEXT("레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f), T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
+				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("조커 레벨 %d (최대) · 위력 +%d%%"), T.JLevel, FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f))
+					: TrF(TEXT("조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f), T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
 					JX + 10.f, JY + 134.f, JokerPink, 10.f, 0, false, 226.f);
 			}
 			else
@@ -1832,14 +1832,14 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				const FString CardName = T.Card.IsWild() ? FString(Tr(TEXT("와일드"))) : RankText(T.Card.Rank);
 				const FString Title = T.Level >= 2 && T.FuseHand >= 0 && T.FuseHand < (int32)EPDHand::Count
 					? TrF(TEXT("%s %s · %s Lv%d"), *CardName, SuitName(T.Card.Suit), HandName((EPDHand)T.FuseHand), T.Level)
-					: TrF(TEXT("%s %s · 레벨 %d"), *CardName, SuitName(T.Card.Suit), T.Level);
+					: TrF(TEXT("%s %s · 합성 레벨 %d"), *CardName, SuitName(T.Card.Suit), T.Level);
 				F.Text(Title, BX + 10.f, BYp + 18.f, SuitColor(T.Card.Suit), 12.f, 0, true, 220.f);
 			}
 			F.Text(PowLine, BX + 10.f, BYp + 36.f, PowCol, 11.f, 0, true, 220.f);
 			F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), BX + 10.f, BYp + 54.f, Fg, 11.f, 0, false, 220.f);
 			F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), BX + 10.f, BYp + 70.f, Grey, 11.f, 0, false, 220.f);
 			if (T.Level >= 2) F.Text(TrF(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 10.f, BYp + 86.f, Gold, 10.f, 0, false, 220.f);
-			F.Text(TrF(TEXT("오른쪽 클릭: 판매 (+%d 골드)"), G.SellPrice(It->first)), BX + 10.f, BYp + BH0 - 6.f, Hex(TEXT("5f6878")), 9.f, 0, false, 220.f);
+			F.Text(TrF(TEXT("오른쪽 클릭: 판매 (+%d 경험치)"), G.SellPrice(It->first)), BX + 10.f, BYp + BH0 - 6.f, Hex(TEXT("5f6878")), 9.f, 0, false, 220.f);
 			SynLines(true, BX + 10.f, BYp + BH0 + 10.f, 220.f);
 			}
 		}
@@ -1882,11 +1882,18 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		if (bAuto) C.Box(EX, HudY + 29.f, EW * (1.f - FMath::Clamp(G.AutoStartT / AutoStartDelayFor(G.Wave + 1), 0.f, 1.f)), 9.f, WithAlpha(Green, 0.3f));
 		C.Glow(FCanvas::RoundRectPoints(EX, HudY + 29.f, EW, 9.f, 4.f), bAuto ? Green : Dim, 1.f, 0.25f);
 	}
-	// 목숨·골드
+	// 목숨·레벨 (D-228: 골드 → 경험치·레벨)
 	// 글자 색 통일 (D-163): 값은 흰빛, 목숨은 5 이하일 때만 빨갛게 깜빡. 판 위력은 오른쪽 카드에만 (위쪽 띠에서 뺐다)
 	C.Text(TrF(TEXT("목숨 %d"), G.Lives), 860.f, HudY + 27.f, G.Lives <= 5 ? WithAlpha(Red, 0.6f + 0.4f * Pulse) : UiValue, 17.f, 0, true, 120.f);
-	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 980.f, HudY + 27.f, UiValue, 17.f, 0, true, 150.f);
-	C.Text(TrF(TEXT("다음 노드 %s"), *CommaNum(G.PointPrice())), 980.f, HudY + 43.f, G.Gold >= G.PointPrice() ? UiTitle : Dim, 9.f, 0, false, 150.f);
+	{ // 레벨 + 경험치 막대. 남은 트리 포인트가 있으면 금색으로 숨쉰다
+		const float LvX = 980.f, BarW = 140.f;
+		const float Fill = FMath::Clamp((float)G.Xp / FMath::Max(1, G.XpToNext()), 0.f, 1.f);
+		C.Text(TrF(TEXT("레벨 %d"), G.Level), LvX, HudY + 24.f, UiValue, 17.f, 0, true, 90.f);
+		if (G.PointsLeft() > 0) C.Text(TrF(TEXT("포인트 %d"), G.PointsLeft()), LvX + BarW, HudY + 24.f, WithAlpha(Gold, 0.65f + 0.35f * Pulse), 11.f, 2, true, 60.f);
+		C.Box(LvX, HudY + 32.f, BarW, 5.f, Hex(TEXT("7fd6ff"), 0.08f));
+		C.Box(LvX, HudY + 32.f, BarW * Fill, 5.f, Hex(TEXT("7fd6ff"), 0.55f));
+		C.Text(FString::Printf(TEXT("%s / %s"), *CommaNum(G.Xp), *CommaNum(G.XpToNext())), LvX, HudY + 47.f, Dim, 9.f, 0, false, BarW);
+	}
 	{ // 일시정지 버튼 (D-169): 멈춘 동안은 재생 삼각형, 평소엔 두 막대
 		const bool bHov = InRect(Mouse, PauseBtnX, HudBtnY, HudBtnS, HudBtnS);
 		if (bPaused) C.Box(PauseBtnX, HudBtnY, HudBtnS, HudBtnS, WithAlpha(UiEdge, 0.12f + 0.08f * Pulse));
@@ -2034,10 +2041,8 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
-		Btn(TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.Gold >= G.PointPrice());
-		bool bUpgCan = false; // 골드 강화 하나라도 살 수 있으면 (D-186)
-		for (int32 U = 0; U < (int32)EPDUpgrade::Count && !bUpgCan; ++U) bUpgCan = G.Upg[U] < UpgradeMax && G.Gold >= UpgradeCost(G.Upg[U]);
-		Btn(UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH, TEXT("골드 강화"), TEXT("U"), Gold, bPlay && bUpgCan);
+		Btn(TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.PointsLeft() > 0);
+		Btn(UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH, TEXT("영구 강화"), TEXT("U"), Gold, false); // D-228: 판 안에서는 보기만
 		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("조커 도감"), TEXT("J"), JokerPink, false);
 		Btn(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, TEXT("메뉴"), TEXT("Esc"), Grey, false);
 	}
@@ -2066,7 +2071,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		if (bHov)
 		{
 			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
-				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴")};
+				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴")};
 			const float W = 400.f, Hh = 24.f + UE_ARRAY_COUNT(Lines) * 18.f, X = DesignW - 16.f - W, Y = HelpY - 6.f - Hh;
 			C.Box(X, Y, W, Hh, Hex(TEXT("0a0b14"), 0.96f));
 			C.Glow(FCanvas::RoundRectPoints(X, Y, W, Hh, 8.f), Cyan, 1.f, 0.4f);
@@ -2185,12 +2190,12 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		C.Text(TEXT("카드 클릭: 크게 보기 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
 	}
 
-	// ---- 골드 강화 (U)
+	// ---- 영구 강화 (U, D-228): 판 안에서는 지금 레벨만 본다. 사는 곳은 시작 화면
 	if (bUpg)
 	{
 		C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
-		C.Text(TEXT("골드 강화"), UpgRowX, 52.f, Hex(TEXT("ff9a6a")), 22.f, 0, true);
-		C.Text(TrF(TEXT("골드 %d   강화에 쓴 골드 %d   (이번 판에서만 유지, 최대 %d레벨, 값 = 10 + 2 × 레벨)"), G.Gold, G.GoldUpg, UpgradeMax), UpgRowX, 82.f, Gold, 12.f, 0, false, UpgRowW);
+		C.Text(TEXT("영구 강화"), UpgRowX, 52.f, Hex(TEXT("ff9a6a")), 22.f, 0, true);
+		C.Text(TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"), UpgRowX, 82.f, Gold, 12.f, 0, false, UpgRowW);
 		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
 		{
 			const float Y = UpgRowY + U * UpgRowH;
@@ -2200,22 +2205,8 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			C.Text(UpgradeName(U), UpgRowX + 16.f, Y + 24.f, Col, 15.f, 0, true, 180.f);
 			C.Text(FString::Printf(TEXT("Lv %d / %d"), Lv, UpgradeMax), UpgRowX + 200.f, Y + 24.f, Lv >= UpgradeMax ? Gold : Fg, 13.f, 0, true);
 			C.Text(UpgradeEffect(U, Lv), UpgRowX + 16.f, Y + 46.f, Grey, 11.f, 0, false, UpgRowW - 4.f * (UpgBtnW + 8.f) - 24.f);
-			for (int32 K = 0; K < 4; ++K)
-			{
-				const FVector2f B = UpgButtonPos(U, K);
-				const int32 Want = UpgSteps[K];
-				// 최대 버튼은 지금 골드로 살 수 있는 만큼
-				int32 N = 0, Cost = 0;
-				if (K < 3) { N = FMath::Min(Want, UpgradeMax - Lv); Cost = G.UpgradeBatchCost((EPDUpgrade)U, N); }
-				else { int32 Left = G.Gold; for (int32 L = Lv; L < UpgradeMax && Left >= UpgradeCost(L); ++L) { Left -= UpgradeCost(L); ++N; } Cost = G.Gold - Left; }
-				const bool bCan = N > 0 && Cost <= G.Gold;
-				const bool bHov = InRect(Mouse, B.X, B.Y, UpgBtnW, UpgBtnH);
-				C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, UpgBtnW, UpgBtnH, 6.f), WithAlpha(Col, bCan ? 1.f : 0.3f), bHov ? 1.8f : 1.2f, bCan ? (bHov ? 1.2f : 0.5f) : 0.15f);
-				C.TextCentered(K < 3 ? FString::Printf(TEXT("+%d"), Want) : FString(TEXT("최대")), B.X + UpgBtnW / 2.f, B.Y + 10.f, WithAlpha(Col, bCan ? 1.f : 0.4f), 11.f, true);
-				C.TextCentered(N > 0 ? FString::Printf(TEXT("%d"), Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 22.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
-			}
 		}
-		C.TextCentered(TEXT("버튼 클릭: 강화   U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
+		C.TextCentered(TEXT("U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
 		PaintCloseButton(C, Hex(TEXT("ff9a6a")));
 	}
 }
@@ -2232,11 +2223,11 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	// 위쪽 띠
 	C.Glow(FCanvas::RoundRectPoints(16.f, HudY, DesignW - 32.f, HudH, 10.f), UiEdge, 1.f, 0.4f);
 	C.Text(TEXT("스킬 트리"), 34.f, HudY + 33.f, Purple, 22.f, 0, true);
-	C.Text(TrF(TEXT("골드 %s"), *CommaNum(G.Gold)), 170.f, HudY + 32.f, Gold, 14.f, 0, true, 130.f);
-	C.Text(TrF(TEXT("다음 노드 %s 골드"), *CommaNum(G.PointPrice())), 310.f, HudY + 32.f, G.Gold >= G.PointPrice() ? Green : Grey, 13.f, 0, true, 200.f);
+	C.Text(TrF(TEXT("레벨 %d"), G.Level), 170.f, HudY + 32.f, Gold, 14.f, 0, true, 130.f);
+	C.Text(TrF(TEXT("남은 포인트 %d"), G.PointsLeft()), 310.f, HudY + 32.f, G.PointsLeft() > 0 ? Green : Grey, 13.f, 0, true, 200.f);
 	C.Text(TrF(TEXT("키스톤 %d / %d"), G.KeystoneCount(), KeystoneMax), 530.f, HudY + 32.f, Gold, 13.f, 0, true);
 	C.Text(TrF(TEXT("찍은 노드 %d"), G.Points), 660.f, HudY + 32.f, Fg, 13.f, 0, true);
-	C.Text(TrF(TEXT("이번 판에서만 · 값은 찍을 때마다 ×%.2f"), PointPriceGrowth), CdxCloseX - 16.f, HudY + 32.f, Dim, 10.f, 2, false, 330.f);
+	C.Text(TEXT("이번 판에서만 · 레벨이 오를 때마다 포인트 1"), CdxCloseX - 16.f, HudY + 32.f, Dim, 10.f, 2, false, 330.f);
 	PaintCloseButton(C, Purple);
 	// 연결선: 노드 테두리에서 끊는다 (아이콘을 가로지르지 않게)
 	auto NodeR = [](int32 Id) { switch (TreeNode(Id).Kind) { case EPDNode::Start: return 14.f; case EPDNode::Small: return 11.f; case EPDNode::Notable: return 16.f; case EPDNode::Keystone: return 21.f; default: return 17.f; } };
@@ -2274,7 +2265,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 		const FVector2f P = TreeNodePos(Id);
 		const bool bOwn = G.TreeOwnedNode(Id), bSealed = G.TreeSealed(Id);
 		const FPDGame::EBuy Can = G.CanBuy(Id);
-		const bool bNext = Can == FPDGame::EBuy::Ok || Can == FPDGame::EBuy::NoGold; // 이어져 있어 찍을 수 있는 자리
+		const bool bNext = Can == FPDGame::EBuy::Ok || Can == FPDGame::EBuy::NoPoint; // 이어져 있어 찍을 수 있는 자리
 		const FLinearColor Col = bSealed ? Red : TreeNodeColor(Id);
 		const float Al = bOwn ? 1.f : bNext ? 0.75f : 0.35f;
 		const float Gk = bOwn ? 1.f : Can == FPDGame::EBuy::Ok ? 0.5f + 0.8f * Pulse : 0.25f;
@@ -2341,12 +2332,12 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 		FLinearColor SCol = Grey;
 		switch (Can)
 		{
-		case FPDGame::EBuy::Ok: State = TrF(TEXT("찍을 수 있음 · %s 골드"), *CommaNum(G.PointPrice())); SCol = Green; break;
+		case FPDGame::EBuy::Ok: State = TrF(TEXT("찍을 수 있음 · 남은 포인트 %d"), G.PointsLeft()); SCol = Green; break;
 		case FPDGame::EBuy::Owned: State = Tr(TEXT("찍음")); SCol = Cyan; break;
 		case FPDGame::EBuy::NotLinked: State = Tr(TEXT("찍은 노드와 이어져야 한다")); break;
 		case FPDGame::EBuy::Sealed: State = Tr(TEXT("짝 키스톤을 찍어서 봉인됨")); SCol = Red; break;
 		case FPDGame::EBuy::KeyCap: State = TrF(TEXT("키스톤은 판마다 %d개까지"), KeystoneMax); SCol = Red; break;
-		case FPDGame::EBuy::NoGold: State = TrF(TEXT("골드 부족 (%s / %s)"), *CommaNum(G.Gold), *CommaNum(G.PointPrice())); SCol = Red; break;
+		case FPDGame::EBuy::NoPoint: State = TrF(TEXT("포인트 없음 · 다음 레벨까지 경험치 %s"), *CommaNum(G.XpToNext() - G.Xp)); SCol = Red; break;
 		default: State = Tr(TEXT("지금은 찍을 수 없다 (보상 고르는 중)")); break;
 		}
 		TArray<FString> Lines;
@@ -2493,7 +2484,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 {
 	HintOkRect = HintOffRect = HintCardRect = FBox2f(FVector2f(-1.f, -1.f), FVector2f(-1.f, -1.f));
 	if (HintNow < 0 || bMenu || bSettings || bTree || bUpg || bCodex || bRanking || Game.Phase == EPDPhase::Title) return;
-	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("골드 쓰기"), TEXT("보상 고르기")};
+	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("레벨 업"), TEXT("보상 고르기")};
 	static const TCHAR* Body[(int32)EHint::Count][2] = {
 		{TEXT("손패 카드를 누르고 판의 빈 칸을 클릭하면"), TEXT("그 카드가 타워가 돼요")},
 		{TEXT("카드를 붙여 놓아 포커 족보(원 페어·스트레이트…)를"), TEXT("만들면 타워가 강해져요")},
@@ -2502,11 +2493,11 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("왼쪽 목록의 '합성 ×N' 줄을 누르고"), TEXT("판에서 합쳐질 칸을 클릭해 보세요")},
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스로"), TEXT("이어진 족보가 모두 더 강해져요")},
 		{TEXT("왼쪽 '조커' 줄을 눌러 조커를 고르고"), TEXT("재료를 클릭해 조커를 만들어 보세요")},
-		{TEXT("왼쪽 '먹이기' 줄에서 조커를 고르고"), TEXT("옆 족보를 먹여 레벨을 올려 보세요")},
+		{TEXT("왼쪽 '먹이기' 줄에서 조커를 고르고"), TEXT("옆 족보를 먹여 조커 레벨을 올려 보세요")},
 		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
 		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
 		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("위쪽에 보스 이름이 보여요")},
-		{TEXT("골드로 스킬 트리(K)나"), TEXT("골드 강화(U)를 살 수 있어요")},
+		{TEXT("레벨이 올라 포인트가 생겼어요"), TEXT("스킬 트리(K)에서 노드를 찍어 보세요")},
 		{TEXT("카드 셋 중 하나를 고르거나"), TEXT("S로 넘기세요")}};
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const FLinearColor Edge = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("8a94a6"));

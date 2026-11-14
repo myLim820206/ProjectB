@@ -73,7 +73,7 @@ static const FPDTreeNode GPDTreeNodes[] = {
 	{EPDNode::Small, 4, 706.8f, 319.6f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 69
 	{EPDNode::Small, 4, 764.1f, 329.2f, {{EPDStat::HandDmg, 922, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 70
 	{EPDNode::Small, 4, 783.2f, 358.2f, {{EPDStat::AllRate, 0, 0.030f}, {EPDStat::None, 0, 0.000f}}}, // 71
-	{EPDNode::Small, 5, 710.3f, 356.4f, {{EPDStat::GoldPct, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 72
+	{EPDNode::Small, 5, 710.3f, 356.4f, {{EPDStat::XpPct, 0, 0.150f}, {EPDStat::None, 0, 0.000f}}}, // 72
 	{EPDNode::Small, 4, 809.6f, 306.2f, {{EPDStat::AllDmg, 0, 0.040f}, {EPDStat::None, 0, 0.000f}}}, // 73
 	{EPDNode::Notable, 4, 855.1f, 283.2f, {{EPDStat::HandDmg, 922, 0.250f}, {EPDStat::None, 0, 0.000f}}}, // 74
 	{EPDNode::Small, 4, 900.6f, 260.1f, {{EPDStat::HandDmg, 922, 0.080f}, {EPDStat::None, 0, 0.000f}}}, // 75

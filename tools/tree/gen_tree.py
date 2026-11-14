@@ -25,7 +25,7 @@ RA, RB = 585.0, 296.0       # 타원 반지름 (가로, 세로)
 
 # 효과 이름은 PDCore.h EPDStat 과 같은 순서
 STATS = ['None', 'SuitDmg', 'SuitRate', 'SuitRange', 'SuitSplash', 'SuitSlow', 'HandDmg', 'HandRate', 'HandSplash', 'AllDmg', 'ChainAdd',
-         'FuseAdd', 'FusedDmg', 'GoldPct', 'HandMax', 'Draw', 'Lives', 'Keystone', 'Joker', 'JokerDmg', 'JokerAdd', 'AllRate', 'CritChance', 'CritMult']
+         'FuseAdd', 'FusedDmg', 'XpPct', 'HandMax', 'Draw', 'Lives', 'Keystone', 'Joker', 'JokerDmg', 'JokerAdd', 'AllRate', 'CritChance', 'CritMult']
 HANDS = ['RoyalFlush', 'Five', 'StraightFlush', 'Four', 'FullHouse', 'Flush', 'Straight', 'Triple', 'TwoPair', 'Pair']
 KEYS = ['Purist', 'Omni', 'BigTable', 'SmallTable', 'Smith', 'ClownPath', 'Lone', 'Crowd']
 JOKERS = ['Clown', 'Hatter', 'Mask', 'Comedy', 'Harlequin', 'Baton', 'Jack', 'Cheshire', 'Bell', 'Star']
@@ -133,7 +133,7 @@ for s, a in enumerate(SUIT_DEG):
 # ---------------------------------------------------------------- 족보 큰길 (이웃 무늬 사이)
 HAND_KEY = ['SmallTable', 'Purist', 'BigTable', 'Smith']
 HAND_JOKER = [None, 'Harlequin', None, 'Mask']
-UTIL = [('GoldPct', 0, .15), ('HandMax', 0, 1), ('Lives', 0, 4), ('Draw', 0, 1)]
+UTIL = [('XpPct', 0, .15), ('HandMax', 0, 1), ('Lives', 0, 4), ('Draw', 0, 1)]
 HAND_ROAD = [  # 큰길 작은 3 (특급 앞 2, 뒤 1)
     [('HandDmg', SAME_M, .08), ('AllDmg', 0, .04), ('HandDmg', SAME_M, .08)],
     [('HandSplash', FLUSH_M, .15), ('AllDmg', 0, .04), ('HandDmg', FLUSH_M, .10)],

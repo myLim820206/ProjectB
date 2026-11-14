@@ -833,9 +833,7 @@ void SPDBoardWidget::UpdateHints(float Dt)
 	auto AnyFuse = [this]() { for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I) if (Game.CanFuse(I)) return true; return false; };
 	auto AnyChain = [this]() { for (const FPDSynergy& S : Game.Synergies) if (S.Chain >= 2) return true; return false; };
 	auto CanShop = [this]() {
-		if (Game.Gold >= Game.PointPrice()) return true;
-		for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) if (Game.Upg[U] < UpgradeMax && Game.Gold >= UpgradeCost(Game.Upg[U])) return true;
-		return false; };
+		return Game.PointsLeft() > 0; }; // 트리 포인트가 남음 (D-228)
 	const bool bBuild = Game.Phase == EPDPhase::Build, bWave = Game.Phase == EPDPhase::Wave;
 	// 지금 뜬 도움말: 끝났나, 조건이 사라졌나(본 것으로 치지 않고 내림)
 	if (HintNow >= 0)
@@ -854,7 +852,7 @@ void SPDBoardWidget::UpdateHints(float Dt)
 		case EHint::HandFull: bDone = Has(FPDEvent::EKind::Discard) || Has(FPDEvent::EKind::Place); bGone = !bDone && (int32)Game.Hand.size() < Game.HandMax(); break;
 		case EHint::Swap: bDone = Game.Swaps < HintSwaps0; bGone = Game.Swaps <= 0 && !bDone; break;
 		case EHint::Boss: bDone = bWave; break;
-		case EHint::Shop: bDone = bTree || bUpg; bGone = !bDone && !CanShop(); break;
+		case EHint::Shop: bDone = bTree; bGone = !bDone && !CanShop(); break;
 		case EHint::Reward: bDone = Game.Phase != EPDPhase::Reward; break;
 		default: bGone = true; break;
 		}
@@ -1119,7 +1117,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 			for (int32 K = 0; K < 4; ++K)
 			{
 				const FVector2f B = UpgButtonPos(U, K);
-				if (InRect(P, B.X, B.Y, UpgBtnW, UpgBtnH) && Game.Upgrade((EPDUpgrade)U, UpgSteps[K]) == 0) UiSound(EPDSound::Denied);
+				if (InRect(P, B.X, B.Y, UpgBtnW, UpgBtnH)) UiSound(EPDSound::Denied); // 판 안에서는 못 산다 (D-228)
 			}
 		return;
 	}
@@ -1447,7 +1445,7 @@ static void PDDebugStress(FPDGame& G)
 	G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
 	G.Wave = 19;
 	G.Lives = 999;
-	G.Gold = 99999;
+	G.Level = 300;
 	G.Phase = EPDPhase::Build;
 	G.AutoStartT = -1.f;
 	GPDDebugHpMul = 3.f;  // 적 체력·마리 수 3배 (타격 이펙트 검수, D-135)

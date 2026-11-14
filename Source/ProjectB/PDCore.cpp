@@ -97,7 +97,7 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned)
 			case EPDStat::AllRate: M.AllRate += F.Value; break;
 			case EPDStat::CritChance: M.CritChance += F.Value; break;
 			case EPDStat::CritMult: M.CritMult += F.Value; break;
-			case EPDStat::GoldPct: M.GoldPct += F.Value; break;
+			case EPDStat::XpPct: M.XpPct += F.Value; break;
 			case EPDStat::HandMax: M.HandAdd += (int)F.Value; break;
 			case EPDStat::Draw: M.DrawAdd += (int)F.Value; break;
 			case EPDStat::Keystone: M.Keys |= 1u << F.Param; break;
@@ -770,12 +770,11 @@ void FPDGame::NewGame(bool bStart)
 	AutoStartT = -1.f;
 	Lives = StartLives;
 	Kills = Leaks = Discarded = DeckRefills = 0;
-	Gold = Points = GoldEarned = 0;
+	Xp = Points = XpEarned = 0;
+	Level = 1;
 	Swaps = 0;
-	GoldCarry = 0.f;
+	XpCarry = 0.f;
 	TreeOwned = FPDTreeBits(1);
-	Upg = {};
-	GoldUpg = 0;
 	Mods = FPDTreeMods{};
 	Time = 0.f;
 	Towers.clear();
@@ -801,7 +800,7 @@ std::string FPDGame::SaveRun() const
 	O.precision(9);
 	O << "pdrun 1\n";
 	O << "wave " << Wave << "\nlives " << Lives << "\nkills " << Kills << "\nleaks " << Leaks << "\ndiscarded " << Discarded << "\nrefills " << DeckRefills << "\n";
-	O << "gold " << Gold << "\npoints " << Points << "\nearned " << GoldEarned << "\ncarry " << GoldCarry << "\nswaps " << Swaps << "\ngoldupg " << GoldUpg << "\nspeed " << Speed << "\n";
+	O << "xp " << Xp << "\nlevel " << Level << "\npoints " << Points << "\nearned " << XpEarned << "\ncarry " << XpCarry << "\nswaps " << Swaps << "\nspeed " << Speed << "\n";
 	O << "upg"; for (int U : Upg) O << ' ' << U; O << "\n";
 	O << "tree " << TreeOwned.to_string() << "\n";
 	O << "path " << Path.Corners.size(); for (const auto& C : Path.Corners) O << ' ' << C[0] << ' ' << C[1]; O << "\n";
@@ -839,14 +838,15 @@ bool FPDGame::LoadRun(const std::string& S)
 		else if (Tag == "leaks") In >> N.Leaks;
 		else if (Tag == "discarded") In >> N.Discarded;
 		else if (Tag == "refills") In >> N.DeckRefills;
-		else if (Tag == "gold") In >> N.Gold;
+		else if (Tag == "xp" || Tag == "gold") In >> N.Xp; // 예전 저장의 골드는 경험치로
+		else if (Tag == "level") In >> N.Level;
 		else if (Tag == "points") In >> N.Points;
-		else if (Tag == "earned") In >> N.GoldEarned;
-		else if (Tag == "carry") In >> N.GoldCarry;
+		else if (Tag == "earned") In >> N.XpEarned;
+		else if (Tag == "carry") In >> N.XpCarry;
 		else if (Tag == "swaps") In >> N.Swaps;
-		else if (Tag == "goldupg") In >> N.GoldUpg;
+		else if (Tag == "goldupg") { int Skip = 0; In >> Skip; } // 예전 판 안 강화 (D-228 에서 없앰)
 		else if (Tag == "speed") In >> N.Speed;
-		else if (Tag == "upg") for (int& U : N.Upg) In >> U;
+		else if (Tag == "upg") { int Skip = 0; for (size_t I = 0; I < N.Upg.size(); ++I) In >> Skip; } // 강화는 판 밖 영구 강화가 정한다 (D-228)
 		else if (Tag == "tree") { std::string B; In >> B; N.TreeOwned = FPDTreeBits(B); }
 		else if (Tag == "path") { size_t K = 0; In >> K; for (size_t I = 0; I < K && In; ++I) { std::array<int, 2> C{}; In >> C[0] >> C[1]; Corners.push_back(C); } }
 		else if (Tag == "deck") ReadCards(N.Deck);
@@ -880,17 +880,33 @@ bool FPDGame::LoadRun(const std::string& S)
 	return true;
 }
 
-int FPDGame::AddGold(float Amount)
+int FPDGame::AddXp(float Amount, bool bBonus)
 {
-	GoldCarry += Amount * (1.f + Mods.GoldPct);
-	const int Got = (int)(GoldCarry + 1e-4f); // 0.15 × 20 이 2.9999 가 되지 않게
-	GoldCarry -= Got;
-	Gold += Got;
-	GoldEarned += Got;
+	XpCarry += Amount * (bBonus ? 1.f + Mods.XpPct : 1.f);
+	const int Got = (int)(XpCarry + 1e-4f); // 0.15 × 20 이 2.9999 가 되지 않게
+	XpCarry -= Got;
+	Xp += Got;
+	XpEarned += Got;
+	int Ups = 0;
+	while (Xp >= XpToNext())
+	{
+		Xp -= XpToNext();
+		Level++;
+		Ups++;
+	}
+	if (Ups > 0)
+	{
+		FPDEvent E;
+		E.Kind = FPDEvent::EKind::LevelUp;
+		E.A = Level;
+		E.B = Ups;
+		Ev(E);
+		Sfx(EPDSound::Rotate, 1);
+	}
 	return Got;
 }
 
-int FPDGame::KillGold(EPDEnemy T, int W) const
+int FPDGame::KillXp(EPDEnemy T, int W) const
 {
 	const FPDEnemyDef& D = EnemyDef(T);
 	if (D.bBoss) return 25;
@@ -899,7 +915,7 @@ int FPDGame::KillGold(EPDEnemy T, int W) const
 	return Base + (W - 1) / 5; // 5웨이브마다 +1
 }
 
-int FPDGame::PointPrice() const { return (int)std::lround(PointBasePrice * std::pow(PointPriceGrowth, (float)Points)); }
+int FPDGame::XpToNext() const { return (int)std::lround(PointBasePrice * std::pow(PointPriceGrowth, (float)(Level - 1))); }
 float FPDGame::FuseMult() const { return FuseBonus + Mods.FuseAdd + (Mods.Key(EPDKeystone::Smith) ? 0.5f : 0.f); }
 float FPDGame::JokerMult() const { return JokerBonus + Mods.JokerAdd + (Mods.Key(EPDKeystone::ClownPath) ? 0.4f : 0.f); }
 
@@ -908,35 +924,6 @@ void FPDGame::RebuildMods()
 	Mods = BuildTreeMods(TreeOwned);
 	ApplyUpgrades(Mods, Upg);
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
-}
-
-int FPDGame::UpgradeBatchCost(EPDUpgrade U, int N) const
-{
-	const int L = Upg[(int)U];
-	const int Count = std::max(0, std::min(N, UpgradeMax - L));
-	long long Sum = 0;
-	for (int I = 0; I < Count; ++I) Sum += UpgradeCost(L + I);
-	return (int)std::min<long long>(Sum, 2000000000LL);
-}
-
-int FPDGame::Upgrade(EPDUpgrade U, int N)
-{
-	if (!InPlay()) return 0;
-	int Done = 0;
-	int& L = Upg[(int)U];
-	while (Done < N && L < UpgradeMax && Gold >= UpgradeCost(L))
-	{
-		Gold -= UpgradeCost(L);
-		GoldUpg += UpgradeCost(L);
-		L++;
-		Done++;
-	}
-	if (Done > 0)
-	{
-		RebuildMods();
-		Sfx(EPDSound::Rotate);
-	}
-	return Done;
 }
 
 int FPDGame::KeystoneCount() const
@@ -962,14 +949,13 @@ FPDGame::EBuy FPDGame::CanBuy(int Id) const
 	for (int O : TreeLinks(Id)) bLinked = bLinked || TreeOwnedNode(O);
 	if (!bLinked) return EBuy::NotLinked;
 	if (TreeNode(Id).Kind == EPDNode::Keystone && KeystoneCount() >= KeystoneMax) return EBuy::KeyCap;
-	if (Gold < PointPrice()) return EBuy::NoGold;
+	if (PointsLeft() <= 0) return EBuy::NoPoint;
 	return EBuy::Ok;
 }
 
 bool FPDGame::BuyNode(int Id)
 {
 	if (CanBuy(Id) != EBuy::Ok) return false;
-	Gold -= PointPrice();
 	Points++;
 	TreeOwned.set(Id);
 	for (const FPDNodeFx& F : TreeNode(Id).Fx) if (F.Stat == EPDStat::Lives) Lives += (int)F.Value;
@@ -1083,7 +1069,7 @@ void FPDGame::EndWave()
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + Mods.DrawAdd, &Got);
-	AddGold(5.f + Wave); // 웨이브 통과 덤
+	AddXp(5.f + Wave); // 웨이브 통과 덤
 	if (Wave % CharmEvery == 0) // 부적 창은 5웨이브마다 (D-101)
 	{
 		Phase = EPDPhase::Reward;
@@ -1114,7 +1100,7 @@ std::vector<FPDReward> FPDGame::RollRewards()
 	const bool bSwap = !bWild && std::uniform_real_distribution<float>(0.f, 1.f)(Rng) < SwapChance; // 자리바꿈 (D-149)
 	const int NCharm = (int)Charms.size() < CharmMax ? std::min(bWild || bSwap ? 2 : 3, (int)Pool.size()) : 0;
 	for (int I = 0; I < NCharm; ++I) Out.push_back({true, Pool[I]});
-	std::vector<int> Inst{(int)EPDInstant::Draw2, (int)EPDInstant::Repair, (int)EPDInstant::Gold};
+	std::vector<int> Inst{(int)EPDInstant::Draw2, (int)EPDInstant::Repair, (int)EPDInstant::Xp};
 	if (!bSwap) Inst.push_back((int)EPDInstant::Swap);
 	std::shuffle(Inst.begin(), Inst.end(), Rng);
 	if (bWild) Inst.insert(Inst.begin(), (int)EPDInstant::Wild);
@@ -1138,7 +1124,7 @@ void FPDGame::TakeReward(int Index)
 		}
 		else if (R.Id == (int)EPDInstant::Draw2) Draw(2);
 		else if (R.Id == (int)EPDInstant::Repair) Lives += 3;
-		else if (R.Id == (int)EPDInstant::Gold) { Gold += 10 + Wave * 4; GoldEarned += 10 + Wave * 4; }
+		else if (R.Id == (int)EPDInstant::Xp) AddXp(10.f + Wave * 4.f, false);
 		else if (R.Id == (int)EPDInstant::Swap) Swaps += SwapPerReward;
 		Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 		FPDEvent E;
@@ -1706,12 +1692,12 @@ bool FPDGame::Feed(int SynergyIdx, int JokerKey)
 	for (const FPDFeed& X : List) if (X.Syn == SynergyIdx) F = &X;
 	if (!F) return false;
 	const int JKey = F->Joker;
-	const float Xp = F->Xp, Gain = F->Gain;
+	const float FeedXp = F->Xp, Gain = F->Gain;
 	for (int K : Synergies[SynergyIdx].Cells) if (!Towers.at(K).IsJoker()) Towers.erase(K);
 	FPDTower& J = Towers.at(JKey);
 	const int Old = J.JLevel;
 	J.Mult += Gain; // 먹인 위력 흡수 (D-191)
-	J.JXp += Xp;
+	J.JXp += FeedXp;
 	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
 	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
@@ -1721,7 +1707,7 @@ bool FPDGame::Feed(int SynergyIdx, int JokerKey)
 	E.Y = J.Y + 0.5f;
 	E.A = J.JLevel;
 	E.B = J.JLevel - Old;
-	E.R = Xp;
+	E.R = FeedXp;
 	Ev(E);
 	Sfx(EPDSound::Burst, std::min(8, 2 + E.B), E.B > 0 ? 1 : 0);
 	if (E.B > 0) Sfx(EPDSound::Clear);
@@ -1742,13 +1728,13 @@ bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 	std::map<int, int> SuitCnt;
 	FPDTrait Old;
 	float Mult = 0.f;
-	int Level = 1;
+	int TopLevel = 1;
 	for (int K : S.Cells)
 	{
 		const FPDTower& T = Towers.at(K);
 		if (!T.Card.IsWild()) { RankCnt[T.Card.Rank]++; SuitCnt[(int)T.Card.Suit]++; }
 		Mult += T.Mult;
-		Level = std::max(Level, T.Level);
+		TopLevel = std::max(TopLevel, T.Level);
 		Old.Dmg = std::max(Old.Dmg, T.TDmg);
 		Old.Rate = std::max(Old.Rate, T.TRate);
 		Old.Range = std::max(Old.Range, T.TRange);
@@ -1767,7 +1753,7 @@ bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 		F.Card = {BestR, (EPDSuit)BestS};
 	}
 	const FPDTrait H = HandTrait(S.Kind, S.N);
-	F.Level = std::min(MaxLevel, Level + 1);
+	F.Level = std::min(MaxLevel, TopLevel + 1);
 	F.FuseHand = (int)S.Kind;
 	for (int K : S.Cells) { const int FH = Towers.at(K).FuseHand; if (FH >= 0 && HandBaseValue((EPDHand)FH) > HandBaseValue((EPDHand)F.FuseHand)) F.FuseHand = FH; }
 	F.Mult = Mult * FuseMult();
@@ -1820,7 +1806,7 @@ bool FPDGame::SellTower(int Cell)
 	if (Price <= 0) return false;
 	const FPDTower T = Towers.at(Cell);
 	Towers.erase(Cell);
-	Gold += Price; // 골드 덤(트리)은 안 붙는다
+	AddXp((float)Price, false); // 경험치 덤(트리)은 안 붙는다
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::Discard;
@@ -1832,13 +1818,13 @@ bool FPDGame::SellTower(int Cell)
 	return true;
 }
 
-bool FPDGame::GainJokerXp(int Key, float Xp)
+bool FPDGame::GainJokerXp(int Key, float Amount)
 {
 	auto It = Towers.find(Key);
 	if (It == Towers.end() || !It->second.IsJoker() || It->second.JLevel >= JokerMaxLevel) return false;
 	FPDTower& J = It->second;
 	const int Old = J.JLevel;
-	J.JXp += Xp;
+	J.JXp += Amount;
 	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
 	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
 	FPDEvent E;
@@ -1847,7 +1833,7 @@ bool FPDGame::GainJokerXp(int Key, float Xp)
 	E.Y = J.Y + 0.5f;
 	E.A = J.JLevel;
 	E.B = J.JLevel - Old;
-	E.R = Xp;
+	E.R = Amount;
 	Ev(E);
 	if (E.B > 0)
 	{
@@ -1879,7 +1865,7 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	K.X = P.X;
 	K.Y = P.Y;
 	K.Enemy = E.Type;
-	K.A = AddGold(KillGold(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave))); // 마리 수가 늘어도 웨이브당 골드는 그대로
+	K.A = AddXp(KillXp(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave))); // 마리 수가 늘어도 웨이브당 골드는 그대로
 	Ev(K);
 	for (FPDEnemy& O : Enemies) // 흡수자: 주변에서 적이 죽으면 회복
 		if (&O != &E && !O.bDead && O.Type == EPDEnemy::Devourer)
