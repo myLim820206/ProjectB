@@ -475,8 +475,8 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		{
 			if (bStatic != bYoung)
 			{
-				if (bAtlas) F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + T.Joker], P.X, P.Y, 1.f, FLinearColor::White);
-				else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * Pop, 1.f, Pulse);
+				if (bAtlas) F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + T.Joker], P.X, P.Y, BoardCardK, FLinearColor::White);
+				else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, Pulse);
 			}
 			if (bStatic) continue; // 레벨·경험치는 자주 바뀌어 움직이는 층에서
 			// 레벨 (위 오른쪽) + 경험치 막대 (아래), 레벨업 순간 막대가 번쩍 (D-125)
@@ -494,16 +494,16 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		if (bStatic == bYoung) continue;
 		if (bAtlas) // 흰색으로 구운 카드를 카드 색으로 물들여 찍고, 레벨 점은 따로 (D-154)
 		{
-			F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, T.Eff.Hand >= 0)], P.X, P.Y, 1.f, SuitColor(T.Card.Suit));
+			F.Sprite(SpriteLayer, &Atlas->Brushes[TowerSprite(T.Card, T.Level, T.Eff.Hand >= 0)], P.X, P.Y, BoardCardK, SuitColor(T.Card.Suit));
 			if (T.Level >= 2)
 				for (int L = 0; L < T.Level; ++L) F.BoxAt(DotLayer, P.X - (T.Level - 1) * 4.f + L * 8.f - 1.5f, P.Y - CS * 0.5f - 1.f, 3.f, 3.f, LevelDotColor());
 			continue;
 		}
-		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
+		F.CardShape(T.Card, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, T.Eff.Hand >= 0, Pulse);
 		// 레벨: 틀을 한 겹씩 더 (안쪽으로), 위쪽에 레벨 점
 		for (int L = 2; L <= T.Level; ++L)
 		{
-			const float H = CS * 0.4f * Pop * 0.98f + (L - 1) * 3.5f;
+			const float H = CS * 0.4f * BoardCardK * Pop * 0.98f + (L - 1) * 3.5f;
 			F.Glow(FCanvas::RoundRectPoints(P.X - H, P.Y - H, H * 2.f, H * 2.f, 6.f + L), WithAlpha(SuitColor(T.Card.Suit), 0.75f), 1.2f, 0.6f);
 		}
 		if (T.Level >= 2)

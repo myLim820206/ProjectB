@@ -29,6 +29,7 @@ constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
 constexpr float FY = 74.f;
 constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
+constexpr float BoardCardK = 0.74f; // 판 위 카드·조커 그림 크기 (D-167): 칸 테두리·족보 테두리와 겹치지 않게 조금 작게
 constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 아래 '조커' 줄 (D-152): 조커 합성 버튼을 모두 펼친다
 constexpr int32 HandRowsN = (int32)EPDHand::Count + 1;
 constexpr float HandY = FY + Rows * CS + 14.f;
