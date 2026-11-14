@@ -985,20 +985,13 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 			return;
 		}
 	}
-	// 합성 버튼
-	if (!bRight)
-		for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
-		{
-			if (!Game.CanFuse(I) || !SynRevealed(I)) continue;
-			const FVector2f B = FuseButtonCenter(Game.Synergies, I);
-			if (InBox(P, B, FuseBtnW(FuseSyn(Game, I)), FuseH)) { StartPick(FuseSyn(Game, I).Cells, false); return; }
-		}
 	int32 HandHit = -1;
 	for (int32 I = 0; I < (int32)Game.Hand.size(); ++I)
 	{
 		const float X = HandCardX(I, (int32)Game.Hand.size());
 		if (InRect(P, X, HandY - 12.f, CardW, CardH + 12.f)) HandHit = I;
 	}
+	if (bRight && HandHit < 0 && HandFilter >= 0 && !InCraft() && CellAt(P) >= 0) { HandFilter = -1; return; } // 합성 모드 끄기 (D-199)
 	if (bRight)
 	{
 		if (HandHit >= 0) { Game.Discard(HandHit); if (Sel == HandHit) Sel = -1; else if (Sel > HandHit) --Sel; }
@@ -1007,14 +1000,21 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (HandHit >= 0) { Sel = Sel == HandHit ? -1 : HandHit; UiSound(EPDSound::Move); return; }
 	// 족보 필터 중 그 족보 칸 클릭 = 그 족보 합성 (D-148)
-	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && HandFilter >= 0)
+	// 합성 (D-199): 왼쪽 족보 목록에서 고른 족보의 칸을 클릭 = 그 칸으로 바로 합성 (같은 종류 족보는 카드를 나눠 쓰지 않아 칸 하나로 정해진다)
+	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && HandFilter >= 0 && !InCraft())
+	{
 		for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
 		{
 			const FPDSynergy& S = Game.Synergies[I];
-			if ((int32)S.Kind != HandFilter || !Game.CanFuse(I) || std::find(S.Cells.begin(), S.Cells.end(), Cell) == S.Cells.end()) continue;
-			StartPick(FuseSyn(Game, I).Cells, false);
+			if ((int32)S.Kind != HandFilter || !Game.CanFuse(I)) continue;
+			const std::vector<int> FC = FuseSyn(Game, I).Cells; // 조커 칸은 빠진다 (D-128)
+			if (std::find(FC.begin(), FC.end(), Cell) == FC.end()) continue;
+			DoFuse(I, Cell);
 			return;
 		}
+		UiSound(EPDSound::Denied);
+		return;
+	}
 	// 카드를 고르지 않고 조커를 클릭: 먹이기 모드 (D-131)
 	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && Game.Towers.count(Cell) && Game.Towers.at(Cell).IsJoker()) { FeedJoker = Cell; UiSound(EPDSound::Move); return; }
 	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel >= 0)
@@ -1322,7 +1322,6 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (K == EKeys::SpaceBar && (Game.Phase == EPDPhase::Wave || bPaused)) bPaused = !bPaused; // 스페이스: 웨이브 중엔 일시정지/계속 (D-183)
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
 	else if (K == EKeys::Escape) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
-	else if (K == EKeys::G) { const int32 Hs = HoveredSynergy(); if (Hs >= 0 && Game.CanFuse(Hs)) StartPick(FuseSyn(Game, Hs).Cells, false); } // 자리부터 고른다 (D-194)
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }

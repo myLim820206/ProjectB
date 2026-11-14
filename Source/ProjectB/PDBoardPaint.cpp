@@ -1280,22 +1280,34 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 		}
 	}
-	// 합성 버튼 (먹이기 모드에선 숨김)
-	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0)
+	// 합성 모드 (D-199): 왼쪽 족보 목록에서 고른 족보만. 판 위 [합성] 버튼·위력 배지는 없앴다. 다른 칸은 어둡게, 재료 칸은 반짝, 마우스 칸 = 합쳐질 칸
+	const bool bFuseMode = HandFilter >= 0 && !InCraft() && !bPv && PickCells.empty() && G.Phase != EPDPhase::Reward && FeedJoker < 0 && !bSwapMode;
+	if (bFuseMode)
+	{
+		TSet<int32> Lit;
+		for (const FPDSynergy& S : G.Synergies) if ((int32)S.Kind == HandFilter) for (int K : S.Cells) Lit.Add(K);
+		const int32 DL = F.NextLayer();
+		for (int32 K = 0; K < Cols * Rows; ++K)
+		{
+			if (Lit.Contains(K)) continue;
+			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
+			F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.55f));
+		}
+		F.NextLayer();
+	}
+	bool bFuseHov = false; // 합쳐질 칸 위: 타워 툴팁이 미리보기를 가리지 않게 (D-199)
+	if (bFuseMode)
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
-			if (!G.CanFuse(I)) continue;
-			if (!SynRevealed(I)) continue; // 평소엔 아무것도 (D-198): 금색 꺾쇠는 장판 색과 겹치는 표시라 뺐다. 마우스를 올리면 [합성] 버튼
-			const FVector2f B = FuseButtonCenter(G.Synergies, I);
+			if (!G.CanFuse(I) || (int32)G.Synergies[I].Kind != HandFilter) continue;
 			const FPDSynergy FS = FuseSyn(G, I); // 조커를 뺀 실제 합성 칸 (D-128)
-			const float BW = FuseBtnW(FS);
-			const bool bHov = InBox(Mouse, B, BW, FuseH);
+			const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+			const bool bHov = std::find(FS.Cells.begin(), FS.Cells.end(), HKey) != FS.Cells.end();
 			// 재료 칸 색이 족보 색 → 흰빛 → 족보 색으로 천천히 오간다 (D-122)
 			const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
 			const FLinearColor Pick = FMath::Lerp(HandColor(FS.Kind), FLinearColor::White, 0.6f * Wv);
-			// 합성 대상 표시 (D-121): 재료 칸마다 금색 테두리 + 옅은 채움, 버튼에 올리면 더 밝게
-			if (PickCells.empty())
-				for (int K : FS.Cells)
+			// 합성 대상 표시 (D-121): 재료 칸마다 족보 색 테두리 + 옅은 채움, 마우스가 올라간 족보는 더 밝게
+			for (int K : FS.Cells)
 				{
 					const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 					F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, (bHov ? 0.34f : 0.22f) + 0.22f * Wv));
@@ -1309,11 +1321,20 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, bHov ? 3.4f : 2.8f, 1.4f + 1.4f * Wv);
 					F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
 				}
-			BadgeRects.Add(FBox2f(FVector2f(B.X - BW / 2.f, B.Y - FuseH / 2.f), FVector2f(B.X - BW / 2.f + BW, B.Y - FuseH / 2.f + FuseH))); // 툴팁이 피할 자리 (D-150)
-			F.Box(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, Hex(TEXT("06060b"), 0.92f));
-			F.Glow(FCanvas::RoundRectPoints(B.X - BW / 2.f, B.Y - FuseH / 2.f, BW, FuseH, 6.f), Gold, bHov ? 1.6f : 1.1f, bHov ? 1.2f + 0.5f * Pulse : 0.5f);
-			F.TextCentered(FuseLabel(FS), B.X, B.Y, WithAlpha(Gold, bHov ? 1.f : 0.85f), 10.f, true, BW - 4.f);
-			if (bHov && PickCells.empty()) F.PowerBadge(G.PreviewPower(FPDGame::EPowerAction::Fuse, I), B.X, B.Y - FuseH - 6.f);
+			if (bHov) // 마우스 칸 = 합쳐질 칸: 하늘색 테두리 + 퍼지는 고리 + "여기", 다른 재료 칸에서 점선
+			{
+				bFuseHov = true;
+				const FLinearColor TargetCol = Hex(TEXT("5ff2ff"));
+				const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
+				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), TargetCol, 3.8f, 1.8f + Wv);
+				for (int32 Ring = 0; Ring < 2; ++Ring)
+				{
+					const float U = FMath::Fmod(Clock * 1.4f + Ring * 0.5f, 1.f), Gr = 2.f + 12.f * U;
+					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.9f * (1.f - U)), 2.2f, 1.f);
+				}
+				for (int K : FS.Cells) if (K != HKey) F.Dashed({CellCenter(K), CellCenter(HKey)}, WithAlpha(TargetCol, 0.7f), 1.6f, 4.f, 5.f);
+				F.TextCentered(TEXT("여기로 합성"), C0.X + CS / 2.f, C0.Y - 10.f, TargetCol, 12.f, true, CS + 40.f);
+			}
 		}
 	// 먹이기 (D-131): 평소엔 먹일 족보가 있는 조커 위에 작은 "먹이" 표시만. 조커를 클릭하면 먹이기 모드
 	bool bFeedBtnHov = false; // [먹이기] 버튼 위: 타워 툴팁을 띄우지 않는다 (D-197)
@@ -1426,7 +1447,14 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Badge(Line, FX + Cols * CS / 2.f, FY + 36.f, R != EPDJoker::Count ? JokerPink : Hex(TEXT("cfd8e6")), 1.f);
 			}
 		}
-		else F.Badge(TrF(TEXT("%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기"), HandName((EPDHand)HandFilter)), FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
+		else
+		{
+			bool bCan = false;
+			for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) bCan = bCan || ((int32)G.Synergies[I].Kind == HandFilter && G.CanFuse(I));
+			F.Badge(bCan ? TrF(TEXT("%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기"), HandName((EPDHand)HandFilter))
+						 : TrF(TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), HandName((EPDHand)HandFilter)),
+				FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
+		}
 	}
 	// 조커를 만들 수 있는 재료 칸 반짝임 (먹이기·만들기 모드에선 숨김). 버튼은 없애고 [조커 만들기]로 (D-195)
 	if (!bPv && G.Phase != EPDPhase::Reward && FeedJoker < 0 && !InCraft() && PickCells.empty())
@@ -1485,7 +1513,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.TextCentered(BannerSub, FX + Cols * CS / 2.f + Sweep, CY + 24.f, WithAlpha(Fg, A), 15.f, false, Cols * CS - 20.f);
 	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
-	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward && !bFeedBtnHov)
+	if (HoverX >= 0 && Sel < 0 && G.Phase != EPDPhase::Reward && !bFeedBtnHov && !bFuseHov)
 	{
 		auto It = G.Towers.find(CellKey(HoverX, HoverY));
 		if (It != G.Towers.end())
@@ -2163,10 +2191,10 @@ void SPDBoardWidget::PaintTutorial(FCanvas& C) const
 		{TEXT("무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화"), TEXT("숫자는 공격력 (A가 가장 세다)"), TEXT("Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로")},
 		{TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지"), TEXT("모양은 상관없다 (일자·ㄱ자·네모 모두 된다)"), TEXT("왼쪽 족보 목록에 족보마다 효과가 나온다")},
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스"), TEXT("맞닿은 족보 하나마다 위력 +25%"), TEXT("번개로 이어진 족보가 연쇄다")},
-		{TEXT("족보에 마우스를 올리면 [합성] 버튼이 뜬다"), TEXT("합성하면 재료가 한 타워로 모여 레벨이 오른다"), TEXT("같은 레벨끼리만 다시 족보가 된다")},
+		{TEXT("왼쪽 족보 목록에서 족보를 누르고, 판에서 합쳐질 칸을 클릭"), TEXT("합성하면 재료가 한 타워로 모여 레벨이 오른다"), TEXT("같은 레벨끼리만 다시 족보가 된다")},
 		{TEXT("[조커 만들기](C): 족보 2~3개를 골라 레시피와 맞으면 조커"), TEXT("조커는 적을 처치하거나 족보를 먹으면 레벨이 오른다"), TEXT("J 키: 조커 도감에서 레시피 보기")},
 		{TEXT("웨이브를 막으면 카드를 받는다"), TEXT("5웨이브마다 부적 하나 (또는 즉시 보상)"), TEXT("골드로 스킬 트리(K)와 골드 강화(U)")},
-		{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Space: 웨이브 시작 · F: 배속 · Esc: 메뉴"), TEXT("왼쪽 족보 목록 클릭: 그 족보만 보기 · G: 합성 · C: 조커 만들기")}};
+		{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Space: 웨이브 시작 · F: 배속 · Esc: 메뉴"), TEXT("왼쪽 족보 목록 클릭 → 칸 클릭: 합성 · C: 조커 만들기")}};
 	C.Text(FString::Printf(TEXT("%d / %d"), P + 1, TutPages), TutX + TutW - 24.f, TutY + 36.f, Dim, 11.f, 2);
 	C.Text(TEXT("튜토리얼"), TutX + 24.f, TutY + 36.f, Dim, 11.f, 0, true);
 	C.TextCentered(Titles[P], DesignW / 2.f, TutY + 40.f, UiTitle, 24.f, true);
@@ -2417,7 +2445,7 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 	static const TCHAR* Tips[] = {
 		TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)"),
 		TEXT("족보끼리 맞닿으면 연쇄 보너스가 붙는다"),
-		TEXT("왼쪽 족보 목록을 클릭하면 그 족보만 펼쳐 보고 바로 합성할 수 있다"),
+		TEXT("합성은 왼쪽 족보 목록에서 족보를 누르고 합쳐질 칸을 클릭"),
 		TEXT("족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)"),
 		TEXT("자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다"),
 		TEXT("무늬는 공격 방식, 숫자는 공격력")};
@@ -2437,7 +2465,10 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	C.Box(LX, FY, LW, PH, Hex(TEXT("06060b"), 0.5f));
 	C.Glow(FCanvas::RoundRectPoints(LX, FY, LW, PH, 10.f), Cyan, 1.f, 0.3f);
 	C.Text(TEXT("족보"), LX + 14.f, FY + 24.f, Cyan, 15.f, 0, true);
-	C.Text(HandFilter >= 0 ? TEXT("다시 클릭 / Esc: 필터 끄기") : TEXT("클릭: 그 족보만 보기"), LX + LW - 14.f, FY + 24.f, HandFilter >= 0 ? Gold : Dim, 9.f, 2, false, LW - 70.f);
+	C.Text(HandFilter >= 0 ? TEXT("다시 클릭 / Esc: 끄기") : TEXT("클릭: 그 족보 합성"), LX + LW - 14.f, FY + 24.f, HandFilter >= 0 ? Gold : Dim, 9.f, 2, false, LW - 70.f);
+	int32 FuseN[(int)EPDHand::Count] = {};
+	for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) if (G.CanFuse(I)) ++FuseN[(int)G.Synergies[I].Kind];
+	const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
 	constexpr float RowH = HandRowH;
 	const float Y0 = HandRowY0;
 	for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
@@ -2455,7 +2486,17 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		C.Text(HandEffect(H), LX + 18.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
 		if (HandFilter == I) // 족보 필터 (D-148): 고른 줄은 테두리
 			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), HC, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-		if (bOn)
+		else if (FuseN[I] > 0 && HandFilter < 0) // 합성할 수 있으면 줄이 번쩍 (D-199, D-189 버튼과 같은 맥박)
+		{
+			C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.03f + 0.12f * Fl));
+			C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), Gold, 1.2f, 0.3f + 1.f * Fl);
+		}
+		if (FuseN[I] > 0) // 합성 가능 개수 (금색)
+		{
+			C.Glow(FCanvas::RoundRectPoints(LX + LW - 62.f, Y + 6.f, 48.f, 16.f, 8.f), Gold, 1.1f, 0.6f);
+			C.TextCentered(TrF(TEXT("합성 ×%d"), FuseN[I]), LX + LW - 38.f, Y + 14.f, Gold, 9.f, true, 46.f);
+		}
+		else if (bOn)
 		{
 			C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), HC, 1.1f, 0.5f);
 			C.TextCentered(FString::Printf(TEXT("×%d"), Count[I]), LX + LW - 28.f, Y + 14.f, HC, 10.f, true);

@@ -247,6 +247,7 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 조커 자리를 고르세요	Choose the Joker's spot	ジョーカーの場所を選んでください	请选择小丑的位置	請選擇小丑的位置	PDBoardPaint.cpp
 합성 타워 자리를 고르세요	Choose the fused tower's spot	合成タワーの場所を選んでください	请选择合成塔的位置	請選擇合成塔的位置	PDBoardPaint.cpp
 빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · Esc / right-click: cancel	光る素材マスを1つクリック · Esc / 右クリック: キャンセル	点击一个发光的素材格 · Esc / 右键: 取消	點擊一個發光的素材格 · Esc / 右鍵: 取消	PDBoardPaint.cpp
+여기로 합성	Fuse here	ここに合成	合成到这里	合成到這裡	PDBoardPaint.cpp
 먹이%d	Feed%d	エサ%d	喂%d	餵%d	PDBoardPaint.cpp
 위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s	Power +%.0f%% · XP +%.0f → Lv %d%s	威力 +%.0f%% · 経験値 +%.0f → レベル %d%s	威力 +%.0f%% · 经验 +%.0f → 等级 %d%s	威力 +%.0f%% · 經驗 +%.0f → 等級 %d%s	PDBoardPaint.cpp
 %s 먹이기: 먹일 족보의 [먹이기] 클릭 · 다른 곳 클릭 / Esc: 취소	Feeding %s: click [Feed] on a hand · click elsewhere / Esc: cancel	%s にエサ: 与える役の [エサ] をクリック · 他をクリック / Esc: キャンセル	喂养 %s: 点击要喂的牌型的 [喂养] · 点击别处 / Esc: 取消	餵養 %s: 點擊要餵的牌型的 [餵養] · 點擊別處 / Esc: 取消	PDBoardPaint.cpp
@@ -256,7 +257,8 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 조커 만들기: 재료(족보·합성 타워)를 2~3개 클릭 · 같은 칸 다시 = 다른 족보 / 빼기 · Esc: 끄기	Make a Joker: click 2–3 materials (hands · fused towers) · same tile again = other hand / remove · Esc: off	ジョーカー作成: 素材(役・合成タワー)を2〜3個クリック · 同じマスをもう一度 = 別の役 / 外す · Esc: やめる	制作小丑: 点击 2~3 个素材(牌型·合成塔) · 再点同一格 = 换牌型 / 取消 · Esc: 关闭	製作小丑: 點擊 2~3 個素材(牌型·合成塔) · 再點同一格 = 換牌型 / 取消 · Esc: 關閉	PDBoardPaint.cpp
  → 조커: %s · Enter·G 또는 [만들기]	 → Joker: %s · Enter·G or [Make]	 → ジョーカー: %s · Enter·G または [作る]	 → 小丑: %s · Enter·G 或 [制作]	 → 小丑: %s · Enter·G 或 [製作]	PDBoardPaint.cpp
  → 맞는 레시피가 없다 (J: 도감)	 → no matching recipe (J: Codex)	 → 合うレシピがない (J: 図鑑)	 → 没有匹配的配方 (J: 图鉴)	 → 沒有匹配的配方 (J: 圖鑑)	PDBoardPaint.cpp
-%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing %s only: click its tiles = fuse · click the list again / Esc: off	%s のみ表示: その役のマスをクリック = 合成 · 役リストをもう一度 / Esc: 解除	只看%s: 点击该牌型的格 = 合成 · 再点牌型列表 / Esc: 关闭	只看%s: 點擊該牌型的格 = 合成 · 再點牌型列表 / Esc: 關閉	PDBoardPaint.cpp
+%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기	Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off	%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる	合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭	合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉	PDBoardPaint.cpp
+%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
 위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
 %s 대장: %s	%s captain: %s	%s 隊長: %s	%s 队长: %s	%s 隊長: %s	PDBoardPaint.cpp
@@ -393,7 +395,7 @@ Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로	Place on a Lv1 to
 족보끼리 맞닿으면 연쇄 보너스	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp
 맞닿은 족보 하나마다 위력 +25%	+25% power for each touching hand	隣接する役1つにつき威力 +25%	每个相邻牌型威力 +25%	每個相鄰牌型威力 +25%	PDBoardPaint.cpp
 번개로 이어진 족보가 연쇄다	Hands linked by lightning are chained	稲妻でつながった役が連鎖	用闪电连起来的牌型就是连锁	用閃電連起來的牌型就是連鎖	PDBoardPaint.cpp
-족보에 마우스를 올리면 [합성] 버튼이 뜬다	Hover a hand to show the [Fuse] button	役にマウスを乗せると [合成] ボタンが出る	鼠标移到牌型上会出现 [合成] 按钮	滑鼠移到牌型上會出現 [合成] 按鈕	PDBoardPaint.cpp
+왼쪽 족보 목록에서 족보를 누르고, 판에서 합쳐질 칸을 클릭	Pick a hand in the left list, then click the tile to fuse into	左の役リストで役を押し、盤でまとめるマスをクリック	在左侧牌型列表选牌型, 再点击棋盘上要合成到的格子	在左側牌型列表選牌型, 再點擊棋盤上要合成到的格子	PDBoardPaint.cpp
 합성하면 재료가 한 타워로 모여 레벨이 오른다	Fusing gathers the materials into one tower and raises its level	合成すると素材が1つのタワーにまとまりレベルが上がる	合成后素材汇成一座塔并提升等级	合成後素材匯成一座塔並提升等級	PDBoardPaint.cpp
 같은 레벨끼리만 다시 족보가 된다	Only towers of the same level form hands together	同じレベル同士でしか役にならない	只有相同等级的塔才能再组成牌型	只有相同等級的塔才能再組成牌型	PDBoardPaint.cpp
 [조커 만들기](C): 족보 2~3개를 골라 레시피와 맞으면 조커	[Make Joker](C): pick 2–3 hands; if they match a recipe, you get a Joker	[ジョーカー作成](C): 役を2〜3個選び、レシピに合えばジョーカー	[制作小丑](C): 选 2~3 个牌型, 符合配方即成小丑	[製作小丑](C): 選 2~3 個牌型, 符合配方即成小丑	PDBoardPaint.cpp
@@ -404,7 +406,7 @@ J 키: 조커 도감에서 레시피 보기	J: see recipes in the Joker Codex	J 
 골드로 스킬 트리(K)와 골드 강화(U)	Spend gold on the Skill Tree (K) and Gold Upgrades (U)	ゴールドでスキルツリー(K)とゴールド強化(U)	用金币升级技能树(K)和金币强化(U)	用金幣升級技能樹(K)和金幣強化(U)	PDBoardPaint.cpp
 카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click a card (number key) → click a tile: place · right-click: discard	カードをクリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击卡牌(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊卡牌(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDBoardPaint.cpp
 Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: speed · Esc: menu	Space: ウェーブ開始 · F: 倍速 · Esc: メニュー	Space: 开始波次 · F: 倍速 · Esc: 菜单	Space: 開始波次 · F: 倍速 · Esc: 選單	PDBoardPaint.cpp
-왼쪽 족보 목록 클릭: 그 족보만 보기 · G: 합성 · C: 조커 만들기	Click the hand list: show only that hand · G: fuse · C: make Joker	左の役リストをクリック: その役だけ表示 · G: 合成 · C: ジョーカー作成	点击左侧牌型列表: 只看该牌型 · G: 合成 · C: 制作小丑	點擊左側牌型列表: 只看該牌型 · G: 合成 · C: 製作小丑	PDBoardPaint.cpp
+왼쪽 족보 목록 클릭 → 칸 클릭: 합성 · C: 조커 만들기	Hand list → tile: fuse · C: make Joker	役リスト → マス: 合成 · C: ジョーカー作成	牌型列表 → 格子: 合成 · C: 制作小丑	牌型列表 → 格子: 合成 · C: 製作小丑	PDBoardPaint.cpp
 ♥ 목숨	♥ Lives	♥ ライフ	♥ 生命	♥ 生命	PDBoardPaint.cpp
 카드 고르기	Pick a card	カードを選ぶ	选择卡牌	選擇卡牌	PDBoardPaint.cpp
 배속	Speed	倍速	倍速	倍速	PDBoardPaint.cpp
@@ -428,14 +430,15 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 판을 준비하는 중	Preparing the board	盤を準備中	正在准备棋盘	正在準備棋盤	PDBoardPaint.cpp
 붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)	Adjacent towers forming a poker hand create a synergy (any shape)	隣り合うタワーがポーカーの役になるとシナジー (形は自由)	相邻的塔组成扑克牌型就有协同 (形状不限)	相鄰的塔組成撲克牌型就有協同 (形狀不限)	PDBoardPaint.cpp
 족보끼리 맞닿으면 연쇄 보너스가 붙는다	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp
-왼쪽 족보 목록을 클릭하면 그 족보만 펼쳐 보고 바로 합성할 수 있다	Click a hand in the left list to show only it and fuse right away	左の役リストをクリックするとその役だけ表示してすぐ合成できる	点击左侧牌型列表即可只显示该牌型并直接合成	點擊左側牌型列表即可只顯示該牌型並直接合成	PDBoardPaint.cpp
+합성은 왼쪽 족보 목록에서 족보를 누르고 합쳐질 칸을 클릭	To fuse, pick a hand in the left list and click the tile to fuse into	合成は左の役リストで役を押し、まとめるマスをクリック	合成: 在左侧牌型列表选牌型, 再点要合成到的格子	合成: 在左側牌型列表選牌型, 再點要合成到的格子	PDBoardPaint.cpp
 족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)	You can pick 3 (or 2) hands to make a Joker (anywhere on the board)	役を3つ(または2つ)選んでジョーカーを作れる (盤のどこでも)	可以选 3 个(或 2 个)牌型制作小丑 (棋盘任何位置)	可以選 3 個(或 2 個)牌型製作小丑 (棋盤任何位置)	PDBoardPaint.cpp
 자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다	The Swap reward lets you swap two towers	入れ替え報酬でタワー2つの場所を交換できる	换位奖励可以交换两座塔的位置	換位獎勵可以交換兩座塔的位置	PDBoardPaint.cpp
 무늬는 공격 방식, 숫자는 공격력	Suit sets the attack type, rank sets attack power	スートは攻撃方式、数字は攻撃力	花色决定攻击方式, 点数决定攻击力	花色決定攻擊方式, 點數決定攻擊力	PDBoardPaint.cpp
-다시 클릭 / Esc: 필터 끄기	Click again / Esc: clear filter	もう一度クリック / Esc: フィルター解除	再次点击 / Esc: 关闭筛选	再次點擊 / Esc: 關閉篩選	PDBoardPaint.cpp
-클릭: 그 족보만 보기	Click: show only that hand	クリック: その役だけ表示	点击: 只看该牌型	點擊: 只看該牌型	PDBoardPaint.cpp
+다시 클릭 / Esc: 끄기	Click again / Esc: off	もう一度クリック / Esc: やめる	再点一次 / Esc: 关闭	再點一次 / Esc: 關閉	PDBoardPaint.cpp
+클릭: 그 족보 합성	Click: fuse that hand	クリック: その役を合成	点击: 合成该牌型	點擊: 合成該牌型	PDBoardPaint.cpp
  (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
  (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDBoardPaint.cpp
+합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
 족보 2~3개를 골라 만든다 (C)	Pick 2–3 hands to make (C)	役を2〜3個選んで作る (C)	选 2~3 个牌型制作 (C)	選 2~3 個牌型製作 (C)	PDBoardPaint.cpp
 족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
 무늬 = 공격 방식	Suit = attack type	スート = 攻撃方式	花色 = 攻击方式	花色 = 攻擊方式	PDBoardPaint.cpp
@@ -464,6 +467,12 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
+%s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing %s only: click its tiles = fuse · click the list again / Esc: off	%s のみ表示: その役のマスをクリック = 合成 · 役リストをもう一度 / Esc: 解除	只看%s: 点击该牌型的格 = 合成 · 再点牌型列表 / Esc: 关闭	只看%s: 點擊該牌型的格 = 合成 · 再點牌型列表 / Esc: 關閉	PDLangTable.inl
+족보에 마우스를 올리면 [합성] 버튼이 뜬다	Hover a hand to show the [Fuse] button	役にマウスを乗せると [合成] ボタンが出る	鼠标移到牌型上会出现 [合成] 按钮	滑鼠移到牌型上會出現 [合成] 按鈕	PDLangTable.inl
+왼쪽 족보 목록 클릭: 그 족보만 보기 · G: 합성 · C: 조커 만들기	Click the hand list: show only that hand · G: fuse · C: make Joker	左の役リストをクリック: その役だけ表示 · G: 合成 · C: ジョーカー作成	点击左侧牌型列表: 只看该牌型 · G: 合成 · C: 制作小丑	點擊左側牌型列表: 只看該牌型 · G: 合成 · C: 製作小丑	PDLangTable.inl
+왼쪽 족보 목록을 클릭하면 그 족보만 펼쳐 보고 바로 합성할 수 있다	Click a hand in the left list to show only it and fuse right away	左の役リストをクリックするとその役だけ表示してすぐ合成できる	点击左侧牌型列表即可只显示该牌型并直接合成	點擊左側牌型列表即可只顯示該牌型並直接合成	PDLangTable.inl
+다시 클릭 / Esc: 필터 끄기	Click again / Esc: clear filter	もう一度クリック / Esc: フィルター解除	再次点击 / Esc: 关闭筛选	再次點擊 / Esc: 關閉篩選	PDLangTable.inl
+클릭: 그 족보만 보기	Click: show only that hand	クリック: その役だけ表示	点击: 只看该牌型	點擊: 只看該牌型	PDLangTable.inl
 맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의	3 (or 2) touching hands matching a recipe make a Joker · 3-hand recipes use more cards and are stronger · careful: shared numbers merge into a bigger hand	隣接する役3つ(または2つ)がレシピに合うとジョーカー · 3つの方がカードが多く強い · 数字が重なると大きな役にまとまるので注意	相邻的3个(或2个)牌型符合配方即成小丑 · 3个的配方牌更多更强 · 注意数字重叠会合并成更大的牌型	相鄰的3個(或2個)牌型符合配方即成小丑 · 3個的配方牌更多更強 · 注意數字重疊會合併成更大的牌型	PDLangTable.inl
 조커 만들기만 보기: [조커] 버튼이나 재료 칸 클릭 = 조커 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing Joker recipes only: click [Joker] or a material tile = make Joker · click the list again / Esc: off	ジョーカー作成のみ表示: [ジョーカー] ボタンか素材マスをクリック = ジョーカー合成 · 役リストをもう一度 / Esc: 解除	只看小丑制作: 点击 [小丑] 按钮或素材格 = 合成小丑 · 再点牌型列表 / Esc: 关闭	只看小丑製作: 點擊 [小丑] 按鈕或素材格 = 合成小丑 · 再點牌型列表 / Esc: 關閉	PDLangTable.inl
 조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDLangTable.inl
