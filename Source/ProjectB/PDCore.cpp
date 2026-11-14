@@ -1,6 +1,7 @@
 #include "PDCore.h"
 
 #include <unordered_map>
+#include <sstream>
 
 #include <algorithm>
 #include <cmath>
@@ -798,6 +799,92 @@ void FPDGame::NewGame(bool bStart)
 	Draw(StartHand);
 }
 
+// 중단 저장 (D-162). 한 줄에 하나: 이름 값... (공백 구분). 판 상태만 (도감·최고 기록은 따로 저장)
+std::string FPDGame::SaveRun() const
+{
+	std::ostringstream O;
+	O.precision(9);
+	O << "pdrun 1\n";
+	O << "wave " << Wave << "\nlives " << Lives << "\nkills " << Kills << "\nleaks " << Leaks << "\ndiscarded " << Discarded << "\nrefills " << DeckRefills << "\n";
+	O << "gold " << Gold << "\npoints " << Points << "\nearned " << GoldEarned << "\ncarry " << GoldCarry << "\nswaps " << Swaps << "\ngoldupg " << GoldUpg << "\nspeed " << Speed << "\n";
+	O << "upg"; for (int U : Upg) O << ' ' << U; O << "\n";
+	O << "tree " << TreeOwned.to_string() << "\n";
+	O << "path " << Path.Corners.size(); for (const auto& C : Path.Corners) O << ' ' << C[0] << ' ' << C[1]; O << "\n";
+	auto Cards = [&](const char* Name, const std::vector<FPDCard>& V) { O << Name << ' ' << V.size(); for (const FPDCard& C : V) O << ' ' << C.Rank << ' ' << (int)C.Suit; O << "\n"; };
+	Cards("deck", Deck);
+	Cards("hand", Hand);
+	O << "charms " << Charms.size(); for (EPDCharm C : Charms) O << ' ' << (int)C; O << "\n";
+	for (const auto& KV : Towers)
+	{
+		const FPDTower& T = KV.second;
+		O << "tower " << KV.first << ' ' << T.Card.Rank << ' ' << (int)T.Card.Suit << ' ' << T.Level << ' ' << T.Mult << ' ' << T.TDmg << ' ' << T.TRate << ' ' << T.TRange << ' ' << T.TSplash
+		  << ' ' << T.FuseHand << ' ' << T.Joker << ' ' << (int)T.JSuit << ' ' << T.JLevel << ' ' << T.JXp << ' ' << T.Cycle << "\n";
+	}
+	O << "rng " << Rng << "\n";
+	O << "end\n";
+	return O.str();
+}
+
+bool FPDGame::LoadRun(const std::string& S)
+{
+	std::istringstream In(S);
+	std::string Tag;
+	int Ver = 0;
+	if (!(In >> Tag >> Ver) || Tag != "pdrun" || Ver != 1) return false;
+	FPDGame N(*this); // 실패하면 그대로 두려고 사본에 읽는다
+	N.Towers.clear(); N.Deck.clear(); N.Hand.clear(); N.Charms.clear();
+	std::vector<std::array<int, 2>> Corners;
+	bool bEnd = false;
+	auto ReadCards = [&](std::vector<FPDCard>& V) { size_t K = 0; In >> K; for (size_t I = 0; I < K && In; ++I) { int R = 0, Su = 0; In >> R >> Su; V.push_back({R, (EPDSuit)Su}); } };
+	while (In >> Tag)
+	{
+		if (Tag == "wave") In >> N.Wave;
+		else if (Tag == "lives") In >> N.Lives;
+		else if (Tag == "kills") In >> N.Kills;
+		else if (Tag == "leaks") In >> N.Leaks;
+		else if (Tag == "discarded") In >> N.Discarded;
+		else if (Tag == "refills") In >> N.DeckRefills;
+		else if (Tag == "gold") In >> N.Gold;
+		else if (Tag == "points") In >> N.Points;
+		else if (Tag == "earned") In >> N.GoldEarned;
+		else if (Tag == "carry") In >> N.GoldCarry;
+		else if (Tag == "swaps") In >> N.Swaps;
+		else if (Tag == "goldupg") In >> N.GoldUpg;
+		else if (Tag == "speed") In >> N.Speed;
+		else if (Tag == "upg") for (int& U : N.Upg) In >> U;
+		else if (Tag == "tree") { std::string B; In >> B; N.TreeOwned = FPDTreeBits(B); }
+		else if (Tag == "path") { size_t K = 0; In >> K; for (size_t I = 0; I < K && In; ++I) { std::array<int, 2> C{}; In >> C[0] >> C[1]; Corners.push_back(C); } }
+		else if (Tag == "deck") ReadCards(N.Deck);
+		else if (Tag == "hand") ReadCards(N.Hand);
+		else if (Tag == "charms") { size_t K = 0; In >> K; for (size_t I = 0; I < K && In; ++I) { int C = 0; In >> C; N.Charms.push_back((EPDCharm)C); } }
+		else if (Tag == "tower")
+		{
+			int Key = 0, Su = 0, JS = 0;
+			FPDTower T;
+			In >> Key >> T.Card.Rank >> Su >> T.Level >> T.Mult >> T.TDmg >> T.TRate >> T.TRange >> T.TSplash >> T.FuseHand >> T.Joker >> JS >> T.JLevel >> T.JXp >> T.Cycle;
+			T.Card.Suit = (EPDSuit)Su;
+			T.JSuit = (EPDSuit)JS;
+			T.X = Key % Cols;
+			T.Y = Key / Cols;
+			T.Age = 10.f; // 연출 없이
+			if (Key >= 0 && Key < Cols * Rows) N.Towers[Key] = T;
+		}
+		else if (Tag == "rng") In >> N.Rng;
+		else if (Tag == "end") { bEnd = true; break; }
+		else return false; // 모르는 줄
+		if (!In) return false;
+	}
+	if (!bEnd || Corners.size() < 2) return false;
+	N.Path.Build(Corners);
+	N.Phase = EPDPhase::Build;
+	N.AutoStartT = -1.f;
+	N.Time = 0.f;
+	N.Enemies.clear(); N.Pending.clear(); N.Born.clear(); N.Projectiles.clear(); N.Rewards.clear(); N.Events.clear(); N.Sounds.clear();
+	N.RebuildMods();
+	*this = N;
+	return true;
+}
+
 int FPDGame::AddGold(float Amount)
 {
 	GoldCarry += Amount * (1.f + Mods.GoldPct);
@@ -974,6 +1061,8 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 void FPDGame::StartWave()
 {
 	if (Phase != EPDPhase::Build) return;
+	PreWaveSave = SaveRun(); // 중단 저장 (D-162): 웨이브 중에 그만두면 여기로
+	++SaveSerial;
 	AutoStartT = -1.f;
 	Wave++;
 	Phase = EPDPhase::Wave;

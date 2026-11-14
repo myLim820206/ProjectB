@@ -179,6 +179,22 @@ static void UnitTests()
 		for (int X = 2; X < Cols && EX < 0; ++X) if (G.Buildable(X, 0) && !G.Towers.count(CellKey(X, 0))) EX = X;
 		const bool bMove = EX >= 0 && G.SwapTowers(CellKey(1, 0), CellKey(EX, 0)) && !G.Towers.count(CellKey(1, 0)) && G.Towers[CellKey(EX, 0)].Level == 2;
 		Expect(!bNone && bSwOk && !bPath && bMove && G.Swaps == 1, "자리바꿈: 횟수 필요, 바꾸기·옮기기(레벨 따라감), 길 위 불가");
+		// 중단 저장 (D-162): 저장 → 다른 판에 불러오기 → 같은 상태, 같은 다음 카드
+		{
+			G.Gold = 1234; G.Points = 3; G.Upg[2] = 7; G.Charms = {(EPDCharm)1}; G.TreeOwned.set(5); G.Wave = 9;
+			G.Towers[CellKey(EX, 0)].Joker = 2; G.Towers[CellKey(EX, 0)].JLevel = 4; G.Towers[CellKey(EX, 0)].JXp = 12.5f;
+			const std::string Sv = G.SaveRun();
+			FPDGame H(77);
+			H.NewGame(true);
+			const bool bLoad = H.LoadRun(Sv);
+			bool bSame = bLoad && H.SaveRun() == Sv && H.Path.Points.size() == G.Path.Points.size() && H.Towers.size() == G.Towers.size() && H.Phase == EPDPhase::Build;
+			bSame = bSame && H.Towers[CellKey(EX, 0)].JLevel == 4 && H.Gold == 1234 && H.Swaps == G.Swaps && H.Hand.size() == G.Hand.size() && H.Deck.size() == G.Deck.size();
+			FPDGame Bad(5);
+			Bad.NewGame(true);
+			const int BadGold = Bad.Gold;
+			const bool bReject = !Bad.LoadRun("pdrun 1\nwave 3\nnonsense 1\n") && Bad.Gold == BadGold && !Bad.LoadRun("hello");
+			Expect(bSame && bReject, "중단 저장: 저장한 판을 그대로 불러오고, 깨진 글은 거절");
+		}
 		std::map<int, int> Seen;
 		for (int I = 0; I < 400; ++I) for (const FPDReward& R : G.RollRewards()) if (!R.bCharm) Seen[R.Id]++;
 		Expect(Seen[(int)EPDInstant::Swap] > 60, "부적 창에 자리바꿈이 자주 나온다 (" + std::to_string(Seen[(int)EPDInstant::Swap]) + "/400)");

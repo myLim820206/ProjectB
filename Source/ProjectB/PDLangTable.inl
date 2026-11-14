@@ -353,6 +353,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("짝: %s (함께 못 찍음)"), TEXT("Pair: %s (can't take both)"), TEXT("対: %s (同時に取れない)"), TEXT("成对: %s (不能同时点亮)"), TEXT("成對: %s (不能同時點亮)")},
 	{TEXT("클릭해서 찍기"), TEXT("Click to take"), TEXT("クリックで取得"), TEXT("点击点亮"), TEXT("點擊點亮")},
 	{TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), TEXT("Place cards, build poker hands, hold back the endless horde"), TEXT("カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ"), TEXT("放置卡牌组成牌型, 挡住源源不断的敌人"), TEXT("放置卡牌組成牌型, 擋住源源不絕的敵人")},
+	{TEXT("이어하기"), TEXT("Continue"), TEXT("続きから"), TEXT("继续游戏"), TEXT("繼續遊戲")},
 	{TEXT("게임 시작"), TEXT("Start Game"), TEXT("ゲーム開始"), TEXT("开始游戏"), TEXT("開始遊戲")},
 	{TEXT("환경 설정"), TEXT("Settings"), TEXT("環境設定"), TEXT("设置"), TEXT("設定")},
 	{TEXT("최고 기록 %d웨이브"), TEXT("Best record: wave %d"), TEXT("最高記録 %dウェーブ"), TEXT("最高纪录 第%d波"), TEXT("最高紀錄 第%d波")},
@@ -423,4 +424,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 422;
+static const int32 PDLangRowCount = 423;

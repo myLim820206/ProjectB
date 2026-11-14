@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <string>
 #include <random>
 #include <vector>
 
@@ -393,6 +394,11 @@ public:
 	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { HitSrc = SrcKey; Hit(E, Dmg, 0.f); HitSrc = -1; } // 시험용: 이 칸 타워가 때림
 	bool GainJokerXp(int Key, float Xp);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치
 	void NewGame(bool bStart);
+	// 중단 저장 (D-162): 준비 단계(Build)의 판을 글자로. 웨이브 중에 그만두면 그 웨이브 시작 직전(PreWaveSave)으로 돌아간다
+	std::string SaveRun() const;
+	bool LoadRun(const std::string& S); // 성공하면 준비 단계로 (자동 시작은 꺼 둠)
+	std::string PreWaveSave; // 웨이브를 시작하기 직전의 저장 (StartWave 가 만든다)
+	int SaveSerial = 0;      // PreWaveSave 가 새로 만들어질 때마다 +1
 	void Tick(float Dt);                     // 0.05초로 잘라 Speed 배만큼 진행
 	bool Place(int HandIdx, int X, int Y);   // 카드 설치 (타워 위면 교체)
 	bool SwapTowers(int From, int To);       // 자리바꿈 (D-149): 타워 둘의 자리를 바꾸거나 빈 칸으로 옮김, Swaps 하나 씀

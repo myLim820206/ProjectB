@@ -9,6 +9,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
+#include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Slate/WidgetRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -281,6 +282,7 @@ namespace
 {
 const TCHAR* const PDSetSection = TEXT("ProjectB.Settings");
 FString PDProgressPath() { return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), TEXT("Progress.txt")); }
+FString PDRunSavePath() { return FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SaveGames"), TEXT("Run.txt")); } // 중단 저장 (D-162)
 }
 
 void SPDBoardWidget::LoadUserData()
@@ -321,6 +323,9 @@ void SPDBoardWidget::LoadUserData()
 	Game.bMuted = !Settings.bSound;
 	// 진행: 도감(만들어 본 조커)과 최고 기록
 	TArray<FString> Lines;
+	bHasRunSave = FPaths::FileExists(PDRunSavePath()); // 이어할 판 (D-162)
+	if (bHasRunSave) TitleSel = (int32)ETitleItem::Continue;
+	else TitleSel = (int32)ETitleItem::Start;
 	if (FFileHelper::LoadFileToStringArray(Lines, *PDProgressPath()))
 		for (const FString& L : Lines)
 		{
@@ -476,7 +481,15 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	GPDDebug.Add(InDeltaTime); // 디버그 프레임 표시 (자르기 전 실제 프레임 시간)
-	if (LoadT > 0.f) { LoadT -= InDeltaTime; if (LoadT <= 0.f) { LoadT = -1.f; RestartRun(); } } // 로딩 화면이 끝나면 새 판 (D-153)
+	if (LoadT > 0.f) { LoadT -= InDeltaTime; if (LoadT <= 0.f) { LoadT = -1.f; if (!bLoadContinue || !ContinueRun()) RestartRun(); bLoadContinue = false; } } // 로딩 화면이 끝나면 새 판 또는 이어하기 (D-153, D-162)
+	// 중단 저장 (D-162): 웨이브 직전 상태가 새로 생기면 바로, 준비 단계는 1초마다 바뀌었으면. 게임 오버면 지운다
+	if (Game.SaveSerial != LastSaveSerial) { LastSaveSerial = Game.SaveSerial; WriteRunSave(Game.PreWaveSave); }
+	if (Game.Phase == EPDPhase::Build && LoadT <= 0.f)
+	{
+		SaveCooldown -= InDeltaTime;
+		if (SaveCooldown <= 0.f) { SaveCooldown = 1.f; WriteRunSave(Game.SaveRun()); }
+	}
+	else if (Game.Phase == EPDPhase::Over && bHasRunSave) DeleteRunSave();
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
 	if (SwapFrom >= 0 && !Game.Towers.count(SwapFrom)) SwapFrom = -1;
@@ -682,7 +695,7 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 	else if (Game.Phase == EPDPhase::Title && LoadT <= 0.f) // 시작 화면: 마우스가 올라간 버튼
 	{
 		for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
-			if (InRect(Mouse, TitleBtnPos(I).X, TitleBtnPos(I).Y, TitleBtnW, TitleBtnH)) TitleSel = I;
+			if ((I != (int32)ETitleItem::Continue || bHasRunSave) && InRect(Mouse, TitleBtnPos(I, bHasRunSave).X, TitleBtnPos(I, bHasRunSave).Y, TitleBtnW, TitleBtnH)) TitleSel = I;
 	}
 	const int32 Cell = CellAt(Mouse);
 	HoverX = Cell >= 0 ? Cell % Cols : -1;
@@ -704,7 +717,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (Game.Phase == EPDPhase::Title) // 시작 화면 (D-153): 버튼 클릭
 	{
 		for (int32 I = 0; I < (int32)ETitleItem::Count && !bRight; ++I)
-			if (InRect(P, TitleBtnPos(I).X, TitleBtnPos(I).Y, TitleBtnW, TitleBtnH)) { TitleSelect(I); break; }
+			if (InRect(P, TitleBtnPos(I, bHasRunSave).X, TitleBtnPos(I, bHasRunSave).Y, TitleBtnW, TitleBtnH)) { TitleSelect(I); break; }
 		return;
 	}
 	if (Game.Phase == EPDPhase::Over) { RestartRun(); return; }
@@ -886,6 +899,38 @@ void SPDBoardWidget::UiSound(EPDSound S)
 	if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f});
 }
 
+// 중단 저장 (D-162)
+void SPDBoardWidget::WriteRunSave(const std::string& S)
+{
+	if (S.empty() || S == LastRunSave) return;
+	LastRunSave = S;
+	if (FFileHelper::SaveStringToFile(FString(UTF8_TO_TCHAR(S.c_str())), *PDRunSavePath())) bHasRunSave = true;
+}
+
+void SPDBoardWidget::DeleteRunSave()
+{
+	IFileManager::Get().Delete(*PDRunSavePath(), false, true, true);
+	bHasRunSave = false;
+	LastRunSave.clear();
+}
+
+bool SPDBoardWidget::ContinueRun()
+{
+	FString Text;
+	if (!FFileHelper::LoadFileToString(Text, *PDRunSavePath()) || !Game.LoadRun(std::string(TCHAR_TO_UTF8(*Text)))) { DeleteRunSave(); return false; }
+	LastRunSave = TCHAR_TO_UTF8(*Text);
+	LastSaveSerial = Game.SaveSerial;
+	Sel = -1;
+	bTree = bUpg = bCodex = bMenu = bSettings = false;
+	PowerRef = 0.f;
+	PickCells.clear();
+	Particles.Empty();
+	Flares.Empty();
+	Shards.Empty();
+	UiSound(EPDSound::Start);
+	return true;
+}
+
 void SPDBoardWidget::RestartRun()
 {
 	Game.NewGame(true);
@@ -915,7 +960,8 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 {
 	switch ((ETitleItem)Item)
 	{
-	case ETitleItem::Start: LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
+	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
+	case ETitleItem::Start: bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
 		if (OnQuit) OnQuit();
@@ -1017,8 +1063,9 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (Game.Phase == EPDPhase::Title)
 	{
 		const int32 N = (int32)ETitleItem::Count; // 시작 화면 (D-153): 위아래 고르기, Enter 결정
-		if (K == EKeys::Up || K == EKeys::W) { TitleSel = (TitleSel + N - 1) % N; UiSound(EPDSound::Move); }
-		else if (K == EKeys::Down || K == EKeys::S) { TitleSel = (TitleSel + 1) % N; UiSound(EPDSound::Move); }
+		const int32 Lo = bHasRunSave ? 0 : 1, M = N - Lo; // 이어할 판이 없으면 '이어하기'는 건너뛴다 (D-162)
+		if (K == EKeys::Up || K == EKeys::W) { TitleSel = Lo + (TitleSel - Lo + M - 1) % M; UiSound(EPDSound::Move); }
+		else if (K == EKeys::Down || K == EKeys::S) { TitleSel = Lo + (TitleSel - Lo + 1) % M; UiSound(EPDSound::Move); }
 		else if (K == EKeys::Enter || K == EKeys::SpaceBar) TitleSelect(TitleSel);
 		else return FReply::Unhandled();
 		return FReply::Handled();

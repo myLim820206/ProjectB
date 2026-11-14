@@ -1928,18 +1928,19 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
 	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
 	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
-	static const TCHAR* Labels[] = {TEXT("게임 시작"), TEXT("환경 설정"), TEXT("게임 종료")};
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("환경 설정"), TEXT("게임 종료")};
 	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
 	{
-		const FVector2f P = TitleBtnPos(I);
+		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 빈 자리 (D-162)
+		const FVector2f P = TitleBtnPos(I, bHasRunSave);
 		const bool bSel = TitleSel == I;
-		const FLinearColor Col = I == 0 ? Gold : Cyan;
+		const FLinearColor Col = I <= 1 ? Gold : Cyan;
 		C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, Hex(TEXT("0a0b14"), 0.92f));
 		if (bSel) C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, WithAlpha(Col, 0.12f + 0.06f * Pulse));
 		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, 10.f), UiEdge, bSel ? 2.2f : 1.3f, bSel ? 1.2f + 0.5f * Pulse : 0.5f);
 		C.TextCentered(Labels[I], CX, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Col, 18.f, true);
 	}
-	const float FootY = TitleBtnPos((int32)ETitleItem::Count).Y + 14.f;
+	const float FootY = TitleBtnPos((int32)ETitleItem::Count, bHasRunSave).Y + 14.f;
 	if (Game.BestWave > 0) C.TextCentered(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), CX, FootY, Grey, 12.f, false);
 	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), CX, DesignH - 30.f, Dim, 11.f, false);
 }

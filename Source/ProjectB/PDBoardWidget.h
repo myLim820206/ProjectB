@@ -84,6 +84,15 @@ private:
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
 	void RestartRun();                     // 새 판 시작 (게임 오버·메뉴 공통)
+	// 중단 저장 (D-162): Saved/SaveGames/Run.txt. 준비 단계는 1초마다(바뀌었으면), 웨이브 직전 상태는 시작할 때, 게임 오버면 지운다
+	bool ContinueRun();                    // 저장한 판 이어하기
+	void WriteRunSave(const std::string& S);
+	void DeleteRunSave();
+	bool bHasRunSave = false;              // 이어할 판이 있다
+	bool bLoadContinue = false;            // 로딩이 끝나면 이어하기 (아니면 새 판)
+	int32 LastSaveSerial = 0;
+	float SaveCooldown = 0.f;
+	std::string LastRunSave;
 	// 합성 위치 고르기: [합성]·[조커] 버튼을 누르면 재료 칸 중 하나를 클릭해 결과가 놓일 칸을 고른다
 	std::vector<int> PickCells;            // 고르는 중인 재료 칸 (비어 있으면 고르는 중 아님)
 	bool bPickJoker = false;               // 조커 합성을 고르는 중

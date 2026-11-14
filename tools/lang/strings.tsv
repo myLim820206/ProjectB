@@ -352,6 +352,7 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 짝: %s (함께 못 찍음)	Pair: %s (can't take both)	対: %s (同時に取れない)	成对: %s (不能同时点亮)	成對: %s (不能同時點亮)	PDBoardPaint.cpp
 클릭해서 찍기	Click to take	クリックで取得	点击点亮	點擊點亮	PDBoardPaint.cpp
 카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라	Place cards, build poker hands, hold back the endless horde	カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ	放置卡牌组成牌型, 挡住源源不断的敌人	放置卡牌組成牌型, 擋住源源不絕的敵人	PDBoardPaint.cpp
+이어하기	Continue	続きから	继续游戏	繼續遊戲	PDBoardPaint.cpp
 게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDBoardPaint.cpp
 환경 설정	Settings	環境設定	设置	設定	PDBoardPaint.cpp
 최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
@@ -399,25 +400,25 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
-명사수	Marksman	名射手	神射手	神射手	PDTreeText.inl
-저격수의 눈	Sniper's Eye	狙撃手の目	狙击手之眼	狙擊手之眼	PDTreeText.inl
-망원 조준	Telescopic Sight	望遠照準	望远瞄准	望遠瞄準	PDTreeText.inl
-불꽃놀이	Fireworks	花火	烟花	煙火	PDTreeText.inl
-화약고	Powder Keg	火薬庫	火药库	火藥庫	PDTreeText.inl
-기관총	Machine Gun	機関銃	机枪	機槍	PDTreeText.inl
-탄창	Magazine	弾倉	弹匣	彈匣	PDTreeText.inl
-과열	Overheat	過熱	过热	過熱	PDTreeText.inl
-얼음 손	Ice Hand	氷の手	冰之手	冰之手	PDTreeText.inl
-서릿발	Frost Spikes	霜柱	霜刺	霜刺	PDTreeText.inl
-빙하	Glacier	氷河	冰川	冰川	PDTreeText.inl
-거울	Mirror	鏡	镜子	鏡子	PDTreeText.inl
-다섯 손가락	Five Fingers	五本の指	五指	五指	PDTreeText.inl
-물든 패	Tinted Hand	染まった札	染色之牌	染色之牌	PDTreeText.inl
-왕관	Crown	王冠	王冠	王冠	PDTreeText.inl
-번지는 물감	Spreading Paint	にじむ絵の具	晕染颜料	暈染顏料	PDTreeText.inl
-흐름	Flow	流れ	流动	流動	PDTreeText.inl
-긴 줄	Long Line	長い列	长龙	長龍	PDTreeText.inl
-장전	Reload	装填	装填	裝填	PDTreeText.inl
-단조	Forging	鍛造	锻造	鍛造	PDTreeText.inl
-대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDTreeText.inl
-조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDTreeText.inl
+명사수	Marksman	名射手	神射手	神射手	PDLangTable.inl
+저격수의 눈	Sniper's Eye	狙撃手の目	狙击手之眼	狙擊手之眼	PDLangTable.inl
+망원 조준	Telescopic Sight	望遠照準	望远瞄准	望遠瞄準	PDLangTable.inl
+불꽃놀이	Fireworks	花火	烟花	煙火	PDLangTable.inl
+화약고	Powder Keg	火薬庫	火药库	火藥庫	PDLangTable.inl
+기관총	Machine Gun	機関銃	机枪	機槍	PDLangTable.inl
+탄창	Magazine	弾倉	弹匣	彈匣	PDLangTable.inl
+과열	Overheat	過熱	过热	過熱	PDLangTable.inl
+얼음 손	Ice Hand	氷の手	冰之手	冰之手	PDLangTable.inl
+서릿발	Frost Spikes	霜柱	霜刺	霜刺	PDLangTable.inl
+빙하	Glacier	氷河	冰川	冰川	PDLangTable.inl
+거울	Mirror	鏡	镜子	鏡子	PDLangTable.inl
+다섯 손가락	Five Fingers	五本の指	五指	五指	PDLangTable.inl
+물든 패	Tinted Hand	染まった札	染色之牌	染色之牌	PDLangTable.inl
+왕관	Crown	王冠	王冠	王冠	PDLangTable.inl
+번지는 물감	Spreading Paint	にじむ絵の具	晕染颜料	暈染顏料	PDLangTable.inl
+흐름	Flow	流れ	流动	流動	PDLangTable.inl
+긴 줄	Long Line	長い列	长龙	長龍	PDLangTable.inl
+장전	Reload	装填	装填	裝填	PDLangTable.inl
+단조	Forging	鍛造	锻造	鍛造	PDLangTable.inl
+대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDLangTable.inl
+조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDLangTable.inl
