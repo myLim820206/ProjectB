@@ -1347,9 +1347,11 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					const int CX = K % Cols, CY = K / Cols;
 					const bool bL = SameSyn(CX - 1, CY), bR = SameSyn(CX + 1, CY), bU = SameSyn(CX, CY - 1), bD = SameSyn(CX, CY + 1);
 					const float In = 4.f, X0 = C0.X + (bL ? 0.f : In), X1 = C0.X + CS - (bR ? 0.f : In), Y0 = C0.Y + (bU ? 0.f : In), Y1 = C0.Y + CS - (bD ? 0.f : In);
-					F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Pick, (bHov ? 0.3f : 0.2f) + 0.12f * Wv));
-					const FLinearColor Ec = WithAlpha(Pick, 0.95f);
-					const float Ew = bHov ? 3.f : 2.4f, Eg = 1.2f + 0.8f * Wv;
+					// 마우스가 안 올라간 후보는 한 단계 눌러 둔다 (D-204): 옅은 어둠 + 옅은 채움 + 가는 테두리. 올라간 족보만 밝게
+					if (!bHov) F.Box(C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.38f));
+					F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Pick, bHov ? 0.3f + 0.12f * Wv : 0.1f + 0.06f * Wv));
+					const FLinearColor Ec = WithAlpha(Pick, bHov ? 0.95f : 0.7f);
+					const float Ew = bHov ? 3.f : 1.8f, Eg = bHov ? 1.2f + 0.8f * Wv : 0.5f + 0.4f * Wv;
 					if (!bU) F.Glow({FVector2f(X0, Y0), FVector2f(X1, Y0)}, Ec, Ew, Eg);
 					if (!bD) F.Glow({FVector2f(X0, Y1), FVector2f(X1, Y1)}, Ec, Ew, Eg);
 					if (!bL) F.Glow({FVector2f(X0, Y0), FVector2f(X0, Y1)}, Ec, Ew, Eg);
