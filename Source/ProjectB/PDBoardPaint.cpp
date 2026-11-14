@@ -1288,11 +1288,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Lines({S - FVector2f(L, 0.f), S + FVector2f(L, 0.f)}, WithAlpha(FLinearColor::White, Tw), 1.2f); F.Lines({S - FVector2f(0.f, L), S + FVector2f(0.f, L)}, WithAlpha(FLinearColor::White, Tw), 1.2f); }
 			}
 			const FVector2f B = JokerButtonCenter(Gr);
-			if (!JokerRevealed(Gr)) // 평소엔 작은 분홍 마름모 (조커를 만들 수 있다는 표시)
-			{
-				F.Glow({B + FVector2f(0.f, -5.f), B + FVector2f(4.f, 0.f), B + FVector2f(0.f, 5.f), B + FVector2f(-4.f, 0.f), B + FVector2f(0.f, -5.f)}, JokerPink, 1.6f, 0.8f + 0.5f * Pulse);
-				continue;
-			}
+			if (!JokerRevealed(Gr)) continue; // 평소엔 재료 칸 분홍 반짝임만 (작은 분홍 마름모는 뺐다, D-173)
 			const bool bHov = InBox(Mouse, B, JokerBtnW, JokerBtnH);
 			const bool bKnown = (G.Discovered >> (int)Gr.Result) & 1u;
 			if (bHov) for (int K : Gr.Cells) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(JokerPink, 0.12f)); }
