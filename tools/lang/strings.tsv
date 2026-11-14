@@ -247,8 +247,6 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 조커 자리를 고르세요	Choose the Joker's spot	ジョーカーの場所を選んでください	请选择小丑的位置	請選擇小丑的位置	PDBoardPaint.cpp
 합성 타워 자리를 고르세요	Choose the fused tower's spot	合成タワーの場所を選んでください	请选择合成塔的位置	請選擇合成塔的位置	PDBoardPaint.cpp
 빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소	Click one of the glowing tiles · Esc / right-click: cancel	光る素材マスを1つクリック · Esc / 右クリック: キャンセル	点击一个发光的素材格 · Esc / 右键: 取消	點擊一個發光的素材格 · Esc / 右鍵: 取消	PDBoardPaint.cpp
-조커가 낀 족보는 합성할 수 없다	Hands with a Joker can't be fused	ジョーカー入りの役は合成できない	含小丑的牌型不能合成	含小丑的牌型不能合成	PDBoardPaint.cpp
-최대 레벨이라 합성할 수 없다	Max level, can't fuse	最大レベルなので合成できない	已满级, 不能合成	已滿級, 不能合成	PDBoardPaint.cpp
 여기로 합성	Fuse here	ここに合成	合成到这里	合成到這裡	PDBoardPaint.cpp
 먹이%d	Feed%d	エサ%d	喂%d	餵%d	PDBoardPaint.cpp
 위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s	Power +%.0f%% · XP +%.0f → Lv %d%s	威力 +%.0f%% · 経験値 +%.0f → レベル %d%s	威力 +%.0f%% · 经验 +%.0f → 等级 %d%s	威力 +%.0f%% · 經驗 +%.0f → 等級 %d%s	PDBoardPaint.cpp
@@ -469,6 +467,8 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
+조커가 낀 족보는 합성할 수 없다	Hands with a Joker can't be fused	ジョーカー入りの役は合成できない	含小丑的牌型不能合成	含小丑的牌型不能合成	PDLangTable.inl
+최대 레벨이라 합성할 수 없다	Max level, can't fuse	最大レベルなので合成できない	已满级, 不能合成	已滿級, 不能合成	PDLangTable.inl
 %s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing %s only: click its tiles = fuse · click the list again / Esc: off	%s のみ表示: その役のマスをクリック = 合成 · 役リストをもう一度 / Esc: 解除	只看%s: 点击该牌型的格 = 合成 · 再点牌型列表 / Esc: 关闭	只看%s: 點擊該牌型的格 = 合成 · 再點牌型列表 / Esc: 關閉	PDLangTable.inl
 족보에 마우스를 올리면 [합성] 버튼이 뜬다	Hover a hand to show the [Fuse] button	役にマウスを乗せると [合成] ボタンが出る	鼠标移到牌型上会出现 [合成] 按钮	滑鼠移到牌型上會出現 [合成] 按鈕	PDLangTable.inl
 왼쪽 족보 목록 클릭: 그 족보만 보기 · G: 합성 · C: 조커 만들기	Click the hand list: show only that hand · G: fuse · C: make Joker	左の役リストをクリック: その役だけ表示 · G: 合成 · C: ジョーカー作成	点击左侧牌型列表: 只看该牌型 · G: 合成 · C: 制作小丑	點擊左側牌型列表: 只看該牌型 · G: 合成 · C: 製作小丑	PDLangTable.inl

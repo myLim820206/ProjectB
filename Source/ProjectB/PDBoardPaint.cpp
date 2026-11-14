@@ -1266,7 +1266,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	if (bFuseMode)
 	{
 		TSet<int32> Lit;
-		for (const FPDSynergy& S : G.Synergies) if ((int32)S.Kind == HandFilter) for (int K : S.Cells) Lit.Add(K);
+		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) if ((int32)G.Synergies[I].Kind == HandFilter && G.CanFuse(I)) for (int K : G.Synergies[I].Cells) Lit.Add(K); // 합성 되는 족보만 밝게 (D-207)
 		const int32 DL = F.NextLayer();
 		for (int32 K = 0; K < Cols * Rows; ++K)
 		{
@@ -1277,32 +1277,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.NextLayer();
 	}
 	bool bFuseHov = false; // 합쳐질 칸 위: 타워 툴팁이 미리보기를 가리지 않게 (D-199)
-	// 합성 못 하는 족보 (D-200): 칸마다 빨간 X, 마우스를 올리면 까닭 (조커가 낌 / 최대 레벨)
-	if (bFuseMode)
-	{
-		const FLinearColor No = Hex(TEXT("ff5a6a"));
-		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
-		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
-		{
-			const FPDSynergy& S = G.Synergies[I];
-			if ((int32)S.Kind != HandFilter || G.CanFuse(I)) continue;
-			bool bJoker = false, bHov = false;
-			for (int K : S.Cells) { bJoker = bJoker || G.Towers.at(K).IsJoker(); bHov = bHov || K == HKey; }
-			for (int K : S.Cells)
-			{
-				const FVector2f B = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Glow(FCanvas::RoundRectPoints(B.X + 2.f, B.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), WithAlpha(No, bHov ? 0.9f : 0.55f), 1.6f, bHov ? 1.f : 0.5f);
-				F.Lines({B + FVector2f(CS * 0.22f, CS * 0.22f), B + FVector2f(CS * 0.78f, CS * 0.78f)}, WithAlpha(No, 0.85f), 1.8f);
-				F.Lines({B + FVector2f(CS * 0.78f, CS * 0.22f), B + FVector2f(CS * 0.22f, CS * 0.78f)}, WithAlpha(No, 0.85f), 1.8f);
-			}
-			if (bHov)
-			{
-				bFuseHov = true;
-				const FVector2f B = CellPx((float)HoverX, (float)HoverY);
-				F.Badge(bJoker ? TEXT("조커가 낀 족보는 합성할 수 없다") : TEXT("최대 레벨이라 합성할 수 없다"), B.X + CS / 2.f, B.Y - 10.f, No, 1.f);
-			}
-		}
-	}
+	// 합성 못 하는 족보(조커가 낌·최대 레벨)는 따로 표시하지 않고 다른 칸처럼 어둡게 (D-207, D-200 의 빨간 X 는 난잡해서 뺐다)
 	// 같은 족보가 여럿 붙어 있으면 족보마다 다른 색 (D-200): 맞닿은 족보끼리 색이 겹치지 않게 차례로 고른다
 	TMap<int32, FLinearColor> SynCol;
 	if (bFuseMode)
