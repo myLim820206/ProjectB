@@ -613,9 +613,34 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			const float Sc = bBoss ? 0.95f : Sh == 6 ? 0.42f : 0.48f;
 			const FLinearColor Ice = Hex(TEXT("b8f0ff"));
 			const float Fz = E.SlowT > 0.f ? FMath::Min(1.f, E.SlowT * 3.f) : 0.f; // 둔화 (D-178): 몸이 얼음빛으로 물든다
-			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Fz > 0.f ? FMath::Lerp(Col, WithAlpha(Ice, Col.A), 0.55f * Fz) : Col);
-			if (Fz > 0.f) // 둔화 (D-178): 발밑 얼음 고리(납작한 타원) + 머리 위에서 천천히 도는 눈송이
+			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Fz > 0.f ? FMath::Lerp(Col, WithAlpha(Ice, Col.A), 0.8f * Fz) : Col);
+			if (Fz > 0.f) // 둔화 (D-178, D-179): 얼음 껍질에 갇힌 몸 + 고드름 + 떨어지는 서리 + 발밑 얼음 고리 + 눈송이
 			{
+				{ // 얼음 껍질: 몸통 카드를 감싼 들쭉날쭉한 얼음 + 옅은 얼음 채움, 아래로 고드름
+					const float BakeR = bBoss ? SoldierBossBakeR : SoldierBakeR, K = bBoss ? 1.35f : Sh == 6 ? 0.6f : 1.f;
+					const float BWh = 0.38f * BakeR * K * Sc + 3.f, BHh = 0.59f * BakeR * K * Sc + 3.f;
+					const float BCY = P.Y - 4.f * Sc + (SoldierFoot - 0.32f * BakeR * K - 0.59f * BakeR * K) * Sc;
+					const float X0 = P.X - BWh, X1 = P.X + BWh, Y0 = BCY - BHh, Y1 = BCY + BHh;
+					F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Ice, 0.16f * Fz));
+					TArray<FVector2f> Shell;
+					const int32 N = 6;
+					for (int32 I = 0; I <= N; ++I) Shell.Add(FVector2f(FMath::Lerp(X0, X1, I / (float)N), Y0 - (I % 2 ? 3.f : 0.f))); // 윗변 뾰족
+					for (int32 I = 1; I <= N; ++I) Shell.Add(FVector2f(X1 + (I % 2 ? 2.f : 0.f), FMath::Lerp(Y0, Y1, I / (float)N)));
+					for (int32 I = 1; I <= N; ++I) Shell.Add(FVector2f(FMath::Lerp(X1, X0, I / (float)N), Y1));
+					for (int32 I = 1; I <= N; ++I) Shell.Add(FVector2f(X0 - (I % 2 ? 2.f : 0.f), FMath::Lerp(Y1, Y0, I / (float)N)));
+					F.Glow(Shell, WithAlpha(Ice, 0.9f * Fz), 1.3f, 1.f);
+					for (int32 I = 0; I < 3; ++I) // 고드름 셋
+					{
+						const float X = FMath::Lerp(X0 + 3.f, X1 - 3.f, I / 2.f), L = (I == 1 ? 7.f : 4.5f) * (bBoss ? 1.6f : 1.f);
+						F.Lines({FVector2f(X - 2.f, Y1), FVector2f(X, Y1 + L), FVector2f(X + 2.f, Y1)}, WithAlpha(Ice, 0.85f * Fz), 1.1f);
+					}
+					for (int32 I = 0; I < 4; ++I) // 둘레로 떨어지는 서리 알갱이
+					{
+						const float U = FMath::Fmod(Clock * 0.7f + I * 0.25f + E.Id * 0.13f, 1.f);
+						const FVector2f D(FMath::Lerp(X0 - 4.f, X1 + 4.f, FMath::Fmod(I * 0.37f + E.Id * 0.21f, 1.f)), Y0 - 6.f + U * (Y1 - Y0 + 16.f));
+						F.Box(D.X - 1.f, D.Y - 1.f, 2.f, 2.f, WithAlpha(FLinearColor::White, 0.8f * (1.f - U) * Fz));
+					}
+				}
 				const float FeetY = P.Y + 33.f * Sc, Rx = bBoss ? 30.f : 15.f, Ry = Rx * 0.32f;
 				TArray<FVector2f> Ring;
 				for (int32 K = 0; K <= 28; ++K) { const float A = K / 28.f * TwoPi; Ring.Add(FVector2f(P.X + FMath::Cos(A) * Rx, FeetY + FMath::Sin(A) * Ry)); }
@@ -626,7 +651,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 					const FVector2f B(P.X + FMath::Cos(A) * Rx, FeetY + FMath::Sin(A) * Ry);
 					F.Lines({B, B + FVector2f(0.f, -(bBoss ? 9.f : 5.f))}, WithAlpha(Ice, 0.8f * Fz), 1.2f);
 				}
-				F.SpriteRot(F.NextLayer(), &Atlas->Brushes[AtlasSnow], P.X, P.Y - 4.f * Sc - 40.f * Sc, bBoss ? 0.28f : 0.18f, Clock * 0.8f + E.Id, WithAlpha(Ice, 0.9f * Fz));
+				F.SpriteRot(F.NextLayer(), &Atlas->Brushes[AtlasSnow], P.X, P.Y - 4.f * Sc - 42.f * Sc, bBoss ? 0.36f : 0.24f, Clock * 0.8f + E.Id, WithAlpha(FLinearColor::White, Fz)); // 크고 하얗게 (D-179)
 			}
 			if (E.Type == EPDEnemy::Warden) // 보호막 켜짐/꺼짐은 그대로 보여 준다
 			{
