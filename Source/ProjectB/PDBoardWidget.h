@@ -80,6 +80,13 @@ private:
 	void PaintMenu(FCanvas& C) const;      // Esc 메뉴 창
 	void MenuSelect(int32 Item);           // 메뉴 항목 실행
 	void TitleSelect(int32 Item);          // 시작 화면 항목 실행 (D-153)
+	void PaintTutorial(FCanvas& C) const;  // 튜토리얼 장면 (D-166)
+	void OpenTutorial(bool bThenStart);
+	void CloseTutorial();
+	bool bTutorial = false;                // 튜토리얼 창 (여는 동안 게임은 멈춘다)
+	int32 TutPage = 0;
+	bool bTutThenStart = false;            // 닫으면 새 판 시작 (처음 게임 시작에서 연 경우)
+	bool bTutorialSeen = false;            // 한 번 봤다 (진행 파일에 저장)
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)

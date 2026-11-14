@@ -191,6 +191,7 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)	That suit's towers ATK +%.0f%%  (+2%% per level)	そのスートのタワー攻撃力 +%.0f%%  (レベルごと +2%%)	该花色塔攻击力 +%.0f%%  (每级 +2%%)	該花色塔攻擊力 +%.0f%%  (每級 +2%%)	PDBoardDraw.h
 계속하기	Resume	続ける	继续	繼續	PDBoardDraw.h
 새 게임	New Game	ニューゲーム	新游戏	新遊戲	PDBoardDraw.h
+튜토리얼	Tutorial	チュートリアル	教程	教學	PDBoardDraw.h
 설정	Settings	設定	设置	設定	PDBoardDraw.h
 게임 종료	Quit Game	ゲーム終了	退出游戏	退出遊戲	PDBoardDraw.h
 파이브	Five	ファイブ	五条	五條	PDBoardDraw.h
@@ -274,11 +275,11 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 목숨 %d	Lives %d	ライフ %d	生命 %d	生命 %d	PDBoardPaint.cpp
 골드 %s	Gold %s	ゴールド %s	金币 %s	金幣 %s	PDBoardPaint.cpp
 다음 노드 %s	Next node %s	次のノード %s	下个节点 %s	下個節點 %s	PDBoardPaint.cpp
-판 위력	Board Power	盤の威力	场上威力	場上威力	PDBoardPaint.cpp
 손패 %d/%d	Hand %d/%d	手札 %d/%d	手牌 %d/%d	手牌 %d/%d	PDBoardPaint.cpp
 덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
 자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
 끄기 X	Off X	やめる X	关闭 X	關閉 X	PDBoardPaint.cpp
+판 위력	Board Power	盤の威力	场上威力	場上威力	PDBoardPaint.cpp
 초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDBoardPaint.cpp
 족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDBoardPaint.cpp
 족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDBoardPaint.cpp
@@ -357,6 +358,47 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 환경 설정	Settings	環境設定	设置	設定	PDBoardPaint.cpp
 최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
 위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정	Up/Down or mouse to choose · Enter or click to confirm	上下キーかマウスで選ぶ · Enter かクリックで決定	用上下键或鼠标选择 · 按 Enter 或点击确认	用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認	PDBoardPaint.cpp
+목표	Goal	目標	目标	目標	PDBoardPaint.cpp
+카드 = 타워	Card = Tower	カード = タワー	卡牌 = 塔	卡牌 = 塔	PDBoardPaint.cpp
+족보	Hands	役	牌型	牌型	PDBoardPaint.cpp
+연쇄	Chain	連鎖	连锁	連鎖	PDBoardPaint.cpp
+합성	Fuse	合成	合成	合成	PDBoardPaint.cpp
+조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
+성장	Growth	成長	成长	成長	PDBoardPaint.cpp
+조작	Controls	操作	操作	操作	PDBoardPaint.cpp
+적이 길을 따라 몰려온다. 끝까지 가면 목숨이 준다	Enemies march along the path. Each one that reaches the end costs a life	敵が道に沿って押し寄せる。最後まで行くとライフが減る	敌人沿着道路涌来。走到终点就会扣生命	敵人沿著道路湧來。走到終點就會扣生命	PDBoardPaint.cpp
+손패의 카드를 판의 빈 칸에 놓으면 타워가 된다	Place a card from your hand on an empty tile to make a tower	手札のカードを盤の空きマスに置くとタワーになる	把手牌放到空格上就会变成塔	把手牌放到空格上就會變成塔	PDBoardPaint.cpp
+목숨이 다 떨어지기 전에 최대한 많은 웨이브를 버텨라	Survive as many waves as you can before your lives run out	ライフが尽きる前にできるだけ多くのウェーブを耐えろ	在生命耗尽前撑过尽可能多的波次	在生命耗盡前撐過盡可能多的波次	PDBoardPaint.cpp
+무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화	Suit sets the attack: ♠ Snipe · ♥ Blast · ♦ Rapid · ♣ Slow	スートは攻撃方式: ♠ 狙撃 · ♥ 爆発 · ♦ 連射 · ♣ 減速	花色决定攻击: ♠ 狙击 · ♥ 爆炸 · ♦ 连射 · ♣ 减速	花色決定攻擊: ♠ 狙擊 · ♥ 爆炸 · ♦ 連射 · ♣ 減速	PDBoardPaint.cpp
+숫자는 공격력 (A가 가장 세다)	Rank is attack power (A is strongest)	数字は攻撃力 (Aが一番強い)	点数是攻击力 (A最强)	點數是攻擊力 (A最強)	PDBoardPaint.cpp
+타워 위에 카드를 놓으면 교체된다	Placing a card on a tower replaces it	タワーの上にカードを置くと交換される	把卡牌放在塔上会替换它	把卡牌放在塔上會替換它	PDBoardPaint.cpp
+붙어 있는 타워들이 포커 족보가 되면 시너지	Adjacent towers forming a poker hand create a synergy	隣り合うタワーがポーカーの役になるとシナジー	相邻的塔组成扑克牌型就有协同	相鄰的塔組成撲克牌型就有協同	PDBoardPaint.cpp
+모양은 상관없다 (일자·ㄱ자·네모 모두 된다)	Any shape works (line, L-shape or square)	形は自由 (一直線・L字・四角どれでもOK)	形状不限 (直线·L形·方形都可以)	形狀不限 (直線·L形·方形都可以)	PDBoardPaint.cpp
+왼쪽 족보 목록에 족보마다 효과가 나온다	The hand list on the left shows each hand's effect	左の役リストに役ごとの効果が出る	左侧牌型列表显示每种牌型的效果	左側牌型列表顯示每種牌型的效果	PDBoardPaint.cpp
+족보끼리 맞닿으면 연쇄 보너스	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp
+맞닿은 족보 하나마다 위력 +25%	+25% power for each touching hand	隣接する役1つにつき威力 +25%	每个相邻牌型威力 +25%	每個相鄰牌型威力 +25%	PDBoardPaint.cpp
+번개로 이어진 족보가 연쇄다	Hands linked by lightning are chained	稲妻でつながった役が連鎖	用闪电连起来的牌型就是连锁	用閃電連起來的牌型就是連鎖	PDBoardPaint.cpp
+족보에 마우스를 올리면 [합성] 버튼이 뜬다	Hover a hand to show the [Fuse] button	役にマウスを乗せると [合成] ボタンが出る	鼠标移到牌型上会出现 [合成] 按钮	滑鼠移到牌型上會出現 [合成] 按鈕	PDBoardPaint.cpp
+합성하면 재료가 한 타워로 모여 레벨이 오른다	Fusing gathers the materials into one tower and raises its level	合成すると素材が1つのタワーにまとまりレベルが上がる	合成后素材汇成一座塔并提升等级	合成後素材匯成一座塔並提升等級	PDBoardPaint.cpp
+같은 레벨끼리만 다시 족보가 된다	Only towers of the same level form hands together	同じレベル同士でしか役にならない	只有相同等级的塔才能再组成牌型	只有相同等級的塔才能再組成牌型	PDBoardPaint.cpp
+맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커	3 (or 2) touching hands matching a recipe make a Joker	隣接する役3つ(または2つ)がレシピに合うとジョーカー	相邻的3个(或2个)牌型符合配方即成小丑	相鄰的3個(或2個)牌型符合配方即成小丑	PDBoardPaint.cpp
+조커는 적을 처치하거나 족보를 먹으면 레벨이 오른다	Jokers level up by killing enemies or being fed hands	ジョーカーは敵を倒したり役を食べるとレベルが上がる	小丑击杀敌人或吃掉牌型就会升级	小丑擊殺敵人或吃掉牌型就會升級	PDBoardPaint.cpp
+J 키: 조커 도감에서 레시피 보기	J: see recipes in the Joker Codex	J キー: ジョーカー図鑑でレシピを見る	J 键: 在小丑图鉴查看配方	J 鍵: 在小丑圖鑑查看配方	PDBoardPaint.cpp
+웨이브를 막으면 카드를 받는다	Clear a wave to get cards	ウェーブを防ぐとカードがもらえる	挡住一波就能获得卡牌	擋住一波就能獲得卡牌	PDBoardPaint.cpp
+5웨이브마다 부적 하나 (또는 즉시 보상)	A charm every 5 waves (or an instant reward)	5ウェーブごとにお守り1つ (または即時報酬)	每5波获得一个护符 (或即时奖励)	每5波獲得一個護符 (或即時獎勵)	PDBoardPaint.cpp
+골드로 스킬 트리(K)와 골드 강화(U)	Spend gold on the Skill Tree (K) and Gold Upgrades (U)	ゴールドでスキルツリー(K)とゴールド強化(U)	用金币升级技能树(K)和金币强化(U)	用金幣升級技能樹(K)和金幣強化(U)	PDBoardPaint.cpp
+카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click a card (number key) → click a tile: place · right-click: discard	カードをクリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击卡牌(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊卡牌(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDBoardPaint.cpp
+Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: speed · Esc: menu	Space: ウェーブ開始 · F: 倍速 · Esc: メニュー	Space: 开始波次 · F: 倍速 · Esc: 菜单	Space: 開始波次 · F: 倍速 · Esc: 選單	PDBoardPaint.cpp
+왼쪽 족보 목록 클릭: 그 족보만 보기 · G: 합성	Click the hand list: show only that hand · G: fuse	左の役リストをクリック: その役だけ表示 · G: 合成	点击左侧牌型列表: 只看该牌型 · G: 合成	點擊左側牌型列表: 只看該牌型 · G: 合成	PDBoardPaint.cpp
+♥ 목숨	♥ Lives	♥ ライフ	♥ 生命	♥ 生命	PDBoardPaint.cpp
+카드 고르기	Pick a card	カードを選ぶ	选择卡牌	選擇卡牌	PDBoardPaint.cpp
+배속	Speed	倍速	倍速	倍速	PDBoardPaint.cpp
+시작하기	Start	始める	开始	開始	PDBoardPaint.cpp
+닫기	Close	閉じる	关闭	關閉	PDBoardPaint.cpp
+다음	Next	次へ	下一页	下一頁	PDBoardPaint.cpp
+이전	Back	前へ	上一页	上一頁	PDBoardPaint.cpp
+건너뛰기	Skip	スキップ	跳过	跳過	PDBoardPaint.cpp
+←→ 넘기기 · Enter 다음 · Esc 닫기	←→ turn pages · Enter next · Esc close	←→ ページ送り · Enter 次へ · Esc 閉じる	←→ 翻页 · Enter 下一页 · Esc 关闭	←→ 翻頁 · Enter 下一頁 · Esc 關閉	PDBoardPaint.cpp
 판을 준비하는 중	Preparing the board	盤を準備中	正在准备棋盘	正在準備棋盤	PDBoardPaint.cpp
 붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)	Adjacent towers forming a poker hand create a synergy (any shape)	隣り合うタワーがポーカーの役になるとシナジー (形は自由)	相邻的塔组成扑克牌型就有协同 (形状不限)	相鄰的塔組成撲克牌型就有協同 (形狀不限)	PDBoardPaint.cpp
 족보끼리 맞닿으면 연쇄 보너스가 붙는다	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp
@@ -364,14 +406,11 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 맞닿은 족보 3개(또는 2개)로 조커를 만들 수 있다	3 (or 2) touching hands can make a Joker	隣接する役3つ(または2つ)でジョーカーを作れる	相邻的3个(或2个)牌型可以做出小丑	相鄰的3個(或2個)牌型可以做出小丑	PDBoardPaint.cpp
 자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다	The Swap reward lets you swap two towers	入れ替え報酬でタワー2つの場所を交換できる	换位奖励可以交换两座塔的位置	換位獎勵可以交換兩座塔的位置	PDBoardPaint.cpp
 무늬는 공격 방식, 숫자는 공격력	Suit sets the attack type, rank sets attack power	スートは攻撃方式、数字は攻撃力	花色决定攻击方式, 点数决定攻击力	花色決定攻擊方式, 點數決定攻擊力	PDBoardPaint.cpp
-족보	Hands	役	牌型	牌型	PDBoardPaint.cpp
 다시 클릭 / Esc: 필터 끄기	Click again / Esc: clear filter	もう一度クリック / Esc: フィルター解除	再次点击 / Esc: 关闭筛选	再次點擊 / Esc: 關閉篩選	PDBoardPaint.cpp
 클릭: 그 족보만 보기	Click: show only that hand	クリック: その役だけ表示	点击: 只看该牌型	點擊: 只看該牌型	PDBoardPaint.cpp
  (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
  (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDBoardPaint.cpp
-조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
 맞닿은 족보 3개(또는 2개)로 만든다	Made from 3 (or 2) touching hands	隣接する役3つ(または2つ)で作る	由相邻的3个(或2个)牌型制作	由相鄰的3個(或2個)牌型製作	PDBoardPaint.cpp
-연쇄	Chain	連鎖	连锁	連鎖	PDBoardPaint.cpp
 족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
 무늬 = 공격 방식	Suit = attack type	スート = 攻撃方式	花色 = 攻击方式	花色 = 攻擊方式	PDBoardPaint.cpp
 ↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)	↑↓ · Enter or click   Esc: close   (game is paused while open)	↑↓ · Enter かクリック   Esc: 閉じる   (開いている間ゲームは止まる)	↑↓ · Enter 或点击   Esc: 关闭   (打开期间游戏暂停)	↑↓ · Enter 或點擊   Esc: 關閉   (打開期間遊戲暫停)	PDBoardPaint.cpp
@@ -394,7 +433,6 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 제한 없음	Unlimited	制限なし	不限制	不限制	PDBoardPaint.cpp
 켜짐	On	オン	开	開	PDBoardPaint.cpp
 꺼짐	Off	オフ	关	關	PDBoardPaint.cpp
-닫기	Close	閉じる	关闭	關閉	PDBoardPaint.cpp
 화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)	Display mode only changes in packaged builds (saved only in the editor)	画面モードはパッケージ版でのみ変わる (エディタでは保存のみ)	画面模式仅在打包版本中改变 (编辑器中只保存)	畫面模式僅在打包版本中改變 (編輯器中只儲存)	PDBoardPaint.cpp
 ↑↓ 고르기 · ←→ 바꾸기 · Enter 켜기/끄기 · Esc 메뉴로	↑↓ select · ←→ change · Enter toggle · Esc back to menu	↑↓ 選ぶ · ←→ 変更 · Enter オン/オフ · Esc メニューへ	↑↓ 选择 · ←→ 更改 · Enter 开/关 · Esc 返回菜单	↑↓ 選擇 · ←→ 更改 · Enter 開/關 · Esc 返回選單	PDBoardPaint.cpp
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp

@@ -333,6 +333,7 @@ void SPDBoardWidget::LoadUserData()
 			if (!L.Split(TEXT("="), &Key, &Val)) continue;
 			if (Key == TEXT("Discovered")) Game.Discovered |= (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("BestWave")) Game.BestWave = FMath::Max(Game.BestWave, FCString::Atoi(*Val));
+			else if (Key == TEXT("Tutorial")) bTutorialSeen = FCString::Atoi(*Val) != 0;
 		}
 	SavedDiscovered = Game.Discovered;
 	SavedBest = Game.BestWave;
@@ -358,7 +359,7 @@ void SPDBoardWidget::SaveProgress()
 {
 	SavedDiscovered = Game.Discovered;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\n"), SavedDiscovered, SavedBest), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nTutorial=%d\n"), SavedDiscovered, SavedBest, bTutorialSeen ? 1 : 0), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -507,6 +508,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				Game.Phase = EPDPhase::Build;
 				LoadT = -1.f;
 				PDDebugStress(Game);
+				{ int32 TP = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdtut="), TP)) { bTutorial = true; TutPage = FMath::Clamp(TP, 0, TutPages - 1); } } // 시험용: 튜토리얼 N쪽 띄우기
 				GPDDebug.bShow = true;
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdnoworld"))) Settings.bWorldFx = false; // 비교용: 나이아가라 끔
 				if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(TEXT("t.MaxFPS"))) V->Set(0.f, ECVF_SetByCode);
@@ -529,7 +531,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	const double TickT0 = FPlatformTime::Seconds();
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
-	if (!bTree && !bUpg && !bMenu) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
+	if (!bTree && !bUpg && !bMenu && !bTutorial) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
 	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다
@@ -706,6 +708,14 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
 	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
+	if (bTutorial) // 튜토리얼 (D-166): 이전 · 다음/시작하기 · 건너뛰기, 오른쪽 클릭 = 이전
+	{
+		if (bRight) { TutPage = FMath::Max(0, TutPage - 1); return; }
+		if (InRect(P, TutNextX, TutBtnY, TutBtnW, TutBtnH)) { if (TutPage + 1 >= TutPages) CloseTutorial(); else { ++TutPage; UiSound(EPDSound::Move); } }
+		else if (TutPage > 0 && InRect(P, TutPrevX, TutBtnY, TutBtnW, TutBtnH)) { --TutPage; UiSound(EPDSound::Move); }
+		else if (TutPage + 1 < TutPages && InRect(P, TutSkipX, TutBtnY, TutBtnW, TutBtnH)) CloseTutorial();
+		return;
+	}
 	if (bSettings) { if (bRight) bSettings = false; else SettingsClick(P); return; }
 	if (bMenu)
 	{
@@ -956,12 +966,32 @@ int32 SPDBoardWidget::MenuHoverAt(FVector2f P) const
 	return -1;
 }
 
+// 튜토리얼 (D-166)
+void SPDBoardWidget::OpenTutorial(bool bThenStart)
+{
+	bTutorial = true;
+	TutPage = 0;
+	bTutThenStart = bThenStart;
+	Sel = -1;
+	UiSound(EPDSound::Move);
+}
+
+void SPDBoardWidget::CloseTutorial()
+{
+	bTutorial = false;
+	if (!bTutorialSeen) { bTutorialSeen = true; SaveProgress(); }
+	if (bTutThenStart) { bTutThenStart = false; bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); }
+}
+
 void SPDBoardWidget::TitleSelect(int32 Item)
 {
 	switch ((ETitleItem)Item)
 	{
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
-	case ETitleItem::Start: bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
+	case ETitleItem::Start:
+		if (!bTutorialSeen) { OpenTutorial(true); break; } // 처음이면 튜토리얼부터 (D-166)
+		bLoadContinue = false; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
+	case ETitleItem::Tutorial: OpenTutorial(false); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
 		if (OnQuit) OnQuit();
@@ -977,6 +1007,7 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 	{
 	case EMenuItem::Resume: bMenu = false; break;
 	case EMenuItem::NewGame: RestartRun(); break;
+	case EMenuItem::Tutorial: bMenu = false; OpenTutorial(false); break;
 	case EMenuItem::Settings: bSettings = true; SetSel = 0; break;
 	case EMenuItem::Quit:
 		bMenu = false;
@@ -1048,6 +1079,13 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 #endif
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	if (LoadT > 0.f) return FReply::Handled(); // 로딩 중 (D-153)
+	if (bTutorial) // 튜토리얼 (D-166): ←→ 넘기기, Enter 다음, Esc 닫기
+	{
+		if (K == EKeys::Left || K == EKeys::A) TutPage = FMath::Max(0, TutPage - 1);
+		else if (K == EKeys::Right || K == EKeys::D || K == EKeys::Enter || K == EKeys::SpaceBar) { if (TutPage + 1 >= TutPages) CloseTutorial(); else ++TutPage; }
+		else if (K == EKeys::Escape) CloseTutorial();
+		return FReply::Handled();
+	}
 	if (bSettings) { SettingsKey(K); return FReply::Handled(); }
 	if (bMenu)
 	{
