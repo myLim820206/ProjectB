@@ -232,7 +232,8 @@ static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& 
 
 // 스트레이트는 순서대로 (D-108): 칸들이 맞닿아 한 줄기로 이어지고, 그 줄기를 따라 숫자가 1씩 오른다 (꺾여도 됨, 거꾸로 읽어도 됨).
 // 조커·와일드는 아무 숫자, A 는 1 또는 14. 5칸이면 120가지 순서를 다 본다
-static bool PDOrderedStraight(const std::vector<int>& Cells, const std::vector<FPDCard>& Cards)
+// NeedBase: 가장 낮은 숫자가 꼭 이것이어야 함 (로열 = 10, D-190). -1 이면 아무 숫자
+static bool PDOrderedStraight(const std::vector<int>& Cells, const std::vector<FPDCard>& Cards, int NeedBase = -1)
 {
 	const int N = (int)Cells.size();
 	std::vector<int> P(N);
@@ -254,7 +255,9 @@ static bool PDOrderedStraight(const std::vector<int>& Cells, const std::vector<F
 				if (!bHave) { Base = B; bHave = true; }
 				else bOk = B == Base;
 			}
-			if (bOk && (!bHave || (Base >= 1 && Base + N - 1 <= 14))) return true;
+			if (!bOk) continue;
+			if (NeedBase >= 0) { if (!bHave || Base == NeedBase) return true; } // 와일드만이면 어디든 맞출 수 있다
+			else if (!bHave || (Base >= 1 && Base + N - 1 <= 14)) return true;
 		}
 	} while (std::next_permutation(P.begin(), P.end()));
 	return false;
@@ -344,7 +347,11 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			int Ordered = -1; // 스트레이트 순서 검사 (필요할 때 한 번만)
 			for (EPDHand H : ClassifyHand(Cards))
 			{
-				if (H == EPDHand::Straight || H == EPDHand::StraightFlush || H == EPDHand::RoyalFlush)
+				if (H == EPDHand::RoyalFlush) // 로열은 순서대로 놓았을 때 10 부터 시작해야 (D-190): 와일드 10 J Q K 에서 와일드가 10 쪽 끝이면 9 라서 스트레이트 플러시
+				{
+					if (!PDOrderedStraight(Cells, Cards, 10)) continue;
+				}
+				else if (H == EPDHand::Straight || H == EPDHand::StraightFlush)
 				{
 					if (Ordered < 0) Ordered = PDOrderedStraight(Cells, Cards) ? 1 : 0;
 					if (!Ordered) continue;

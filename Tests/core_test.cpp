@@ -213,6 +213,15 @@ static void UnitTests()
 		Put(B, 0, 0, W); Put(B, 1, 0, C(11)); Put(B, 2, 0, C(12)); Put(B, 3, 0, C(13)); Put(B, 4, 0, C(14));
 		Put(Cc, 0, 0, C(10)); Put(Cc, 1, 0, C(11)); Put(Cc, 2, 0, C(12)); Put(Cc, 3, 0, C(13)); Put(Cc, 4, 0, W);
 		Expect(HasRoyal(A) && HasRoyal(B) && HasRoyal(Cc), "와일드가 가운데·10 자리·A 자리에 있어도 로열");
+		FPDTowerMap Lv2, Jk;
+		Put(Lv2, 0, 0, C(10), 2); Put(Lv2, 1, 0, C(11), 2); Put(Lv2, 2, 0, W, 2); Put(Lv2, 3, 0, C(13), 2); Put(Lv2, 4, 0, C(14), 2);
+		Put(Jk, 0, 0, C(10)); Put(Jk, 1, 0, C(11)); Put(Jk, 2, 0, C(12)); Put(Jk, 3, 0, C(13)); Put(Jk, 4, 0, C(2, He));
+		Jk[CellKey(4, 0)].Joker = (int)EPDJoker::Star; // A 자리에 조커
+		FPDTowerMap Lo9;
+		Put(Lo9, 0, 0, W); Put(Lo9, 1, 0, C(10)); Put(Lo9, 2, 0, C(11)); Put(Lo9, 3, 0, C(12)); Put(Lo9, 4, 0, C(13));
+		auto HasSF = [](FPDTowerMap M) { for (const FPDSynergy& S : ApplyEffects(M)) if (S.Kind == EPDHand::StraightFlush) return true; return false; };
+		Expect(!HasRoyal(Lo9) && HasSF(Lo9), "와일드 10 J Q K 에서 와일드가 10 쪽 끝이면 9 라서 로열 아님, 스트레이트 플러시 (D-190)");
+		Expect(HasRoyal(Lv2) && HasRoyal(Jk), "Lv2 와일드·A 자리 조커가 끼어도 로열");
 	}
 	{ // 적: 방패, 관통탄, 분열, 재생, 보스
 		FPDGame G(4);
