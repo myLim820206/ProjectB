@@ -432,8 +432,10 @@ public:
 	std::vector<int> BestJokerPicks(EPDJoker J) const;
 	// 3개 레시피에서 판에 모자란 족보 수 (같은 족보가 둘 필요하면 둘 다 세야). Missing = 모자란 족보 하나 (없으면 Count)
 	int JokerMissing(EPDJoker J, EPDHand* Missing = nullptr) const;
-	std::vector<FPDFeed> FeedTargets() const;        // 조커에 먹일 수 있는 족보 (족보마다 하나)
-	bool Feed(int SynergyIdx);                       // 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치). 조커는 먹이가 되지 않는다
+	// 조커에 먹일 수 있는 족보 (족보마다 하나). OnlyJoker 를 주면 그 조커가 먹을 수 있는 족보만 (그 조커가 족보에 들었거나 맞닿음, D-213)
+	std::vector<FPDFeed> FeedTargets(int OnlyJoker = -1) const;
+	// 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치). JokerKey 를 주면 그 조커가 먹는다 (D-213), 아니면 든 조커 → 맞닿은 조커 중 레벨 높은 쪽
+	bool Feed(int SynergyIdx, int JokerKey = -1);
 	std::vector<FPDJokerMerge> JokerMerges() const;  // 같은 조커끼리 맞닿은 묶음 (2개 이상)
 	bool MergeJokers(int MergeIdx, int TargetCell = -1); // 묶음을 조커 하나로 (위력 합 × JokerMergeBonus, 레벨은 가장 높은 것)
 	// 버튼을 누르기 전 판 위력 비교 (D-107): 지금 / 누른 뒤 (기본 칸에 합칠 때). 누를 수 없으면 After < 0

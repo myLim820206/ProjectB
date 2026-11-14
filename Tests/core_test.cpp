@@ -751,6 +751,27 @@ static void UnitTests()
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			auto Fd2 = G.FeedTargets();
 			Expect(!Fd2.empty() && G.Feed(Fd2[0].Syn) && G.Towers.at(JKey).JLevel >= JokerUpLevel && G.Mods.Up(G.Towers.at(JKey)), "레벨 10 이 되면 강화 능력");
+			// 고른 조커가 먹는다 (D-213): 원 페어 양쪽에 조커 둘 (오른쪽이 레벨 낮음)
+			const int J2 = CellKey(JX + 3, Row);
+			FPDTower Jk2 = G.Towers.at(JKey);
+			Jk2.X = JX + 3;
+			Jk2.JLevel = 1;
+			Jk2.JXp = 0.f;
+			G.Towers[J2] = Jk2;
+			Put(G.Towers, JX + 1, Row, C(6), 2); Put(G.Towers, JX + 2, Row, C(6, He), 2); // 레벨 2 원 페어 (조커는 와일드라 낄 수 있지만 레벨 2 둘이 따로 족보)
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			int PairSyn = -1;
+			for (int I = 0; I < (int)G.Synergies.size(); ++I)
+			{
+				const std::vector<int>& Cs = G.Synergies[I].Cells; // 조커가 와일드로 껴도 된다
+				if (std::find(Cs.begin(), Cs.end(), CellKey(JX + 1, Row)) != Cs.end()) PairSyn = I;
+			}
+			bool bDefaultHigh = false, bOnly2 = false;
+			for (const FPDFeed& F : G.FeedTargets()) if (F.Syn == PairSyn) bDefaultHigh = F.Joker == JKey;
+			for (const FPDFeed& F : G.FeedTargets(J2)) if (F.Syn == PairSyn) bOnly2 = F.Joker == J2;
+			const bool bFed = PairSyn >= 0 && G.Feed(PairSyn, J2);
+			Expect(bDefaultHigh && bOnly2 && bFed && G.Towers.at(J2).JXp + G.Towers.at(J2).JLevel > 1.f && !G.Towers.count(CellKey(JX + 1, Row)),
+				"족보 양쪽에 조커 둘: 기본은 레벨 높은 쪽, 고르면 고른 조커(레벨 1)가 먹는다");
 		}
 		// 조커는 와일드: 레벨 2 타워 옆에 붙어도 족보
 		G.Towers.clear();

@@ -1654,7 +1654,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 	return true;
 }
 
-std::vector<FPDFeed> FPDGame::FeedTargets() const
+std::vector<FPDFeed> FPDGame::FeedTargets(int OnlyJoker) const
 {
 	std::vector<FPDFeed> Out;
 	if (!InPlay()) return Out;
@@ -1665,18 +1665,22 @@ std::vector<FPDFeed> FPDGame::FeedTargets() const
 		int Best = -1, Inside = -1;
 		float MultSum = 0.f;
 		int Fed = 0;
+		bool bOnly = false; // OnlyJoker 가 이 족보에 들었거나 맞닿았다
 		for (int K : S.Cells)
 		{
 			const FPDTower& T = Towers.at(K);
-			if (T.IsJoker()) { if (Inside < 0 || T.JLevel > Towers.at(Inside).JLevel) Inside = K; continue; }
+			if (T.IsJoker()) { bOnly = bOnly || K == OnlyJoker; if (Inside < 0 || T.JLevel > Towers.at(Inside).JLevel) Inside = K; continue; }
 			MultSum += T.Mult;
 			Fed++;
 			PDForNeighbors(K, [&](int NK) {
 				auto It = Towers.find(NK);
-				if (It != Towers.end() && It->second.IsJoker() && (Best < 0 || It->second.JLevel > Towers.at(Best).JLevel)) Best = It->first;
+				if (It == Towers.end() || !It->second.IsJoker()) return;
+				bOnly = bOnly || NK == OnlyJoker;
+				if (Best < 0 || It->second.JLevel > Towers.at(Best).JLevel) Best = It->first;
 			});
 		}
 		if (Inside >= 0) Best = Inside;
+		if (OnlyJoker >= 0) { if (!bOnly) continue; Best = OnlyJoker; } // 고른 조커가 먹는다 (D-213)
 		if (Best < 0 || Fed == 0 || Towers.at(Best).JLevel >= JokerMaxLevel) continue;
 		// 경험치 = 족보 점수 × 먹인 타워 평균 위력 (합성 타워일수록 많이)
 		// 흡수 (D-191): 먹인 타워의 실제 세기((3+숫자)·배율·특성)를 조커 단위로 바꿔 60% 를 더한다. 조커 카드는 와일드라 숫자 10
@@ -1689,9 +1693,9 @@ std::vector<FPDFeed> FPDGame::FeedTargets() const
 	return Out;
 }
 
-bool FPDGame::Feed(int SynergyIdx)
+bool FPDGame::Feed(int SynergyIdx, int JokerKey)
 {
-	const std::vector<FPDFeed> List = FeedTargets();
+	const std::vector<FPDFeed> List = FeedTargets(JokerKey);
 	const FPDFeed* F = nullptr;
 	for (const FPDFeed& X : List) if (X.Syn == SynergyIdx) F = &X;
 	if (!F) return false;

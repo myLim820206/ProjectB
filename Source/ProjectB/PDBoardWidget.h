@@ -136,6 +136,15 @@ private:
 	void CraftClick(int32 Cell);
 	void CraftRightClick(int32 Cell);
 	void ToggleCraft();
+	// 먹이기 목록 (D-213): 먹이기 줄(또는 판의 조커 클릭)로 연다. 왼쪽 패널이 판 위 조커 목록으로 바뀌고, 고른 조커(FeedJoker)에 먹일 족보 칸을 클릭하면 먹인다
+	struct FFeedEntry { int32 Key = -1; int32 N = 0; };
+	std::vector<FFeedEntry> FeedList;
+	bool InFeed() const;
+	void RefreshFeedList();
+	int32 FeedListAt(FVector2f P) const;     // -2 = 돌아가기, -1 = 없음, 그 밖 = FeedList 번호
+	void ToggleFeed(int32 Joker = -1);       // Joker 를 주면 그 조커를 고른 채로 연다
+	void FeedClick(int32 Cell, bool bRight);
+	void PaintHandTip(FCanvas& C) const;     // 손패 카드 툴팁 (판 위 UI 다음에 그려 네온이 위로 비치지 않게, D-214)
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
 	// ---- 설정 (D-110): GameUserSettings.ini [ProjectB.Settings]. 화면 모드는 엔진 GameUserSettings 가 저장
 	struct FSettings
@@ -279,7 +288,7 @@ public:
 	int32 PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 아틀라스 굽는 그림
 	int32 PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 판 배경 굽는 그림
 private:
-	int32 FeedJoker = -1;                  // 먹이기 모드 (D-131): 클릭한 조커 칸. 이 조커에 먹일 족보만 버튼이 뜬다
+	int32 FeedJoker = -1;                  // 먹이기 목록에서 고른 조커 칸 (D-213, -1 = 목록만)
 	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만
 	bool bSwapMode = false;                // 자리바꿈 모드 (D-149): 옮길 타워 → 바꿀 자리 순서로 클릭
 	int32 SwapFrom = -1;                   // 자리바꿈: 고른 타워 칸
