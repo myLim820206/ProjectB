@@ -1255,12 +1255,40 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		}
 		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
 		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
-		if (J < 0) // 목록만: 재료 후보를 옅은 분홍 테두리로
-			for (int32 K : Lit)
+		// 재료 하나를 한 덩어리로 (D-212, 합성 모드 D-201 과 같은 모양): 채움은 같은 재료 칸끼리 이어 붙이고 테두리는 바깥 변에만
+		auto Block = [&](const std::vector<int>& Cells, const FLinearColor& Col, float Fill, float Ew, float Eg) {
+			auto Same = [&Cells](int X, int Y) { return X >= 0 && Y >= 0 && X < Cols && Y < Rows && std::find(Cells.begin(), Cells.end(), CellKey(X, Y)) != Cells.end(); };
+			for (int K : Cells)
 			{
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), WithAlpha(JokerPink, 0.6f), 1.6f, 0.4f + 0.3f * Wv);
+				const int CX = K % Cols, CY = K / Cols;
+				const bool bL = Same(CX - 1, CY), bR = Same(CX + 1, CY), bU = Same(CX, CY - 1), bD = Same(CX, CY + 1);
+				const float In = 4.f, X0 = C0.X + (bL ? 0.f : In), X1 = C0.X + CS - (bR ? 0.f : In), Y0 = C0.Y + (bU ? 0.f : In), Y1 = C0.Y + CS - (bD ? 0.f : In);
+				F.Box(X0, Y0, X1 - X0, Y1 - Y0, WithAlpha(Col, Fill));
+				if (!bU) F.Glow({FVector2f(X0, Y0), FVector2f(X1, Y0)}, Col, Ew, Eg);
+				if (!bD) F.Glow({FVector2f(X0, Y1), FVector2f(X1, Y1)}, Col, Ew, Eg);
+				if (!bL) F.Glow({FVector2f(X0, Y0), FVector2f(X0, Y1)}, Col, Ew, Eg);
+				if (!bR) F.Glow({FVector2f(X1, Y0), FVector2f(X1, Y1)}, Col, Ew, Eg);
 			}
+		};
+		if (J < 0) // 목록만: 만들 수 있는 조커들의 재료를 옅은 분홍 덩어리로
+			for (const FJokerEntry& E : JokerList) if (E.bMake) for (const std::vector<int>& Pk : E.Best) Block(Pk, WithAlpha(JokerPink, 0.7f), 0.08f, 1.8f, 0.5f + 0.3f * Wv);
+		for (int N : CandNodes) // 후보: 족보 색 덩어리, 마우스가 올라가면 밝게 + "재료로 고르기"
+		{
+			const bool bH = std::find(Ns[N].Cells.begin(), Ns[N].Cells.end(), HKey) != Ns[N].Cells.end();
+			const FLinearColor Hc = HandColor(Ns[N].Kind);
+			Block(Ns[N].Cells, WithAlpha(Hc, bH ? 0.95f : 0.65f), bH ? 0.2f : 0.08f, bH ? 2.8f : 1.8f, bH ? 1.2f : 0.45f);
+			if (bH) { const FVector2f C0 = CellPx((float)HoverX, (float)HoverY); F.Badge(TEXT("클릭: 재료로 고르기"), C0.X + CS / 2.f, C0.Y + CS + 20.f, Hc, 1.f); }
+		}
+		for (int32 Pi = 0; Pi < (int32)Show.size(); ++Pi) // 고른 재료: 분홍 덩어리(진한 채움 + 굵은 테두리) + 번호
+		{
+			const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.2f * Wv);
+			Block(Show[Pi], WithAlpha(Pc, 0.9f), (0.26f + 0.1f * Wv) * 0.9f, 3.f, (1.3f + 0.7f * Wv) * 0.9f);
+			const int K0 = *std::min_element(Show[Pi].begin(), Show[Pi].end());
+			const FVector2f C0 = CellPx((float)(K0 % Cols), (float)(K0 / Cols));
+			F.Box(C0.X + 1.f, C0.Y + 1.f, 15.f, 15.f, Hex(TEXT("06060b"), 0.9f));
+			F.TextCentered(FString::Printf(TEXT("%d"), Pi + 1), C0.X + 8.5f, C0.Y + 9.f, JokerPink, 10.f, true);
+		}
 		// 추천 재료 (D-211): 게임이 고른 가장 좋은 재료 중 아직 안 고른 것에 "추천" 딱지
 		if (J >= 0 && !bPreview)
 			for (const FJokerEntry& E : JokerList)
@@ -1275,30 +1303,6 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 						F.Box(C0.X + CS - 25.f, C0.Y + CS - 13.f, 24.f, 12.f, Hex(TEXT("06060b"), 0.9f));
 						F.TextCentered(TEXT("추천"), C0.X + CS - 13.f, C0.Y + CS - 7.f, Gold, 8.f, true, 23.f);
 					}
-		for (int N : CandNodes) // 바꿀 후보: 족보 색 가는 테두리, 마우스가 올라가면 밝게 + "바꾸기"
-		{
-			const bool bH = std::find(Ns[N].Cells.begin(), Ns[N].Cells.end(), HKey) != Ns[N].Cells.end();
-			for (int K : Ns[N].Cells)
-			{
-				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 4.f, C0.Y + 4.f, CS - 8.f, CS - 8.f, 6.f), WithAlpha(HandColor(Ns[N].Kind), bH ? 0.95f : 0.5f), bH ? 2.2f : 1.3f, bH ? 1.f : 0.3f);
-			}
-			if (bH) { const FVector2f C0 = CellPx((float)HoverX, (float)HoverY); F.Badge(TEXT("클릭: 재료로 고르기"), C0.X + CS / 2.f, C0.Y + CS + 20.f, HandColor(Ns[N].Kind), 1.f); }
-		}
-		for (int32 Pi = 0; Pi < (int32)Show.size(); ++Pi) // 고른 재료: 분홍 채움 + 굵은 테두리 + 번호
-		{
-			const FLinearColor Pc = FMath::Lerp(JokerPink, FLinearColor::White, 0.2f * Wv);
-			for (int K : Show[Pi])
-			{
-				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Box(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, WithAlpha(Pc, (0.22f + 0.1f * Wv) * 0.9f));
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 3.f, C0.Y + 3.f, CS - 6.f, CS - 6.f, 7.f), WithAlpha(Pc, 0.9f), 2.6f, (1.2f + 0.7f * Wv) * 0.9f);
-			}
-			const int K0 = *std::min_element(Show[Pi].begin(), Show[Pi].end());
-			const FVector2f C0 = CellPx((float)(K0 % Cols), (float)(K0 / Cols));
-			F.Box(C0.X + 1.f, C0.Y + 1.f, 15.f, 15.f, Hex(TEXT("06060b"), 0.9f));
-			F.TextCentered(FString::Printf(TEXT("%d"), Pi + 1), C0.X + 8.5f, C0.Y + 9.f, JokerPink, 10.f, true);
-		}
 		if (J >= 0 && !bPreview && Lit.Contains(HKey)) // 고른 재료 칸 위: 그 칸에 조커가 생긴다
 		{
 			bool bOnPick = false;
