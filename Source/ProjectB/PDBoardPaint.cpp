@@ -1250,7 +1250,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			{
 				if (Lit.Contains(K)) continue;
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.82f));
+				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), G.Path.IsPath(K % Cols, K / Cols) ? 0.2f : 0.82f));
 			}
 			F.NextLayer();
 		}
@@ -1334,7 +1334,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			if (Lit.Contains(K)) continue;
 			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-			F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.82f)); // 합성 모드: 다른 포탑 네온을 더 눌러 고른 족보가 돋보이게 (D-203, 예전 0.55)
+			F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), G.Path.IsPath(K % Cols, K / Cols) ? 0.2f : 0.82f)); // 합성 모드: 다른 포탑 네온을 더 눌러 고른 족보가 돋보이게 (D-203, 예전 0.55) 길 칸은 옅게 (D-218)
 		}
 		F.NextLayer();
 	}
@@ -1440,7 +1440,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			{
 				if (Lit.Contains(K)) continue;
 				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), 0.82f));
+				F.BoxAt(DL, C0.X, C0.Y, CS, CS, Hex(TEXT("02020a"), G.Path.IsPath(K % Cols, K / Cols) ? 0.2f : 0.82f));
 			}
 			F.NextLayer();
 		}
