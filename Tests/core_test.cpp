@@ -574,7 +574,7 @@ static void UnitTests()
 		Expect(AutoStartDelayFor(2) == EasyAutoStartDelay && AutoStartDelayFor(EasyWaves + 1) == AutoStartDelay, "초반(5웨이브까지)은 다음 웨이브까지 12초");
 		Expect(std::fabs(EarlyHpK(1) - 0.55f) < 1e-4f && EarlyHpK(5) < 1.f && EarlyHpK(6) == 1.f, "초반 적 체력: 1웨이브 ×0.55, 6웨이브부터 ×1");
 	}
-	{ // 발사체 고르기: 조커 → 족보(스트레이트 이상) → 무늬
+	{ // 발사체 고르기: 조커 → 무늬 (족보는 발사체를 바꾸지 않는다, D-170)
 		FPDTower T;
 		T.Card = C(9, He);
 		const EPDShot Base = ShotKind(T);
@@ -588,8 +588,8 @@ static void UnitTests()
 		const EPDShot JackShot = ShotKind(T);
 		T.Joker = (int)EPDJoker::Star;
 		const EPDShot StarShot = ShotKind(T);
-		Expect(Base == EPDShot::Missile && PairShot == EPDShot::Missile && FlushShot == EPDShot::Arc && RoyalShot == EPDShot::Crown && JackShot == EPDShot::Blade && StarShot == EPDShot::StarComet,
-			"발사체: ♥ 기본 미사일, 원 페어는 그대로, 플러시 번개, 로열 광선, 잭 칼날, 스타 별 혜성");
+		Expect(Base == EPDShot::Missile && PairShot == EPDShot::Missile && FlushShot == EPDShot::Missile && RoyalShot == EPDShot::Missile && JackShot == EPDShot::Blade && StarShot == EPDShot::StarComet,
+			"발사체: ♥ 는 족보와 상관없이 미사일, 조커는 저마다 (잭 칼날, 스타 별 혜성)");
 		bool bAllOk = true;
 		for (int K = 0; K < (int)EPDShot::Count; ++K)
 		{

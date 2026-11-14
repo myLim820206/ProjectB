@@ -585,20 +585,8 @@ float JokerTier(EPDJoker J)
 EPDShot ShotKind(const FPDTower& T)
 {
 	if (T.IsJoker()) return T.Joker >= 0 && T.Joker < (int)EPDJoker::Count ? (EPDShot)((int)EPDShot::Juggle + T.Joker) : EPDShot::JokerLaser;
-	if (T.Eff.Kind >= 0) // 족보 타워: 스트레이트 이상은 족보 발사체 (원 페어·투 페어·트리플은 무늬 그대로)
-	{
-		switch ((EPDHand)T.Eff.Kind)
-		{
-		case EPDHand::Straight: return EPDShot::Arrow;
-		case EPDHand::Flush: return EPDShot::Arc;
-		case EPDHand::FullHouse: return EPDShot::Cluster;
-		case EPDHand::Four: return EPDShot::Shell;
-		case EPDHand::StraightFlush: return EPDShot::Comet;
-		case EPDHand::Five: return EPDShot::Nova;
-		case EPDHand::RoyalFlush: return EPDShot::Crown;
-		default: break;
-		}
-	}
+	// 발사체는 카드 무늬로만 (D-170): 족보에 들어가도 무늬 공격 방식 그대로. 족보는 위력·연사·범위 같은 효과만 준다
+	// (예전엔 스트레이트 이상이면 족보 발사체로 바뀌어 같은 ♠ 가 화살·번개를 오갔다. 족보 발사체 종류는 남겨 두지만 쓰지 않는다)
 	switch (T.Card.Suit)
 	{
 	case EPDSuit::Spade: return EPDShot::Laser;
