@@ -248,6 +248,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 자리를 고르세요"), TEXT("Choose the Joker's spot"), TEXT("ジョーカーの場所を選んでください"), TEXT("请选择小丑的位置"), TEXT("請選擇小丑的位置")},
 	{TEXT("합성 타워 자리를 고르세요"), TEXT("Choose the fused tower's spot"), TEXT("合成タワーの場所を選んでください"), TEXT("请选择合成塔的位置"), TEXT("請選擇合成塔的位置")},
 	{TEXT("빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소"), TEXT("Click one of the glowing tiles · Esc / right-click: cancel"), TEXT("光る素材マスを1つクリック · Esc / 右クリック: キャンセル"), TEXT("点击一个发光的素材格 · Esc / 右键: 取消"), TEXT("點擊一個發光的素材格 · Esc / 右鍵: 取消")},
+	{TEXT("조커가 낀 족보는 합성할 수 없다"), TEXT("Hands with a Joker can't be fused"), TEXT("ジョーカー入りの役は合成できない"), TEXT("含小丑的牌型不能合成"), TEXT("含小丑的牌型不能合成")},
+	{TEXT("최대 레벨이라 합성할 수 없다"), TEXT("Max level, can't fuse"), TEXT("最大レベルなので合成できない"), TEXT("已满级, 不能合成"), TEXT("已滿級, 不能合成")},
 	{TEXT("여기로 합성"), TEXT("Fuse here"), TEXT("ここに合成"), TEXT("合成到这里"), TEXT("合成到這裡")},
 	{TEXT("먹이%d"), TEXT("Feed%d"), TEXT("エサ%d"), TEXT("喂%d"), TEXT("餵%d")},
 	{TEXT("위력 +%.0f%% · 경험치 +%.0f → 레벨 %d%s"), TEXT("Power +%.0f%% · XP +%.0f → Lv %d%s"), TEXT("威力 +%.0f%% · 経験値 +%.0f → レベル %d%s"), TEXT("威力 +%.0f%% · 经验 +%.0f → 等级 %d%s"), TEXT("威力 +%.0f%% · 經驗 +%.0f → 等級 %d%s")},
@@ -511,4 +513,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 510;
+static const int32 PDLangRowCount = 512;

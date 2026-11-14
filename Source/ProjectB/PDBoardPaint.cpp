@@ -1257,29 +1257,6 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.TextCentered(FString::Printf(TEXT("%d"), Pi + 1), C0.X + 8.5f, C0.Y + 9.f, JokerPink, 10.f, true);
 		}
 	}
-	if (HandFilter >= 0 && !InCraft() && !bPv && PickCells.empty() && G.Phase != EPDPhase::Reward && FeedJoker < 0 && !bSwapMode)
-	{
-		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
-		TSet<int32> Done;
-		// 밝힐 칸 묶음: 족보 필터면 그 족보(합성 못 하는 것), 조커 필터면 조커 재료 칸 (분홍, D-152)
-		std::vector<std::pair<std::vector<int>, FLinearColor>> Sets;
-		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
-				if ((int32)G.Synergies[I].Kind == HandFilter && !G.CanFuse(I)) Sets.push_back({G.Synergies[I].Cells, HandColor(G.Synergies[I].Kind)});
-		for (const auto& St : Sets)
-		{
-			const FLinearColor Pick = FMath::Lerp(St.second, FLinearColor::White, 0.6f * Wv);
-			for (int K : St.first)
-			{
-				if (Done.Contains(K)) continue;
-				Done.Add(K);
-				const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
-				F.Box(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, WithAlpha(Pick, 0.22f + 0.22f * Wv));
-				if (UseAtlas()) F.Image(F.NextLayer(), &Atlas->HatchBrushes[0], C0.X, C0.Y, CS, CS, WithAlpha(Pick, 0.45f + 0.25f * Wv));
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 2.f, C0.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), Pick, 2.8f, 1.4f + 1.4f * Wv);
-				F.Glow(FCanvas::RoundRectPoints(C0.X + 6.f, C0.Y + 6.f, CS - 12.f, CS - 12.f, 5.f), WithAlpha(Pick, 0.7f), 1.2f, 0.5f + 0.6f * Wv);
-			}
-		}
-	}
 	// 합성 모드 (D-199): 왼쪽 족보 목록에서 고른 족보만. 판 위 [합성] 버튼·위력 배지는 없앴다. 다른 칸은 어둡게, 재료 칸은 반짝, 마우스 칸 = 합쳐질 칸
 	const bool bFuseMode = HandFilter >= 0 && !InCraft() && !bPv && PickCells.empty() && G.Phase != EPDPhase::Reward && FeedJoker < 0 && !bSwapMode;
 	if (bFuseMode)
@@ -1296,16 +1273,66 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.NextLayer();
 	}
 	bool bFuseHov = false; // 합쳐질 칸 위: 타워 툴팁이 미리보기를 가리지 않게 (D-199)
+	// 합성 못 하는 족보 (D-200): 칸마다 빨간 X, 마우스를 올리면 까닭 (조커가 낌 / 최대 레벨)
+	if (bFuseMode)
+	{
+		const FLinearColor No = Hex(TEXT("ff5a6a"));
+		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
+		{
+			const FPDSynergy& S = G.Synergies[I];
+			if ((int32)S.Kind != HandFilter || G.CanFuse(I)) continue;
+			bool bJoker = false, bHov = false;
+			for (int K : S.Cells) { bJoker = bJoker || G.Towers.at(K).IsJoker(); bHov = bHov || K == HKey; }
+			for (int K : S.Cells)
+			{
+				const FVector2f B = CellPx((float)(K % Cols), (float)(K / Cols));
+				F.Glow(FCanvas::RoundRectPoints(B.X + 2.f, B.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), WithAlpha(No, bHov ? 0.9f : 0.55f), 1.6f, bHov ? 1.f : 0.5f);
+				F.Lines({B + FVector2f(CS * 0.22f, CS * 0.22f), B + FVector2f(CS * 0.78f, CS * 0.78f)}, WithAlpha(No, 0.85f), 1.8f);
+				F.Lines({B + FVector2f(CS * 0.78f, CS * 0.22f), B + FVector2f(CS * 0.22f, CS * 0.78f)}, WithAlpha(No, 0.85f), 1.8f);
+			}
+			if (bHov)
+			{
+				bFuseHov = true;
+				const FVector2f B = CellPx((float)HoverX, (float)HoverY);
+				F.Badge(bJoker ? TEXT("조커가 낀 족보는 합성할 수 없다") : TEXT("최대 레벨이라 합성할 수 없다"), B.X + CS / 2.f, B.Y - 10.f, No, 1.f);
+			}
+		}
+	}
+	// 같은 족보가 여럿 붙어 있으면 족보마다 다른 색 (D-200): 맞닿은 족보끼리 색이 겹치지 않게 차례로 고른다
+	TMap<int32, FLinearColor> SynCol;
+	if (bFuseMode)
+	{
+		const FLinearColor Pal[6] = {HandColor((EPDHand)HandFilter), Hex(TEXT("ffd96a")), Hex(TEXT("9cffb0")), Hex(TEXT("ff9ad5")), Hex(TEXT("b48cff")), Hex(TEXT("ffa86a"))};
+		TMap<int32, int32> Used; // 칸 → 색 번호
+		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
+		{
+			if (!G.CanFuse(I) || (int32)G.Synergies[I].Kind != HandFilter) continue;
+			uint32 Taken = 0;
+			for (int K : G.Synergies[I].Cells)
+				for (int32 N = 0; N < 4; ++N)
+				{
+					static const int32 D[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+					const int32 X = K % Cols + D[N][0], Y = K / Cols + D[N][1];
+					if (X < 0 || Y < 0 || X >= Cols || Y >= Rows) continue;
+					if (const int32* C = Used.Find(CellKey(X, Y))) Taken |= 1u << *C;
+				}
+			int32 Ci = 0;
+			while (Ci < 5 && (Taken >> Ci) & 1u) ++Ci;
+			for (int K : G.Synergies[I].Cells) Used.Add(K, Ci);
+			SynCol.Add(I, Pal[Ci]);
+		}
+	}
 	if (bFuseMode)
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I) || (int32)G.Synergies[I].Kind != HandFilter) continue;
-			const FPDSynergy FS = FuseSyn(G, I); // 조커를 뺀 실제 합성 칸 (D-128)
+			const FPDSynergy FS = FuseSyn(G, I); // 조커가 낀 족보는 합성 불가 (D-200)
 			const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 			const bool bHov = std::find(FS.Cells.begin(), FS.Cells.end(), HKey) != FS.Cells.end();
 			// 재료 칸 색이 족보 색 → 흰빛 → 족보 색으로 천천히 오간다 (D-122)
 			const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
-			const FLinearColor Pick = FMath::Lerp(HandColor(FS.Kind), FLinearColor::White, 0.6f * Wv);
+			const FLinearColor Pick = FMath::Lerp(SynCol.FindRef(I), FLinearColor::White, 0.45f * Wv);
 			// 합성 대상 표시 (D-121): 재료 칸마다 족보 색 테두리 + 옅은 채움, 마우스가 올라간 족보는 더 밝게
 			for (int K : FS.Cells)
 				{

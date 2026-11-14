@@ -1342,13 +1342,9 @@ bool FPDGame::FuseSynergy(int SynergyIdx, FPDSynergy& Out) const
 {
 	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return false;
 	const FPDSynergy& S = Synergies[SynergyIdx];
-	FPDTowerMap Sub;
-	for (int K : S.Cells) if (!Towers.at(K).IsJoker()) Sub[K] = Towers.at(K);
-	if (Sub.size() == S.Cells.size()) { Out = S; return true; }
-	if (Sub.size() < 2) return false;
-	for (const FPDSynergy& X : ComputeSynergies(Sub)) // 조커를 빼고도 남은 칸 전부가 한 족보인가
-		if (X.Cells.size() == Sub.size()) { Out = X; return true; }
-	return false;
+	for (int K : S.Cells) if (Towers.at(K).IsJoker()) return false; // 조커가 낀 족보는 합성 불가 (D-200, 예전 D-128 은 조커를 뺀 칸만 합성)
+	Out = S;
+	return true;
 }
 
 std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
