@@ -45,7 +45,7 @@ static std::vector<unsigned char> Wav(const std::vector<int16_t>& S, int Rate)
 int main()
 {
 	const int Rate = 22050;
-	const char* Names[] = {"Move", "Rotate", "HardDrop", "Lock", "Hold", "Denied", "Burst", "Straight", "Flush", "Clear", "GameOver", "Win", "Start", "Shot", "Hit"};
+	const char* Names[] = {"Move", "Rotate", "HardDrop", "Lock", "Hold", "Denied", "Burst", "Straight", "Flush", "Clear", "GameOver", "Win", "Start", "Shot", "Hit", "Zap"};
 	std::printf("// 자동 생성 파일: Tests/render_sounds.cpp (언리얼과 같은 합성기 PDSynth)\nwindow.TP_SOUNDS = {\n");
 	size_t Total = 0;
 	for (int S = 0; S < (int)EPDSound::Count; ++S)

@@ -79,7 +79,12 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 		const double Now = FPlatformTime::Seconds();
 		double& L = Last.FindOrAdd(Key, -1.0);
 		// 발사·타격 (D-155)은 따로: 한 프레임 1개, 전체 0.045초·같은 소리 0.09초 간격 (중요한 소리 몫을 뺏지 않게, 10배속에서도 초당 20개 남짓)
-		if (Event.Sound == PD::EPDSound::Shot || Event.Sound == PD::EPDSound::Hit)
+		if (Event.Sound == PD::EPDSound::Zap) // 전기 (D-156): 따로, 같은 소리 0.12초 간격 (프레임 몫은 쓰지 않는다)
+		{
+			if (Now - L < 0.12) return;
+			L = Now;
+		}
+		else if (Event.Sound == PD::EPDSound::Shot || Event.Sound == PD::EPDSound::Hit)
 		{
 			if (MinorInFrame >= 1 || Now - LastMinor < 0.045 || Now - L < 0.09) return;
 			++MinorInFrame;

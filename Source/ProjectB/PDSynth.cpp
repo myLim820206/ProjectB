@@ -225,6 +225,7 @@ std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int Rate)
 		break;
 	}
 	case EPDSound::Hit:
+		Gain = 2.6f; // 타격이 너무 작다 (D-156): 전체를 키운다 (부드러운 클리핑이라 찢어지지 않는다)
 		switch (A)
 		{
 		case 0: // ♠ 지직
@@ -250,6 +251,23 @@ std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int Rate)
 		}
 		if (B) Buf.Tone(0.f, 0.1f, 1800.f, 2700.f, EWave::Triangle, 0.08f, 0.001f, 3.f); // 치명타: 높은 '핑'
 		break;
+	case EPDSound::Zap: // 전기 (D-156): 떨리는 낮은 웅 + 불규칙한 지지직 + 높은 치익
+	{
+		const bool bShot = A == 0;
+		const float Len = bShot ? 0.2f : 0.1f;
+		Gain = 1.8f;
+		Buf.Tone(0.f, Len, 130.f, 90.f, EWave::Square, bShot ? 0.10f : 0.07f, 0.001f, 2.f, 46.f);
+		Buf.Tone(0.f, Len * 0.8f, 3400.f, 2200.f, EWave::Saw, 0.035f, 0.001f, 3.f);
+		uint32_t X = bShot ? 0x9e3779b9u : 0x7f4a7c15u;
+		const int N = bShot ? 9 : 5;
+		for (int K = 0; K < N; ++K)
+		{
+			X ^= X << 13; X ^= X >> 17; X ^= X << 5;
+			const float T = (float)(X % 1000) / 1000.f * Len * 0.85f;
+			Buf.Noise(T, 0.008f + 0.008f * (float)((X >> 10) % 3), 0.32f, 0.92f, 40 + K);
+		}
+		break;
+	}
 	default:
 		break;
 	}
