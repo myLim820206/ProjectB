@@ -17,7 +17,7 @@ KINDS = [
     # 이름, 무늬, 색, 몸통 너비·높이 배율, 걸음 빠르기, 무기
     ('보통', 'spade', 'e8f0ff', 1.0, 1.0, 1.0, 'spear'),
     ('빠름', 'diamond', 'ffa86a', 0.85, 0.95, 1.8, 'none'),
-    ('탱크', 'club', 'c49aff', 1.35, 1.1, 0.7, 'axe'),
+    ('탱크', 'club', 'c49aff', 1.2, 1.15, 0.7, 'axe'),
     ('방패병', 'heart', '9fc3e8', 1.0, 1.0, 0.9, 'shield'),
     ('분열체', 'diamond', 'ff9ad5', 1.0, 1.0, 1.1, 'split'),
     ('재생자', 'club', 'b6ff6a', 1.0, 1.0, 0.9, 'regen'),
@@ -41,9 +41,9 @@ def soldier(kind, cx, cy, R, t):
     sw = math.sin(ph)
     bob = abs(math.sin(ph)) * 0.05 * R
     lean = math.radians(8) if name == '빠름' else 0.0
-    bw, bh = 0.9 * R * wk, 1.2 * R * hk
-    hip = (cx, cy - 0.55 * R * hk - bob)               # 다리 시작
-    legL = 0.55 * R * hk
+    bw, bh = 0.76 * R * wk, 1.18 * R * hk               # 트럼프처럼 세로로 긴 직사각형 (약 1 : 1.55)
+    legL = 0.32 * R * hk                                # 짧은 다리
+    hip = (cx, cy - legL - bob)                         # 다리 시작
     # 다리 (무릎 없이 곧게, 번갈아)
     for s in (1, -1):
         a = math.radians(26) * sw * s
@@ -65,12 +65,12 @@ def soldier(kind, cx, cy, R, t):
         zz = [(body_c[0] + (0.08 if k % 2 else -0.08) * bw, top + bh * k / 6) for k in range(7)]
         L.append(([rot(p, hip, lean) for p in zz], c, 1.2))
     # 무늬는 카드 귀퉁이에 작게 (왼쪽 위, 오른쪽 아래), 가운데는 얼굴 (머리 없이 카드가 곧 몸이자 얼굴)
-    pr = 0.11 * R * min(wk, hk)
-    for (ox, oy) in ((-bw / 2 + 0.17 * R * wk, -bh / 2 + 0.2 * R * hk), (bw / 2 - 0.17 * R * wk, bh / 2 - 0.2 * R * hk)):
+    pr = 0.085 * R * min(wk, hk)
+    for (ox, oy) in ((-bw / 2 + 0.12 * R * wk, -bh / 2 + 0.14 * R * hk), (bw / 2 - 0.12 * R * wk, bh / 2 - 0.14 * R * hk)): # 귀퉁이 끝으로 (얼굴과 안 겹치게)
         for s in neon.suit(st)(body_c[0] + ox, body_c[1] + oy, pr):
             L.append(([rot(p, hip, lean) for p in s], c, 1.1))
     fc = (body_c[0], body_c[1] - 0.04 * R)
-    ex, ey, er = 0.2 * R * min(wk, 1.1), 0.12 * R, 0.1 * R # 게임 크기에서도 보이게 눈을 크게
+    ex, ey, er = 0.16 * R * min(wk, 1.1), 0.1 * R, 0.09 * R # 게임 크기에서도 보이게 눈을 크게
     blink = (t * spd * 1.3) % 1.0 > 0.9  # 가끔 눈 깜빡
     for s in (-1, 1):
         e_c = (fc[0] + s * ex, fc[1] - ey)
@@ -103,7 +103,7 @@ def soldier(kind, cx, cy, R, t):
     for s in (1, -1):
         sh = rot((cx + s * bw / 2, sh_y), hip, lean)
         a = -math.radians(30) * sw * s
-        hand = (sh[0] + s * 0.18 * R + math.sin(a) * 0.1 * R, sh[1] + 0.42 * R * math.cos(a * 0.5))
+        hand = (sh[0] + s * 0.14 * R + math.sin(a) * 0.07 * R, sh[1] + 0.26 * R * math.cos(a * 0.5)) # 짧은 팔
         L.append(([sh, hand], c, 1.5))
         if s == 1:
             rh = hand
