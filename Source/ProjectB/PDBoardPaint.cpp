@@ -1369,7 +1369,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow(FCanvas::RoundRectPoints(C0.X - Gr, C0.Y - Gr, CS + Gr * 2.f, CS + Gr * 2.f, 8.f + Gr * 0.5f), WithAlpha(TargetCol, 0.9f * (1.f - U)), 2.2f, 1.f);
 				}
 				for (int K : FS.Cells) if (K != HKey) F.Dashed({CellCenter(K), CellCenter(HKey)}, WithAlpha(TargetCol, 0.7f), 1.6f, 4.f, 5.f);
-				F.TextCentered(TEXT("여기로 합성"), C0.X + CS / 2.f, C0.Y - 10.f, TargetCol, 12.f, true, CS + 40.f);
+				F.Badge(TEXT("여기로 합성"), C0.X + CS / 2.f, C0.Y + CS + 20.f, TargetCol, 1.f); // 어두운 바탕 딱지로 칸 아래에 (D-205): 위쪽은 족보 이름표·퍼지는 고리와 겹쳐 안 보였다
 			}
 		}
 	// 먹이기 (D-131): 평소엔 먹일 족보가 있는 조커 위에 작은 "먹이" 표시만. 조커를 클릭하면 먹이기 모드
