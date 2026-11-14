@@ -70,9 +70,9 @@ inline FLinearColor SuitColor(EPDSuit S)
 	{
 	case EPDSuit::Heart: return Hex(TEXT("ff6a8a"));
 	case EPDSuit::Diamond: return Hex(TEXT("ffd96a"));
-	case EPDSuit::Club: return Hex(TEXT("8affc4"));
+	case EPDSuit::Club: return Hex(TEXT("8fe9ff")); // ♣ 서리 = 얼음 하늘색 (D-181, 예전 초록은 독처럼 보였다)
 	case EPDSuit::Wild: return Hex(TEXT("ffffff"));
-	default: return Hex(TEXT("7fb8ff"));
+	default: return Hex(TEXT("e8eeff")); // ♠ 저격 = 흰빛 (D-181)
 	}
 }
 inline const TCHAR* SuitName(EPDSuit S)

@@ -767,7 +767,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			break;
 		default: F.Glow(FCanvas::CirclePoints(P, 9.f, 20), Col, 2.f); break;
 		}
-		if (E.SlowT > 0.f && !UseAtlas()) F.Lines(FCanvas::CirclePoints(P, bBoss ? 28.f : 15.f, 24), Hex(TEXT("8affc4"), 0.6f), 1.2f); // 아틀라스가 없을 때만 예전 고리 (D-178)
+		if (E.SlowT > 0.f && !UseAtlas()) F.Lines(FCanvas::CirclePoints(P, bBoss ? 28.f : 15.f, 24), Hex(TEXT("8fe9ff"), 0.6f), 1.2f); // 아틀라스가 없을 때만 예전 고리 (D-178)
 		const float W = bBoss ? 44.f : 24.f, BY = P.Y - (bBoss ? 34.f : 22.f);
 		F.Box(P.X - W / 2.f, BY, W, 3.f, Hex(TEXT("ffffff"), 0.15f));
 		const float HpNow = FMath::Max(0.f, E.Hp / E.MaxHp), HpOld = FMath::Max(HpNow, HpShown.FindRef(E.Id));
@@ -2476,7 +2476,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		case ESetRow::CardTheme: // 카드 색 (D-154): 버튼 글자도 그 색으로
 		{
 			static const TCHAR* Themes[] = {TEXT("네온"), TEXT("흑백"), TEXT("빨강·하양")};
-			static const TCHAR* ThemeCol[] = {TEXT("8affc4"), TEXT("e6ebf5"), TEXT("ff5a6a")};
+			static const TCHAR* ThemeCol[] = {TEXT("8fe9ff"), TEXT("e6ebf5"), TEXT("ff5a6a")};
 			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Themes[I], Hex(ThemeCol[I]), Settings.CardTheme == I, bRowSel); }
 			break;
 		}
