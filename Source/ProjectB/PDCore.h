@@ -453,6 +453,8 @@ public:
 	int Upgrade(EPDUpgrade U, int N);    // 살 수 있는 만큼 최대 N레벨 올림, 올린 레벨 수
 	void RebuildMods();
 	bool Buildable(int X, int Y) const;
+	// 손패를 놓을 수 있나 (D-192): 빈 칸이거나 Lv1 카드 타워(교체하면 그 카드는 손으로). 합성 타워·조커 위에는 못 놓는다
+	bool CanPlace(int X, int Y) const;
 	// 고른 카드를 이 칸에 놓으면 생길 족보 (놓은 칸이 든 연쇄 전체)
 	std::vector<FPDSynergy> PreviewSynergies(int HandIdx, int X, int Y, FPDTowerMap* OutTowers = nullptr) const;
 	void Update(float Dt);

@@ -166,7 +166,17 @@ static void UnitTests()
 		const bool bP1 = G.Place(0, 0, 0), bP2 = G.Place(0, 1, 0);
 		Expect(!bOnPath && bP1 && bP2 && G.Synergies.size() == 1 && G.Synergies[0].Kind == EPDHand::Pair && G.Hand.size() == 1, "설치 (길 위는 불가), 페어 생김");
 		G.Place(0, 1, 0);
-		Expect(G.Towers[CellKey(1, 0)].Card.Rank == 4 && G.Synergies.empty() && G.Discarded == 1, "타워 위에 놓으면 교체");
+		Expect(G.Towers[CellKey(1, 0)].Card.Rank == 4 && G.Synergies.empty() && G.Discarded == 0 && G.Hand.size() == 1 && G.Hand[0].Rank == 9 && G.Hand[0].Suit == He, "Lv1 타워 위에 놓으면 교체, 덮인 카드는 손으로 (D-192)");
+		{ // 합성 타워·조커 위에는 못 놓는다 (D-192)
+			FPDGame H(3);
+			H.NewGame(true);
+			H.Hand = {C(5), C(6)};
+			Put(H.Towers, 0, 0, C(9), 2);
+			Put(H.Towers, 1, 0, C(2));
+			H.Towers[CellKey(1, 0)].Joker = (int)EPDJoker::Star;
+			const bool bFused = H.Place(0, 0, 0), bJoker = H.Place(0, 1, 0);
+			Expect(!bFused && !bJoker && !H.CanPlace(0, 0) && !H.CanPlace(1, 0) && H.Hand.size() == 2 && H.Towers.at(CellKey(0, 0)).Level == 2, "합성 타워·조커 위에는 못 놓는다 (D-192)");
+		}
 		// 자리바꿈 (D-149): 남은 횟수가 있어야, 타워끼리 바꾸기 / 빈 칸으로 옮기기 / 길 위는 안 됨
 		G.Hand = {C(4, He)};
 		G.Towers[CellKey(0, 0)].Level = 2;

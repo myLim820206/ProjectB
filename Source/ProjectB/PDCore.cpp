@@ -1013,6 +1013,12 @@ void FPDGame::Draw(int N, int* OutGot)
 }
 
 bool FPDGame::Buildable(int X, int Y) const { return X >= 0 && Y >= 0 && X < Cols && Y < Rows && !Path.IsPath(X, Y); }
+bool FPDGame::CanPlace(int X, int Y) const
+{
+	if (!Buildable(X, Y)) return false;
+	auto It = Towers.find(CellKey(X, Y));
+	return It == Towers.end() || (!It->second.IsJoker() && It->second.Level <= 1);
+}
 
 FPDEnemy FPDGame::MakeEnemy(EPDEnemy T, float BaseHp, int W)
 {
@@ -1201,17 +1207,17 @@ bool FPDGame::SwapTowers(int From, int To)
 bool FPDGame::Place(int HandIdx, int X, int Y)
 {
 	if (!InPlay()) return false;
-	if (HandIdx < 0 || HandIdx >= (int)Hand.size() || !Buildable(X, Y)) return false;
+	if (HandIdx < 0 || HandIdx >= (int)Hand.size() || !CanPlace(X, Y)) return false;
 	const int Key = CellKey(X, Y);
 	auto Sig = [](const FPDSynergy& S) { std::vector<int> V = S.Cells; std::sort(V.begin(), V.end()); V.push_back((int)S.Kind); return V; };
 	std::set<std::vector<int>> Before;
 	for (const FPDSynergy& S : Synergies) Before.insert(Sig(S));
-	if (Towers.count(Key)) Discarded++;
 	FPDTower T;
 	T.Card = Hand[HandIdx];
 	T.X = X;
 	T.Y = Y;
 	Hand.erase(Hand.begin() + HandIdx);
+	if (auto Old = Towers.find(Key); Old != Towers.end()) Hand.insert(Hand.begin() + HandIdx, Old->second.Card); // 교체 (D-192): 덮인 Lv1 카드는 놓은 카드 자리로 손에 돌아온다 (손패 수는 그대로)
 	Towers[Key] = T;
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 	FPDEvent P;

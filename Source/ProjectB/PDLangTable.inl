@@ -243,6 +243,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("그리기 %.1fms · 갱신 %.1fms · 선 %d (%dk점) · %s"), TEXT("Paint %.1fms · Tick %.1fms · Lines %d (%dk pts) · %s"), TEXT("描画 %.1fms · 更新 %.1fms · 線 %d (%dk点) · %s"), TEXT("绘制 %.1fms · 更新 %.1fms · 线 %d (%dk点) · %s"), TEXT("繪製 %.1fms · 更新 %.1fms · 線 %d (%dk點) · %s")},
 	{TEXT("스프라이트"), TEXT("Sprites"), TEXT("スプライト"), TEXT("精灵图"), TEXT("精靈圖")},
 	{TEXT("진짜 선(F6)"), TEXT("Real lines (F6)"), TEXT("実線(F6)"), TEXT("真实线条(F6)"), TEXT("真實線條(F6)")},
+	{TEXT("합성 타워·조커 위에는 놓을 수 없다"), TEXT("Can't place on fused towers or Jokers"), TEXT("合成タワー・ジョーカーの上には置けない"), TEXT("不能放在合成塔或小丑上"), TEXT("不能放在合成塔或小丑上")},
 	{TEXT("여기"), TEXT("Here"), TEXT("ここ"), TEXT("这里"), TEXT("這裡")},
 	{TEXT("기본"), TEXT("Default"), TEXT("基本"), TEXT("默认"), TEXT("預設")},
 	{TEXT("조커 자리를 고르세요"), TEXT("Choose the Joker's spot"), TEXT("ジョーカーの場所を選んでください"), TEXT("请选择小丑的位置"), TEXT("請選擇小丑的位置")},
@@ -310,7 +311,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다음 %d웨이브"), TEXT("Next: wave %d"), TEXT("次 %dウェーブ"), TEXT("下次 第%d波"), TEXT("下次 第%d波")},
 	{TEXT("%d웨이브마다 하나를 고른다"), TEXT("Pick one every %d waves"), TEXT("%dウェーブごとに1つ選ぶ"), TEXT("每%d波选择一个"), TEXT("每%d波選擇一個")},
 	{TEXT("?  도움말"), TEXT("?  Help"), TEXT("?  ヘルプ"), TEXT("?  帮助"), TEXT("?  說明")},
-	{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체"), TEXT("Click a card (number key) → click a tile: place · placing on a tower replaces it"), TEXT("カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換"), TEXT("点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换"), TEXT("點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換")},
+	{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)"), TEXT("カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)"), TEXT("点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)"), TEXT("點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)")},
 	{TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"), TEXT("Right-click: discard card · cancel selection"), TEXT("右クリック: カードを捨てる · 選択解除"), TEXT("右键: 弃牌 · 取消选择"), TEXT("右鍵: 棄牌 · 取消選擇")},
 	{TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed"), TEXT("役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ"), TEXT("鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养"), TEXT("滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養")},
 	{TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("Space start wave · F speed · M sound · F3 frame stats"), TEXT("Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示"), TEXT("Space 开始波次 · F 速度 · M 声音 · F3 帧数显示"), TEXT("Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示")},
@@ -383,7 +384,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("목숨이 다 떨어지기 전에 최대한 많은 웨이브를 버텨라"), TEXT("Survive as many waves as you can before your lives run out"), TEXT("ライフが尽きる前にできるだけ多くのウェーブを耐えろ"), TEXT("在生命耗尽前撑过尽可能多的波次"), TEXT("在生命耗盡前撐過盡可能多的波次")},
 	{TEXT("무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화"), TEXT("Suit sets the attack: ♠ Snipe · ♥ Blast · ♦ Rapid · ♣ Slow"), TEXT("スートは攻撃方式: ♠ 狙撃 · ♥ 爆発 · ♦ 連射 · ♣ 減速"), TEXT("花色决定攻击: ♠ 狙击 · ♥ 爆炸 · ♦ 连射 · ♣ 减速"), TEXT("花色決定攻擊: ♠ 狙擊 · ♥ 爆炸 · ♦ 連射 · ♣ 減速")},
 	{TEXT("숫자는 공격력 (A가 가장 세다)"), TEXT("Rank is attack power (A is strongest)"), TEXT("数字は攻撃力 (Aが一番強い)"), TEXT("点数是攻击力 (A最强)"), TEXT("點數是攻擊力 (A最強)")},
-	{TEXT("타워 위에 카드를 놓으면 교체된다"), TEXT("Placing a card on a tower replaces it"), TEXT("タワーの上にカードを置くと交換される"), TEXT("把卡牌放在塔上会替换它"), TEXT("把卡牌放在塔上會替換它")},
+	{TEXT("Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로"), TEXT("Place on a Lv1 tower to swap; the old card returns to your hand"), TEXT("Lv1 タワーの上に置くと入れ替え、元のカードは手札へ"), TEXT("放在 Lv1 塔上会替换，原卡牌回到手牌"), TEXT("放在 Lv1 塔上會替換，原卡牌回到手牌")},
 	{TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지"), TEXT("Adjacent towers forming a poker hand create a synergy"), TEXT("隣り合うタワーがポーカーの役になるとシナジー"), TEXT("相邻的塔组成扑克牌型就有协同"), TEXT("相鄰的塔組成撲克牌型就有協同")},
 	{TEXT("모양은 상관없다 (일자·ㄱ자·네모 모두 된다)"), TEXT("Any shape works (line, L-shape or square)"), TEXT("形は自由 (一直線・L字・四角どれでもOK)"), TEXT("形状不限 (直线·L形·方形都可以)"), TEXT("形狀不限 (直線·L形·方形都可以)")},
 	{TEXT("왼쪽 족보 목록에 족보마다 효과가 나온다"), TEXT("The hand list on the left shows each hand's effect"), TEXT("左の役リストに役ごとの効果が出る"), TEXT("左侧牌型列表显示每种牌型的效果"), TEXT("左側牌型列表顯示每種牌型的效果")},
@@ -461,6 +462,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT(""), TEXT(""), TEXT(""), TEXT("")},
+	{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체"), TEXT("Click a card (number key) → click a tile: place · placing on a tower replaces it"), TEXT("カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換"), TEXT("点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换"), TEXT("點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換")},
+	{TEXT("타워 위에 카드를 놓으면 교체된다"), TEXT("Placing a card on a tower replaces it"), TEXT("タワーの上にカードを置くと交換される"), TEXT("把卡牌放在塔上会替换它"), TEXT("把卡牌放在塔上會替換它")},
 	{TEXT("경험치 +%.0f → 레벨 %d%s"), TEXT("XP +%.0f → level %d%s"), TEXT("経験値 +%.0f → レベル %d%s"), TEXT("经验 +%.0f → 等级 %d%s"), TEXT("經驗 +%.0f → 等級 %d%s")},
 	{TEXT("P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), TEXT("P or button: resume · you can still place and fuse while paused"), TEXT("P かボタン: 再開 · 停止中もカードの設置・合成はできる"), TEXT("P 或按钮: 继续 · 暂停时仍可放置卡牌和合成"), TEXT("P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成")},
 	{TEXT("명사수"), TEXT("Marksman"), TEXT("名射手"), TEXT("神射手"), TEXT("神射手")},
@@ -486,4 +489,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("대장간"), TEXT("Smithy"), TEXT("鍛冶場"), TEXT("铁匠铺"), TEXT("鐵匠鋪")},
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 };
-static const int32 PDLangRowCount = 485;
+static const int32 PDLangRowCount = 488;

@@ -242,6 +242,7 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 그리기 %.1fms · 갱신 %.1fms · 선 %d (%dk점) · %s	Paint %.1fms · Tick %.1fms · Lines %d (%dk pts) · %s	描画 %.1fms · 更新 %.1fms · 線 %d (%dk点) · %s	绘制 %.1fms · 更新 %.1fms · 线 %d (%dk点) · %s	繪製 %.1fms · 更新 %.1fms · 線 %d (%dk點) · %s	PDBoardPaint.cpp
 스프라이트	Sprites	スプライト	精灵图	精靈圖	PDBoardPaint.cpp
 진짜 선(F6)	Real lines (F6)	実線(F6)	真实线条(F6)	真實線條(F6)	PDBoardPaint.cpp
+합성 타워·조커 위에는 놓을 수 없다	Can't place on fused towers or Jokers	合成タワー・ジョーカーの上には置けない	不能放在合成塔或小丑上	不能放在合成塔或小丑上	PDBoardPaint.cpp
 여기	Here	ここ	这里	這裡	PDBoardPaint.cpp
 기본	Default	基本	默认	預設	PDBoardPaint.cpp
 조커 자리를 고르세요	Choose the Joker's spot	ジョーカーの場所を選んでください	请选择小丑的位置	請選擇小丑的位置	PDBoardPaint.cpp
@@ -309,7 +310,7 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
 %d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
 ?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDBoardPaint.cpp
-카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체	Click a card (number key) → click a tile: place · placing on a tower replaces it	カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換	点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換	PDBoardPaint.cpp
+카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)	Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)	カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)	点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)	PDBoardPaint.cpp
 오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
 족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기	Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed	役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ	鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养	滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養	PDBoardPaint.cpp
 Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
@@ -382,7 +383,7 @@ K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴	K skill tree
 목숨이 다 떨어지기 전에 최대한 많은 웨이브를 버텨라	Survive as many waves as you can before your lives run out	ライフが尽きる前にできるだけ多くのウェーブを耐えろ	在生命耗尽前撑过尽可能多的波次	在生命耗盡前撐過盡可能多的波次	PDBoardPaint.cpp
 무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화	Suit sets the attack: ♠ Snipe · ♥ Blast · ♦ Rapid · ♣ Slow	スートは攻撃方式: ♠ 狙撃 · ♥ 爆発 · ♦ 連射 · ♣ 減速	花色决定攻击: ♠ 狙击 · ♥ 爆炸 · ♦ 连射 · ♣ 减速	花色決定攻擊: ♠ 狙擊 · ♥ 爆炸 · ♦ 連射 · ♣ 減速	PDBoardPaint.cpp
 숫자는 공격력 (A가 가장 세다)	Rank is attack power (A is strongest)	数字は攻撃力 (Aが一番強い)	点数是攻击力 (A最强)	點數是攻擊力 (A最強)	PDBoardPaint.cpp
-타워 위에 카드를 놓으면 교체된다	Placing a card on a tower replaces it	タワーの上にカードを置くと交換される	把卡牌放在塔上会替换它	把卡牌放在塔上會替換它	PDBoardPaint.cpp
+Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로	Place on a Lv1 tower to swap; the old card returns to your hand	Lv1 タワーの上に置くと入れ替え、元のカードは手札へ	放在 Lv1 塔上会替换，原卡牌回到手牌	放在 Lv1 塔上會替換，原卡牌回到手牌	PDBoardPaint.cpp
 붙어 있는 타워들이 포커 족보가 되면 시너지	Adjacent towers forming a poker hand create a synergy	隣り合うタワーがポーカーの役になるとシナジー	相邻的塔组成扑克牌型就有协同	相鄰的塔組成撲克牌型就有協同	PDBoardPaint.cpp
 모양은 상관없다 (일자·ㄱ자·네모 모두 된다)	Any shape works (line, L-shape or square)	形は自由 (一直線・L字・四角どれでもOK)	形状不限 (直线·L形·方形都可以)	形狀不限 (直線·L形·方形都可以)	PDBoardPaint.cpp
 왼쪽 족보 목록에 족보마다 효과가 나온다	The hand list on the left shows each hand's effect	左の役リストに役ごとの効果が出る	左侧牌型列表显示每种牌型的效果	左側牌型列表顯示每種牌型的效果	PDBoardPaint.cpp
@@ -460,6 +461,8 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어					PDLang.cpp
+카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체	Click a card (number key) → click a tile: place · placing on a tower replaces it	カードをクリック(数字キー) → マスをクリック: 設置 · タワーの上なら交換	点击卡牌(数字键) → 点击格子: 放置 · 放在塔上则替换	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在塔上則替換	PDLangTable.inl
+타워 위에 카드를 놓으면 교체된다	Placing a card on a tower replaces it	タワーの上にカードを置くと交換される	把卡牌放在塔上会替换它	把卡牌放在塔上會替換它	PDLangTable.inl
 경험치 +%.0f → 레벨 %d%s	XP +%.0f → level %d%s	経験値 +%.0f → レベル %d%s	经验 +%.0f → 等级 %d%s	經驗 +%.0f → 等級 %d%s	PDLangTable.inl
 P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P or button: resume · you can still place and fuse while paused	P かボタン: 再開 · 停止中もカードの設置・合成はできる	P 或按钮: 继续 · 暂停时仍可放置卡牌和合成	P 或按鈕: 繼續 · 暫停時仍可放置卡牌和合成	PDLangTable.inl
 명사수	Marksman	名射手	神射手	神射手	PDLangTable.inl

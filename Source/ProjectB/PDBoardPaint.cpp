@@ -561,7 +561,16 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 	}
 	if (bStatic) return; // 아래는 모두 움직이는 층
 	// 미리보기: 고른 카드를 마우스 칸에
-	if (Sel >= 0 && Sel < (int32)G.Hand.size() && HoverX >= 0 && G.Buildable(HoverX, HoverY))
+	if (Sel >= 0 && Sel < (int32)G.Hand.size() && HoverX >= 0 && G.Buildable(HoverX, HoverY) && !G.CanPlace(HoverX, HoverY))
+	{ // 합성 타워·조커 위 (D-192): 못 놓는다는 빨간 칸 + 안내
+		const FVector2f B = CellPx((float)HoverX, (float)HoverY);
+		const FLinearColor No = Hex(TEXT("ff5a6a"));
+		F.Glow(FCanvas::RoundRectPoints(B.X + 2.f, B.Y + 2.f, CS - 4.f, CS - 4.f, 7.f), No, 2.4f, 1.2f);
+		F.Lines({B + FVector2f(CS * 0.3f, CS * 0.3f), B + FVector2f(CS * 0.7f, CS * 0.7f)}, WithAlpha(No, 0.8f), 1.6f);
+		F.Lines({B + FVector2f(CS * 0.7f, CS * 0.3f), B + FVector2f(CS * 0.3f, CS * 0.7f)}, WithAlpha(No, 0.8f), 1.6f);
+		F.Badge(TEXT("합성 타워·조커 위에는 놓을 수 없다"), B.X + CS / 2.f, B.Y - 10.f, No, 1.f);
+	}
+	else if (Sel >= 0 && Sel < (int32)G.Hand.size() && HoverX >= 0 && G.Buildable(HoverX, HoverY))
 	{
 		const FPDCard& Card = G.Hand[Sel];
 		const FVector2f P = CellCenter(CellKey(HoverX, HoverY));
@@ -1762,7 +1771,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Text(TEXT("?  도움말"), HelpX + HelpW, HelpY + 13.f, bHov ? Fg : Dim, 10.f, 2);
 		if (bHov)
 		{
-			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · 타워 위에 놓으면 교체"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
+			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
 				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 골드 강화 · J 조커 도감 · Esc 메뉴")};
 			const float W = 400.f, Hh = 24.f + UE_ARRAY_COUNT(Lines) * 18.f, X = DesignW - 16.f - W, Y = HelpY - 6.f - Hh;
 			C.Box(X, Y, W, Hh, Hex(TEXT("0a0b14"), 0.96f));
@@ -2109,7 +2118,7 @@ void SPDBoardWidget::PaintTutorial(FCanvas& C) const
 	static const TCHAR* Titles[TutPages] = {TEXT("목표"), TEXT("카드 = 타워"), TEXT("족보"), TEXT("연쇄"), TEXT("합성"), TEXT("조커"), TEXT("성장"), TEXT("조작")};
 	static const TCHAR* Body[TutPages][3] = {
 		{TEXT("적이 길을 따라 몰려온다. 끝까지 가면 목숨이 준다"), TEXT("손패의 카드를 판의 빈 칸에 놓으면 타워가 된다"), TEXT("목숨이 다 떨어지기 전에 최대한 많은 웨이브를 버텨라")},
-		{TEXT("무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화"), TEXT("숫자는 공격력 (A가 가장 세다)"), TEXT("타워 위에 카드를 놓으면 교체된다")},
+		{TEXT("무늬는 공격 방식: ♠ 저격 · ♥ 폭발 · ♦ 연사 · ♣ 둔화"), TEXT("숫자는 공격력 (A가 가장 세다)"), TEXT("Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로")},
 		{TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지"), TEXT("모양은 상관없다 (일자·ㄱ자·네모 모두 된다)"), TEXT("왼쪽 족보 목록에 족보마다 효과가 나온다")},
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스"), TEXT("맞닿은 족보 하나마다 위력 +25%"), TEXT("번개로 이어진 족보가 연쇄다")},
 		{TEXT("족보에 마우스를 올리면 [합성] 버튼이 뜬다"), TEXT("합성하면 재료가 한 타워로 모여 레벨이 오른다"), TEXT("같은 레벨끼리만 다시 족보가 된다")},
