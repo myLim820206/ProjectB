@@ -1120,7 +1120,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I)) continue;
-			if (!SynRevealed(I)) // 평소 (D-113, D-126): 재료 칸 모서리에 금색 꺾쇠가 숨 쉬듯 반짝 + 아래 변에 큰 금색 점
+			if (!SynRevealed(I)) // 평소 (D-113, D-126): 재료 칸 모서리에 금색 꺾쇠가 숨 쉬듯 반짝 (점은 D-161 에 뺐다)
 			{
 				const float Br = 0.55f + 0.45f * FMath::Sin(Clock * 3.f + I * 0.9f);
 				const bool bImg = UseAtlas();
@@ -1136,9 +1136,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 					F.Glow({C0 + FVector2f(B, B - L), C0 + FVector2f(B, B), C0 + FVector2f(B - L, B)}, Cc, 1.8f, 0.6f + 0.6f * Br);
 					F.Glow({C0 + FVector2f(A + L, B), C0 + FVector2f(A, B), C0 + FVector2f(A, B - L)}, Cc, 1.8f, 0.6f + 0.6f * Br);
 				}
-				const FVector2f D = FuseDotCenter(G.Synergies, I);
-				F.Box(D.X - 3.f, D.Y - 3.f, 6.f, 6.f, WithAlpha(Gold, 0.5f + 0.4f * Br));
-				F.Glow(FCanvas::CirclePoints(D, 4.5f, 14), Gold, 1.8f, 0.9f + 0.6f * Br);
+				// 아래 변의 금색 점은 뺐다 (D-161): 모서리 꺾쇠만
 				continue;
 			}
 			const FVector2f B = FuseButtonCenter(G.Synergies, I);
