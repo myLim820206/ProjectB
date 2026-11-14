@@ -20,6 +20,10 @@ using namespace PD;
 
 namespace PDDraw
 {
+#include "PDUpperArt.inl" // 상위 조커 30종 기호 점 (tools/neon/gen_upper_art.py, D-231)
+}
+namespace PDDraw
+{
 constexpr float DesignW = 1280.f;
 constexpr float DesignH = 720.f;
 // 화면 세 칸: 왼쪽 족보 패널 | 가운데 판과 손패 | 오른쪽 상태 패널
@@ -1456,14 +1460,30 @@ struct SPDBoardWidget::FCanvas
 		Box(CX - H, CY - H, H * 2.f, H * 2.f, WithAlpha(Col, 0.08f + 0.06f * Pulse));
 		if (IsUpperJoker(K)) // 상위 조커 (D-231): 재료 둘의 그림을 작게 + 금색 이중 테두리 + 틀 위 작은 왕관
 		{
-			const FPDUpperDef& D = UpperDef(K - UpperBase);
-			JokerArt((int32)D.A, CX - R * 0.3f, CY - R * 0.22f, R * 0.52f, Col, 1.1f, 0.6f);
-			JokerArt((int32)D.B, CX + R * 0.3f, CY + R * 0.26f, R * 0.52f, Col, 1.1f, 0.6f);
+			UpperArt(K - UpperBase, CX, CY, R, Col, 1.3f, 0.8f);
 			UpperMark(CX, CY, R, WithAlpha(Hex(TEXT("ffd96a")), Alpha), Pulse);
 			return;
 		}
 		Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Col, 2.f, 1.4f + 0.5f * Pulse);
 		JokerArt(K, CX, CY, R, Col, 1.3f, 0.8f);
+	}
+	// 상위 조커 기호 (미리보기 tools/neon/upper_jokers.py 그대로): 점 배열을 틀 반 너비 R 로 늘려 네온 선
+	void UpperArt(int32 U, float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk)
+	{
+		if (U < 0 || U >= UpperJokerCount) return;
+		const int* Ix = GPDUpperIndex[U];
+		for (int L = Ix[0]; L < Ix[0] + Ix[1]; ++L)
+		{
+			TArray<FVector2f> P;
+			P.Reserve(GPDUpperLines[L][1]);
+			for (int I = 0; I < GPDUpperLines[L][1]; ++I) { const float* Q = GPDUpperPts[GPDUpperLines[L][0] + I]; P.Add(FVector2f(CX + Q[0] * R, CY + Q[1] * R)); }
+			Glow(P, Col, Th, Gk);
+		}
+		for (int T = Ix[2]; T < Ix[2] + Ix[3]; ++T)
+		{
+			const FPDUpperText& X = GPDUpperTexts[T];
+			TextCentered(X.S, CX + X.X * R, CY + X.Y * R, Col, X.Px * R * 1.1f, true);
+		}
 	}
 	void UpperMark(float CX, float CY, float R, const FLinearColor& Gold, float Pulse)
 	{

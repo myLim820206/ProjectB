@@ -521,14 +521,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			{
 				if (IsUpperJoker(T.Joker)) // 상위 조커는 아틀라스에 없어 선으로 (D-231)
 				{
-					if (bAtlas) // 재료 둘의 스프라이트를 작게 + 금색 표시
-					{
-						const FPDUpperDef& D = UpperDef(T.Joker - UpperBase);
-						F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + (int32)D.A], P.X - CS * 0.12f, P.Y - CS * 0.09f, BoardCardK * 0.55f, FLinearColor::White);
-						F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + (int32)D.B], P.X + CS * 0.12f, P.Y + CS * 0.1f, BoardCardK * 0.55f, FLinearColor::White);
-						F.UpperMark(P.X, P.Y, CS * 0.4f * BoardCardK * Pop, Hex(TEXT("ffd96a")), Pulse);
-					}
-					else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, Pulse);
+					F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, Pulse); // 미리보기 기호 + 금색 이중 테두리·왕관
 				}
 				else if (bAtlas) F.Sprite(SpriteLayer, &Atlas->Brushes[AtlasJoker0 + T.Joker], P.X, P.Y, BoardCardK, FLinearColor::White);
 				else F.JokerTower(T.Joker, P.X, P.Y, CS * 0.4f * BoardCardK * Pop, 1.f, Pulse);
