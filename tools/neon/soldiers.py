@@ -56,7 +56,7 @@ def soldier(kind, cx, cy, R, t, flop=False):
     L = []
     ph = t * 2 * math.pi
     sw = math.sin(ph)
-    bob = abs(math.sin(ph)) * 0.05 * R
+    bob = abs(math.sin(ph)) * (0.03 if flop == 'soft' else 0.05) * R
     lean = math.radians(8) if name == '빠름' else math.radians(12) if wpn == 'b_charge' else 0.0
     ghost = wpn == 'b_ghost'
     boss = wpn.startswith('b_')
@@ -75,8 +75,8 @@ def soldier(kind, cx, cy, R, t, flop=False):
     top = hip[1] - bh
     body_c = (cx, top + bh / 2)
     # 흐느적 (D-182 시안): 카드 윗부분이 걸음보다 조금 늦게 좌우로 휘청 (위로 갈수록 크게), 몸 전체도 살짝 흔들린다
-    bend = (0.26 * R * math.sin(ph - 0.9)) if flop else 0.0
-    wob = (math.radians(5) * math.sin(ph - 0.4)) if flop else 0.0
+    bend = ((0.12 if flop == 'soft' else 0.26) * R * math.sin(ph - (1.2 if flop == 'soft' else 0.9))) if flop else 0.0
+    wob = (math.radians(2 if flop == 'soft' else 5) * math.sin(ph - 0.6)) if flop else 0.0
 
     def W(q):
         v = min(1.0, max(0.0, (q[1] - top) / bh)) if bh > 0 else 0.0
@@ -145,7 +145,7 @@ def soldier(kind, cx, cy, R, t, flop=False):
     sh_y = top + 0.22 * bh
     for s in (1, -1):
         sh = W((cx + s * bw / 2, sh_y))
-        a = -math.radians(45 if flop else 30) * math.sin(ph - (0.6 if flop else 0.0)) * s
+        a = -math.radians(32 if flop == 'soft' else 45 if flop else 30) * math.sin(ph - (0.6 if flop else 0.0)) * s
         hand = (sh[0] + s * 0.14 * R + math.sin(a) * 0.07 * R, sh[1] + 0.26 * R * math.cos(a * 0.5)) # 짧은 팔
         L.append(([sh, hand], c, 1.5))
         if s == 1:
@@ -316,6 +316,27 @@ def flop_gif(out):
     frames[0].save(out, save_all=True, append_images=frames[1:], duration=60, loop=0)
 
 
+def soft_gif(out):
+    """부드러운 흐느적 (D-183 시안): 게임처럼 12장 중 하나를 골라 보여 준다"""
+    W_, H_, S = 960, 300, 1
+    frames = []
+    N, NF = 48, 12
+    for f in range(N):
+        M = neon._Mock(S, W_, H_)
+        for x in range(0, W_, 24):
+            M.ln([(x, 200), (x + 12, 200)], (60, 110, 140), 1.0)
+        for i, ki in enumerate(FLOP_PICK + [7]):
+            k = KINDS[ki]
+            spd = k[5]
+            tt = math.floor(((f / N * spd * 2) % 1.0) * NF) / NF
+            x = (i * 135 + 60 + f / N * 135 * spd) % (W_ + 80) - 40
+            for pts, c, wd in soldier(k, x, 220, 36 if ki != 7 else 40, tt, flop='soft'):
+                M.ln(pts, c, wd)
+        img = Image.new('RGB', (W_ * S, H_ * S), neon.BG)
+        frames.append(M.draw(img).convert('P', palette=Image.ADAPTIVE))
+    frames[0].save(out, save_all=True, append_images=frames[1:], duration=40, loop=0)
+
+
 def sheet(out):
     W, H, S = 1280, 990, 2
     M = neon._Mock(S, W, H)
@@ -361,5 +382,5 @@ def gif(out):
 
 
 if __name__ == '__main__':
-    {'sheet': sheet, 'gif': gif, 'bosses': bosses, 'flop': flop_sheet, 'flopgif': flop_gif}[sys.argv[1]](sys.argv[2])
+    {'sheet': sheet, 'gif': gif, 'bosses': bosses, 'flop': flop_sheet, 'flopgif': flop_gif, 'softgif': soft_gif}[sys.argv[1]](sys.argv[2])
     print('saved', sys.argv[2])
