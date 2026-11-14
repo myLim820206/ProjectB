@@ -2605,7 +2605,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			C.Text(TEXT("Esc"), LX + LW - 18.f, Y0 + RowH / 2.f, Dim, 9.f, 2);
 		}
 		if (JokerList.empty()) C.Text(TEXT("만들 수 있는 조커가 없다"), LX + 18.f, Y0 + RowH * 1.5f, Dim, 11.f, 0, false, LW - 36.f);
-		const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
+		const float JFl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
 		for (int32 R = 0; R < (int32)JokerList.size(); ++R)
 		{
 			const FJokerEntry& E = JokerList[R];
@@ -2613,7 +2613,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			const bool bSel = E.J == CraftJoker, bH = HovR == R;
 			const bool bKnown = (G.Discovered >> E.J) & 1u;
 			if (bSel) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.18f));
-			else if (E.bMake) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, (bH ? 0.14f : 0.03f + 0.08f * Fl)));
+			else if (E.bMake) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, (bH ? 0.14f : 0.03f + 0.08f * JFl)));
 			if (bSel || (E.bMake && bH)) C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, bSel ? 1.2f : 0.8f);
 			const FLinearColor NameCol = E.bMake ? JokerPink : WithAlpha(Grey, 0.8f);
 			C.Text(bKnown ? FString(JokerName(E.J)) : FString(TEXT("???")), LX + 18.f, Y + 16.f, NameCol, 12.f, 0, true, LW - 90.f);
