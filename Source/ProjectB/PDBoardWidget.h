@@ -146,10 +146,12 @@ private:
 	std::vector<int> CraftNodeIdx() const;   // CraftPicks → JokerNodes 번호 (못 찾은 재료는 빠진다)
 	// 조커 목록 (D-210): 조커 줄을 누르면 왼쪽 족보 목록 자리가 만들 수 있는 조커(+하나만 모자란 조커) 목록으로 바뀐다.
 	// 조커를 고르면 게임이 고른 가장 좋은 재료가 판에 표시되고, 재료 칸 클릭 = 그 칸에 조커, 흐린 후보 클릭 = 재료 바꾸기
-	struct FJokerEntry { int32 J = 0; bool bMake = false; PD::EPDHand Missing = PD::EPDHand::Count; std::vector<std::vector<int>> Best; };
+	// Upper >= 0 이면 상위 조커 줄 (D-237): Best = 합칠 조커 칸 둘 (각각 한 칸), 못 만들면 LvA/NeedA·LvB/NeedB 와 bApart(레벨은 되는데 안 맞붙음)
+	struct FJokerEntry { int32 J = 0; bool bMake = false; PD::EPDHand Missing = PD::EPDHand::Count; std::vector<std::vector<int>> Best; int32 Upper = -1; int32 LvA = 0, NeedA = 0, LvB = 0, NeedB = 0; bool bApart = false; };
 	std::vector<FJokerEntry> JokerList;
 	uint64 JokerListSig = 0;
 	int32 CraftJoker = -1;                   // 고른 조커 (-1 = 목록만 보는 중)
+	int32 CraftUpper = -1;                   // 고른 상위 조커 (D-237, -1 = 없음). CraftPicks = 합칠 조커 칸 둘
 	void RefreshJokerList();
 	int32 JokerListAt(FVector2f P) const;    // 왼쪽 목록 줄: -2 = 돌아가기, -1 = 없음, 그 밖 = JokerList 번호
 	void CraftSelect(int32 Entry);

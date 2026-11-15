@@ -1238,8 +1238,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		int32 J = CraftJoker;
 		bool bPreview = false;
 		std::vector<std::vector<int>> Show;
-		if (J >= 0) Show = CraftPicks;
-		else if (const int32 R = JokerListAt(Mouse); R >= 0 && JokerList[R].bMake) { J = JokerList[R].J; Show = JokerList[R].Best; bPreview = true; }
+		int32 UJ = CraftUpper; // 상위 조커 (D-237): 합칠 두 조커
+		if (J >= 0 || UJ >= 0) Show = CraftPicks;
+		else if (const int32 R = JokerListAt(Mouse); R >= 0 && JokerList[R].bMake) { if (JokerList[R].Upper >= 0) UJ = JokerList[R].Upper; else J = JokerList[R].J; Show = JokerList[R].Best; bPreview = true; }
 		std::vector<int> CandNodes; // 고른 조커의 레시피 족보인 재료 (바꿀 후보)
 		if (J >= 0 && !bPreview)
 		{
@@ -1255,7 +1256,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 		}
 		TSet<int32> Lit;
-		if (J >= 0) { for (const std::vector<int>& Pk : Show) for (int K : Pk) Lit.Add(K); for (int N : CandNodes) for (int K : Ns[N].Cells) Lit.Add(K); }
+		if (J >= 0 || UJ >= 0) { for (const std::vector<int>& Pk : Show) for (int K : Pk) Lit.Add(K); for (int N : CandNodes) for (int K : Ns[N].Cells) Lit.Add(K); }
 		else for (const FJokerEntry& E : JokerList) if (E.bMake) for (const std::vector<int>& Pk : E.Best) for (int K : Pk) Lit.Add(K);
 		{
 			const int32 DL = F.NextLayer();
@@ -1285,7 +1286,13 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				if (!bR) F.Glow({FVector2f(X1, Y0), FVector2f(X1, Y1)}, Col, Ew, Eg);
 			}
 		};
-		if (J < 0) // 목록만: 만들 수 있는 조커들의 재료를 옅은 분홍 덩어리로
+		if (UJ >= 0 && !bPreview && Lit.Contains(HKey)) // 상위 조커: 두 조커 중 마우스 칸에 생긴다
+		{
+			const FVector2f C0 = CellPx((float)HoverX, (float)HoverY);
+			F.Badge(TEXT("여기에 상위 조커"), C0.X + CS / 2.f, C0.Y + CS + 20.f, Gold, 1.f);
+			BadgeRects.Add(FBox2f(FVector2f(C0.X - 20.f, C0.Y + CS + 11.f), FVector2f(C0.X + CS + 20.f, C0.Y + CS + 29.f)));
+		}
+		if (J < 0 && UJ < 0) // 목록만: 만들 수 있는 조커들의 재료를 옅은 분홍 덩어리로
 			for (const FJokerEntry& E : JokerList) if (E.bMake) for (const std::vector<int>& Pk : E.Best) Block(Pk, WithAlpha(JokerPink, 0.7f), 0.08f, 1.8f, 0.5f + 0.3f * Wv);
 		for (int N : CandNodes) // 후보: 족보 색 덩어리, 마우스가 올라가면 밝게 + "재료로 고르기"
 		{
@@ -1543,7 +1550,8 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		}
 		else if (InCraft())
 		{
-			if (CraftJoker < 0) F.Badge(TEXT("조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
+			if (CraftUpper >= 0) F.Badge(TrF(TEXT("%s 만들기: 두 조커 중 하나를 클릭 = 그 칸에 상위 조커 · 오른쪽 클릭 / Esc = 목록으로"), (G.UpperFound >> CraftUpper) & 1u ? UpperName(CraftUpper) : TEXT("???")), FX + Cols * CS / 2.f, FY + 12.f, Gold, 1.f);
+			else if (CraftJoker < 0) F.Badge(TEXT("조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
 			else
 			{
 				const std::vector<int> PIdx = CraftNodeIdx();
@@ -2793,7 +2801,24 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		{
 			const FJokerEntry& E = JokerList[R];
 			const float Y = Y0 + (R + 1) * RowH;
-			const bool bSel = E.J == CraftJoker, bH = HovR == R;
+			if (E.Upper >= 0) // 상위 조커 줄 (D-237): 금색, 재료 조커 둘 (못 만들면 레벨 진행 / 맞붙이기)
+			{
+				const bool bUS = E.Upper == CraftUpper, bUH = HovR == R;
+				if (bUS) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.16f));
+				else if (E.bMake) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, bUH ? 0.12f : 0.03f + 0.07f * JFl));
+				if (bUS || (E.bMake && bUH)) C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), Gold, 1.6f, bUS ? 1.2f : 0.8f);
+				const bool bUK = (G.UpperFound >> E.Upper) & 1u;
+				C.Text(bUK ? TrF(TEXT("상위: %s"), UpperName(E.Upper)) : FString(Tr(TEXT("상위 조커 ???"))), LX + 18.f, Y + 16.f, E.bMake ? Gold : WithAlpha(Grey, 0.8f), 12.f, 0, true, LW - 70.f);
+				C.Text(TEXT("상위"), LX + LW - 18.f, Y + 16.f, E.bMake ? Gold : Dim, 10.f, 2, true);
+				const FPDUpperDef& D = UpperDef(E.Upper);
+				const FString UA = JokerName((int32)D.A), UB = JokerName((int32)D.B);
+				const FString USub = E.bMake ? FString::Printf(TEXT("%s + %s"), *UA, *UB)
+					: E.bApart ? TrF(TEXT("%s + %s · 맞붙여 놓아야 해요"), *UA, *UB)
+					: FString::Printf(TEXT("%s Lv%d/%d · %s Lv%d/%d"), *UA, E.LvA, E.NeedA, *UB, E.LvB, E.NeedB);
+				C.Text(USub, LX + 18.f, Y + 31.f, E.bMake ? Fg : Dim, 9.f, 0, false, LW - 36.f);
+				continue;
+			}
+			const bool bSel = CraftJoker >= 0 && E.J == CraftJoker, bH = HovR == R;
 			const bool bKnown = (G.Discovered >> E.J) & 1u;
 			if (bSel) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.18f));
 			else if (E.bMake) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, (bH ? 0.14f : 0.03f + 0.08f * JFl)));

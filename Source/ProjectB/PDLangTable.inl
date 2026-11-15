@@ -353,6 +353,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 자리를 고르세요"), TEXT("Choose the Joker's spot"), TEXT("ジョーカーの場所を選んでください"), TEXT("请选择小丑的位置"), TEXT("請選擇小丑的位置")},
 	{TEXT("합성 타워 자리를 고르세요"), TEXT("Choose the fused tower's spot"), TEXT("合成タワーの場所を選んでください"), TEXT("请选择合成塔的位置"), TEXT("請選擇合成塔的位置")},
 	{TEXT("빛나는 재료 칸 중 하나를 클릭 · Esc / 오른쪽 클릭: 취소"), TEXT("Click one of the glowing tiles · Esc / right-click: cancel"), TEXT("光る素材マスを1つクリック · Esc / 右クリック: キャンセル"), TEXT("点击一个发光的素材格 · Esc / 右键: 取消"), TEXT("點擊一個發光的素材格 · Esc / 右鍵: 取消")},
+	{TEXT("여기에 상위 조커"), TEXT("Upper Joker here"), TEXT("ここに上位ジョーカー"), TEXT("上位小丑放这里"), TEXT("上位小丑放這裡")},
 	{TEXT("클릭: 재료로 고르기"), TEXT("Click: pick as material"), TEXT("クリック: 素材に選ぶ"), TEXT("点击: 选为素材"), TEXT("點擊: 選為素材")},
 	{TEXT("추천"), TEXT("Best"), TEXT("おすすめ"), TEXT("推荐"), TEXT("推薦")},
 	{TEXT("클릭: 빼기"), TEXT("Click: remove"), TEXT("クリック: 外す"), TEXT("点击: 移除"), TEXT("點擊: 移除")},
@@ -363,6 +364,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("먹이기: 왼쪽 목록이나 판에서 조커를 고르세요 · Esc: 끄기"), TEXT("Feed: pick a Joker from the left list or the board · Esc: off"), TEXT("餌やり: 左のリストか盤でジョーカーを選んでください · Esc: やめる"), TEXT("喂食: 从左侧列表或棋盘选择小丑 · Esc: 关闭"), TEXT("餵食: 從左側列表或棋盤選擇小丑 · Esc: 關閉")},
 	{TEXT("%s 먹이기: 먹일 족보 칸 클릭 · 다른 조커 클릭 = 바꾸기 · 오른쪽 클릭 / Esc = 목록으로"), TEXT("Feed %s: click a hand tile to feed · click another Joker = switch · right-click / Esc = back to list"), TEXT("%s に餌やり: 食べさせる役のマスをクリック · 別のジョーカーをクリック = 切替 · 右クリック / Esc = リストへ"), TEXT("喂食 %s: 点击要喂的牌型格 · 点其他小丑 = 切换 · 右键 / Esc = 返回列表"), TEXT("餵食 %s: 點擊要餵的牌型格 · 點其他小丑 = 切換 · 右鍵 / Esc = 返回列表")},
 	{TEXT("이 조커에 먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · Esc = 목록으로"), TEXT("Nothing to feed this Joker (hands touching it can be fed) · Esc = back to list"), TEXT("このジョーカーに食べさせる役がない (隣接する役が餌) · Esc = リストへ"), TEXT("这个小丑没有可喂的牌型 (相邻的牌型才能喂) · Esc = 返回列表"), TEXT("這個小丑沒有可餵的牌型 (相鄰的牌型才能餵) · Esc = 返回列表")},
+	{TEXT("%s 만들기: 두 조커 중 하나를 클릭 = 그 칸에 상위 조커 · 오른쪽 클릭 / Esc = 목록으로"), TEXT("Make %s: click either Joker = Upper Joker there · right-click / Esc = back to list"), TEXT("%s 作成: 2体のどちらかをクリック = そこに上位ジョーカー · 右クリック / Esc = リストへ"), TEXT("制作 %s: 点击任一小丑 = 上位小丑放那里 · 右键 / Esc = 返回列表"), TEXT("製作 %s: 點擊任一小丑 = 上位小丑放那裡 · 右鍵 / Esc = 返回列表")},
 	{TEXT("조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기"), TEXT("Make Joker: pick a Joker from the left list (hover to see materials) · Esc: off"), TEXT("ジョーカー作成: 左のリストからジョーカーを選んでください (マウスを乗せると素材が見える) · Esc: やめる"), TEXT("制作小丑: 从左侧列表选择小丑 (悬停可看素材) · Esc: 关闭"), TEXT("製作小丑: 從左側列表選擇小丑 (懸停可看素材) · Esc: 關閉")},
 	{TEXT("%s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)"), TEXT("Make %s: %d materials picked · click a candidate = add (Best = the game's pick)"), TEXT("%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)"), TEXT("制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)"), TEXT("製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)")},
 	{TEXT("레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로"), TEXT("Recipe complete: click a picked tile = Joker there · right-click = remove material · Esc = back to list"), TEXT("レシピ完成: 選んだ素材マスをクリック = そこにジョーカー · 右クリック = 素材を外す · Esc = リストへ"), TEXT("配方完成: 点击已选素材格 = 小丑放那里 · 右键 = 移除素材 · Esc = 返回列表"), TEXT("配方完成: 點擊已選素材格 = 小丑放那裡 · 右鍵 = 移除素材 · Esc = 返回列表")},
@@ -593,6 +595,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("먹이 ×%d"), TEXT("Feed ×%d"), TEXT("餌 ×%d"), TEXT("可喂 ×%d"), TEXT("可餵 ×%d")},
 	{TEXT("경험치 %.0f/%.0f"), TEXT("XP %.0f/%.0f"), TEXT("経験値 %.0f/%.0f"), TEXT("经验 %.0f/%.0f"), TEXT("經驗 %.0f/%.0f")},
 	{TEXT("만들 수 있는 조커가 없다"), TEXT("No Joker can be made"), TEXT("作れるジョーカーがない"), TEXT("没有可制作的小丑"), TEXT("沒有可製作的小丑")},
+	{TEXT("상위"), TEXT("Upper"), TEXT("上位"), TEXT("上位"), TEXT("上位")},
+	{TEXT("%s + %s · 맞붙여 놓아야 해요"), TEXT("%s + %s · must be placed side by side"), TEXT("%s + %s · 隣り合わせに置く必要あり"), TEXT("%s + %s · 需要相邻放置"), TEXT("%s + %s · 需要相鄰放置")},
 	{TEXT("%s 하나만 더 있으면"), TEXT("Needs one more %s"), TEXT("%s があと1つあれば"), TEXT("再有一个%s就行"), TEXT("再有一個%s就行")},
 	{TEXT(" (3~5장)"), TEXT(" (3–5 cards)"), TEXT(" (3〜5枚)"), TEXT(" (3~5张)"), TEXT(" (3~5張)")},
 	{TEXT(" (2~5장)"), TEXT(" (2–5 cards)"), TEXT(" (2〜5枚)"), TEXT(" (2~5张)"), TEXT(" (2~5張)")},
@@ -760,4 +764,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 759;
+static const int32 PDLangRowCount = 763;

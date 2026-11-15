@@ -612,7 +612,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
 	UpdateHints(Dt);
-	if (!InCraft()) { CraftPicks.clear(); CraftJoker = -1; }
+	if (!InCraft()) { CraftPicks.clear(); CraftJoker = -1; CraftUpper = -1; }
 	else
 	{
 		RefreshJokerList();
@@ -622,7 +622,13 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 			const std::vector<FPDJokerNode> Ns = Game.JokerNodes();
 			CraftPicks.erase(std::remove_if(CraftPicks.begin(), CraftPicks.end(), [&Ns](const std::vector<int>& Pk) {
 				return std::none_of(Ns.begin(), Ns.end(), [&Pk](const FPDJokerNode& N) { std::vector<int> A = N.Cells, B = Pk; std::sort(A.begin(), A.end()); std::sort(B.begin(), B.end()); return A == B; }); }), CraftPicks.end());
-			if (std::none_of(JokerList.begin(), JokerList.end(), [this](const FJokerEntry& E) { return E.J == CraftJoker && E.bMake; })) { CraftJoker = -1; CraftPicks.clear(); }
+			if (std::none_of(JokerList.begin(), JokerList.end(), [this](const FJokerEntry& E) { return E.Upper < 0 && E.J == CraftJoker && E.bMake; })) { CraftJoker = -1; CraftPicks.clear(); }
+		}
+		if (CraftUpper >= 0) // 상위 조커 (D-237): 더는 못 합치면 목록으로, 합칠 조커 칸은 늘 최신으로
+		{
+			bool bFound = false;
+			for (const FJokerEntry& E : JokerList) if (E.Upper == CraftUpper && E.bMake) { CraftPicks = E.Best; bFound = true; }
+			if (!bFound) { CraftUpper = -1; CraftPicks.clear(); }
 		}
 	}
 	// 판 흔들림 + 스프라이트 아틀라스 (D-140): 처음 한 번 굽고, 렌더가 끝난 몇 프레임 뒤부터 쓴다
@@ -731,7 +737,7 @@ void SPDBoardWidget::RefreshJokerList()
 	{
 		const FPDTower& T = KV.second;
 		Mix((uint64)KV.first); Mix((uint64)T.Card.Rank << 8 | (uint64)T.Card.Suit); Mix((uint64)T.Level << 16 | (uint64)(T.Joker + 1) << 8 | (uint64)(T.FuseHand + 1));
-		Mix((uint64)FMath::RoundToInt(T.Mult * 100.f));
+		Mix((uint64)FMath::RoundToInt(T.Mult * 100.f)); Mix((uint64)T.JLevel);
 	}
 	Mix(Game.Synergies.size()); Mix(Game.CharmMask()); Mix(Game.Mods.Keys);
 	if (Sig == JokerListSig) return;
@@ -748,7 +754,47 @@ void SPDBoardWidget::RefreshJokerList()
 		if (E.bMake) { JokerList.push_back(E); continue; }
 		if (Game.JokerMissing((EPDJoker)J, &E.Missing) == 1) Near.push_back(E); // 하나만 모자란 조커는 흐리게 아래에
 	}
-	for (const FJokerEntry& E : Near) if (JokerList.size() < 10) JokerList.push_back(E);
+	// 상위 조커 (D-237): 지금 합칠 수 있는 것 (금색 합치기 버튼과 같은 묶음) + 두 재료 조커가 판에 있는데 아직 안 되는 것 (레벨 진행·맞붙이기)
+	std::vector<FJokerEntry> UMake, UNear;
+	{
+		const std::vector<FPDJokerMerge> Ms = Game.JokerMerges();
+		uint32 Made = 0;
+		for (const FPDJokerMerge& M : Ms)
+		{
+			if (M.Upper < 0 || ((Made >> M.Upper) & 1u)) continue;
+			Made |= 1u << M.Upper;
+			FJokerEntry E;
+			E.J = -1;
+			E.Upper = M.Upper;
+			E.bMake = true;
+			for (int K : M.Cells) E.Best.push_back({K});
+			UMake.push_back(E);
+		}
+		for (int32 U = 0; U < UpperJokerCount; ++U)
+		{
+			if ((Made >> U) & 1u) continue;
+			const FPDUpperDef& D = UpperDef(U);
+			int32 KA = -1, KB = -1; // 레벨이 가장 높은 재료 조커
+			for (const auto& KV : Game.Towers)
+			{
+				const FPDTower& T = KV.second;
+				if (!T.IsJoker()) continue;
+				if (T.Joker == (int32)D.A && (KA < 0 || T.JLevel > Game.Towers.at(KA).JLevel)) KA = KV.first;
+				if (T.Joker == (int32)D.B && (KB < 0 || T.JLevel > Game.Towers.at(KB).JLevel)) KB = KV.first;
+			}
+			if (KA < 0 || KB < 0) continue;
+			FJokerEntry E;
+			E.J = -1;
+			E.Upper = U;
+			E.LvA = Game.Towers.at(KA).JLevel; E.NeedA = Game.UpperNeed(Game.Towers.at(KA));
+			E.LvB = Game.Towers.at(KB).JLevel; E.NeedB = Game.UpperNeed(Game.Towers.at(KB));
+			E.bApart = E.LvA >= E.NeedA && E.LvB >= E.NeedB;
+			UNear.push_back(E);
+		}
+	}
+	std::vector<FJokerEntry> Make = JokerList;
+	JokerList.clear();
+	for (const auto* L : {&Make, &UMake, &Near, &UNear}) for (const FJokerEntry& E : *L) if (JokerList.size() < 11) JokerList.push_back(E);
 }
 
 int32 SPDBoardWidget::JokerListAt(FVector2f P) const
@@ -762,6 +808,8 @@ int32 SPDBoardWidget::JokerListAt(FVector2f P) const
 void SPDBoardWidget::CraftSelect(int32 Entry)
 {
 	if (Entry < 0 || Entry >= (int32)JokerList.size() || !JokerList[Entry].bMake) { UiSound(EPDSound::Denied); return; }
+	if (JokerList[Entry].Upper >= 0) { CraftUpper = JokerList[Entry].Upper; CraftJoker = -1; CraftPicks = JokerList[Entry].Best; UiSound(EPDSound::Move); return; } // 상위 조커 (D-237): 두 조커가 정해져 있다
+	CraftUpper = -1;
 	CraftJoker = JokerList[Entry].J;
 	CraftPicks.clear(); // 재료는 직접 고른다 (D-211): 게임이 고른 재료는 "추천" 표시만
 	UiSound(EPDSound::Move);
@@ -792,6 +840,21 @@ bool PDCraftFits(const std::vector<FPDJokerNode>& Ns, const std::vector<int>& Id
 
 void SPDBoardWidget::CraftClick(int32 Cell)
 {
+	if (CraftUpper >= 0) // 상위 조커 (D-237): 두 조커 중 하나를 클릭 = 그 칸에 상위 조커
+	{
+		const std::vector<FPDJokerMerge> Ms = Game.JokerMerges();
+		for (int32 I = 0; I < (int32)Ms.size(); ++I)
+		{
+			if (Ms[I].Upper != CraftUpper || std::find(Ms[I].Cells.begin(), Ms[I].Cells.end(), Cell) == Ms[I].Cells.end()) continue;
+			PendingFuseCells.Reset();
+			for (int K : Ms[I].Cells) PendingFuseCells.Add(CellCenter(K));
+			if (Game.MergeJokers(I, Cell)) { CraftUpper = -1; CraftPicks.clear(); HandFilter = -1; }
+			else { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
+			return;
+		}
+		UiSound(EPDSound::Denied);
+		return;
+	}
 	if (CraftJoker < 0) { UiSound(EPDSound::Denied); return; }
 	const std::vector<FPDJokerNode> Ns = Game.JokerNodes();
 	const std::vector<int> Idx = CraftNodeIdx();
@@ -833,7 +896,8 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 
 void SPDBoardWidget::CraftRightClick(int32 Cell)
 {
-	// 고른 재료 위 = 빼기, 그 밖 = 목록으로
+	// 고른 재료 위 = 빼기, 그 밖 = 목록으로 (상위 조커는 늘 목록으로)
+	if (CraftUpper >= 0) { CraftUpper = -1; CraftPicks.clear(); UiSound(EPDSound::Move); return; }
 	for (size_t P = 0; P < CraftPicks.size(); ++P)
 		if (std::find(CraftPicks[P].begin(), CraftPicks[P].end(), Cell) != CraftPicks[P].end())
 		{
@@ -1009,6 +1073,7 @@ void SPDBoardWidget::ToggleCraft()
 	FeedJoker = -1;
 	HandFilter = JokerFilterId;
 	CraftJoker = -1;
+	CraftUpper = -1;
 	CraftPicks.clear();
 	JokerListSig = 0;
 	Sel = -1;
@@ -1237,7 +1302,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	{
 		const int32 R = JokerListAt(P);
 		if (R == -2) ToggleCraft();
-		else if (R >= 0 && JokerList[R].bMake && JokerList[R].J == CraftJoker) { CraftJoker = -1; CraftPicks.clear(); UiSound(EPDSound::Move); }
+		else if (R >= 0 && JokerList[R].bMake && (JokerList[R].Upper >= 0 ? JokerList[R].Upper == CraftUpper : (CraftJoker >= 0 && JokerList[R].J == CraftJoker))) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); UiSound(EPDSound::Move); }
 		else if (R >= 0) CraftSelect(R);
 		return;
 	}
@@ -1681,7 +1746,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		}
 	if (K == EKeys::SpaceBar && (Game.Phase == EPDPhase::Wave || bPaused)) bPaused = !bPaused; // 스페이스: 웨이브 중엔 일시정지/계속 (D-183)
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
-	else if (K == EKeys::Escape) { if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && CraftJoker >= 0) { CraftJoker = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
+	else if (K == EKeys::Escape) { if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
