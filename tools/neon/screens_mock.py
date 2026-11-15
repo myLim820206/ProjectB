@@ -210,54 +210,89 @@ def m_clear():
     return M.draw()
 
 
-# ---------------------------------------------------------------- 6 스킬 트리
+# ---------------------------------------------------------------- 6 스킬 트리 (실제 트리: Source/ProjectB/PDTreeData.inl 그대로)
+KEY_NAMES = ['외골수', '잡식가', '큰 판', '작은 판', '대장장이', '광대의 길', '고독한 저격수', '군중', '왕관의 무게', '서커스']
+THEME_C = {0: (232, 238, 255), 1: (255, 106, 138), 2: (255, 217, 106), 3: (143, 233, 255), 4: (127, 214, 255), 6: (255, 154, 213)}
+
+
+def load_tree():
+    import re
+    src = open(os.path.join(os.path.dirname(__file__), '..', '..', 'Source', 'ProjectB', 'PDTreeData.inl'), encoding='utf-8-sig').read()
+    nodes = []
+    for m in re.finditer(r'\{EPDNode::(\w+), (\d+), ([\d.]+)f, ([\d.]+)f, \{\{EPDStat::(\w+), (\d+),', src):
+        nodes.append((m.group(1), int(m.group(2)), float(m.group(3)), float(m.group(4)), m.group(5), int(m.group(6))))
+    li = src.index('GPDTreeLinks')
+    links = [(int(x), int(y)) for x, y in re.findall(r'\{(\d+), (\d+)\}', src[li:])]
+    return nodes, links
+
+
 def m_tree():
     M = Sign(0.85); M.small_glow = 0.0
     for r in range(0, 22):
         y = 20 + r * 34
-        M.ln([(0, y), (1280, y)], BR, 1.0, 0.55)
+        M.ln([(0, y), (1280, y)], BR, 1.0, 0.5)
         for k in range(21):
             xx = k * 64 + (32 if r % 2 else 0)
-            M.ln([(xx, y), (xx, y + 34)], BR, 1.0, 0.55)
-    # 걸린 간판
-    wires(M, 470, 810, 14)
-    tube(M, 440, 14, 400, 60, 12, (180, 140, 255), 1.0, 2.2)
-    M.word(640, 54, 'SKILL TREE', (180, 140, 255), 28, None, track=5, font=BLOCK)
-    M.word(940, 40, '레벨 12 · 남은 포인트 3', GOLD, 12, None, font=KO)
-    M.word(940, 58, '키스톤 1 / 3 · 찍은 노드 9', FG, 11, None, font=KO)
-    # 노드: 가운데에서 바깥으로 (코스터)
-    rnd = random.Random(8)
-    cx, cy = 640, 400
-    nodes = [(cx, cy, 'start')]
-    for ring, (r, n) in enumerate(((90, 6), (170, 12), (250, 18))):
-        for k in range(n):
-            a = math.tau * k / n + ring * 0.2
-            nodes.append((cx + math.cos(a) * r * 1.5, cy + math.sin(a) * r, 'key' if ring == 2 and k % 6 == 0 else 'n'))
-    owned = {0, 1, 2, 7, 8, 9, 19, 20, 21}
-    for i, (x, y, kind) in enumerate(nodes):  # 이음 선 (안쪽 고리 → 바깥)
-        if i == 0: continue
-        best = min(range(len(nodes)), key=lambda j: (nodes[j][0] - x) ** 2 + (nodes[j][1] - y) ** 2 if j != i and math.hypot(nodes[j][0] - cx, nodes[j][1] - cy) < math.hypot(x - cx, y - cy) - 20 else 1e9)
-        on = i in owned and best in owned
-        M.ln([(x, y), (nodes[best][0], nodes[best][1])], (180, 140, 255) if on else LAV, 2.0 if on else 1.0, 0.9 if on else 0.3)
-    for i, (x, y, kind) in enumerate(nodes):
-        on = i in owned
-        if kind == 'key':
-            M.ln(circle(x, y, 22, 32), GOLD, 2.2, 1.0 if on else 0.5); M.ln(circle(x, y, 16, 32), GOLD, 1.0, 0.6 if on else 0.3)
-            M.word(x, y + 6, '★', GOLD, 14, None, font=KO)
-        elif kind == 'start':
-            M.ln(circle(x, y, 26, 32), PINK, 2.2); M.word(x, y + 5, '시작', WHITE, 11, None, font=KO)
-        else:
-            c = (180, 140, 255)
-            M.ln(circle(x, y, 13, 24), c, 1.8 if on else 1.1, 1.0 if on else 0.4)
-            M.ln(circle(x, y, 8, 20), c, 1.0, 0.6 if on else 0.2)  # 코스터 안쪽 원
-            if on: M.dots.append((x, y, 1.4))
-    # 마우스 올린 노드 툴팁
-    tx, ty = nodes[10][0] + 24, nodes[10][1] - 70
-    M.ln(rr_pts(tx, ty, 240, 64, 10), GOLD, 1.6, 0.9)
-    M.word(tx + 14, ty + 24, '연쇄 강화 II', WHITE, 14, None, font=KO, anchor_center=False)
-    M.word(tx + 14, ty + 46, '연쇄 보너스 +10% · 포인트 1', FG, 11, None, font=KO, anchor_center=False)
-    heart(M, nodes[10][0], nodes[10][1] - 24)
-    btn(M, 1110, 650, 140, 40, '닫기 K', c=LAV)
+            M.ln([(xx, y), (xx, y + 34)], BR, 1.0, 0.5)
+    nodes, links = load_tree()
+    # 찍은 노드 예: 시작 → ♠ 줄 → 외골수 쪽 키스톤 + ♥ 줄 조금
+    owned = {0, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 18, 19, 20, 21}
+    sealed = set()
+    for i, n in enumerate(nodes):  # 찍은 키스톤의 짝은 막힘
+        if n[0] == 'Keystone' and i in owned:
+            pair = n[5] ^ 1
+            for j, m in enumerate(nodes):
+                if m[0] == 'Keystone' and m[5] == pair: sealed.add(j)
+    def col(i):
+        n = nodes[i]
+        if n[0] == 'Keystone': return GOLD
+        return THEME_C.get(n[1], (232, 240, 255))
+    nxt = {b for a, b in links if a in owned and b not in owned} | {a for a, b in links if b in owned and a not in owned}
+    for a, b in links:
+        on = a in owned and b in owned
+        c = col(b if a == 0 else a)
+        M.ln([(nodes[a][2], nodes[a][3]), (nodes[b][2], nodes[b][3])], c, 2.2 if on else 1.0, 0.95 if on else 0.28)
+    for i, (kind, th, x, y, stat, prm) in enumerate(nodes):
+        on, nx, se = i in owned, i in nxt, i in sealed
+        c = RED if se else col(i)
+        b = 1.0 if on else 0.75 if nx else 0.35
+        if kind == 'Start':
+            M.ln(circle(x, y, 15, 32), PINK, 2.2); M.word(x, y + 5, '★', PINK, 13, None, font=KO)
+        elif kind == 'Small':  # 코스터: 바깥 원 + 안쪽 원
+            M.ln(circle(x, y, 10, 24), c, 1.6 if on else 1.1, b); M.ln(circle(x, y, 6, 18), c, 0.9, b * 0.6)
+            if on: M.dots.append((x, y, 1.2))
+        elif kind == 'Notable':  # 네모 코스터
+            M.ln(rr_pts(x - 14, y - 14, 28, 28, 6), c, 1.8 if on else 1.2, b); M.ln(rr_pts(x - 9, y - 9, 18, 18, 4), c, 1.0, b * 0.6)
+        elif kind == 'Keystone':  # 금색 팔각 큰 코스터 + 이름
+            oct_ = [(x + math.cos(math.radians(22.5 + 45 * k)) * 22, y + math.sin(math.radians(22.5 + 45 * k)) * 22) for k in range(9)]
+            M.ln(oct_, c, 2.4 if on else 1.6, 1.0 if on else 0.7)
+            M.ln(circle(x, y, 13, 24), c, 1.0, 0.6 if on else 0.35)
+            M.word(x, y + 6, '★', c, 13, [1.0 if on else 0.6], font=KO)
+            name = KEY_NAMES[prm]
+            M.word(x, y + 40, name, c, 11, [1.0 if on else 0.75] * len(name), font=KO)
+            if se:
+                M.ln([(x - 16, y - 16), (x + 16, y + 16)], RED, 1.8); M.ln([(x + 16, y - 16), (x - 16, y + 16)], RED, 1.8)
+        elif kind == 'Joker':  # 조커 칸: 둥근 상자 + 광대 모자
+            M.ln(rr_pts(x - 16, y - 16, 32, 32, 6), (255, 154, 213), 1.6, b)
+            M.ln([(x - 10, y + 8), (x - 9, y - 4), (x - 3, y + 2), (x, y - 9), (x + 3, y + 2), (x + 9, y - 4), (x + 10, y + 8), (x - 10, y + 8)], (255, 154, 213), 1.2, b)
+    # 걸린 간판 + 정보 알약
+    wires(M, 470, 810, 8)
+    tube(M, 440, 8, 400, 54, 12, (180, 140, 255), 1.0, 2.2)
+    M.word(640, 45, 'SKILL TREE', (180, 140, 255), 26, None, track=5, font=BLOCK)
+    for k, (t, c) in enumerate((('레벨 16', GOLD), ('남은 포인트 2', MINT), ('키스톤 1 / 3', GOLD), ('찍은 노드 14', FG))):
+        px = 40 + k * 120
+        M.ln(rr_pts(px, 22, 110, 26, 13), c, 1.3, 0.8)
+        M.word(px + 55, 40, t, c, 11, None, font=KO)
+    M.word(1240, 40, '이번 판에서만 · 레벨이 오를 때마다 포인트 1', DIM, 10, None, font=KO, anchor_center=False) if False else M.word(1060, 40, '이번 판에서만 · 레벨마다 포인트 1', DIM, 10, None, font=KO)
+    # 툴팁: 키스톤 위에 마우스
+    kx, ky = nodes[24][2], nodes[24][3]
+    heart(M, kx, ky - 34)
+    tx, ty = kx - 300, ky + 50
+    M.ln(rr_pts(tx, ty, 290, 92, 10), GOLD, 1.8, 0.9)
+    M.word(tx + 14, ty + 24, '키스톤 · ' + KEY_NAMES[nodes[24][5]], GOLD, 14, None, font=KO, anchor_center=False)
+    M.word(tx + 14, ty + 46, '짝 키스톤과 둘 중 하나만 찍을 수 있다', FG, 11, None, font=KO, anchor_center=False)
+    M.word(tx + 14, ty + 66, '포인트 1 · 이어진 노드를 먼저 찍어야', DIM, 10, None, font=KO, anchor_center=False)
+    btn(M, 1120, 660, 140, 40, '닫기 K', c=LAV)
     return M.draw()
 
 
