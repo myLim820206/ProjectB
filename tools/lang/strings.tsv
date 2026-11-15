@@ -427,7 +427,7 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 영구 강화	Permanent Upgrades	永久強化	永久强化	永久強化	PDBoardPaint.cpp
 조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDBoardPaint.cpp
 메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
-부적 %d/%d	Charms %d/%d	お守り %d/%d	护符 %d/%d	護符 %d/%d	PDBoardPaint.cpp
+묘약 %d/%d	Potions %d/%d	秘薬 %d/%d	秘药 %d/%d	秘藥 %d/%d	PDBoardPaint.cpp
 다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
 %d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
 ?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDBoardPaint.cpp
@@ -436,15 +436,15 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기	Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed	役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ	鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养	滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養	PDBoardPaint.cpp
 Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
 K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Joker Codex · Esc Menu	K スキルツリー · U 永久強化 · J ジョーカー図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 小丑图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 小丑圖鑑 · Esc 選單	PDBoardPaint.cpp
-웨이브 %d 부적 — 하나를 고른다	Wave %d charm — pick one	ウェーブ %d お守り — 1つ選ぶ	第%d波 护符 — 选择一个	第%d波 護符 — 選擇一個	PDBoardPaint.cpp
-부적	Charm	お守り	护符	護符	PDBoardPaint.cpp
+웨이브 %d 묘약 — 하나를 고른다	Wave %d potion — pick one	ウェーブ %d 秘薬 — 1つ選ぶ	第%d波 秘药 — 选择一个	第%d波 秘藥 — 選擇一個	PDBoardPaint.cpp
+묘약	Potion	秘薬	秘药	秘藥	PDBoardPaint.cpp
 즉시	Instant	即時	即时	即時	PDBoardPaint.cpp
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
-부적 칸이 가득 찼다 (5/5)	Charm slots are full (5/5)	お守り枠がいっぱい (5/5)	护符栏已满 (5/5)	護符欄已滿 (5/5)	PDBoardPaint.cpp
-부적 %d / %d 열림	Charms %d / %d unlocked	お守り %d / %d 解放	护符 %d / %d 已解锁	護符 %d / %d 已解鎖	PDBoardPaint.cpp
-부적 상자 %s에서 열림	Unlocked by Charm Box %s	お守り箱 %s で解放	由护符箱 %s 解锁	由護符箱 %s 解鎖	PDBoardPaint.cpp
-가진 부적	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
-Tab: 기본 조커 → 상위 조커 → 부적 · J / Esc: 닫기	Tab: Basic → Upper Jokers → Charms · J / Esc: close	Tab: 基本 → 上位ジョーカー → お守り · J / Esc: 閉じる	Tab: 基本 → 上位小丑 → 护符 · J / Esc: 关闭	Tab: 基本 → 上位小丑 → 護符 · J / Esc: 關閉	PDBoardPaint.cpp
+묘약 칸이 가득 찼다 (5/5)	Potion slots are full (5/5)	秘薬枠がいっぱい (5/5)	秘药栏已满 (5/5)	秘藥欄已滿 (5/5)	PDBoardPaint.cpp
+묘약 %d / %d 열림	Potions %d / %d unlocked	秘薬 %d / %d 解放	秘药 %d / %d 已解锁	秘藥 %d / %d 已解鎖	PDBoardPaint.cpp
+묘약 상자 %s에서 열림	Unlocked by Potion Box %s	秘薬箱 %s で解放	由秘药箱 %s 解锁	由秘藥箱 %s 解鎖	PDBoardPaint.cpp
+가진 묘약	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
+Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기	Tab: Basic → Upper Jokers → Potions · J / Esc: close	Tab: 基本 → 上位ジョーカー → 秘薬 · J / Esc: 閉じる	Tab: 基本 → 上位小丑 → 秘药 · J / Esc: 关闭	Tab: 基本 → 上位小丑 → 秘藥 · J / Esc: 關閉	PDBoardPaint.cpp
 상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardPaint.cpp
 서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커	Two different jokers side by side, both Joker Level 10 (5 if you took its tree tip) → Upper Joker	異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 (ツリー末端を取ったジョーカーは5) → 上位ジョーカー	两个不同的小丑相邻，且都达到小丑等级10 (点了技能树末端的小丑为5) → 上位小丑	兩個不同的小丑相鄰，且都達到小丑等級10 (點了技能樹末端的小丑為5) → 上位小丑	PDBoardPaint.cpp
 만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardPaint.cpp
@@ -472,11 +472,11 @@ Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jok
 칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)	Chips %s · You earn chips when a run ends (wave + 2 × levels gained + clear bonus)	チップ %s · ラン終了時にチップを得る (ウェーブ + 2 × 上がったレベル + クリアボーナス)	筹码 %s · 一局结束时获得筹码 (波次 + 2 × 提升的等级 + 通关奖励)	籌碼 %s · 一局結束時獲得籌碼 (波次 + 2 × 提升的等級 + 通關獎勵)	PDBoardPaint.cpp
 판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다	Upgrades that stay after a run. Raise them with chips on the title screen	ラン終了後も残る強化。タイトル画面でチップを使って上げる	一局结束后仍保留的强化。在标题画面用筹码提升	一局結束後仍保留的強化。在標題畫面用籌碼提升	PDBoardPaint.cpp
 최대	Max	最大	最大	最大	PDBoardPaint.cpp
-부적 상자 I	Charm Box I	お守り箱 I	护符箱 I	護符箱 I	PDBoardPaint.cpp
-부적 상자 II	Charm Box II	お守り箱 II	护符箱 II	護符箱 II	PDBoardPaint.cpp
-부적 상자 III	Charm Box III	お守り箱 III	护符箱 III	護符箱 III	PDBoardPaint.cpp
-부적 상자 IV	Charm Box IV	お守り箱 IV	护符箱 IV	護符箱 IV	PDBoardPaint.cpp
-%s · 새 부적 %d종	%s · %d new charms	%s · 新しいお守り %d種	%s · 新护符 %d种	%s · 新護符 %d種	PDBoardPaint.cpp
+묘약 상자 I	Potion Box I	秘薬箱 I	秘药箱 I	秘藥箱 I	PDBoardPaint.cpp
+묘약 상자 II	Potion Box II	秘薬箱 II	秘药箱 II	秘藥箱 II	PDBoardPaint.cpp
+묘약 상자 III	Potion Box III	秘薬箱 III	秘药箱 III	秘藥箱 III	PDBoardPaint.cpp
+묘약 상자 IV	Potion Box IV	秘薬箱 IV	秘药箱 IV	秘藥箱 IV	PDBoardPaint.cpp
+%s · 새 묘약 %d종	%s · %d new potions	%s · 新しい秘薬 %d種	%s · 新秘药 %d种	%s · 新秘藥 %d種	PDBoardPaint.cpp
 열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
 칩 %d	%d chips	チップ %d	筹码 %d	籌碼 %d	PDBoardPaint.cpp
 버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기	Click a button: upgrade with chips   U or Esc · right-click: close	ボタンをクリック: チップで強化   U または Esc · 右クリック: 閉じる	点击按钮: 用筹码强化   U 或 Esc · 右键: 关闭	點擊按鈕: 用籌碼強化   U 或 Esc · 右鍵: 關閉	PDBoardPaint.cpp
@@ -686,7 +686,6 @@ Lv1 타워 위에 놓으면 교체, 원래 카드는 손으로	Place on a Lv1 to
 조커는 적을 처치하거나 족보를 먹으면 레벨이 오른다	Jokers level up by killing enemies or being fed hands	ジョーカーは敵を倒したり役を食べるとレベルが上がる	小丑击杀敌人或吃掉牌型就会升级	小丑擊殺敵人或吃掉牌型就會升級	PDLangTable.inl
 J 키: 조커 도감에서 레시피 보기	J: see recipes in the Joker Codex	J キー: ジョーカー図鑑でレシピを見る	J 键: 在小丑图鉴查看配方	J 鍵: 在小丑圖鑑查看配方	PDLangTable.inl
 웨이브를 막으면 카드를 받는다	Clear a wave to get cards	ウェーブを防ぐとカードがもらえる	挡住一波就能获得卡牌	擋住一波就能獲得卡牌	PDLangTable.inl
-5웨이브마다 부적 하나 (또는 즉시 보상)	A charm every 5 waves (or an instant reward)	5ウェーブごとにお守り1つ (または即時報酬)	每5波获得一个护符 (或即时奖励)	每5波獲得一個護符 (或即時獎勵)	PDLangTable.inl
 골드로 스킬 트리(K)와 골드 강화(U)	Spend gold on the Skill Tree (K) and Gold Upgrades (U)	ゴールドでスキルツリー(K)とゴールド強化(U)	用金币升级技能树(K)和金币强化(U)	用金幣升級技能樹(K)和金幣強化(U)	PDLangTable.inl
 카드 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click a card (number key) → click a tile: place · right-click: discard	カードをクリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击卡牌(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊卡牌(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDLangTable.inl
 Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: speed · Esc: menu	Space: ウェーブ開始 · F: 倍速 · Esc: メニュー	Space: 开始波次 · F: 倍速 · Esc: 菜单	Space: 開始波次 · F: 倍速 · Esc: 選單	PDLangTable.inl

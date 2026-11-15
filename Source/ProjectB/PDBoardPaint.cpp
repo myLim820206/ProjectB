@@ -2067,7 +2067,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const int32 N = (int32)G.Charms.size();
 		C.Box(RX, CharmY, PW, H, Hex(TEXT("06060b"), 0.5f));
 		C.Glow(FCanvas::RoundRectPoints(RX, CharmY, PW, H, 10.f), UiEdge, 1.f, 0.3f);
-		C.Text(TrF(TEXT("부적 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, UiTitle, 12.f, 0, true);
+		C.Text(TrF(TEXT("묘약 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, UiTitle, 12.f, 0, true);
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		C.Text(TrF(TEXT("다음 %d웨이브"), (W0 + CharmEvery - 1) / CharmEvery * CharmEvery), RX + PW - 14.f, CharmY + 22.f, Dim, 9.f, 2);
 		// 동그란 칸은 뺐다 (D-157): 이름·설명만
@@ -2105,7 +2105,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 	if (G.Phase == EPDPhase::Reward)
 	{
 		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.9f));
-		C.TextCentered(TrF(TEXT("웨이브 %d 부적 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
+		C.TextCentered(TrF(TEXT("웨이브 %d 묘약 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
 		for (int32 I = 0; I < (int32)G.Rewards.size(); ++I)
 		{
 			const FPDReward& R = G.Rewards[I];
@@ -2114,13 +2114,13 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			const FLinearColor Col = R.bCharm ? Gold : Cyan;
 			C.Box(P.X, P.Y, RewardW, RewardH, Hex(TEXT("0a0b14")));
 			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, RewardW, RewardH, 12.f), Col, bHov ? 2.6f : 1.6f, bHov ? 1.6f + 0.6f * Pulse : 0.8f);
-			C.Text(R.bCharm ? TEXT("부적") : TEXT("즉시"), P.X + 16.f, P.Y + 26.f, Col, 11.f);
+			C.Text(R.bCharm ? TEXT("묘약") : TEXT("즉시"), P.X + 16.f, P.Y + 26.f, Col, 11.f);
 			C.Text(FString::FromInt(I + 1), P.X + RewardW - 16.f, P.Y + 26.f, Dim, 11.f, 2);
 			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), P.X + RewardW / 2.f, P.Y + 74.f, Col, 20.f, true, RewardW - 20.f);
 			C.TextCentered(R.bCharm ? CharmDesc(R.Id) : InstantDesc(R.Id), P.X + RewardW / 2.f, P.Y + 108.f, Fg, 11.f, false, RewardW - 16.f);
 		}
 		C.TextCentered(TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), FX + Cols * CS / 2.f, FY + 372.f, Grey, 12.f, false, Cols * CS - 20.f);
-		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("부적 칸이 가득 찼다 (5/5)"), FX + Cols * CS / 2.f, FY + 396.f, Dim, 11.f, false);
+		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("묘약 칸이 가득 찼다 (5/5)"), FX + Cols * CS / 2.f, FY + 396.f, Dim, 11.f, false);
 	}
 
 	// ---- 상위 조커 도감 (D-231): 6 × 5. 만든 것은 그림·이름·능력, 못 만든 것은 실루엣 + 재료 하나 힌트
@@ -2131,7 +2131,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		C.Text(TEXT("조커 도감"), 34.f, HudY + 33.f, JokerPink, 22.f, 0, true);
 		int32 NOpen = 0;
 		for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) NOpen += (G.CharmUnlocked >> J) & 1u;
-		C.Text(TrF(TEXT("부적 %d / %d 열림"), NOpen, (int32)EPDCharm::Count), 170.f, HudY + 32.f, Gold, 14.f, 0, true);
+		C.Text(TrF(TEXT("묘약 %d / %d 열림"), NOpen, (int32)EPDCharm::Count), 170.f, HudY + 32.f, Gold, 14.f, 0, true);
 		for (int32 J = 0; J < (int32)EPDCharm::Count; ++J)
 		{
 			const FVector2f P = CharmCardPos(J);
@@ -2141,11 +2141,11 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			C.Text(CharmName(J), P.X + 10.f, P.Y + 20.f, bOpen ? (bHave ? Gold : UiValue) : Dim, 12.f, 0, true, ChCardW - 20.f);
 			int32 Box = -1;
 			for (int32 B = 0; B < CharmBoxCount; ++B) if (J >= CharmBoxes[B].First && J < CharmBoxes[B].First + CharmBoxes[B].Count) Box = B;
-			C.Text(bOpen ? FString(CharmDesc(J)) : TrF(TEXT("부적 상자 %s에서 열림"), Box == 0 ? TEXT("I") : Box == 1 ? TEXT("II") : Box == 2 ? TEXT("III") : TEXT("IV")),
+			C.Text(bOpen ? FString(CharmDesc(J)) : TrF(TEXT("묘약 상자 %s에서 열림"), Box == 0 ? TEXT("I") : Box == 1 ? TEXT("II") : Box == 2 ? TEXT("III") : TEXT("IV")),
 				P.X + 10.f, P.Y + 44.f, bOpen ? Fg : Dim, 10.f, 0, false, ChCardW - 20.f);
-			if (bHave) C.Text(TEXT("가진 부적"), P.X + ChCardW - 10.f, P.Y + 20.f, Gold, 9.f, 2, true);
+			if (bHave) C.Text(TEXT("가진 묘약"), P.X + ChCardW - 10.f, P.Y + 20.f, Gold, 9.f, 2, true);
 		}
-		C.Text(TEXT("Tab: 기본 조커 → 상위 조커 → 부적 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
+		C.Text(TEXT("Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
 	}
 	if (bCodex && bCodexUpper && !bCodexCharm)
 	{
@@ -2264,7 +2264,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 
 	if (bCodex) // 도감 쪽 탭 (D-231)
 	{
-		static const TCHAR* Tabs[3] = {TEXT("기본 조커"), TEXT("상위 조커"), TEXT("부적")};
+		static const TCHAR* Tabs[3] = {TEXT("기본 조커"), TEXT("상위 조커"), TEXT("묘약")};
 		const int32 Page = bCodexCharm ? 2 : bCodexUpper ? 1 : 0;
 		const float TW = CdxTabW - 30.f;
 		for (int32 I = 0; I < 3; ++I)
@@ -2315,7 +2315,7 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 	}
 	if (bShop) // 부적 상자 (D-233): 새 부적을 연다
 	{
-		static const TCHAR* Names[CharmBoxCount] = {TEXT("부적 상자 I"), TEXT("부적 상자 II"), TEXT("부적 상자 III"), TEXT("부적 상자 IV")};
+		static const TCHAR* Names[CharmBoxCount] = {TEXT("묘약 상자 I"), TEXT("묘약 상자 II"), TEXT("묘약 상자 III"), TEXT("묘약 상자 IV")};
 		for (int32 I = 0; I < CharmBoxCount; ++I)
 		{
 			const FPDCharmBox& B = CharmBoxes[I];
@@ -2326,7 +2326,7 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 			const FLinearColor Col = bOwned ? Grey : JokerPink;
 			C.Box(X, BoxBtnY, BoxBtnW, BoxBtnH, Hex(TEXT("0a0b14"), 0.92f));
 			C.Glow(FCanvas::RoundRectPoints(X, BoxBtnY, BoxBtnW, BoxBtnH, 8.f), WithAlpha(Col, bCan || bOwned ? 1.f : 0.4f), bHov ? 1.6f : 1.1f, bCan ? (bHov ? 1.2f : 0.6f) : 0.2f);
-			C.Text(TrF(TEXT("%s · 새 부적 %d종"), Tr(Names[I]), B.Count), X + 12.f, BoxBtnY + 18.f, bOwned ? Grey : FLinearColor::White, 12.f, 0, true, BoxBtnW - 24.f);
+			C.Text(TrF(TEXT("%s · 새 묘약 %d종"), Tr(Names[I]), B.Count), X + 12.f, BoxBtnY + 18.f, bOwned ? Grey : FLinearColor::White, 12.f, 0, true, BoxBtnW - 24.f);
 			FString List;
 			for (int32 J = B.First; J < B.First + B.Count; ++J) List += (J > B.First ? TEXT(", ") : TEXT("")) + FString(CharmName(J));
 			C.Text(bOwned ? FString(Tr(TEXT("열림"))) + TEXT(" · ") + List : TrF(TEXT("칩 %d"), B.Price) + TEXT(" · ") + List, X + 12.f, BoxBtnY + 34.f, bOwned ? Dim : (bCan ? Gold : Dim), 9.f, 0, false, BoxBtnW - 24.f);
