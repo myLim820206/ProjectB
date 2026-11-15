@@ -146,6 +146,7 @@ static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Bell, EPDJoker::Star, EPDUpperSpecial::None},           // 반짝반짝 작은 박쥐
 };
 const FPDUpperDef& UpperDef(int U) { return GPDUpper[std::clamp(U, 0, UpperJokerCount - 1)]; }
+int UpperPrice(int U) { const FPDUpperDef& D = UpperDef(U); const int Avg = (JokerPrice((int)D.A) + JokerPrice((int)D.B)) / 2; return 300 + (Avg + 25) / 50 * 50; }
 int UpperOf(EPDJoker A, EPDJoker B)
 {
 	for (int U = 0; U < UpperJokerCount; ++U)
@@ -1730,7 +1731,7 @@ std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
 			const FPDTower& B = It->second;
 			if (!B.IsJoker() || B.Joker < 0 || B.Joker >= (int)EPDJoker::Count || B.Joker == A.Joker || B.JLevel < UpperNeed(B)) return;
 			const int U = UpperOf((EPDJoker)A.Joker, (EPDJoker)B.Joker);
-			if (U < 0) return;
+			if (U < 0 || !UpperOpen(U)) return; // 잠긴 상위 조커는 못 만든다 (D-241)
 			FPDJokerMerge M;
 			M.Joker = UpperBase + U;
 			M.Cells = {KV.first, NK};

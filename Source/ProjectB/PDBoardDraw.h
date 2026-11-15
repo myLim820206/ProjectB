@@ -521,7 +521,9 @@ inline FVector2f CharmCardPos(int J) { return FVector2f(DesignW / 2.f - (10.f * 
 // 잠금 해제 창 (D-239): 탭 둘(묘약·조커), 묘약은 도감과 같은 10 × 6, 조커는 5 × 2 큰 카드
 constexpr float UnlTabW = 140.f, UnlTabH = 32.f, UnlTabY = 34.f;
 inline float UnlTabX(int I) { return DesignW / 2.f - UnlTabW - 6.f + I * (UnlTabW + 12.f); }
-constexpr float UnlJW = 228.f, UnlJH = 150.f, UnlJGap = 14.f, UnlJY0 = 140.f;
+constexpr float UnlJW = 228.f, UnlJH = 112.f, UnlJGap = 12.f, UnlJY0 = 96.f; // 기본 조커 5 × 2, 그 아래 상위 조커 10 × 3 (D-241)
+constexpr float UnlUW = 118.f, UnlUH = 96.f, UnlUGap = 6.f, UnlUY0 = 366.f;
+inline FVector2f UnlUpperPos(int U) { return FVector2f(DesignW / 2.f - (10.f * UnlUW + 9.f * UnlUGap) / 2.f + (U % 10) * (UnlUW + UnlUGap), UnlUY0 + (U / 10) * (UnlUH + UnlUGap)); }
 inline FVector2f UnlJokerPos(int J) { return FVector2f(DesignW / 2.f - (5.f * UnlJW + 4.f * UnlJGap) / 2.f + (J % 5) * (UnlJW + UnlJGap), UnlJY0 + (J / 5) * (UnlJH + UnlJGap)); }
 // 상위 조커 쪽: 6 × 5 카드
 constexpr float UpCardW = 192.f, UpCardH = 112.f, UpCardGap = 8.f, UpCardY0 = 80.f;
@@ -534,7 +536,7 @@ constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
 constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 // 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
-enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Ranking, Settings, Quit, Count }; // Unlock: 잠금 해제 (D-239) // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
+enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Settings, Quit, Count }; // 랭킹은 뺐다 (D-242) // Unlock: 잠금 해제 (D-239) // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
 // 큰 창 자리 (랭킹이 쓴다. 튜토리얼 화면 D-166 은 D-217 에 뺐다)
 constexpr float TutW = 780.f, TutH = 500.f, TutX = DesignW / 2.f - TutW / 2.f, TutY = 104.f;
 constexpr float TutBtnW = 120.f, TutBtnH = 38.f, TutBtnY = TutY + TutH - 56.f;

@@ -275,6 +275,7 @@ constexpr float UpperBonus = 1.5f, UpperTipBonus = 0.25f;
 enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle };
 struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
+int UpperPrice(int U);                       // 잠금 해제 값 (D-241): 300 + 재료 둘 값의 평균, 50 단위. 재료 조커가 둘 다 열려 있어야 살 수 있다
 int UpperOf(EPDJoker A, EPDJoker B);         // 레시피가 있으면 상위 조커 번호, 없으면 -1 (순서 무관)
 inline bool IsUpperJoker(int Joker) { return Joker >= UpperBase && Joker < UpperBase + UpperJokerCount; }
 bool JokerHas(int Joker, EPDJoker K);        // 그 조커이거나, 그 조커를 재료로 한 상위 조커
@@ -538,6 +539,8 @@ public:
 	uint32_t JokerUnlocked = 0x3FFu;                    // 만들 수 있는 기본 조커 (1 << EPDJoker, D-239). 규칙·봇은 모두 열림, 게임은 진행 파일로
 	float WaveStartT = 0.f;                             // 웨이브가 시작된 Time (첫 박자 묘약, D-239)
 	bool JokerOpen(int J) const { return J < 0 || J >= 32 || ((JokerUnlocked >> J) & 1u); }
+	uint32_t UpperUnlocked = 0x3FFFFFFFu;               // 만들 수 있는 상위 조커 (1 << 번호, D-241). 규칙·봇은 모두 열림, 게임은 진행 파일로
+	bool UpperOpen(int U) const { return U >= 0 && U < 30 && ((UpperUnlocked >> U) & 1u); }
 	int UpperNeed(const FPDTower& T) const;          // 이 조커가 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
 	std::vector<FPDReward> RollRewards();
 	FPDCharmBits CharmMask() const;

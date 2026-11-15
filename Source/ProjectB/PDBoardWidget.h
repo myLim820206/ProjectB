@@ -105,6 +105,7 @@ private:
 	int32 UnlockTab = 0;                   // 0 묘약, 1 조커
 	bool BuyCharm(int32 J);
 	bool BuyJoker(int32 J);
+	bool BuyUpper(int32 U);                // 상위 조커 (D-241): 재료 조커 둘이 열려 있어야
 	void PaintUnlock(FCanvas& C) const;
 	static void Wrap2(FCanvas& C, const FString& S, float X, float Y, const FLinearColor& Col, float Px, float MaxW); // 글자 두 줄 (D-239)
 	void PaintUpgrades(FCanvas& C) const;

@@ -856,6 +856,20 @@ static void UnitTests()
 			const bool bRainbow = std::fabs(Four.begin()->second.Eff.Dmg - 1.25f) < 1e-3f;
 			Expect(bLocked && bOpen && bRebel && bRainbow && (int)EPDCharm::Count == 60 && CharmPrice(59) > 0 && JokerPrice((int)EPDJoker::Star) == 500,
 				"잠긴 스타는 못 만들고 열면 된다, 2의 반란 ×3, 무지개 +25%, 묘약 60종");
+			// 상위 조커 잠금 (D-241): 잭 + 체셔 = 재버워키
+			G.Towers.clear();
+			FPDTower Ja, Ch;
+			Ja.Card = Ch.Card = {0, EPDSuit::Wild};
+			Ja.X = 0; Ja.Y = Row; Ja.Joker = (int)EPDJoker::Jack; Ja.JLevel = 10;
+			Ch.X = 1; Ch.Y = Row; Ch.Joker = (int)EPDJoker::Cheshire; Ch.JLevel = 10;
+			G.Towers[CellKey(0, Row)] = Ja; G.Towers[CellKey(1, Row)] = Ch;
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			auto HasUpper = [&G]() { for (const FPDJokerMerge& M : G.JokerMerges()) if (M.Upper >= 0) return true; return false; };
+			const uint32_t KeepU = G.UpperUnlocked;
+			G.UpperUnlocked = 0;
+			const bool bULocked = !HasUpper();
+			G.UpperUnlocked = KeepU;
+			Expect(bULocked && HasUpper() && UpperPrice(26) == 450 && UpperPrice(11) == 300, "잠긴 상위 조커는 못 합치고 열면 된다, 값 300 + 재료 평균 (재버워키 450, 험프티 덤프티 300)");
 		}
 		{ // 족보에 든 합성 타워도 기억한 족보로 재료 (D-220): 로열 A♠ Lv2 가 Lv2 A♦ 와 원 페어
 			G.Towers.clear();

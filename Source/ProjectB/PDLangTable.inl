@@ -464,7 +464,6 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("×%d 배속"), TEXT("×%d speed"), TEXT("×%d 倍速"), TEXT("×%d 倍速"), TEXT("×%d 倍速")},
 	{TEXT("F: 배속 바꾸기"), TEXT("F: change speed"), TEXT("F: 倍速切替"), TEXT("F: 切换倍速"), TEXT("F: 切換倍速")},
 	{TEXT("스킬 트리"), TEXT("Skill Tree"), TEXT("スキルツリー"), TEXT("技能树"), TEXT("技能樹")},
-	{TEXT("영구 강화"), TEXT("Permanent Upgrades"), TEXT("永久強化"), TEXT("永久强化"), TEXT("永久強化")},
 	{TEXT("조커 도감"), TEXT("Joker Codex"), TEXT("ジョーカー図鑑"), TEXT("小丑图鉴"), TEXT("小丑圖鑑")},
 	{TEXT("메뉴"), TEXT("Menu"), TEXT("メニュー"), TEXT("菜单"), TEXT("選單")},
 	{TEXT("묘약 %d/%d"), TEXT("Potions %d/%d"), TEXT("秘薬 %d/%d"), TEXT("秘药 %d/%d"), TEXT("秘藥 %d/%d")},
@@ -514,8 +513,11 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커"), TEXT("Joker"), TEXT("ジョーカー"), TEXT("小丑"), TEXT("小丑")},
 	{TEXT("열림"), TEXT("Unlocked"), TEXT("解放済み"), TEXT("已解锁"), TEXT("已解鎖")},
 	{TEXT("%d칩"), TEXT("%d chips"), TEXT("%d チップ"), TEXT("%d 筹码"), TEXT("%d 籌碼")},
+	{TEXT("상위 조커 — 재료 조커 둘을 열어야 살 수 있다"), TEXT("Upper Jokers — unlock both material Jokers first"), TEXT("上位ジョーカー — 素材ジョーカー2体を先に解放"), TEXT("上位小丑 — 需先解锁两个素材小丑"), TEXT("上位小丑 — 需先解鎖兩個素材小丑")},
+	{TEXT("재료 조커 먼저"), TEXT("Unlock materials first"), TEXT("素材ジョーカーが先"), TEXT("先解锁素材小丑"), TEXT("先解鎖素材小丑")},
 	{TEXT("카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기"), TEXT("Click a card to unlock a potion · only unlocked potions appear as wave rewards · Tab: Jokers · Esc: close"), TEXT("カードを押して秘薬を解放 · 解放した秘薬だけが報酬に出る · Tab: ジョーカー · Esc: 閉じる"), TEXT("点击卡片解锁秘药 · 只有已解锁的秘药会出现在奖励中 · Tab: 小丑 · Esc: 关闭"), TEXT("點擊卡片解鎖秘藥 · 只有已解鎖的秘藥會出現在獎勵中 · Tab: 小丑 · Esc: 關閉")},
 	{TEXT("카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기"), TEXT("Click a card to unlock a Joker · locked Jokers can't be made even with materials · Tab: Potions · Esc: close"), TEXT("カードを押してジョーカーを解放 · 未解放のジョーカーは素材があっても作れない · Tab: 秘薬 · Esc: 閉じる"), TEXT("点击卡片解锁小丑 · 未解锁的小丑即使有素材也无法制作 · Tab: 秘药 · Esc: 关闭"), TEXT("點擊卡片解鎖小丑 · 未解鎖的小丑即使有素材也無法製作 · Tab: 秘藥 · Esc: 關閉")},
+	{TEXT("영구 강화"), TEXT("Permanent Upgrades"), TEXT("永久強化"), TEXT("永久强化"), TEXT("永久強化")},
 	{TEXT("칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)"), TEXT("Chips %s · You earn chips when a run ends (wave + 2 × levels gained + clear bonus)"), TEXT("チップ %s · ラン終了時にチップを得る (ウェーブ + 2 × 上がったレベル + クリアボーナス)"), TEXT("筹码 %s · 一局结束时获得筹码 (波次 + 2 × 提升的等级 + 通关奖励)"), TEXT("籌碼 %s · 一局結束時獲得籌碼 (波次 + 2 × 提升的等級 + 通關獎勵)")},
 	{TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"), TEXT("Upgrades that stay after a run. Raise them with chips on the title screen"), TEXT("ラン終了後も残る強化。タイトル画面でチップを使って上げる"), TEXT("一局结束后仍保留的强化。在标题画面用筹码提升"), TEXT("一局結束後仍保留的強化。在標題畫面用籌碼提升")},
 	{TEXT("100 웨이브 클리어: 레벨 9999까지"), TEXT("Wave 100 cleared: up to level 9999"), TEXT("100 ウェーブクリア: レベル 9999 まで"), TEXT("已通关 100 波: 最高 9999 级"), TEXT("已通關 100 波: 最高 9999 級")},
@@ -547,7 +549,6 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), TEXT("Place cards, build poker hands, hold back the endless horde"), TEXT("カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ"), TEXT("放置卡牌组成牌型, 挡住源源不断的敌人"), TEXT("放置卡牌組成牌型, 擋住源源不絕的敵人")},
 	{TEXT("이어하기"), TEXT("Continue"), TEXT("続きから"), TEXT("继续游戏"), TEXT("繼續遊戲")},
 	{TEXT("게임 시작"), TEXT("Start Game"), TEXT("ゲーム開始"), TEXT("开始游戏"), TEXT("開始遊戲")},
-	{TEXT("랭킹"), TEXT("Ranking"), TEXT("ランキング"), TEXT("排行榜"), TEXT("排行榜")},
 	{TEXT("환경 설정"), TEXT("Settings"), TEXT("環境設定"), TEXT("设置"), TEXT("設定")},
 	{TEXT("최고 기록 %d웨이브"), TEXT("Best record: wave %d"), TEXT("最高記録 %dウェーブ"), TEXT("最高纪录 第%d波"), TEXT("最高紀錄 第%d波")},
 	{TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), TEXT("Up/Down or mouse to choose · Enter or click to confirm"), TEXT("上下キーかマウスで選ぶ · Enter かクリックで決定"), TEXT("用上下键或鼠标选择 · 按 Enter 或点击确认"), TEXT("用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認")},
@@ -563,6 +564,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("어디까지 버티나"), TEXT("How far can you go?"), TEXT("どこまで耐えられるか"), TEXT("你能撑多久"), TEXT("你能撐多久")},
 	{TEXT("클리어 ✓"), TEXT("Cleared ✓"), TEXT("クリア ✓"), TEXT("已通关 ✓"), TEXT("已通關 ✓")},
 	{TEXT("←→ 고르기 · Enter 또는 클릭: 시작 · Esc 닫기"), TEXT("←→ choose · Enter or click: start · Esc close"), TEXT("←→ 選択 · Enter またはクリック: 開始 · Esc 閉じる"), TEXT("←→ 选择 · Enter 或点击: 开始 · Esc 关闭"), TEXT("←→ 選擇 · Enter 或點擊: 開始 · Esc 關閉")},
+	{TEXT("랭킹"), TEXT("Ranking"), TEXT("ランキング"), TEXT("排行榜"), TEXT("排行榜")},
 	{TEXT("순위"), TEXT("Rank"), TEXT("順位"), TEXT("名次"), TEXT("名次")},
 	{TEXT("웨이브"), TEXT("Wave"), TEXT("ウェーブ"), TEXT("波次"), TEXT("波次")},
 	{TEXT("처치"), TEXT("Kills"), TEXT("撃破"), TEXT("击杀"), TEXT("擊殺")},
@@ -809,4 +811,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 808;
+static const int32 PDLangRowCount = 810;

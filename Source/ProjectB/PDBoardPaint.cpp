@@ -2341,13 +2341,32 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 			C.Box(P.X, P.Y, UnlJW, UnlJH, Hex(TEXT("0a0b14"), 0.92f));
 			if (bH && bCan) C.Box(P.X, P.Y, UnlJW, UnlJH, WithAlpha(Gold, 0.1f));
 			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UnlJW, UnlJH, 10.f), bOpen ? JokerPink : bCan ? Gold : UiEdge, bH ? 1.7f : 1.2f, bOpen ? 0.6f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
-			C.JokerTower(J, P.X + 34.f, P.Y + 40.f, 22.f, bOpen ? 1.f : 0.35f, 0.f);
-			C.Text(JokerName(J), P.X + 66.f, P.Y + 32.f, bOpen ? JokerPink : bCan ? Gold : Grey, 14.f, 0, true, UnlJW - 76.f);
-			C.Text(FString::Printf(TEXT("×%s"), *FString::SanitizeFloat(JokerTier((EPDJoker)J))), P.X + 66.f, P.Y + 50.f, Dim, 10.f, 0, true);
+			C.JokerTower(J, P.X + 30.f, P.Y + 34.f, 18.f, bOpen ? 1.f : 0.35f, 0.f);
+			C.Text(JokerName(J), P.X + 58.f, P.Y + 26.f, bOpen ? JokerPink : bCan ? Gold : Grey, 14.f, 0, true, UnlJW - 68.f);
+			C.Text(FString::Printf(TEXT("×%s"), *FString::SanitizeFloat(JokerTier((EPDJoker)J))), P.X + 58.f, P.Y + 44.f, Dim, 10.f, 0, true);
 			FString Rec;
 			for (EPDHand H : JokerRecipe((EPDJoker)J)) { if (!Rec.IsEmpty()) Rec += TEXT(" · "); Rec += HandName(H); }
-			Wrap2(C, Rec, P.X + 12.f, P.Y + 84.f, Fg, 10.f, UnlJW - 24.f);
-			C.Text(bOpen ? FString(Tr(TEXT("열림"))) : TrF(TEXT("%d칩"), Price), P.X + 12.f, P.Y + UnlJH - 14.f, bOpen ? Green : bCan ? Gold : Dim, 12.f, 0, true);
+			Wrap2(C, Rec, P.X + 12.f, P.Y + 66.f, Fg, 10.f, UnlJW - 24.f);
+			C.Text(bOpen ? FString(Tr(TEXT("열림"))) : TrF(TEXT("%d칩"), Price), P.X + 12.f, P.Y + UnlJH - 12.f, bOpen ? Green : bCan ? Gold : Dim, 12.f, 0, true);
+		}
+		// 상위 조커 30종 (D-241): 재료 조커 둘이 열려 있어야 살 수 있다
+		if (UnlockTab == 1)
+		{
+			C.Text(TEXT("상위 조커 — 재료 조커 둘을 열어야 살 수 있다"), DesignW / 2.f - (10.f * UnlUW + 9.f * UnlUGap) / 2.f, UnlUY0 - 10.f, Gold, 12.f, 0, true);
+			for (int32 U = 0; U < UpperJokerCount; ++U)
+			{
+				const FVector2f P = UnlUpperPos(U);
+				const FPDUpperDef& D = UpperDef(U);
+				const bool bOpen = G.UpperOpen(U), bMat = G.JokerOpen((int32)D.A) && G.JokerOpen((int32)D.B), bH = InRect(Mouse, P.X, P.Y, UnlUW, UnlUH);
+				const int32 Price = UpperPrice(U);
+				const bool bCan = !bOpen && bMat && MetaChips >= Price;
+				C.Box(P.X, P.Y, UnlUW, UnlUH, Hex(TEXT("0a0b14"), 0.92f));
+				if (bH && bCan) C.Box(P.X, P.Y, UnlUW, UnlUH, WithAlpha(Gold, 0.1f));
+				C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UnlUW, UnlUH, 8.f), bOpen ? Gold : bCan ? Gold : UiEdge, bH ? 1.6f : 1.1f, bOpen ? 0.7f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
+				C.Text(UpperName(U), P.X + 8.f, P.Y + 18.f, bOpen ? Gold : bCan ? UiValue : Grey, 10.f, 0, true, UnlUW - 16.f);
+				Wrap2(C, FString::Printf(TEXT("%s + %s"), JokerName((int32)D.A), JokerName((int32)D.B)), P.X + 8.f, P.Y + 40.f, bMat ? Fg : Dim, 9.f, UnlUW - 16.f);
+				C.Text(bOpen ? FString(Tr(TEXT("열림"))) : !bMat ? FString(Tr(TEXT("재료 조커 먼저"))) : TrF(TEXT("%d칩"), Price), P.X + 8.f, P.Y + UnlUH - 10.f, bOpen ? Green : bCan ? Gold : Dim, 9.f, 0, true, UnlUW - 16.f);
+			}
 		}
 	C.Text(UnlockTab == 0 ? TEXT("카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기") : TEXT("카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기"),
 		DesignW - 16.f, DesignH - 10.f, Dim, 10.f, 2);
@@ -2553,7 +2572,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
 	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
 	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
-	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
 	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
 	{
 		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 빈 자리 (D-162)
