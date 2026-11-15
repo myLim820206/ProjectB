@@ -516,6 +516,88 @@ struct FMusic
 			Add(B, I0 + I, L2 * Env * Amp);
 		}
 	}
+	// ---------------------------------------------------------------- 위압감 악기 (D-269)
+	// 쿵 (영화 같은 큰 타격): 80 → 28 Hz 로 떨어지는 사인 + 짧은 잡음, 길게 울림
+	void Boom(float T0, float Amp)
+	{
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(2.2f * Rate);
+		float Ph = 0.f, Lp = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			Ph += (28.f + 52.f * std::exp(-T / 0.18f)) / Rate;
+			const float R = Rand();
+			Lp += (R - Lp) * 0.06f;
+			const float V = std::tanh(1.8f * std::sin(SynthTwoPi * Ph)) * std::exp(-T / 0.7f) + Lp * 1.5f * std::exp(-T / 0.12f);
+			Add(0, I0 + I, V * Amp);
+		}
+	}
+	// 팀파니: 낮은 사인 + 2.0 · 2.7배 부분음, 가죽 잡음, 긴 울림
+	void Timpani(float T0, float Midi, float Amp)
+	{
+		const float F = MidiHz(Midi);
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(1.6f * Rate);
+		float P = 0.f, Lp = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			P += F * (1.f + 0.04f * std::exp(-T / 0.05f)) / Rate;
+			Lp += (Rand() - Lp) * 0.2f;
+			const float V = std::sin(SynthTwoPi * P) + 0.45f * std::sin(2.f * SynthTwoPi * P) * std::exp(-T / 0.4f) + 0.25f * std::sin(2.7f * SynthTwoPi * P) * std::exp(-T / 0.2f);
+			Add(0, I0 + I, (V * std::exp(-T / 0.55f) + Lp * 0.6f * std::exp(-T / 0.03f)) * Amp);
+		}
+	}
+	// 무거운 금관: 디튠 톱니 셋 → 두 번 거르고 → 찌그러뜨림(tanh), 천천히 부풀거나(Swell) 세게 때림
+	void HeavyBrass(int B, float T0, float Dur, float Midi, float Amp, float Swell = 0.02f, float Drive = 2.5f)
+	{
+		const float F = MidiHz(Midi), Rel = 0.25f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float P[3] = {Rand() * 0.5f + 0.5f, Rand() * 0.5f + 0.5f, Rand() * 0.5f + 0.5f}, L1 = 0.f, L2 = 0.f;
+		static const float Dt[3] = {-0.009f, 0.f, 0.008f};
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			float X = 0.f;
+			for (int K = 0; K < 3; ++K) { P[K] += F * (1.f + Dt[K]) / Rate; X += Saw(P[K]); }
+			X /= 3.f;
+			const float Sw = std::min(1.f, T / Swell);
+			const float Cut = 180.f + 1600.f * Sw * (0.55f + 0.45f * std::exp(-T / 0.25f));
+			const float A = 1.f - std::exp(-SynthTwoPi * Cut / Rate);
+			L1 += (X - L1) * A;
+			L2 += (L1 - L2) * A;
+			float Env = Sw;
+			if (T > Dur) Env *= std::max(0.f, 1.f - (T - Dur) / Rel);
+			Add(B, I0 + I, std::tanh(L2 * Drive) / std::tanh(Drive) * Env * Amp);
+		}
+	}
+	// 어두운 합창 패드: 톱니를 '아' 모음 근처(700 · 1100 Hz)로 두 번 공명시켜 거른 소리, 느린 비브라토
+	void DarkChoir(int B, float T0, float Dur, float Midi, float Amp)
+	{
+		const float F = MidiHz(Midi), Rel = 0.8f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float P1 = Rand() * 0.5f + 0.5f, P2 = Rand() * 0.5f + 0.5f;
+		float B1[2] = {0.f, 0.f}, B2[2] = {0.f, 0.f};
+		auto Res = [&](float X, float Fc, float Q, float* S) { // 상태 변수 공명 필터 (대역 통과)
+			const float Fq = 2.f * std::sin(3.1415926f * Fc / Rate);
+			const float Lo = S[1] + Fq * S[0];
+			const float Hi = X - Lo - S[0] / Q;
+			const float Bd = Fq * Hi + S[0];
+			S[0] = Bd; S[1] = Lo;
+			return Bd;
+		};
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			const float Vib = 1.f + 0.004f * std::sin(SynthTwoPi * 4.8f * T);
+			P1 += F * Vib * 1.004f / Rate;
+			P2 += F * Vib * 0.996f / Rate;
+			const float X = 0.5f * (Saw(P1) + Saw(P2));
+			const float V = Res(X, 700.f, 6.f, B1) * 0.6f + Res(X, 1100.f, 7.f, B2) * 0.4f;
+			float Env = std::min(1.f, T / 0.6f);
+			if (T > Dur) Env *= std::max(0.f, 1.f - (T - Dur) / Rel);
+			Add(B, I0 + I, V * Env * Amp);
+		}
+	}
 	// 레코드판 지글 (메뉴): 가끔 톡 튀는 소리 + 아주 작은 쉬익
 	void Crackle(size_t N, float Amp)
 	{
@@ -729,6 +811,87 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate)
 // ---------------------------------------------------------------- 3. 보스 (D-188 → D-264 → D-267): 느와르 기어가기 시안(0)으로 확정
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate) { return SynthesizeBossMusicAlt(0, SampleRate); }
 
+// ---------------------------------------------------------------- 위압감 보스 시안 (D-269)
+// 3 느와르 위압: 66 BPM D 단조 Dm · Dm · B♭ · A · Dm · Dm · E♭ · A7, 마디 첫 박 쿵 + 팀파니 + 찌그러진 낮은 금관 덩어리(반음 부딪힘),
+//   3박 낮은 금관, 심장 박동 킥(쿵-쿵), 낮은 반음 베이스 반복(근음 · 반음 위), 어두운 합창, 비브라폰 증4도 동기, 마지막 마디 팀파니 연타
+// 4 보스 행진: 80 BPM, 박마다 낮은 금관 + 팀파니가 한 발씩 '쿵 쿵 쿵 쿵', 작은 스네어 연타, 합창, 5~8마디 낮은 금관 선율
+static std::vector<int16_t> SynthesizeBossMenace(int Variant, int SampleRate)
+{
+	const float Bpm = Variant == 0 ? 66.f : 80.f;
+	const float Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
+	const int Bars = 8;
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(3.f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	M.Rng = 0x2545f491u + (uint32_t)Variant;
+	// 근음 (낮은 D2 = 38 기준), 단조 여부
+	const float Roots0[8] = {38.f, 38.f, 46.f - 12.f, 45.f - 12.f, 38.f, 38.f, 39.f, 45.f - 12.f};
+	const bool Minor0[8] = {true, true, false, false, true, true, false, false};
+	const float Roots1[8] = {38.f, 43.f - 12.f, 38.f, 45.f - 12.f, 38.f, 46.f - 12.f, 43.f - 12.f, 45.f - 12.f};
+	const bool Minor1[8] = {true, true, true, false, true, false, true, false};
+	std::vector<float> Kicks;
+	for (int B = 0; B < Bars; ++B)
+	{
+		const float T = B * Bar;
+		const float R = Variant == 0 ? Roots0[B] : Roots1[B];
+		const float Third = (Variant == 0 ? Minor0[B] : Minor1[B]) ? 3.f : 4.f;
+		const bool bLast = B == Bars - 1;
+		// 어두운 합창 (마디 내내)
+		for (const float Iv : {24.f, 24.f + Third, 31.f}) M.DarkChoir(1, T, Bar * 0.97f, R + Iv, 0.075f);
+		if (Variant == 0)
+		{
+			M.Boom(T, B % 2 == 0 ? 0.9f : 0.6f);
+			M.Timpani(T, R + 12.f, 0.6f);
+			// 찌그러진 낮은 금관 덩어리: 근음 옥타브 + 5도 + 반음 위(부딪힘), 2박 길이
+			for (const float Iv : {12.f, 19.f, 24.f}) M.HeavyBrass(1, T, Beat * 2.f, R + Iv, 0.075f, 0.03f);
+			M.HeavyBrass(1, T, Beat * 2.f, R + 25.f, 0.035f, 0.03f);
+			for (const float Iv : {12.f, 19.f}) M.HeavyBrass(1, T + 2.f * Beat, Beat * 0.9f, R + Iv, 0.06f, 0.015f);
+			M.Timpani(T + 2.f * Beat, R + 12.f - 5.f, 0.4f);
+			// 심장 박동 킥: 1박 쿵-쿵, 3박 쿵-쿵
+			for (const float At : {0.f, 2.f}) { M.Kick(T + At * Beat, 1.f); M.Kick(T + (At + 0.33f) * Beat, 0.6f); Kicks.push_back(T + At * Beat); }
+			M.Snare(T + 3.f * Beat, 0.45f);
+			// 낮은 반음 베이스 반복 (8분): 근음 근음 근음 반음위 근음 근음 반음아래 반음위
+			const float Ost[8] = {0.f, 0.f, 0.f, 1.f, 0.f, 0.f, -1.f, 1.f};
+			for (int K = 0; K < 8; ++K)
+			{
+				M.Upright(1, T + K * Beat / 2.f, Beat / 2.f * 0.85f, R + Ost[K], 0.4f);
+				M.SawNote(1, T + K * Beat / 2.f, Beat / 2.f * 0.8f, R + Ost[K] - 12.f + 12.f * (R - 12.f < 26.f), 0.2f, 220.f, 110.f, 0.1f, 0.003f, 0.05f, 0.003f);
+			}
+			if (bLast) for (int K = 0; K < 12; ++K) M.Timpani(T + 2.f * Beat + K * S16 * 0.66f, R + 12.f, 0.18f + 0.04f * K);
+		}
+		else
+		{
+			// 박마다 '쿵': 낮은 금관 유니즌 + 팀파니 (1박이 가장 셈)
+			for (int K = 0; K < 4; ++K)
+			{
+				const float A = K == 0 ? 1.f : 0.7f;
+				for (const float Iv : {12.f, 24.f}) M.HeavyBrass(1, T + K * Beat, Beat * 0.55f, R + Iv, 0.075f * A, 0.012f, 3.f);
+				M.Timpani(T + K * Beat, R + 12.f, 0.45f * A);
+				M.Kick(T + K * Beat, 0.8f * A); Kicks.push_back(T + K * Beat);
+			}
+			if (B % 2 == 0) M.Boom(T, 0.7f);
+			for (int K = 0; K < 16; ++K) if (K % 4 != 0) M.Snare(T + K * S16, 0.12f + (K % 4 == 3 ? 0.08f : 0.f)); // 작은 스네어 연타
+			M.Upright(1, T, Bar * 0.95f, R, 0.4f);
+			M.SawNote(1, T, Bar * 0.95f, R - 12.f + 12.f * (R - 12.f < 26.f), 0.18f, 200.f, 120.f, 0.5f, 0.05f, 0.3f, 0.003f);
+			if (bLast) for (int K = 0; K < 8; ++K) M.Timpani(T + 2.f * Beat + K * S16, R + 12.f, 0.2f + 0.05f * K);
+		}
+	}
+	// 선율
+	struct FN { int Bar; float At, Len, Midi; };
+	if (Variant == 0) // 비브라폰 증4도 동기 (D - G# - A)
+	{
+		const FN V[] = {{0, 1.f, 1.f, 74.f}, {0, 2.f, 1.f, 68.f}, {0, 3.f, 1.f, 69.f}, {2, 1.f, 1.f, 70.f}, {2, 2.f, 2.f, 64.f}, {4, 1.f, 1.f, 74.f}, {4, 2.f, 1.f, 68.f}, {4, 3.f, 1.f, 69.f}, {6, 1.f, 1.f, 75.f}, {6, 2.f, 2.f, 73.f}};
+		for (const FN& L : V) M.Vibes(2, L.Bar * Bar + L.At * Beat, L.Len * Beat, L.Midi, 0.14f);
+	}
+	else // 5~8마디 낮은 금관 선율
+	{
+		const FN V[] = {{4, 0.f, 2.f, 62.f}, {4, 2.f, 2.f, 65.f}, {5, 0.f, 2.f, 64.f}, {5, 2.f, 2.f, 58.f}, {6, 0.f, 2.f, 62.f}, {6, 2.f, 2.f, 56.f}, {7, 0.f, 4.f, 57.f}};
+		for (const FN& L : V) M.HeavyBrass(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.95f, L.Midi - 12.f, 0.1f, 0.06f, 2.f);
+	}
+	FMixOpt O;
+	O.Duck = 0.25f; O.EchoFb = 0.25f; O.EchoMix = 0.3f; O.Room = 0.45f; O.Gain = Variant == 0 ? 0.75f : 0.95f;
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
+}
+
 // ---------------------------------------------------------------- 보스 시안 (D-266): 빠르지 않고 무겁게, 1 · 2번 곡과 같은 재즈 결
 // 0 느와르 기어가기: 72 BPM 반박자 느낌, D 단조 블루스(Dm · Dm · Gm · A7♭9), 낮은 업라이트 + 서브 베이스 2분음, 팀파니 같은 낮은 탐,
 //   낮은 금관이 천천히 부풀었다 꺼짐, 로즈 불협 덩어리, 비브라폰 불길한 동기, 브러시 대신 묵직한 킥 · 림
@@ -736,6 +899,7 @@ std::vector<int16_t> SynthesizeBossMusic(int SampleRate) { return SynthesizeBoss
 // 2 둠 펑크: 84 BPM 반박자, 킥 1 · 3박 뒷박, 스네어 3박만 (무겁게), 옥타브 떨어지는 신스 베이스, 로즈 트레몰로 화음, 낮은 금관 찌르기, 경보 동기 느리게
 std::vector<int16_t> SynthesizeBossMusicAlt(int Variant, int SampleRate)
 {
+	if (Variant >= 3) return SynthesizeBossMenace(Variant - 3, SampleRate); // 위압감 시안 (D-269)
 	const float Bpm = Variant == 0 ? 72.f : Variant == 1 ? 92.f : 84.f;
 	const float Beat = 60.f / Bpm, Bar = 4.f * Beat, Sw = 2.f / 3.f, S16 = Beat / 4.f;
 	const int Bars = Variant == 0 ? 8 : 12;
