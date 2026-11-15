@@ -64,6 +64,15 @@ static void NearPathCell(const FPDGame& G, int& JX, int& JY, float& NearD)
 }
 static void UnitTests()
 {
+	{ // 높은 레벨에서 경험치가 무한 반복에 빠지지 않는다 (D-268): 레벨 300 이어하기 판이 멈추던 것
+		FPDGame G;
+		G.NewGame(false);
+		G.Level = 300;
+		G.Xp = 0;
+		Expect(G.XpToNext() > 0, "레벨 300: 다음 레벨 경험치가 양수 (AddXp 반복이 끝난다)");
+		G.Level = 94; G.Xp = 0;
+		Expect(G.XpToNext() > 0, "레벨 94: 다음 레벨 경험치가 넘치지 않음");
+	}
 	const EPDSuit He = EPDSuit::Heart, Di = EPDSuit::Diamond, Cl = EPDSuit::Club;
 	auto Case = [](const char* Label, std::vector<FPDCard> Cards, const char* Want) {
 		const std::string Got = Names(ClassifyHand(Cards));

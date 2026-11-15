@@ -992,7 +992,7 @@ int FPDGame::AddXp(float Amount, bool bBonus)
 	Xp += Got;
 	XpEarned += Got;
 	int Ups = 0;
-	while (Xp >= XpToNext())
+	while (XpToNext() > 0 && Xp >= XpToNext())
 	{
 		Xp -= XpToNext();
 		Level++;
@@ -1020,7 +1020,7 @@ int FPDGame::KillXp(EPDEnemy T, int W) const
 	return Base + (W - 1) / 5; // 5웨이브마다 +1
 }
 
-int FPDGame::XpToNext() const { return (int)std::lround(PointBasePrice * std::pow(PointPriceGrowth, (float)(Level - 1))); }
+int FPDGame::XpToNext() const { return (int)std::min(1.0e9, std::round(PointBasePrice * std::pow((double)PointPriceGrowth, (double)(Level - 1)))); } // 레벨 94 넘으면 int 가 넘쳐 음수 → AddXp 무한 반복이던 것 (D-268): 10억에서 멈춘다
 float FPDGame::FuseMult() const { return FuseBonus + Mods.FuseAdd + (Mods.Key(EPDKeystone::Smith) ? 0.5f : 0.f); }
 float FPDGame::JokerMult() const { return JokerBonus + Mods.JokerAdd + (Mods.Key(EPDKeystone::ClownPath) ? 0.4f : 0.f); }
 
