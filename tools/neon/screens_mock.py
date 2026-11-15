@@ -252,6 +252,7 @@ def m_tree():
         on = a in owned and b in owned
         c = col(b if a == 0 else a)
         M.ln([(nodes[a][2], nodes[a][3]), (nodes[b][2], nodes[b][3])], c, 2.2 if on else 1.0, 0.95 if on else 0.28)
+    labels = []
     for i, (kind, th, x, y, stat, prm) in enumerate(nodes):
         on, nx, se = i in owned, i in nxt, i in sealed
         c = RED if se else col(i)
@@ -269,12 +270,18 @@ def m_tree():
             M.ln(circle(x, y, 13, 24), c, 1.0, 0.6 if on else 0.35)
             M.word(x, y + 6, '★', c, 13, [1.0 if on else 0.6], font=KO)
             name = KEY_NAMES[prm]
-            M.word(x, y + 40, name, c, 11, [1.0 if on else 0.75] * len(name), font=KO)
+            # 이름은 트리 가운데에서 먼 바깥쪽에 (선 · 노드와 안 겹치게, D-290)
+            dx, dy = x - 640, y - 392
+            w_ = len(name) * 12 + 14
+            if abs(dy) > abs(dx) * 0.6: lx, ly = x, y + (36 if dy > 0 else -30)  # 위아래 쪽 키스톤: 위 / 아래
+            else: lx, ly = x + (1 if dx > 0 else -1) * (28 + w_ / 2), y + 5     # 옆쪽 키스톤: 바깥 옆
+            labels.append((lx, ly, name, c, on))
             if se:
                 M.ln([(x - 16, y - 16), (x + 16, y + 16)], RED, 1.8); M.ln([(x + 16, y - 16), (x - 16, y + 16)], RED, 1.8)
         elif kind == 'Joker':  # 조커 칸: 둥근 상자 + 광대 모자
             M.ln(rr_pts(x - 16, y - 16, 32, 32, 6), (255, 154, 213), 1.6, b)
             M.ln([(x - 10, y + 8), (x - 9, y - 4), (x - 3, y + 2), (x, y - 9), (x + 3, y + 2), (x + 9, y - 4), (x + 10, y + 8), (x - 10, y + 8)], (255, 154, 213), 1.2, b)
+    img_labels = labels
     # 걸린 간판 + 정보 알약
     wires(M, 470, 810, 8)
     tube(M, 440, 8, 400, 54, 12, (180, 140, 255), 1.0, 2.2)
@@ -293,7 +300,19 @@ def m_tree():
     M.word(tx + 14, ty + 46, '짝 키스톤과 둘 중 하나만 찍을 수 있다', FG, 11, None, font=KO, anchor_center=False)
     M.word(tx + 14, ty + 66, '포인트 1 · 이어진 노드를 먼저 찍어야', DIM, 10, None, font=KO, anchor_center=False)
     btn(M, 1120, 660, 140, 40, '닫기 K', c=LAV)
-    return M.draw()
+    img = M.draw()
+    # 키스톤 이름: 어두운 판 위에 (뒤 선이 비치지 않게)
+    from PIL import ImageDraw
+    d = ImageDraw.Draw(img, 'RGBA')
+    T = Sign(0.85); T.small_glow = 0.0
+    for (lx, ly, name, c, on) in img_labels:
+        w = len(name) * 12 + 14
+        d.rounded_rectangle([lx - w / 2, ly - 14, lx + w / 2, ly + 5], radius=6, fill=(8, 8, 14, 235))
+        T.ln(rr_pts(lx - w / 2, ly - 14, w, 19, 6), c, 1.0, 0.6 if on else 0.35)
+        T.word(lx, ly, name, c, 11, [1.0 if on else 0.8] * len(name), font=KO)
+    from PIL import ImageChops, Image
+    from logo_mock import BG
+    return ImageChops.add(img, ImageChops.subtract(T.draw(), Image.new('RGB', img.size, BG)))
 
 
 def main(outdir):
