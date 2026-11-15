@@ -29,8 +29,9 @@ def hx(h): return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 class Sign:
     """선(빛번짐) · 글자 튜브 · 불꽃을 모았다가 한 번에 그린다. 밝기 b (0 꺼짐 ~ 1 켜짐)"""
-    def __init__(self):
+    def __init__(self, glow_k=1.0):
         self.lines, self.texts, self.dots = [], [], []
+        self.glow_k = glow_k  # 빛번짐 세기 (색감을 죽인 시안은 낮춘다)
 
     def ln(self, pts, c, wd=2.0, b=1.0): self.lines.append((pts, c, wd, b))
     def rr(self, x, y, w, h, r, c, wd=2.0, b=1.0):
@@ -96,8 +97,9 @@ class Sign:
         for (x, y, r) in self.dots:
             gd.ellipse([(x - r * 3) * S, (y - r * 3) * S, (x + r * 3) * S, (y + r * 3) * S], fill=(255, 220, 150))
             cd.ellipse([(x - r) * S, (y - r) * S, (x + r) * S, (y + r) * S], fill=WHITE)
-        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(10 * S)).point(lambda v: int(v * 0.55)))
-        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(3 * S)).point(lambda v: int(v * 0.45)))
+        gk = self.glow_k
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(10 * S)).point(lambda v: int(v * 0.55 * gk)))
+        img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(3 * S)).point(lambda v: int(v * 0.45 * gk)))
         img = ImageChops.add(img, core)
         return img.resize((W, H), Image.LANCZOS)
 

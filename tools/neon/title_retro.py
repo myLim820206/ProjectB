@@ -37,11 +37,13 @@ def neon_blocks(M, cx, y, size, c, gap=12):
 
 
 # ---------------------------------------------------------------- 1 극장 마키
-def title_1(phase=0):
-    M = Sign()
+def title_1(phase=0, pal=None, gk=1.0):
+    P_ = pal or {}
+    CYAN, PINK, GOLD, ORANGE, WHITE, DIMC, BULB = (P_.get(k, d) for k, d in (('cyan', globals()['CYAN']), ('pink', globals()['PINK']), ('gold', globals()['GOLD']), ('orange', globals()['ORANGE']), ('white', globals()['WHITE']), ('dim', globals()['DIMC']), ('bulb', (255, 225, 150))))
+    M = Sign(gk)
     neon_blocks(M, 640, 40, 62, CYAN)
     M.rr(330, 118, 620, 150, 14, ORANGE, 2.4)
-    bulbs(M, [(344, 132), (936, 132), (936, 254), (344, 254), (344, 132)], 24, phase)
+    bulbs(M, [(344, 132), (936, 132), (936, 254), (344, 254), (344, 132)], 24, phase, BULB)
     M.word(620, 228, 'Pallas', PINK, 96, None, font=SCRIPT)
     spade_crown(M, 880, 195, 20, GOLD)
     chip(M, 1080, 24, '칩 1,240', GOLD)
@@ -52,7 +54,7 @@ def title_1(phase=0):
         c = ORANGE if on else DIMC
         M.rr(x0, y, 300, 42, 6, c, 2.0 if on else 1.2, 1.0 if on else 0.55)
         if on:
-            for bx in (x0 - 14, x0 + 314): bulbs(M, [(bx, y + 4), (bx, y + 40)], 12, phase)  # 고른 버튼 양옆 전구 기둥
+            for bx in (x0 - 14, x0 + 314): bulbs(M, [(bx, y + 4), (bx, y + 40)], 12, phase, BULB)  # 고른 버튼 양옆 전구 기둥
         M.word(640, y + 29, n, WHITE if on else DIMC, 18, [1.0 if on else 0.6] * len(n), font=KO)
     M.word(640, 690, '최고 기록 42웨이브', DIMC, 12, None, font=KO)
     return M.draw()
@@ -121,6 +123,12 @@ def main(outdir):
     for name, fn in (('title_1_marquee', title_1), ('title_2_round', title_2), ('title_3_spade', title_3)):
         fn().save(os.path.join(outdir, name + '.png'))
         print(name)
+    # 1번 색감 죽이기 (D-248): 조금 / 많이
+    soft = {'cyan': (125, 185, 205), 'pink': (225, 125, 165), 'gold': (225, 195, 130), 'orange': (215, 150, 95), 'white': (230, 225, 215), 'dim': (85, 90, 105), 'bulb': (230, 205, 150)}
+    vint = {'cyan': (110, 150, 160), 'pink': (190, 115, 135), 'gold': (195, 170, 120), 'orange': (185, 130, 90), 'white': (210, 200, 185), 'dim': (75, 78, 88), 'bulb': (200, 175, 130)}
+    title_1(0, soft, 0.6).save(os.path.join(outdir, 'title_1_soft.png'))
+    title_1(0, vint, 0.38).save(os.path.join(outdir, 'title_1_vintage.png'))
+    print('muted')
 
 
 if __name__ == '__main__':
