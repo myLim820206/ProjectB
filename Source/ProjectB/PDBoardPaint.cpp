@@ -3123,14 +3123,15 @@ void SPDBoardWidget::Bulb(FCanvas& C, FVector2f P, float R, bool bOn, const FLin
 }
 
 // ---- 네온 바 화면 공용 (D-293)
-void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, const FString& S, const FLinearColor& Col, float Px, float Time, const TArray<float>* LetterB)
+void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, const FString& S, const FLinearColor& Col, float Px, float Time, const TArray<float>* LetterB, bool bWires, float Alpha)
 {
 	const float X = CX - W / 2.f;
-	for (const float Wx : {X + 30.f, X + W - 30.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, Y)}, Hex(TEXT("5f6878"), 0.5f), 1.f); // 매단 줄
-	C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.9f));
-	C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 14.f), Col, 2.4f, 1.f);
-	C.Lines(FCanvas::RoundRectPoints(X, Y, W, H, 14.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
-	C.Glow(FCanvas::RoundRectPoints(X + 5.f, Y + 5.f, W - 10.f, H - 10.f, 9.f), WithAlpha(Col, 0.7f), 1.f, 0.4f);
+	if (Alpha <= 0.01f) return;
+	if (bWires) for (const float Wx : {X + 30.f, X + W - 30.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, Y)}, Hex(TEXT("5f6878"), 0.5f * Alpha), 1.f); // 매단 줄
+	C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.9f * Alpha));
+	C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, 14.f), WithAlpha(Col, Alpha), 2.4f, Alpha);
+	C.Lines(FCanvas::RoundRectPoints(X, Y, W, H, 14.f), FLinearColor(1.f, 1.f, 1.f, 0.3f * Alpha), 0.6f);
+	C.Glow(FCanvas::RoundRectPoints(X + 5.f, Y + 5.f, W - 10.f, H - 10.f, 9.f), WithAlpha(Col, 0.7f * Alpha), 1.f, 0.4f * Alpha);
 	const int32 Ph = FMath::FloorToInt(Time * 8.f) % 3;
 	const float X0 = X + 14.f, Y0 = Y + 12.f, X1 = X + W - 14.f, Y1 = Y + H - 12.f, Per = 2.f * ((X1 - X0) + (Y1 - Y0));
 	for (int32 Bi = 0; Bi < FMath::FloorToInt(Per / 16.f); ++Bi)
@@ -3141,10 +3142,10 @@ void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, c
 		else if ((D -= X1 - X0) < Y1 - Y0) Q = FVector2f(X1, Y0 + D);
 		else if ((D -= Y1 - Y0) < X1 - X0) Q = FVector2f(X1 - D, Y1);
 		else Q = FVector2f(X0, Y1 - (D - (X1 - X0)));
-		Bulb(C, Q, 3.f, (Bi + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
+		Bulb(C, Q, 3.f, (Bi + Ph) % 3 != 0, Hex(TEXT("ffe196"), Alpha)); // 동그란 전구 (D-294)
 	}
 	const float BY = Y + H / 2.f + Px * 0.36f;
-	if (!LetterB) { NeonText(C, S, CX, BY, Col, Px, 1, 1.f); return; }
+	if (!LetterB) { NeonText(C, S, CX, BY, Col, Px, 1, Alpha); return; }
 	// 글자마다 밝기 (꺼져 가는 간판)
 	const FSlateFontInfo Fn = FCanvas::Font(Px, true);
 	const float Track = Px * 0.15f;
@@ -3154,7 +3155,7 @@ void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, c
 	for (int32 I = 0; I < S.Len(); ++I)
 	{
 		const FString Ch = S.Mid(I, 1);
-		const float B = I < LetterB->Num() ? (*LetterB)[I] : 1.f;
+		const float B = (I < LetterB->Num() ? (*LetterB)[I] : 1.f) * Alpha;
 		if (Ch != TEXT(" ")) NeonText(C, Ch, LX0, BY, Col, Px, 0, B);
 		LX0 += FCanvas::Measure(Ch, Fn).X + Track;
 	}
@@ -3278,29 +3279,6 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 	if (T < 0.45f) { const float Fl = FMath::Max(0.f, 1.f - FMath::Abs(T - 0.25f) / 0.2f); C.Box(SignLvX + 100.f, SignLvY + SignLvH / 2.f - 3.f, 42.f, 6.f, FLinearColor(1.f, 1.f, 1.f, 0.8f * Fl)); } // 레벨 알약 막대 (D-274)
 	static const float Seq[5] = {0.4f, 0.08f, 0.9f, 0.2f, 1.f};
 	const FString Word = TEXT("LEVEL UP");
-	// 간판 글자: 글자마다 따로, 시작 시각 T0 부터 25fps 단계로 지직 켜짐
-	auto SignWord = [&](float CX, float BaseY, float Px, float T0, float Fade)
-	{
-		const FSlateFontInfo Fn = FCanvas::Font(Px, true);
-		const float Track = Px * 0.12f;
-		float W = 0.f;
-		for (int32 I = 0; I < Word.Len(); ++I) W += FCanvas::Measure(Word.Mid(I, 1), Fn).X + (I > 0 ? Track : 0.f);
-		float X = CX - W / 2.f;
-		const int32 Kf = FMath::FloorToInt((T - T0) * 25.f);
-		for (int32 I = 0; I < Word.Len(); ++I)
-		{
-			const FString Ch = Word.Mid(I, 1);
-			const float Cw = FCanvas::Measure(Ch, Fn).X;
-			const int32 J = Kf - I;
-			const float B = (J < 0 ? 0.08f : J < 5 ? Seq[J] : 1.f) * Fade;
-			if (Ch != TEXT(" "))
-			{
-				if (B > 0.3f) C.Text(Ch, X - 1.f, BaseY, FLinearColor(Gold.R, Gold.G, Gold.B, 0.25f * B), Px + 2.f, 0, true); // 옅은 번짐
-				C.Text(Ch, X, BaseY, FLinearColor(Gold.R * B, Gold.G * B, Gold.B * B, 1.f), Px, 0, true);
-			}
-			X += Cw + Track;
-		}
-	};
 	// 빠직 불티 (타이틀 로고와 같은 움직임)
 	auto Crackle = [&](FVector2f O, int32 K, int32 Seed)
 	{
@@ -3336,32 +3314,18 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 			CY += (139.f - CY) * V;
 			K = 1.f - 0.55f * V;
 		}
-		const float W = 380.f * K, H = 170.f * K;
-		C.Box(CX - W / 2.f, CY - H / 2.f, W, H, Hex(TEXT("06060b"), 0.82f));
-		C.Glow(FCanvas::RoundRectPoints(CX - W / 2.f, CY - H / 2.f, W, H, 14.f * K), Gold, 2.4f, 0.9f);
-		C.Lines(FCanvas::RoundRectPoints(CX - W / 2.f + 7.f * K, CY - H / 2.f + 7.f * K, W - 14.f * K, H - 14.f * K, 9.f * K), WithAlpha(Gold, 0.7f), 1.f);
-		if (K > 0.8f) // 전구 테두리: 셋 중 하나가 꺼진 채로 돈다
+		const float W = 380.f * K, H = 150.f * K;
+		// BREAK TIME 과 같은 전구 간판 (D-296): 두 겹 틀 · 촘촘히 도는 동그란 전구 · 글자마다 지직 켜지는 속 빈 네온 글자
+		TArray<float> LB;
 		{
-			const float X0 = CX - W / 2.f + 16.f, Y0 = CY - H / 2.f + 16.f, X1 = CX + W / 2.f - 16.f, Y1 = CY + H / 2.f - 16.f;
-			const float Per = 2.f * ((X1 - X0) + (Y1 - Y0));
-			const int32 NB = FMath::FloorToInt(Per / 18.f), Ph = FMath::FloorToInt(T * 12.f) % 3;
-			for (int32 Bi = 0; Bi < NB; ++Bi)
-			{
-				float D = Bi * 18.f;
-				FVector2f P;
-				if (D < X1 - X0) P = FVector2f(X0 + D, Y0);
-				else if ((D -= X1 - X0) < Y1 - Y0) P = FVector2f(X1, Y0 + D);
-				else if ((D -= Y1 - Y0) < X1 - X0) P = FVector2f(X1 - D, Y1);
-				else P = FVector2f(X0, Y1 - (D - (X1 - X0)));
-				const bool bOn = (Bi + Ph) % 3 != 0;
-				Bulb(C, P, 3.6f, bOn, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
-			}
+			const int32 Kf = FMath::FloorToInt((T - 0.45f) * 25.f);
+			for (int32 I = 0; I < Word.Len(); ++I) { const int32 J = Kf - I; LB.Add(J < 0 ? 0.08f : J < 5 ? Seq[J] : 1.f); }
 		}
-		SignWord(CX, CY + 16.f * K, 50.f * K, 0.45f, 1.f);
+		BulbSign(C, CX, CY - H / 2.f, W, H, Word, Gold, 50.f * K, Clock, &LB, false);
 		if (T < 1.35f)
 		{
 			const float G2 = Ease((U - 0.5f) / 0.2f);
-			if (G2 > 0.f) C.TextCentered(TrF(TEXT("레벨 %d  →  %d"), LevelUpFrom, LevelUpTo), CX, CY + 52.f, FLinearColor(1.f, 1.f, 1.f, G2), 20.f, true);
+			if (G2 > 0.f) { C.Box(CX - 90.f, CY + H / 2.f + 8.f, 180.f, 30.f, Hex(TEXT("06060b"), 0.8f * G2)); C.TextCentered(TrF(TEXT("레벨 %d  →  %d"), LevelUpFrom, LevelUpTo), CX, CY + H / 2.f + 24.f, FLinearColor(1.f, 1.f, 1.f, G2), 20.f, true); }
 			const int32 KK = FMath::FloorToInt((U - 0.15f) * 25.f) - Word.Len() - 1;
 			if (KK >= 0 && KK < 12) { Crackle(FVector2f(CX + 150.f, CY - 55.f), KK, 21); Crackle(FVector2f(CX - 150.f, CY - 55.f), KK, 22); }
 		}
@@ -3371,9 +3335,7 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 	{
 		const float Fade = T < 2.f ? 1.f : FMath::Max(0.f, 1.f - (T - 2.f) / 0.4f);
 		for (const float X : {880.f, 980.f}) C.Lines({FVector2f(X, SignLvY + SignLvH), FVector2f(X, 110.f)}, WithAlpha(Wire, 0.5f * Fade), 1.f); // 레벨 알약 밑에 매달림 (D-274)
-		C.Box(826.f, 110.f, 208.f, 58.f, Hex(TEXT("06060b"), 0.82f * Fade));
-		C.Glow(FCanvas::RoundRectPoints(826.f, 110.f, 208.f, 58.f, 10.f), WithAlpha(Gold, Fade), 2.f, 0.8f * Fade);
-		SignWord(930.f, 150.f, 27.f, -10.f, Fade);
+		BulbSign(C, 930.f, 110.f, 208.f, 58.f, Word, Gold, 26.f, Clock, nullptr, false, Fade); // BREAK TIME 과 같은 전구 간판 (D-296)
 		C.Box(870.f, 176.f, 120.f, 24.f, Hex(TEXT("06060b"), 0.82f * Fade));
 		C.Glow(FCanvas::RoundRectPoints(870.f, 176.f, 120.f, 24.f, 12.f), WithAlpha(Pink, Fade), 1.6f, 0.6f * Fade);
 		C.TextCentered(TrF(TEXT("포인트 +%d"), LevelUpPts), 930.f, 188.f, FLinearColor(1.f, 1.f, 1.f, Fade), 13.f, true);
