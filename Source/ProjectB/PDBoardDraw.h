@@ -197,13 +197,17 @@ inline const TCHAR* BossSkillText(EPDEnemy T)
 }
 inline const TCHAR* CharmName(int J)
 {
-	static const TCHAR* N[] = {TEXT("하트 애호가"), TEXT("스페이드 애호가"), TEXT("다이아 애호가"), TEXT("클로버 애호가"), TEXT("연결고리"), TEXT("쌍둥이"), TEXT("일직선"),
-		TEXT("넓은 물결"), TEXT("그림 카드"), TEXT("작은 수"), TEXT("행운의 7"), TEXT("큰 손"), TEXT("보급"), TEXT("재활용"), TEXT("조준경"), TEXT("서리"), TEXT("연쇄 폭발"), TEXT("관통탄"),
-		TEXT("에이스"), TEXT("짝수"), TEXT("홀수"), TEXT("풀하우스 팬"), TEXT("네잎클로버"), TEXT("왕실 근위"), TEXT("유리 대포"), TEXT("장거리 사격"), TEXT("대폭발"),
-		TEXT("과부하"), TEXT("조커 팬"), TEXT("먹보"), TEXT("대장간 불꽃"), TEXT("현상금"),
-		TEXT("여왕 친위대"), TEXT("왕의 눈"), TEXT("연쇄 열기"), TEXT("긴 손"), TEXT("셋의 힘"), TEXT("외톨이"), TEXT("와일드 하트"), TEXT("전령"), TEXT("보스 사냥꾼"), TEXT("청소부"),
-		TEXT("잭 경호원"), TEXT("2의 반란"), TEXT("무지개"), TEXT("스트레이트 플러시 팬"), TEXT("투 페어 팬"), TEXT("트리플 팬"), TEXT("포카드 팬"), TEXT("두 장의 힘"), TEXT("네 장의 힘"),
-		TEXT("재빠른 합성"), TEXT("큰 조커"), TEXT("저격 망원경"), TEXT("얼음 결정"), TEXT("연발"), TEXT("낡은 회중시계"), TEXT("첫 박자"), TEXT("먹이 사슬"), TEXT("손재주")}; // D-239
+	static const TCHAR* N[] = { // 칵테일 이름 (D-281): 효과가 떠오르게
+		TEXT("핑크 하트 사워"), TEXT("블랙 스페이드 마티니"), TEXT("골드 다이아 피즈"), TEXT("민트 클로버 줄렙"), TEXT("체인 펀치"), TEXT("트윈 하이볼"),
+		TEXT("스트레이트 업"), TEXT("블루 웨이브"), TEXT("코트 로열"), TEXT("미니 샷"), TEXT("럭키 세븐"), TEXT("더블 푸어"),
+		TEXT("하우스 리필"), TEXT("원스 모어"), TEXT("아이 오프너"), TEXT("프로스트 다이키리"), TEXT("플레이밍 볼"), TEXT("스크루드라이버"),
+		TEXT("에이스 오브 진"), TEXT("이븐 스플릿"), TEXT("오드볼"), TEXT("풀하우스 펀치"), TEXT("네잎 클로버 클럽"), TEXT("로열 플러시"),
+		TEXT("글라스 캐논"), TEXT("롱 드링크"), TEXT("다이너마이트"), TEXT("에스프레소 마티니"), TEXT("조커스 와일드"), TEXT("그루먼드 플립"),
+		TEXT("블루 블레이저"), TEXT("바운티 헌터"), TEXT("퀸즈 스위즐"), TEXT("킹스 아이"), TEXT("피버 펀치"), TEXT("파이브 스타"),
+		TEXT("트리플 섹"), TEXT("온 더 록"), TEXT("와일드 체리"), TEXT("웰컴 드링크"), TEXT("보스 킬러"), TEXT("라스트 콜"),
+		TEXT("잭 로즈"), TEXT("듀스"), TEXT("레인보우 슈터"), TEXT("하이 롤러"), TEXT("더블 더블"), TEXT("트리플 샷"),
+		TEXT("쿼드 슬링"), TEXT("듀엣"), TEXT("쿼텟"), TEXT("퀵 셰이크"), TEXT("빅 조커"), TEXT("스나이퍼"),
+		TEXT("크러시드 아이스"), TEXT("래피드 샷"), TEXT("올드 패션드"), TEXT("해피 아워"), TEXT("풀코스"), TEXT("바텐더의 손")}; // D-239
 	return Tr(N[J]);
 }
 inline const TCHAR* CharmDesc(int J)

@@ -51,66 +51,66 @@ ko	en	ja	zh-Hans	zh-Hant	file
 6초마다 보호막	Shield every 6s	6秒ごとにバリア	每6秒获得护盾	每6秒獲得護盾	PDBoardDraw.h
 주변 타워 공격력 -35%	Nearby towers ATK -35%	周りのタワー攻撃力 -35%	周围塔攻击力 -35%	周圍塔攻擊力 -35%	PDBoardDraw.h
 6초마다 가까운 타워를 기절시킨다	Stuns a nearby tower every 6s	6秒ごとに近くのタワーを気絶させる	每6秒击晕附近的塔	每6秒擊暈附近的塔	PDBoardDraw.h
-하트 애호가	Heart Lover	ハート好き	红心爱好者	紅心愛好者	PDBoardDraw.h
-스페이드 애호가	Spade Lover	スペード好き	黑桃爱好者	黑桃愛好者	PDBoardDraw.h
-다이아 애호가	Diamond Lover	ダイヤ好き	方块爱好者	方塊愛好者	PDBoardDraw.h
-클로버 애호가	Club Lover	クラブ好き	梅花爱好者	梅花愛好者	PDBoardDraw.h
-연결고리	Chain Link	連結	连接环	連接環	PDBoardDraw.h
-쌍둥이	Twins	双子	双胞胎	雙胞胎	PDBoardDraw.h
-일직선	Straight Line	一直線	一条直线	一條直線	PDBoardDraw.h
-넓은 물결	Wide Wave	広い波	宽广波纹	寬廣波紋	PDBoardDraw.h
-그림 카드	Face Cards	絵札	人头牌	人頭牌	PDBoardDraw.h
-작은 수	Small Numbers	小さい数	小数字	小數字	PDBoardDraw.h
-행운의 7	Lucky 7	幸運の7	幸运7	幸運7	PDBoardDraw.h
-큰 손	Big Hand	大きな手	大手	大手	PDBoardDraw.h
-보급	Supply	補給	补给	補給	PDBoardDraw.h
-재활용	Recycle	リサイクル	回收	回收	PDBoardDraw.h
-조준경	Scope	照準器	瞄准镜	瞄準鏡	PDBoardDraw.h
-서리	Frost	霜	冰霜	冰霜	PDBoardDraw.h
-연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDBoardDraw.h
-관통탄	Piercing Rounds	貫通弾	穿甲弹	穿甲彈	PDBoardDraw.h
-에이스	Ace	エース	王牌	王牌	PDBoardDraw.h
-짝수	Evens	偶数	偶数	偶數	PDBoardDraw.h
-홀수	Odds	奇数	奇数	奇數	PDBoardDraw.h
-풀하우스 팬	Full House Fan	フルハウス好き	葫芦迷	葫蘆迷	PDBoardDraw.h
-네잎클로버	Four-Leaf Clover	四つ葉のクローバー	四叶草	四葉草	PDBoardDraw.h
-왕실 근위	Royal Guard	王室近衛	皇家卫队	皇家衛隊	PDBoardDraw.h
-유리 대포	Glass Cannon	ガラスの大砲	玻璃大炮	玻璃大炮	PDBoardDraw.h
-장거리 사격	Long Shot	長距離射撃	远程射击	遠程射擊	PDBoardDraw.h
-대폭발	Big Bang	大爆発	大爆炸	大爆炸	PDBoardDraw.h
-과부하	Overclock	オーバークロック	超频	超頻	PDBoardDraw.h
-조커 팬	Joker Fan	ジョーカー好き	小丑迷	小丑迷	PDBoardDraw.h
-먹보	Glutton	食いしん坊	贪吃鬼	貪吃鬼	PDBoardDraw.h
-대장간 불꽃	Forge Fire	鍛冶場の炎	锻炉之火	鍛爐之火	PDBoardDraw.h
-현상금	Bounty	賞金	赏金	賞金	PDBoardDraw.h
-여왕 친위대	Queen's Guard	女王の親衛隊	女王亲卫队	女王親衛隊	PDBoardDraw.h
-왕의 눈	King's Reach	王の目	国王之眼	國王之眼	PDBoardDraw.h
-연쇄 열기	Chain Fever	連鎖の熱気	连锁热潮	連鎖熱潮	PDBoardDraw.h
-긴 손	Long Hand	長い手	长手	長手	PDBoardDraw.h
-셋의 힘	Power of Three	三の力	三之力	三之力	PDBoardDraw.h
-외톨이	Loner	一匹狼	独行者	獨行者	PDBoardDraw.h
-와일드 하트	Wild Heart	ワイルドハート	狂野之心	狂野之心	PDBoardDraw.h
-전령	Herald	伝令	传令	傳令	PDBoardDraw.h
-보스 사냥꾼	Boss Hunter	ボスハンター	首领猎手	首領獵手	PDBoardDraw.h
-청소부	Sweeper	掃除屋	清道夫	清道夫	PDBoardDraw.h
-잭 경호원	Jack's Guard	ジャックの護衛	杰克护卫	傑克護衛	PDBoardDraw.h
-2의 반란	Rebel Twos	2の反乱	2的反叛	2的反叛	PDBoardDraw.h
-무지개	Rainbow	虹	彩虹	彩虹	PDBoardDraw.h
-스트레이트 플러시 팬	Straight Flush Fan	ストレートフラッシュ好き	同花顺爱好者	同花順愛好者	PDBoardDraw.h
-투 페어 팬	Two Pair Fan	ツーペア好き	两对爱好者	兩對愛好者	PDBoardDraw.h
-트리플 팬	Triple Fan	スリーカード好き	三条爱好者	三條愛好者	PDBoardDraw.h
-포카드 팬	Four of a Kind Fan	フォーカード好き	四条爱好者	四條愛好者	PDBoardDraw.h
-두 장의 힘	Power of Two	2枚の力	两张之力	兩張之力	PDBoardDraw.h
-네 장의 힘	Power of Four	4枚の力	四张之力	四張之力	PDBoardDraw.h
-재빠른 합성	Quick Fusion	素早い合成	快速合成	快速合成	PDBoardDraw.h
-큰 조커	Big Joker	大きなジョーカー	大小丑	大小丑	PDBoardDraw.h
-저격 망원경	Sniper Scope	狙撃スコープ	狙击镜	狙擊鏡	PDBoardDraw.h
-얼음 결정	Ice Crystal	氷の結晶	冰晶	冰晶	PDBoardDraw.h
-연발	Rapid Fire	連発	连发	連發	PDBoardDraw.h
-낡은 회중시계	Old Pocket Watch	古い懐中時計	旧怀表	舊懷錶	PDBoardDraw.h
-첫 박자	First Beat	最初の拍子	第一拍	第一拍	PDBoardDraw.h
-먹이 사슬	Food Chain	食物連鎖	食物链	食物鏈	PDBoardDraw.h
-손재주	Dexterity	手先の器用さ	灵巧	靈巧	PDBoardDraw.h
+핑크 하트 사워	Pink Heart Sour	ピンクハート・サワー	粉心酸酒	粉心酸酒	PDBoardDraw.h
+블랙 스페이드 마티니	Black Spade Martini	ブラックスペード・マティーニ	黑桃马天尼	黑桃馬丁尼	PDBoardDraw.h
+골드 다이아 피즈	Gold Diamond Fizz	ゴールドダイヤ・フィズ	金钻菲士	金鑽費士	PDBoardDraw.h
+민트 클로버 줄렙	Mint Clover Julep	ミントクローバー・ジュレップ	薄荷梅花朱莉普	薄荷梅花朱利普	PDBoardDraw.h
+체인 펀치	Chain Punch	チェーン・パンチ	连锁宾治	連鎖賓治	PDBoardDraw.h
+트윈 하이볼	Twin Highball	ツイン・ハイボール	双子高球	雙子高球	PDBoardDraw.h
+스트레이트 업	Straight Up	ストレート・アップ	直上纯饮	直上純飲	PDBoardDraw.h
+블루 웨이브	Blue Wave	ブルー・ウェーブ	蓝浪	藍浪	PDBoardDraw.h
+코트 로열	Court Royale	コート・ロワイヤル	宫廷皇家	宮廷皇家	PDBoardDraw.h
+미니 샷	Mini Shot	ミニ・ショット	迷你一口杯	迷你一口杯	PDBoardDraw.h
+럭키 세븐	Lucky Seven	ラッキー・セブン	幸运七	幸運七	PDBoardDraw.h
+더블 푸어	Double Pour	ダブル・プア	双份倒酒	雙份倒酒	PDBoardDraw.h
+하우스 리필	House Refill	ハウス・リフィル	免费续杯	免費續杯	PDBoardDraw.h
+원스 모어	Once More	ワンス・モア	再来一杯	再來一杯	PDBoardDraw.h
+아이 오프너	Eye-Opener	アイ・オープナー	醒目酒	醒目酒	PDBoardDraw.h
+프로스트 다이키리	Frost Daiquiri	フロスト・ダイキリ	霜冻黛绮丽	霜凍黛綺麗	PDBoardDraw.h
+플레이밍 볼	Flaming Bowl	フレイミング・ボウル	火焰碗	火焰碗	PDBoardDraw.h
+스크루드라이버	Screwdriver	スクリュードライバー	螺丝起子	螺絲起子	PDBoardDraw.h
+에이스 오브 진	Ace of Gin	エース・オブ・ジン	金酒王牌	琴酒王牌	PDBoardDraw.h
+이븐 스플릿	Even Split	イーブン・スプリット	偶数均分	偶數均分	PDBoardDraw.h
+오드볼	Oddball	オッドボール	奇数怪球	奇數怪球	PDBoardDraw.h
+풀하우스 펀치	Full House Punch	フルハウス・パンチ	满堂红宾治	滿堂紅賓治	PDBoardDraw.h
+네잎 클로버 클럽	Four-Leaf Clover Club	四つ葉クローバー・クラブ	四叶草俱乐部	四葉草俱樂部	PDBoardDraw.h
+로열 플러시	Royal Flush	ロイヤル・フラッシュ	皇家同花顺	皇家同花順	PDBoardDraw.h
+글라스 캐논	Glass Cannon	グラス・キャノン	玻璃大炮	玻璃大砲	PDBoardDraw.h
+롱 드링크	Long Drink	ロング・ドリンク	长饮	長飲	PDBoardDraw.h
+다이너마이트	Dynamite	ダイナマイト	炸药	炸藥	PDBoardDraw.h
+에스프레소 마티니	Espresso Martini	エスプレッソ・マティーニ	意式浓缩马天尼	義式濃縮馬丁尼	PDBoardDraw.h
+조커스 와일드	Joker's Wild	ジョーカーズ・ワイルド	小丑狂欢	小丑狂歡	PDBoardDraw.h
+그루먼드 플립	Gourmand Flip	グルマン・フリップ	饕客蛋酒	饕客蛋酒	PDBoardDraw.h
+블루 블레이저	Blue Blazer	ブルー・ブレイザー	蓝色火焰	藍色火焰	PDBoardDraw.h
+바운티 헌터	Bounty Hunter	バウンティ・ハンター	赏金猎人	賞金獵人	PDBoardDraw.h
+퀸즈 스위즐	Queen's Swizzle	クイーンズ・スウィズル	女王搅棒	女王攪棒	PDBoardDraw.h
+킹스 아이	King's Eye	キングス・アイ	国王之眼	國王之眼	PDBoardDraw.h
+피버 펀치	Fever Punch	フィーバー・パンチ	狂热宾治	狂熱賓治	PDBoardDraw.h
+파이브 스타	Five Star	ファイブ・スター	五星	五星	PDBoardDraw.h
+트리플 섹	Triple Sec	トリプル・セック	白橙皮酒	白橙皮酒	PDBoardDraw.h
+온 더 록	On the Rocks	オン・ザ・ロック	加冰独饮	加冰獨飲	PDBoardDraw.h
+와일드 체리	Wild Cherry	ワイルド・チェリー	野樱桃	野櫻桃	PDBoardDraw.h
+웰컴 드링크	Welcome Drink	ウェルカム・ドリンク	迎宾酒	迎賓酒	PDBoardDraw.h
+보스 킬러	Boss Killer	ボス・キラー	首领杀手	首領殺手	PDBoardDraw.h
+라스트 콜	Last Call	ラスト・コール	最后一轮	最後一輪	PDBoardDraw.h
+잭 로즈	Jack Rose	ジャック・ローズ	杰克玫瑰	傑克玫瑰	PDBoardDraw.h
+듀스	Deuce	デュース	双二	雙二	PDBoardDraw.h
+레인보우 슈터	Rainbow Shooter	レインボー・シューター	彩虹一口杯	彩虹一口杯	PDBoardDraw.h
+하이 롤러	High Roller	ハイ・ローラー	豪赌客	豪賭客	PDBoardDraw.h
+더블 더블	Double Double	ダブル・ダブル	双双	雙雙	PDBoardDraw.h
+트리플 샷	Triple Shot	トリプル・ショット	三倍一口杯	三倍一口杯	PDBoardDraw.h
+쿼드 슬링	Quad Sling	クアッド・スリング	四重司令	四重司令	PDBoardDraw.h
+듀엣	Duet	デュエット	二重奏	二重奏	PDBoardDraw.h
+쿼텟	Quartet	カルテット	四重奏	四重奏	PDBoardDraw.h
+퀵 셰이크	Quick Shake	クイック・シェイク	快摇	快搖	PDBoardDraw.h
+빅 조커	Big Joker	ビッグ・ジョーカー	大小丑	大小丑	PDBoardDraw.h
+스나이퍼	Sniper	スナイパー	狙击手	狙擊手	PDBoardDraw.h
+크러시드 아이스	Crushed Ice	クラッシュド・アイス	碎冰	碎冰	PDBoardDraw.h
+래피드 샷	Rapid Shot	ラピッド・ショット	连发一口杯	連發一口杯	PDBoardDraw.h
+올드 패션드	Old Fashioned	オールド・ファッションド	古典鸡尾酒	古典雞尾酒	PDBoardDraw.h
+해피 아워	Happy Hour	ハッピーアワー	欢乐时光	歡樂時光	PDBoardDraw.h
+풀코스	Full Course	フルコース	全套餐	全套餐	PDBoardDraw.h
+바텐더의 손	Bartender's Hand	バーテンダーの手	调酒师之手	調酒師之手	PDBoardDraw.h
 ♥ 타워 공격력 +40%	♥ towers ATK +40%	♥ タワー攻撃力 +40%	♥ 塔攻击力 +40%	♥ 塔攻擊力 +40%	PDBoardDraw.h
 ♠ 타워 공격력 +40%	♠ towers ATK +40%	♠ タワー攻撃力 +40%	♠ 塔攻击力 +40%	♠ 塔攻擊力 +40%	PDBoardDraw.h
 ♦ 타워 공격력 +40%	♦ towers ATK +40%	♦ タワー攻撃力 +40%	♦ 塔攻击力 +40%	♦ 塔攻擊力 +40%	PDBoardDraw.h
@@ -843,3 +843,5 @@ P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P
 대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDLangTable.inl
 조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDLangTable.inl
 다과회 초대장	Tea Party Invitation	お茶会の招待状	茶会请柬	茶會請柬	PDLangTable.inl
+연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDTreeText.inl
+쌍둥이	Twins	双子	双胞胎	雙胞胎	PDTreeText.inl
