@@ -95,7 +95,7 @@ enum class EPDCharm : uint8_t
 	Herald,       // 레벨업할 때마다 목숨 +1
 	BossHunter,   // 보스에게 주는 피해 +40%
 	Sweeper,      // 웨이브 통과 경험치 ×2
-	// 묘약 60종 (D-239): 잠금 해제 메뉴에서 하나씩
+	// 칵테일 60종 (D-239): 잠금 해제 메뉴에서 하나씩
 	JackGuard,    // J 타워 공격력 +80%
 	TwoRebel,     // 숫자 2 타워 공격력 ×3
 	Rainbow,      // 판에 무늬 4종이 다 있으면 모든 타워 공격력 +25%
@@ -120,7 +120,7 @@ constexpr int CharmBaseCount = 18;                            // 처음부터 �
 using FPDCharmBits = uint64_t; // 부적 비트 (D-233: 32개를 넘기려고 64비트)
 constexpr FPDCharmBits CharmBaseMask = (FPDCharmBits(1) << CharmBaseCount) - 1u;
 // 부적 상자 3개 (D-233): 상자마다 열리는 부적 범위와 칩 값
-// 잠금 해제 (D-239): 묘약·조커를 하나씩 칩으로 연다 (예전 묘약 상자 D-233 은 없앴다)
+// 잠금 해제 (D-239): 칵테일·조커를 하나씩 칩으로 연다 (예전 칵테일 상자 D-233 은 없앴다)
 inline int CharmPrice(int J) { return J < 18 ? 0 : J < 23 ? 60 : J < 28 ? 120 : J < 32 ? 180 : J < 42 ? 250 : 320; }
 inline bool HasCharm(FPDCharmBits Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
@@ -535,9 +535,9 @@ public:
 	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
-	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 묘약 (잠금 해제 메뉴로 늘어남, D-233, D-239)
+	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 칵테일 (잠금 해제 메뉴로 늘어남, D-233, D-239)
 	uint32_t JokerUnlocked = 0x3FFu;                    // 만들 수 있는 기본 조커 (1 << EPDJoker, D-239). 규칙·봇은 모두 열림, 게임은 진행 파일로
-	float WaveStartT = 0.f;                             // 웨이브가 시작된 Time (첫 박자 묘약, D-239)
+	float WaveStartT = 0.f;                             // 웨이브가 시작된 Time (첫 박자 칵테일, D-239)
 	bool JokerOpen(int J) const { return J < 0 || J >= 32 || ((JokerUnlocked >> J) & 1u); }
 	uint32_t UpperUnlocked = 0x3FFFFFFFu;               // 만들 수 있는 상위 조커 (1 << 번호, D-241). 규칙·봇은 모두 열림, 게임은 진행 파일로
 	bool UpperOpen(int U) const { return U >= 0 && U < 30 && ((UpperUnlocked >> U) & 1u); }

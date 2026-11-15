@@ -2183,10 +2183,10 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const int32 N = (int32)G.Charms.size();
 		C.Box(RX, CharmY, PW, H, Hex(TEXT("06060b"), 0.6f));
 		Frame2(RX, CharmY, PW, H, 12.f, LavP, 0.6f);
-		C.Text(TrF(TEXT("묘약 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, UiTitle, 12.f, 0, true);
+		C.Text(TrF(TEXT("칵테일 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, UiTitle, 12.f, 0, true);
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		C.Text(TrF(TEXT("다음 %d웨이브"), (W0 + CharmEvery - 1) / CharmEvery * CharmEvery), RX + PW - 14.f, CharmY + 22.f, Dim, 9.f, 2);
-		// 선반 위 병 5개 (D-274): 가진 묘약은 켜진 병, 빈 칸은 흐린 병
+		// 선반 위 칵테일 잔 5개 (D-274 → D-280): 가진 칵테일은 술이 찬 잔, 빈 칸은 흐린 잔
 		{
 			static const TCHAR* BC[5] = {TEXT("ff6aaa"), TEXT("6edcff"), TEXT("ffd26e"), TEXT("8affc4"), TEXT("b48cff")};
 			const float SY = CharmY + 58.f;
@@ -2196,14 +2196,19 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 				const float BXc = RX + 26.f + I * (PW - 52.f) / (CharmMax - 1);
 				const bool bHave = I < N;
 				const FLinearColor Bc = bHave ? Hex(BC[I % 5]) : Hex(TEXT("5f6878"), 0.6f);
-				// 병: 목 + 어깨 + 몸통
-				const TArray<FVector2f> Bot = {FVector2f(BXc - 3.f, SY - 30.f), FVector2f(BXc - 3.f, SY - 24.f), FVector2f(BXc - 9.f, SY - 16.f), FVector2f(BXc - 9.f, SY - 1.f), FVector2f(BXc + 9.f, SY - 1.f), FVector2f(BXc + 9.f, SY - 16.f), FVector2f(BXc + 3.f, SY - 24.f), FVector2f(BXc + 3.f, SY - 30.f), FVector2f(BXc - 3.f, SY - 30.f)};
-				C.Glow(Bot, Bc, 1.2f, bHave ? 0.45f : 0.f);
-				if (bHave) C.Box(BXc - 7.f, SY - 12.f, 14.f, 9.f, WithAlpha(Bc, 0.35f));
+				// 칵테일 잔 (D-280): 넓은 V 잔 + 다리 + 받침. 가진 칵테일은 잔에 술이 차고 올리브 하나
+				C.Glow({FVector2f(BXc - 11.f, SY - 30.f), FVector2f(BXc + 11.f, SY - 30.f), FVector2f(BXc, SY - 15.f), FVector2f(BXc - 11.f, SY - 30.f)}, Bc, 1.2f, bHave ? 0.45f : 0.f);
+				C.Glow({FVector2f(BXc, SY - 15.f), FVector2f(BXc, SY - 3.f)}, Bc, 1.1f, bHave ? 0.35f : 0.f);
+				C.Glow({FVector2f(BXc - 7.f, SY - 2.f), FVector2f(BXc + 7.f, SY - 2.f)}, Bc, 1.1f, bHave ? 0.35f : 0.f);
+				if (bHave)
+				{
+					for (int32 K = 0; K < 4; ++K) { const float Ly = SY - 26.f + K * 2.5f, Hw = 8.f * (1.f - K * 2.5f / 11.f); C.Lines({FVector2f(BXc - Hw, Ly), FVector2f(BXc + Hw, Ly)}, WithAlpha(Bc, 0.55f), 1.f); }
+					C.Lines(FCanvas::CirclePoints(FVector2f(BXc + 4.f, SY - 27.f), 2.2f, 10), Hex(TEXT("9cffb0")), 1.f);
+				}
 			}
 		}
 		if (N == 0) C.Text(TrF(TEXT("%d웨이브마다 하나를 고른다"), CharmEvery), RX + 14.f, CharmY + 76.f, Dim, 10.f, 0, false, PW - 28.f);
-		else C.Text(TEXT("병에 마우스: 이름 · 설명"), RX + 14.f, CharmY + 76.f, Dim, 9.f, 0, false, PW - 28.f);
+		else C.Text(TEXT("잔에 마우스: 이름 · 설명"), RX + 14.f, CharmY + 76.f, Dim, 9.f, 0, false, PW - 28.f);
 		for (int32 I = 0; I < N; ++I) // 병 툴팁 (D-275): 패널이 바닥선에서 끝나 목록 대신
 		{
 			const float BXc = RX + 26.f + I * (PW - 52.f) / (CharmMax - 1), SY = CharmY + 58.f;
@@ -2241,7 +2246,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 	if (G.Phase == EPDPhase::Reward)
 	{
 		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.9f));
-		C.TextCentered(TrF(TEXT("웨이브 %d 묘약 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
+		C.TextCentered(TrF(TEXT("웨이브 %d 칵테일 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
 		for (int32 I = 0; I < (int32)G.Rewards.size(); ++I)
 		{
 			const FPDReward& R = G.Rewards[I];
@@ -2250,13 +2255,13 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			const FLinearColor Col = R.bCharm ? Gold : Cyan;
 			C.Box(P.X, P.Y, RewardW, RewardH, Hex(TEXT("0a0b14")));
 			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, RewardW, RewardH, 12.f), Col, bHov ? 2.6f : 1.6f, bHov ? 1.6f + 0.6f * Pulse : 0.8f);
-			C.Text(R.bCharm ? TEXT("묘약") : TEXT("즉시"), P.X + 16.f, P.Y + 26.f, Col, 11.f);
+			C.Text(R.bCharm ? TEXT("칵테일") : TEXT("즉시"), P.X + 16.f, P.Y + 26.f, Col, 11.f);
 			C.Text(FString::FromInt(I + 1), P.X + RewardW - 16.f, P.Y + 26.f, Dim, 11.f, 2);
 			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), P.X + RewardW / 2.f, P.Y + 74.f, Col, 20.f, true, RewardW - 20.f);
 			C.TextCentered(R.bCharm ? CharmDesc(R.Id) : InstantDesc(R.Id), P.X + RewardW / 2.f, P.Y + 108.f, Fg, 11.f, false, RewardW - 16.f);
 		}
 		C.TextCentered(TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), FX + Cols * CS / 2.f, FY + 372.f, Grey, 12.f, false, Cols * CS - 20.f);
-		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("묘약 칸이 가득 찼다 (5/5)"), FX + Cols * CS / 2.f, FY + 396.f, Dim, 11.f, false);
+		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("칵테일 칸이 가득 찼다 (5/5)"), FX + Cols * CS / 2.f, FY + 396.f, Dim, 11.f, false);
 	}
 
 	if (bCodex) PaintUnlock(C); // 조커 도감 (J): 잠금 해제와 같은 걸린 메뉴판 (D-265)
@@ -2265,12 +2270,12 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 
 // 영구 강화 창 (D-230): 시작 화면에서는 칩으로 산다, 판 안에서는 지금 레벨만 본다
 
-// 잠금 해제 창 (D-239): 묘약 60 · 조커 10 을 하나씩 칩으로
+// 잠금 해제 창 (D-239): 칵테일 60 · 조커 10 을 하나씩 칩으로
 void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 {
 	// 잠금 해제 (D-261, 시안 C 걸린 메뉴판): 가운데 큰 판 = 지금 탭의 메뉴 (2단 × 15줄 '아이콘 이름 ···· 가격'), 양옆 작은 판 = 다른 탭.
 	// 줄에 마우스를 올리면 툴팁, 클릭하면 칩으로 연다. 작은 글자는 빛번짐 없이 (D-257)
-	// 인게임 도감(J)도 같은 화면 (D-265): 가격 대신 발견 · 위력 · 가진 묘약, 클릭으로 사지 않음
+	// 인게임 도감(J)도 같은 화면 (D-265): 가격 대신 발견 · 위력 · 가진 칵테일, 클릭으로 사지 않음
 	const FPDGame& G = Game;
 	const bool bCdx = bCodex && G.Phase != EPDPhase::Title;
 	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Cyan = Hex(TEXT("6edcff")), Mint = Hex(TEXT("8affc4")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("dce4f0")), Wire = Hex(TEXT("5f6878"), 0.5f);
@@ -2285,8 +2290,8 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		for (const FVector2f Bt : {FVector2f(X + 9.f, Y + 9.f), FVector2f(X + W - 9.f, Y + 9.f), FVector2f(X + 9.f, Y + H - 9.f), FVector2f(X + W - 9.f, Y + H - 9.f)})
 			C.Lines(FCanvas::CirclePoints(Bt, 2.f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
 	};
-	static const TCHAR* TabName[3] = {TEXT("묘약"), TEXT("조커"), TEXT("상위 조커")};
-	static const TCHAR* TabEn[3] = {TEXT("POTIONS"), TEXT("JOKERS"), TEXT("UPPER JOKERS")};
+	static const TCHAR* TabName[3] = {TEXT("칵테일"), TEXT("조커"), TEXT("상위 조커")};
+	static const TCHAR* TabEn[3] = {TEXT("COCKTAILS"), TEXT("JOKERS"), TEXT("UPPER JOKERS")};
 	// 천장 줄 (판을 매단 선)
 	for (const float X : {300.f, 980.f}) C.Lines({FVector2f(X, 0.f), FVector2f(X, UnlBY)}, Wire, 1.f);
 	for (int32 Sd = 0; Sd < 2; ++Sd)
@@ -2315,7 +2320,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 	{
 		int32 NOpen = 0;
 		if (UnlockTab == 0) for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) NOpen += (G.CharmUnlocked >> J) & 1u;
-		const FString Sub = UnlockTab == 0 ? TrF(TEXT("묘약 %d / %d 열림"), NOpen, (int32)EPDCharm::Count) : UnlockTab == 1 ? TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)) : TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound));
+		const FString Sub = UnlockTab == 0 ? TrF(TEXT("칵테일 %d / %d 열림"), NOpen, (int32)EPDCharm::Count) : UnlockTab == 1 ? TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)) : TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound));
 		C.TextCentered(FString::Printf(TEXT("%s  ·  %s"), TabEn[UnlockTab], *Sub), HCX, 136.f, WithAlpha(Pink, 0.8f), 11.f, true);
 	}
 	for (const float S : {-1.f, 1.f})
@@ -2328,7 +2333,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 	auto Item = [&](int32 K)
 	{
 		FItem It;
-		if (UnlockTab == 0) { It.Name = CharmName(K); It.Desc = CharmDesc(K); It.Note = Tr(TEXT("연 묘약만 5웨이브 보상에 나온다")); It.Price = CharmPrice(K); It.bOpen = (G.CharmUnlocked >> K) & 1u; }
+		if (UnlockTab == 0) { It.Name = CharmName(K); It.Desc = CharmDesc(K); It.Note = Tr(TEXT("연 칵테일만 5웨이브 보상에 나온다")); It.Price = CharmPrice(K); It.bOpen = (G.CharmUnlocked >> K) & 1u; }
 		else if (UnlockTab == 1)
 		{
 			It.Name = JokerName(K); It.Desc = BaseJokerAbility(K); It.Price = JokerPrice(K); It.bOpen = G.JokerOpen(K);
@@ -2341,12 +2346,12 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 			It.bMat = G.JokerOpen((int32)D.A) && G.JokerOpen((int32)D.B);
 			It.Note = FString::Printf(TEXT("%s + %s"), JokerName((int32)D.A), JokerName((int32)D.B));
 		}
-		if (bCdx) // 도감 (D-265): 모르는 조커는 ???, 묘약은 열림 · 잠김 · 가진 묘약
+		if (bCdx) // 도감 (D-265): 모르는 조커는 ???, 칵테일은 열림 · 잠김 · 가진 칵테일
 		{
 			if (UnlockTab == 0)
 			{
 				It.bHave = G.Has((EPDCharm)K);
-				It.Right = It.bHave ? FString(Tr(TEXT("가진 묘약"))) : It.bOpen ? FString(Tr(TEXT("열림"))) : FString(Tr(TEXT("잠김")));
+				It.Right = It.bHave ? FString(Tr(TEXT("가진 칵테일"))) : It.bOpen ? FString(Tr(TEXT("열림"))) : FString(Tr(TEXT("잠김")));
 				if (!It.bOpen) It.Desc = TrF(TEXT("잠금 해제에서 %d칩"), It.Price);
 				It.bKnown = It.bOpen;
 			}
@@ -2440,7 +2445,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		Wrap2(C, It.Desc, TX + 20.f, TY + 76.f, Fg, 13.f, TW - 40.f);
 		if (bCdx && UnlockTab == 1) Wrap2(C, It.Note, TX + 20.f, TY + 110.f, Fg, 10.f, TW - 40.f);
 		else C.Text(It.Note, TX + 20.f, TY + 116.f, Dim, 11.f, 0, false, TW - 40.f);
-		if (bCdx) // 도감 툴팁 아래: 대장 · 위력 · 지휘 (조커), 가진 묘약 (묘약)
+		if (bCdx) // 도감 툴팁 아래: 대장 · 위력 · 지휘 (조커), 가진 칵테일 (칵테일)
 		{
 			if (!It.Note2.IsEmpty()) Wrap2(C, It.Note2, TX + 20.f, TY + 140.f, WithAlpha(Gold, 0.9f), 10.f, TW - 40.f);
 			else C.Text(It.Right, TX + 20.f, TY + 148.f, It.bHave ? Gold : It.bKnown ? Mint : Dim, 14.f, 0, true);
@@ -3158,7 +3163,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
 		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("위쪽에 보스 이름이 보여요")},
 		{TEXT("레벨이 올라 포인트가 생겼어요"), TEXT("스킬 트리(K)에서 노드를 찍어 보세요")},
-		{TEXT("묘약(판 내내 효과)이나 즉시 보상 중 하나를 고르거나"), TEXT("S로 넘기세요. 묘약 칸은 5개예요")},
+		{TEXT("칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나"), TEXT("S로 넘기세요. 칵테일 칸은 5개예요")},
 		{TEXT("맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요"), TEXT("두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요")},
 		{TEXT("필요 없는 타워는 오른쪽 클릭 → [판매] 버튼"), TEXT("팔면 경험치를 받아요 (조커는 더 많이)")},
 		{TEXT("다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요"), TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요")}};

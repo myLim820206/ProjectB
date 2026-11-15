@@ -535,9 +535,9 @@ constexpr float CdxDetX = 884.f, CdxDetW = 380.f;
 constexpr float CdxTabW = 150.f, CdxTabH = 30.f, CdxTabY = HudY + 10.f, CdxTabX0 = 820.f;
 inline float CdxTabX(int I) { return CdxTabX0 - 110.f + I * (CdxTabW - 30.f + 8.f); } // 탭 3개 (기본 · 상위 · 부적)
 // 부적 쪽 (D-234): 6 × 7 카드
-constexpr float ChCardW = 118.f, ChCardH = 96.f, ChCardGap = 6.f, ChCardY0 = 78.f; // 묘약 60개 = 10 × 6 (D-239)
+constexpr float ChCardW = 118.f, ChCardH = 96.f, ChCardGap = 6.f, ChCardY0 = 78.f; // 칵테일 60개 = 10 × 6 (D-239)
 inline FVector2f CharmCardPos(int J) { return FVector2f(DesignW / 2.f - (10.f * ChCardW + 9.f * ChCardGap) / 2.f + (J % 10) * (ChCardW + ChCardGap), ChCardY0 + (J / 10) * (ChCardH + ChCardGap)); }
-// 잠금 해제 창 (D-239): 탭 둘(묘약·조커), 묘약은 도감과 같은 10 × 6, 조커는 5 × 2 큰 카드
+// 잠금 해제 창 (D-239): 탭 둘(칵테일·조커), 칵테일은 도감과 같은 10 × 6, 조커는 5 × 2 큰 카드
 constexpr float UnlTabW = 140.f, UnlTabH = 32.f, UnlTabY = 34.f;
 inline float UnlTabX(int I) { return DesignW / 2.f - UnlTabW - 6.f + I * (UnlTabW + 12.f); }
 constexpr float UnlJW = 228.f, UnlJH = 112.f, UnlJGap = 12.f, UnlJY0 = 96.f; // 기본 조커 5 × 2, 그 아래 상위 조커 10 × 3 (D-241)

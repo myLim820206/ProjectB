@@ -102,9 +102,9 @@ private:
 	int32 MetaChips = 0;
 	int32 LastChips = 0;                   // 방금 끝난 판에서 받은 칩
 	bool MetaBuy(int32 U, int32 N);        // N레벨까지 살 수 있는 만큼 (산 레벨이 있으면 true)
-	// 잠금 해제 (D-239): 시작 화면 메뉴. 묘약·조커를 하나씩 칩으로
+	// 잠금 해제 (D-239): 시작 화면 메뉴. 칵테일·조커를 하나씩 칩으로
 	bool bUnlock = false;
-	int32 UnlockTab = 0;                   // 0 묘약, 1 조커, 2 상위 조커 (D-261)
+	int32 UnlockTab = 0;                   // 0 칵테일, 1 조커, 2 상위 조커 (D-261)
 	int32 UnlockPage = 0;                  // 가운데 판의 쪽 (한 쪽 30줄)
 	int32 UnlCount(int32 Tab) const;
 	int32 UnlPages() const;

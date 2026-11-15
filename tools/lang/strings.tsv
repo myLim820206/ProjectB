@@ -459,29 +459,29 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDBoardPaint.cpp
 조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDBoardPaint.cpp
 메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
-묘약 %d/%d	Potions %d/%d	秘薬 %d/%d	秘药 %d/%d	秘藥 %d/%d	PDBoardPaint.cpp
+칵테일 %d/%d	Cocktails %d/%d	カクテル %d/%d	鸡尾酒 %d/%d	雞尾酒 %d/%d	PDBoardPaint.cpp
 다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
 %d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
-병에 마우스: 이름 · 설명	Hover a bottle: name · effect	瓶にカーソル: 名前 · 説明	悬停药瓶: 名称 · 说明	懸停藥瓶: 名稱 · 說明	PDBoardPaint.cpp
+잔에 마우스: 이름 · 설명	Hover a glass: name · effect	グラスにカーソル: 名前 · 説明	悬停酒杯: 名称 · 说明	懸停酒杯: 名稱 · 說明	PDBoardPaint.cpp
 ?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDBoardPaint.cpp
 카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)	Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)	カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)	点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)	PDBoardPaint.cpp
 오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
 족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기	Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed	役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ	鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养	滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養	PDBoardPaint.cpp
 Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
 K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Joker Codex · Esc Menu	K スキルツリー · U 永久強化 · J ジョーカー図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 小丑图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 小丑圖鑑 · Esc 選單	PDBoardPaint.cpp
-웨이브 %d 묘약 — 하나를 고른다	Wave %d potion — pick one	ウェーブ %d 秘薬 — 1つ選ぶ	第%d波 秘药 — 选择一个	第%d波 秘藥 — 選擇一個	PDBoardPaint.cpp
-묘약	Potion	秘薬	秘药	秘藥	PDBoardPaint.cpp
+웨이브 %d 칵테일 — 하나를 고른다	Wave %d cocktail — pick one	ウェーブ %d カクテル — 1つ選ぶ	第%d波 鸡尾酒 — 选择一个	第%d波 雞尾酒 — 選擇一個	PDBoardPaint.cpp
+칵테일	Cocktail	カクテル	鸡尾酒	雞尾酒	PDBoardPaint.cpp
 즉시	Instant	即時	即时	即時	PDBoardPaint.cpp
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
-묘약 칸이 가득 찼다 (5/5)	Potion slots are full (5/5)	秘薬枠がいっぱい (5/5)	秘药栏已满 (5/5)	秘藥欄已滿 (5/5)	PDBoardPaint.cpp
+칵테일 칸이 가득 찼다 (5/5)	Cocktail slots are full (5/5)	カクテル枠がいっぱい (5/5)	鸡尾酒栏已满 (5/5)	雞尾酒欄已滿 (5/5)	PDBoardPaint.cpp
 조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
 상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardPaint.cpp
 눌러서 보기	Click to view	クリックで表示	点击查看	點擊查看	PDBoardPaint.cpp
-묘약 %d / %d 열림	Potions %d / %d unlocked	秘薬 %d / %d 解放	秘药 %d / %d 已解锁	秘藥 %d / %d 已解鎖	PDBoardPaint.cpp
+칵테일 %d / %d 열림	Cocktails %d / %d unlocked	カクテル %d / %d 解放	鸡尾酒 %d / %d 已解锁	雞尾酒 %d / %d 已解鎖	PDBoardPaint.cpp
 %d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardPaint.cpp
 상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardPaint.cpp
-연 묘약만 5웨이브 보상에 나온다	Only unlocked potions appear in wave-5 rewards	解放した秘薬だけが5ウェーブ報酬に出る	只有已解锁的秘药会出现在每5波奖励中	只有已解鎖的祕藥會出現在每5波獎勵中	PDBoardPaint.cpp
-가진 묘약	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
+연 칵테일만 5웨이브 보상에 나온다	Only unlocked cocktails appear in wave-5 rewards	解放したカクテルだけが5ウェーブ報酬に出る	只有已解锁的鸡尾酒会出现在每5波奖励中	只有已解鎖的雞尾酒會出現在每5波獎勵中	PDBoardPaint.cpp
+가진 칵테일	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
 열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
 잠김	Locked	ロック中	未解锁	未解鎖	PDBoardPaint.cpp
 잠금 해제에서 %d칩	%d chips in Unlocks	解放メニューで %d チップ	在解锁中 %d 筹码	在解鎖中 %d 籌碼	PDBoardPaint.cpp
@@ -604,8 +604,8 @@ Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タ
 위쪽에 보스 이름이 보여요	Its name is shown at the top	上にボスの名前が表示されます	顶部会显示首领名字	頂部會顯示首領名字	PDBoardPaint.cpp
 레벨이 올라 포인트가 생겼어요	You leveled up and got a point	レベルが上がってポイントを得た	升级了，获得了点数	升級了，獲得了點數	PDBoardPaint.cpp
 스킬 트리(K)에서 노드를 찍어 보세요	Spend it on a node in the Skill Tree (K)	スキルツリー(K)でノードを取ろう	在技能树(K)中点亮节点吧	在技能樹(K)中點亮節點吧	PDBoardPaint.cpp
-묘약(판 내내 효과)이나 즉시 보상 중 하나를 고르거나	Pick one: a potion (lasts the whole run) or an instant reward,	秘薬（ラン中ずっと効果）か即時報酬から一つ選ぶか	从秘药（整局有效）或即时奖励中选择一个，	從秘藥（整局有效）或即時獎勵中選擇一個，	PDBoardPaint.cpp
-S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potion slots	Sでスキップ。秘薬枠は5つです	或按S跳过。秘药栏位共5个	或按S跳過。秘藥欄位共5個	PDBoardPaint.cpp
+칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나	Pick one: a cocktail (lasts the whole run) or an instant reward,	カクテル（ラン中ずっと効果）か即時報酬から一つ選ぶか	从鸡尾酒（整局有效）或即时奖励中选择一个，	從雞尾酒（整局有效）或即時獎勵中選擇一個，	PDBoardPaint.cpp
+S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 cocktail slots	Sでスキップ。カクテル枠は5つです	或按S跳过。鸡尾酒栏位共5个	或按S跳過。雞尾酒欄位共5個	PDBoardPaint.cpp
 맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요	You can combine two adjacent jokers into an Upper Joker	隣り合う2体のジョーカーを合わせて上位ジョーカーを作れます	可以把相邻的两个小丑合成为上位小丑	可以把相鄰的兩個小丑合成為上位小丑	PDBoardPaint.cpp
 두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요	Use the gold button between them or the 'Joker' list	二つの間の金色ボタンか「ジョーカー」リストで合体します	点击两者之间的金色按钮或在"小丑"列表中合成	點擊兩者之間的金色按鈕或在「小丑」列表中合成	PDBoardPaint.cpp
 필요 없는 타워는 오른쪽 클릭 → [판매] 버튼	Right-click a tower you don't need, then press [Sell]	不要なタワーは右クリック →［売却］ボタン	不需要的塔可右键点击 → [出售] 按钮	不需要的塔可右鍵點擊 → [出售] 按鈕	PDBoardPaint.cpp
@@ -679,7 +679,6 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 목숨 %d	Lives %d	ライフ %d	生命 %d	生命 %d	PDLangTable.inl
 레벨 %d! 포인트 +%d	Level %d! Points +%d	レベル %d! ポイント +%d	等级 %d! 点数 +%d	等級 %d! 點數 +%d	PDLangTable.inl
 레벨 %d! 포인트 +1	Level %d! Point +1	レベル %d! ポイント +1	等级 %d! 点数 +1	等級 %d! 點數 +1	PDLangTable.inl
-Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기	Tab: Basic → Upper Jokers → Potions · J / Esc: close	Tab: 基本 → 上位ジョーカー → 秘薬 · J / Esc: 閉じる	Tab: 基本 → 上位小丑 → 秘药 · J / Esc: 关闭	Tab: 基本 → 上位小丑 → 秘藥 · J / Esc: 關閉	PDLangTable.inl
 서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커	Two different jokers side by side, both Joker Level 10 (5 if you took its tree tip) → Upper Joker	異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 (ツリー末端を取ったジョーカーは5) → 上位ジョーカー	两个不同的小丑相邻，且都达到小丑等级10 (点了技能树末端的小丑为5) → 上位小丑	兩個不同的小丑相鄰，且都達到小丑等級10 (點了技能樹末端的小丑為5) → 上位小丑	PDLangTable.inl
 Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jokers · J / Esc: close	Tab: 基本 ↔ 上位ジョーカー · J / Esc: 閉じる	Tab: 基本 ↔ 上位小丑 · J / Esc: 关闭	Tab: 基本 ↔ 上位小丑 · J / Esc: 關閉	PDLangTable.inl
 족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다	Pick 3 (or 2) hands that match a recipe to make a Joker (anywhere on the board). 3 hands use more cards, so it's stronger	役を3つ(または2つ)選んでレシピに合えばジョーカー (盤のどこでも)。3つの方がカードが多くて強い	选 3 个(或 2 个)牌型, 符合配方即成小丑 (棋盘任何位置)。3 个的卡更多, 更强	選 3 個(或 2 個)牌型, 符合配方即成小丑 (棋盤任何位置)。3 個的卡更多, 更強	PDLangTable.inl
@@ -699,8 +698,6 @@ Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jok
 카드 클릭: 크게 보기 · J / Esc: 닫기	Click a card: enlarge · J / Esc: close	カードをクリック: 拡大 · J / Esc: 閉じる	点击卡牌: 放大 · J / Esc: 关闭	點擊卡牌: 放大 · J / Esc: 關閉	PDLangTable.inl
 기본 조커	Basic Jokers	基本ジョーカー	基本小丑	基本小丑	PDLangTable.inl
 상위 조커 — 재료 조커 둘을 열어야 살 수 있다	Upper Jokers — unlock both material Jokers first	上位ジョーカー — 素材ジョーカー2体を先に解放	上位小丑 — 需先解锁两个素材小丑	上位小丑 — 需先解鎖兩個素材小丑	PDLangTable.inl
-카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기	Click a card to unlock a potion · only unlocked potions appear as wave rewards · Tab: Jokers · Esc: close	カードを押して秘薬を解放 · 解放した秘薬だけが報酬に出る · Tab: ジョーカー · Esc: 閉じる	点击卡片解锁秘药 · 只有已解锁的秘药会出现在奖励中 · Tab: 小丑 · Esc: 关闭	點擊卡片解鎖秘藥 · 只有已解鎖的秘藥會出現在獎勵中 · Tab: 小丑 · Esc: 關閉	PDLangTable.inl
-카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기	Click a card to unlock a Joker · locked Jokers can't be made even with materials · Tab: Potions · Esc: close	カードを押してジョーカーを解放 · 未解放のジョーカーは素材があっても作れない · Tab: 秘薬 · Esc: 閉じる	点击卡片解锁小丑 · 未解锁的小丑即使有素材也无法制作 · Tab: 秘药 · Esc: 关闭	點擊卡片解鎖小丑 · 未解鎖的小丑即使有素材也無法製作 · Tab: 秘藥 · Esc: 關閉	PDLangTable.inl
 카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라	Place cards, build poker hands, hold back the endless horde	カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ	放置卡牌组成牌型, 挡住源源不断的敌人	放置卡牌組成牌型, 擋住源源不絕的敵人	PDLangTable.inl
 ♠ 스페이드 강화	♠ Spade Upgrade	♠ スペード強化	♠ 黑桃强化	♠ 黑桃強化	PDLangTable.inl
 ♥ 하트 강화	♥ Heart Upgrade	♥ ハート強化	♥ 红心强化	♥ 紅心強化	PDLangTable.inl
@@ -714,12 +711,6 @@ Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jok
 카드 셋 중 하나를 고르거나	Pick one of the three cards, or	3枚のカードから1枚選ぶか	从三张卡中选一张, 或	從三張卡中選一張, 或	PDLangTable.inl
 S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	按 S 跳過	PDLangTable.inl
 두 조커 사이의 금색 버튼을 눌러 보세요	Press the gold button between them	2体の間の金色のボタンを押してみよう	点击两者之间的金色按钮试试	點擊兩者之間的金色按鈕試試	PDLangTable.inl
-묘약 상자 %s에서 열림	Unlocked by Potion Box %s	秘薬箱 %s で解放	由秘药箱 %s 解锁	由秘藥箱 %s 解鎖	PDLangTable.inl
-묘약 상자 I	Potion Box I	秘薬箱 I	秘药箱 I	秘藥箱 I	PDLangTable.inl
-묘약 상자 II	Potion Box II	秘薬箱 II	秘药箱 II	秘藥箱 II	PDLangTable.inl
-묘약 상자 III	Potion Box III	秘薬箱 III	秘药箱 III	秘藥箱 III	PDLangTable.inl
-묘약 상자 IV	Potion Box IV	秘薬箱 IV	秘药箱 IV	秘藥箱 IV	PDLangTable.inl
-%s · 새 묘약 %d종	%s · %d new potions	%s · 新しい秘薬 %d種	%s · 新秘药 %d种	%s · 新秘藥 %d種	PDLangTable.inl
 칩 %d	%d chips	チップ %d	筹码 %d	籌碼 %d	PDLangTable.inl
 모든 타워 공격력 +%.0f%%  (레벨당 +1%%)	All towers ATK +%.0f%%  (+1%% per level)	全タワー攻撃力 +%.0f%%  (レベルごと +1%%)	所有塔攻击力 +%.0f%%  (每级 +1%%)	所有塔攻擊力 +%.0f%%  (每級 +1%%)	PDLangTable.inl
 모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)	All towers attack speed +%.0f%%  (+1%% per level)	全タワー攻撃速度 +%.0f%%  (レベルごと +1%%)	所有塔攻击速度 +%.0f%%  (每级 +1%%)	所有塔攻擊速度 +%.0f%%  (每級 +1%%)	PDLangTable.inl

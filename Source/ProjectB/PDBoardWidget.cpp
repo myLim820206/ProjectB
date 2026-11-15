@@ -342,7 +342,7 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("Modes")) ModesCleared = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("Chips")) MetaChips = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("Uppers")) Game.UpperFound |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 상위 조커 도감 (D-231)
-			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 연 묘약 (D-233, D-239)
+			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 연 칵테일 (D-233, D-239)
 			else if (Key == TEXT("Jokers")) { Game.JokerUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10) | JokerStarterMask; } // 연 조커 (D-239)
 			else if (Key == TEXT("UpperOpen")) Game.UpperUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 연 상위 조커 (D-241)
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개

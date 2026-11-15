@@ -578,7 +578,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, c
 			}
 		}
 	}
-	// 무지개 묘약 (D-239): 판에 ♠♥♦♣ 가 다 있으면 모든 타워 공격력 +25%
+	// 무지개 칵테일 (D-239): 판에 ♠♥♦♣ 가 다 있으면 모든 타워 공격력 +25%
 	if (HasCharm(Charms, EPDCharm::Rainbow))
 	{
 		uint32_t Suits = 0;
@@ -736,7 +736,7 @@ FPDTowerStats TowerStats(const FPDTower& T, FPDCharmBits Charms, const FPDTreeMo
 	if (HasCharm(Charms, EPDCharm::Triad) && T.Eff.N == 3) St.Dmg *= 1.4f;
 	if (HasCharm(Charms, EPDCharm::Loner) && T.Eff.Kind < 0 && !T.IsJoker()) St.Dmg *= 1.6f;
 	if (HasCharm(Charms, EPDCharm::WildHeart) && T.Card.IsWild() && !T.IsJoker()) St.Dmg *= 2.f;
-	// 묘약 60종 (D-239)
+	// 칵테일 60종 (D-239)
 	auto InHand = [&T](EPDHand H) { return ((T.Eff.Kinds >> (int)H) & 1u) != 0; };
 	if (HasCharm(Charms, EPDCharm::JackGuard) && bNum && R == 11) St.Dmg *= 1.8f;
 	if (HasCharm(Charms, EPDCharm::TwoRebel) && bNum && R == 2) St.Dmg *= 3.f;
@@ -1854,7 +1854,7 @@ std::vector<FPDFeed> FPDGame::FeedTargets(int OnlyJoker) const
 		const FPDTower& Jt = Towers.at(Best);
 		float Val = 0.f;
 		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); if (!T.IsJoker()) Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
-		const float Gain = (Has(EPDCharm::FoodChain) ? 0.9f : JokerFeedAbsorb) * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate)); // 먹이 사슬 묘약 90% (D-239)
+		const float Gain = (Has(EPDCharm::FoodChain) ? 0.9f : JokerFeedAbsorb) * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate)); // 먹이 사슬 칵테일 90% (D-239)
 		Out.push_back({I, Best, S.Value * MultSum / Fed, Gain});
 	}
 	return Out;
