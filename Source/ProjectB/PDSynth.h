@@ -46,6 +46,8 @@ std::vector<int16_t> SynthesizeMenuMusic(int SampleRate = 44100);
 std::vector<int16_t> SynthesizeMusic(int SampleRate = 44100);
 // 보스 웨이브 음악 (D-188 → D-264): 140 BPM D 단조 Dm-B♭-Gm-A7 16마디(약 27초). 8분 워킹 베이스, 금관 찌르기, 탐 채움, 반음 경보 동기, 약음 리드
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate = 44100);
+// 보스 음악 시안 (D-266): 무겁게. 0 느와르 기어가기 72 BPM, 1 느린 빅밴드 위협 92 BPM 스윙, 2 둠 펑크 84 BPM
+std::vector<int16_t> SynthesizeBossMusicAlt(int Variant, int SampleRate = 44100);
 // 캐시 키
 inline int SoundKey(EPDSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }
 } // namespace PD

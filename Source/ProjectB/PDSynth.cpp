@@ -781,4 +781,107 @@ std::vector<int16_t> SynthesizeBossMusic(int SampleRate)
 	O.Room = 0.12f;
 	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
 }
+// ---------------------------------------------------------------- 보스 시안 (D-266): 빠르지 않고 무겁게, 1 · 2번 곡과 같은 재즈 결
+// 0 느와르 기어가기: 72 BPM 반박자 느낌, D 단조 블루스(Dm · Dm · Gm · A7♭9), 낮은 업라이트 + 서브 베이스 2분음, 팀파니 같은 낮은 탐,
+//   낮은 금관이 천천히 부풀었다 꺼짐, 로즈 불협 덩어리, 비브라폰 불길한 동기, 브러시 대신 묵직한 킥 · 림
+// 1 느린 빅밴드 위협: 92 BPM 스윙, 낮은 트롬본 느낌 금관 화음이 박마다 '쿵-', 2분 워킹 베이스, 라이드 스윙, 마디 끝 금관 폴, 약음 리드가 낮게
+// 2 둠 펑크: 84 BPM 반박자, 킥 1 · 3박 뒷박, 스네어 3박만 (무겁게), 옥타브 떨어지는 신스 베이스, 로즈 트레몰로 화음, 낮은 금관 찌르기, 경보 동기 느리게
+std::vector<int16_t> SynthesizeBossMusicAlt(int Variant, int SampleRate)
+{
+	const float Bpm = Variant == 0 ? 72.f : Variant == 1 ? 92.f : 84.f;
+	const float Beat = 60.f / Bpm, Bar = 4.f * Beat, Sw = 2.f / 3.f, S16 = Beat / 4.f;
+	const int Bars = Variant == 0 ? 8 : 12;
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(3.f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	M.Rng = 0x7f4a7c15u + (uint32_t)Variant;
+	// D 단조: Dm(m9 느낌) · Gm · A7♭9 · B♭maj7
+	const FJazzChord Dm = {38.f, 3.f, 10.f, {53.f, 57.f, 60.f, 64.f}}, Gm = {43.f, 3.f, 10.f, {53.f, 57.f, 58.f, 62.f}}, A7 = {45.f, 4.f, 10.f, {55.f, 58.f, 61.f, 67.f}}, Bb = {46.f, 4.f, 11.f, {53.f, 57.f, 62.f, 65.f}};
+	const FJazzChord Prog0[8] = {Dm, Dm, Gm, Gm, Dm, Bb, A7, A7};
+	const FJazzChord Prog[12] = {Dm, Dm, Dm, Dm, Gm, Gm, Dm, Dm, Bb, A7, Dm, A7};
+	std::vector<float> Kicks;
+	for (int B = 0; B < Bars; ++B)
+	{
+		const float T = B * Bar;
+		const FJazzChord& C = Variant == 0 ? Prog0[B] : Prog[B];
+		const bool bTurn = B == Bars - 1;
+		if (Variant == 0)
+		{
+			// 반박자: 킥 1박 · 3박 뒷박 살짝, 3박 림(낮은 스네어 대신), 팀파니 탐 1박
+			M.Kick(T, 1.1f); Kicks.push_back(T);
+			M.Kick(T + 2.5f * Beat, 0.6f); Kicks.push_back(T + 2.5f * Beat);
+			M.Snare(T + 2.f * Beat, 0.55f);
+			M.Tom(T, 62.f, 0.55f);
+			for (const float At : {0.f, 1.f, 1.f + Sw, 2.f, 3.f, 3.f + Sw}) M.Ride(T + At * Beat, At == 1.f + Sw || At == 3.f + Sw ? 0.035f : 0.06f, 1.2f);
+			if (bTurn) for (int K = 0; K < 4; ++K) M.Tom(T + (2.f + K * 0.5f) * Beat, 95.f - K * 10.f, 0.5f);
+			// 베이스: 2분음 근음 · 5도, 서브 겹침
+			for (int K = 0; K < 2; ++K)
+			{
+				const float N = K == 0 ? C.Root : C.Root + 7.f - 12.f;
+				M.Upright(1, T + K * 2.f * Beat, 2.f * Beat * 0.9f, N, 0.5f);
+				M.SawNote(1, T + K * 2.f * Beat, 2.f * Beat * 0.9f, N - 12.f, 0.22f, 160.f, 120.f, 0.3f, 0.02f, 0.2f, 0.002f);
+			}
+			// 낮은 금관: 마디 내내 천천히 부풀었다 꺼짐 (한 옥타브 아래)
+			for (float N : C.Voice) M.SawNote(1, T, Bar * 0.95f, N - 12.f, 0.05f, 200.f, 1400.f, Bar * 0.5f, Bar * 0.45f, 0.4f, 0.007f);
+			// 로즈 불협 덩어리: 1박 + 3박 뒷박
+			for (const float At : {0.f, 2.f + Sw}) { for (float N : C.Voice) M.Rhodes(1, T + At * Beat, Beat * 1.2f, N, 0.06f); M.Rhodes(1, T + At * Beat, Beat * 1.2f, C.Voice[0] + 1.f, 0.035f); }
+		}
+		else if (Variant == 1)
+		{
+			// 스윙 드럼: 라이드, 2 · 4박 발 하이햇, 1 · 3박 무거운 킥, 4박 스네어
+			for (const float At : {0.f, 1.f, 1.f + Sw, 2.f, 3.f, 3.f + Sw}) M.Ride(T + At * Beat, At == 1.f + Sw || At == 3.f + Sw ? 0.05f : 0.09f);
+			for (const float At : {0.f, 2.f}) { M.Kick(T + At * Beat, 0.9f); Kicks.push_back(T + At * Beat); }
+			M.Snare(T + 3.f * Beat, 0.6f);
+			M.Hat(T + Beat, 0.03f, 0.07f); M.Hat(T + 3.f * Beat, 0.03f, 0.07f);
+			if (bTurn) for (int K = 0; K < 6; ++K) M.Tom(T + (2.f + K / 3.f) * Beat, 120.f - K * 9.f, 0.45f);
+			// 2분 워킹 베이스 (낮게) + 서브
+			const float Nr = Prog[(B + 1) % Bars].Root;
+			for (int K = 0; K < 4; ++K)
+			{
+				const float N = K == 0 ? C.Root : K == 1 ? C.Root + C.Third : K == 2 ? C.Root + 7.f : Nr - 1.f;
+				M.Upright(1, T + K * Beat, Beat * 0.9f, N - 12.f + 12.f * (N - 12.f < 28.f), 0.48f);
+			}
+			// 낮은 트롬본 느낌 금관: 1박 '쿵-' 길게, 2박 뒷박 짧게, 마지막 마디는 폴
+			for (float N : C.Voice) { M.Brass(1, T, Beat * 1.6f, N - 12.f, 0.075f, false); M.Brass(1, T + (2.f + Sw) * Beat, Beat * 0.6f, N - 12.f, 0.06f, bTurn); }
+		}
+		else
+		{
+			// 둠 펑크: 킥 1 · 2박 뒷박 · 3박 뒷박, 스네어 3박 (반박자), 8분 하이햇 무겁게
+			for (const int K : {0, 6, 10}) { M.Kick(T + K * S16, 1.f); Kicks.push_back(T + K * S16); }
+			M.Snare(T + 2.f * Beat, 0.9f);
+			for (int K = 0; K < 8; ++K) M.Hat(T + K * Beat / 2.f, 0.04f, K % 2 ? 0.05f : 0.09f);
+			if (bTurn) for (int K = 0; K < 8; ++K) M.Tom(T + 2.f * Beat + K * S16, 150.f - K * 12.f, 0.5f);
+			// 옥타브 떨어지는 신스 베이스 + 업라이트
+			const int BPos[5] = {0, 3, 6, 10, 14};
+			const float BN[5] = {C.Root, C.Root, C.Root - 12.f, C.Root + 3.f, C.Root - 1.f};
+			for (int K = 0; K < 5; ++K)
+			{
+				M.SawNote(1, T + BPos[K] * S16, S16 * (K == 2 ? 3.f : 1.8f), BN[K], 0.36f, 900.f, 160.f, 0.08f, 0.002f, 0.04f, 0.005f);
+				M.Upright(1, T + BPos[K] * S16, S16 * 1.8f, BN[K], 0.22f);
+			}
+			// 로즈 트레몰로 화음 (2박 길게), 낮은 금관 찌르기 (1박 · 3박 뒷박)
+			for (float N : C.Voice) M.Rhodes(1, T + Beat, Beat * 2.f, N, 0.055f);
+			for (const float At : {0.f, 2.5f}) for (float N : C.Voice) M.Brass(1, T + At * Beat, Beat * 0.5f, N - 12.f, 0.06f, At > 0.f);
+			// 느린 경보 동기 (4분)
+			for (int K = 0; K < 4; ++K) M.PulseNote(2, T + K * Beat, Beat * 0.7f, K % 2 ? C.Voice[0] + 13.f : C.Voice[0] + 12.f, 0.035f);
+		}
+	}
+	// 선율: 0 = 비브라폰 불길한 동기, 1 · 2 = 약음 리드 낮게
+	const FLead L0[] = {
+		{0, 0.f, 1.5f, 74.f}, {0, 1.5f, 0.5f, 73.f}, {0, 2.f, 2.f, 69.f},
+		{2, 0.f, 1.f, 70.f}, {2, 1.f, 1.f, 74.f}, {2, 2.f, 2.f, 73.f},
+		{4, 0.f, 1.5f, 77.f}, {4, 1.5f, 0.5f, 76.f}, {4, 2.f, 2.f, 74.f},
+		{6, 0.f, 1.f, 73.f}, {6, 1.f, 1.f, 70.f}, {6, 2.f, 2.f, 69.f}};
+	const FLead L1[] = {
+		{4, 0.f, 2.f, 65.f}, {4, 2.f, 1.f, 67.f}, {4, 3.f, 1.f, 70.f},
+		{5, 0.f, 3.f, 69.f}, {5, 3.f, 1.f, 67.f},
+		{6, 0.f, 1.f, 65.f}, {6, 1.f, 1.f, 62.f}, {6, 2.f, 2.f, 64.f},
+		{7, 0.f, 4.f, 62.f},
+		{8, 0.f, 2.f, 65.f}, {8, 2.f, 2.f, 69.f}, {9, 0.f, 2.f, 70.f}, {9, 2.f, 2.f, 67.f},
+		{10, 0.f, 2.f, 65.f}, {10, 2.f, 2.f, 62.f}, {11, 0.f, 2.f, 61.f}, {11, 2.f, 2.f, 64.f}};
+	if (Variant == 0) for (const FLead& L : L0) M.Vibes(2, L.Bar * Bar + L.At * Beat, L.Len * Beat, L.Midi, 0.15f);
+	else for (const FLead& L : L1) M.MuteLead(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.92f, L.Midi, 0.14f);
+	FMixOpt O;
+	O.Duck = Variant == 1 ? 0.2f : 0.35f; O.EchoFb = 0.3f; O.EchoMix = 0.35f; O.Room = 0.3f; O.Gain = 1.05f;
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
+}
 } // namespace PD

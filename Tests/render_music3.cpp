@@ -22,5 +22,6 @@ int main(int argc, char** argv)
 	std::snprintf(P, 512, "%s/music_menu.wav", D); Save(P, PD::SynthesizeMenuMusic(44100), 1);
 	std::snprintf(P, 512, "%s/music_ingame.wav", D); Save(P, PD::SynthesizeMusic(44100), 1);
 	std::snprintf(P, 512, "%s/music_boss.wav", D); Save(P, PD::SynthesizeBossMusic(44100), 1);
+	for (int V = 0; V < 3; ++V) { std::snprintf(P, 512, "%s/boss_alt_%d.wav", D, V); Save(P, PD::SynthesizeBossMusicAlt(V, 44100), 1); }
 	return 0;
 }
