@@ -34,6 +34,9 @@ BOLT = (138, 148, 166)
 GREEN, RED, MINT = (156, 255, 176), (255, 106, 106), (106, 255, 200)
 JPINK = (255, 154, 213)
 BR = (60, 48, 58)
+# D-260: 테두리는 하늘(무늬 ♠ 색과 겹침) 대신 연보라, 네온 선 밝기 · 빛번짐은 30% 죽인다 (정신없음)
+FRAME = (168, 150, 225)
+NEON_K = 0.7
 GRID = (120, 140, 180)
 SUITC = {'spade': (127, 184, 255), 'heart': (255, 106, 138), 'diamond': (255, 217, 106), 'club': (138, 255, 196)}
 SYM = {'spade': '♠', 'heart': '♥', 'diamond': '◆', 'club': '♣'}
@@ -114,11 +117,13 @@ class Bar:
         gd, cd = ImageDraw.Draw(glow), ImageDraw.Draw(core)
         for (pts, c, wd, b, g, wc) in self.lines:
             P = [(px * S, py * S) for px, py in pts]
-            if g and b > 0.25: gd.line(P, fill=dim(c, b), width=max(1, int(wd * S * 4)))
+            b = b * NEON_K if b > 0.25 else b
+            if g and b > 0.25 * NEON_K: gd.line(P, fill=dim(c, b), width=max(1, int(wd * S * 4)))
             cd.line(P, fill=dim(c, max(0.16, b)), width=max(1, int(wd * S)), joint='curve')
         for (pts, c, wd, b, g, wc) in self.lines:  # 켜진 튜브 가운데 흰 심
             if wc and b > 0.5:
-                cd.line([(px * S, py * S) for px, py in pts], fill=tuple(min(255, int(v * 0.45 + 255 * 0.55 * b)) for v in c), width=max(1, int(wd * S * 0.4)), joint='curve')
+                bb = b * NEON_K
+                cd.line([(px * S, py * S) for px, py in pts], fill=tuple(min(255, int((v * 0.45 + 255 * 0.55 * b) * bb)) for v in c), width=max(1, int(wd * S * 0.4)), joint='curve')
         for (x, y, s, c, px, anchor, fp, b, g, hollow) in self.texts:
             f = font(fp, px)
             tw = max(2, int(px * S * 0.055))
@@ -135,7 +140,7 @@ class Bar:
         for (x, y, r) in self.dots:
             gd.ellipse([(x - r * 3) * S, (y - r * 3) * S, (x + r * 3) * S, (y + r * 3) * S], fill=(255, 220, 150))
             cd.ellipse([(x - r) * S, (y - r) * S, (x + r) * S, (y + r) * S], fill=WHITE)
-        gk = self.gk
+        gk = self.gk * NEON_K
         img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(10 * S)).point(lambda v: int(v * 0.5 * gk)))
         img = ImageChops.add(img, glow.filter(ImageFilter.GaussianBlur(3 * S)).point(lambda v: int(v * 0.45 * gk)))
         img = ImageChops.add(img, core)
@@ -161,6 +166,7 @@ def reflect(img, box, floor_y, k=0.16):
 def tube(M, x, y, w, h, r, c, on=False, b=None, wd=None, fill=True):
     """네온 간판 테두리 (사용자 요청, title-front/ingame_B_buttons.png): 바깥 튜브 + 5px 안쪽 튜브, 같은 색, 둘 다 켜져
     빛번짐 + 흰 심. 안 고른 것도 0.8 밝기로 켜져 있고, 고른 것(on)은 더 밝고 굵다. 양 끝 안쪽에 작은 회색 볼트"""
+    if c == CYAN: c = FRAME  # 테두리 색 (D-260)
     bo = b if b is not None else (1.0 if on else 0.8)
     bi = bo * 0.85
     if fill:
@@ -321,7 +327,7 @@ def soldier(M, x, y, kind, hp, s=1.0):
     M.ln([(x - bw / 2, by), (x - bw / 2 + bw * hp, by)], GREEN if hp > 0.5 else ORANGE if hp > 0.25 else RED, 2.0, 0.9, glow=False)
 
 
-def board(M, FX, FY, CS, frame_c=CYAN, frame_b=0.55, show_speed=False):
+def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False):
     BW, BH = 16 * CS, 10 * CS
     cen = lambda c: (FX + (c[0] + 0.5) * CS, FY + (c[1] + 0.5) * CS)
     M.fill_rr(FX - 8, FY - 8, BW + 16, BH + 16, 14, BG, 0.92, layer=0)
@@ -335,7 +341,7 @@ def board(M, FX, FY, CS, frame_c=CYAN, frame_b=0.55, show_speed=False):
     # 적 길: 옅은 채움 + 벽 + 방향 꺾쇠
     pc = path_cells()
     for (x, y) in pc: M.fill([(FX + x * CS, FY + y * CS), (FX + (x + 1) * CS, FY + y * CS), (FX + (x + 1) * CS, FY + (y + 1) * CS), (FX + x * CS, FY + (y + 1) * CS)], CYAN, 0.045, layer=1)
-    for sg in outline_segs(pc, FX, FY, CS, 3): M.ln(sg, CYAN, 1.0, 0.32)
+    for sg in outline_segs(pc, FX, FY, CS, 3): M.ln(sg, FRAME, 1.0, 0.32)
     poly = [(FX + (x + 0.5) * CS, FY + (y + 0.5) * CS) for x, y in PATH_WP]
     poly[0] = (FX - 2, poly[0][1]); poly[-1] = (FX + BW + 2, poly[-1][1])
     Ls = [0.0]
@@ -659,7 +665,7 @@ def mock_B():
         suit_shape(M, k, xx, 576, 5.5, None, 1.2, 0.7)
         M.t(xx + 9, 580, ATK[k], SUITC[k], 10)
     # 판
-    board(M, FX, FY, CS, frame_c=CYAN, frame_b=0.5)
+    board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.5)
     # 오른쪽 열
     RX, PW = 1042, 222
     tube(M, RX, 104, PW, 228, 12, CYAN, b=0.6)
@@ -773,7 +779,7 @@ def mock_C():
         suit_shape(M, k, xx, y + 34, 5.5, None, 1.2, 0.7)
         M.t(xx + 9, y + 38, ATK[k], SUITC[k], 10)
     # 판 (크게)
-    cen = board(M, FX, FY, CS, frame_c=CYAN, frame_b=0.6)
+    cen = board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.6)
     # 오른쪽 좁은 열
     RX, PW = 1072, 192
     tube(M, RX, FY, PW, 168, 12, CYAN, b=0.6)
