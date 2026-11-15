@@ -486,10 +486,13 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 					const float Ax = FMath::Max(X0, D - Y1), Bx = FMath::Min(X1, D - Y0);
 					if (Bx - Ax > 0.5f) F.Lines({{Ax, D - Ax}, {Bx, D - Bx}}, WithAlpha(Col, (bFilt ? 0.55f : 0.3f) * Alpha), 1.f);
 				}
-				if (bU) Edges.Emplace(FVector2f(X0, Y0), FVector2f(X1, Y0));
-				if (bR) Edges.Emplace(FVector2f(X1, Y0), FVector2f(X1, Y1));
-				if (bD) Edges.Emplace(FVector2f(X1, Y1), FVector2f(X0, Y1));
-				if (bL) Edges.Emplace(FVector2f(X0, Y1), FVector2f(X0, Y0));
+				// 안쪽으로 꺾이는 모서리 (D-297): 옆 칸과 대각 칸이 다 족보면 변을 M 만큼 더 뻗어 이웃 칸의 변과 만나게 (안 그러면 끝이 안 맞아 선이 끊겨 보였다)
+				auto HasAt = [&](int DX, int DY) { const int NX = X + DX, NY = Y + DY; return NX >= 0 && NX < Cols && NY >= 0 && NY < Rows && Has.Contains(NY * Cols + NX); };
+				const float PX0 = P.X, PX1 = P.X + CS, PY0 = P.Y, PY1 = P.Y + CS;
+				if (bU) Edges.Emplace(FVector2f(!bL && HasAt(-1, -1) ? PX0 - M : X0, Y0), FVector2f(!bR && HasAt(1, -1) ? PX1 + M : X1, Y0));
+				if (bR) Edges.Emplace(FVector2f(X1, !bU && HasAt(1, -1) ? PY0 - M : Y0), FVector2f(X1, !bD && HasAt(1, 1) ? PY1 + M : Y1));
+				if (bD) Edges.Emplace(FVector2f(!bR && HasAt(1, 1) ? PX1 + M : X1, Y1), FVector2f(!bL && HasAt(-1, 1) ? PX0 - M : X0, Y1));
+				if (bL) Edges.Emplace(FVector2f(X0, !bD && HasAt(-1, 1) ? PY1 + M : Y1), FVector2f(X0, !bU && HasAt(-1, -1) ? PY0 - M : Y0));
 			}
 			// 끝점이 맞는 조각을 이어 붙인다 (방향 무관)
 			{
