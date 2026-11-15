@@ -31,7 +31,7 @@ constexpr float LX = 16.f, LW = 232.f; // 왼쪽 족보 패널
 constexpr float CS = 48.f;          // 칸 크기
 constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
-constexpr float FY = 74.f;
+constexpr float FY = 98.f; // 인게임 시안 B (D-274): 위에 걸린 간판 자리만큼 판을 내림 (예전 74, FX + FY 는 12 의 배수)
 constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
 constexpr float BoardCardK = 0.74f; // 판 위 카드·조커 그림 크기 (D-167): 칸 테두리·족보 테두리와 겹치지 않게 조금 작게
 constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 아래 '조커' 줄 (D-152): 조커 합성 버튼을 모두 펼친다
@@ -39,8 +39,10 @@ constexpr int32 FeedFilterId = JokerFilterId + 1;         // 족보 목록 맨 �
 constexpr int32 HandRowsN = (int32)EPDHand::Count + 2;
 // 족보 메뉴판 (D-263, 레터보드 시안): 묶음 순서로 줄을 놓는다 (5장 족보 / 2~4장 족보 / 조커 · 먹이), 묶음마다 머리글 한 줄.
 // 조커 · 먹이기 목록(D-210/213)은 예전 자리(HandRowY0, HandRowH)를 그대로 쓴다
-constexpr int32 HandMenuOrder[HandRowsN] = {0, 1, 2, 4, 5, 6, 3, 7, 8, 9, JokerFilterId, FeedFilterId};
-constexpr float HandMenuY0 = FY + 84.f, HandMenuRowH = 30.f, HandMenuGroupH = 18.f;
+// 시안 B 금색 메뉴판 (D-274): 묶음 머리글 없이 족보 순서대로, 줄 38 (이름 + 작은 효과 설명)
+constexpr int32 HandMenuOrder[HandRowsN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, JokerFilterId, FeedFilterId};
+constexpr float HandPanelY = 66.f; // 왼쪽 패널 윗선 (판보다 위, 로고 배지 아래)
+constexpr float HandMenuY0 = HandPanelY + 68.f, HandMenuRowH = 38.f, HandMenuGroupH = 0.f;
 inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
 inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
 inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
@@ -52,10 +54,10 @@ constexpr float CardW = 70.f, CardH = 98.f;
 constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
 constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
 constexpr float RBtnX = RX, RBtnW = PW;     // 오른쪽 패널 버튼 줄
-constexpr float PowCardH = 250.f;           // 판 위력 카드 (오른쪽 맨 위). 딜러 7위까지 (D-164: 부적 칸을 줄이고 늘림)
+constexpr float PowCardH = 226.f;           // 판 위력 카드 (오른쪽 맨 위). 딜러 7위까지 (D-164: 부적 칸을 줄이고 늘림)
 constexpr int32 PowTopN = 7;
-constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 46.f;
-constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 22.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
+constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 52.f; // 마키 버튼 (D-274): 위 가장자리에 전구
+constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 38.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
 constexpr float PauseBtnX = SpeedBtnX - HudBtnS - 8.f; // 일시정지 (D-169, P)
 constexpr float HelpX = DesignW - 110.f, HelpY = DesignH - 22.f, HelpW = 94.f, HelpH = 18.f; // "? 도움말" (마우스를 올리면 키 안내)
 constexpr float TwoPi = 6.2831853f;
@@ -520,6 +522,12 @@ constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW
 constexpr float CodexBtnX = RBtnX, CodexBtnY = TreeBtnY + TreeBtnH + 8.f, CodexBtnW = TreeBtnW, CodexBtnH = TreeBtnH;
 constexpr float MenuBtnX = UpgOpenX, MenuBtnY = CodexBtnY, MenuBtnW = TreeBtnW, MenuBtnH = TreeBtnH;
 constexpr float CharmY = MenuBtnY + MenuBtnH + 12.f; // 부적 칸
+// 위에 걸린 간판 (D-274, 인게임 시안 B)
+constexpr float SignEnX = 270.f, SignEnY = 20.f, SignEnW = 182.f, SignEnH = 68.f;   // 남은 적 (전구 줄)
+constexpr float SignWvX = 470.f, SignWvY = 14.f, SignWvW = 340.f, SignWvH = 74.f;   // WAVE
+constexpr float SignLfX = 826.f, SignLfY = 22.f, SignLfW = 108.f, SignLfH = 60.f;   // 목숨
+constexpr float SignLvX = 948.f, SignLvY = 38.f, SignLvW = 172.f, SignLvH = 34.f;   // 레벨 알약
+constexpr float FloorY = FY + Rows * CS + 8.f;                                      // 바닥선 (손패가 그 아래)
 // 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
 constexpr float CdxCardX = 16.f, CdxCardY = 76.f, CdxCardW = 164.f, CdxCardH = 304.f, CdxGapX = 8.f, CdxGapY = 12.f;
 constexpr float CdxDetX = 884.f, CdxDetW = 380.f;

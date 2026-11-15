@@ -138,6 +138,8 @@ private:
 	void FinishHint();                     // 지금 도움말을 본 것으로
 	bool HintTarget(int32 H, FBox2f& Out) const; // 가리킬 자리
 	void PaintHint(FCanvas& C) const;
+	void PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const; // 작은 네온 팔라스 로고 (D-274)
+	void PaintBarBack(FCanvas& C) const;   // 벽돌 벽 + 바닥선 (D-274)
 	void PaintLevelUp(FCanvas& C) const;   // 레벨업 이펙트 (D-273): 가운데 마키 간판 → 위 레벨 자리로 날아가 매달림
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면

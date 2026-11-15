@@ -434,16 +434,13 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 %s %s · 합성 레벨 %d	%s %s · Fusion Lv %d	%s %s · 合成レベル %d	%s %s · 合成等级 %d	%s %s · 合成等級 %d	PDBoardPaint.cpp
 특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardPaint.cpp
 오른쪽 클릭: 판매 (+%d 경험치)	Right-click: sell (+%d XP)	右クリック: 売却 (+%d 経験値)	右键: 出售 (+%d 经验)	右鍵: 出售 (+%d 經驗)	PDBoardPaint.cpp
+남은 적	Enemies left	残りの敵	剩余敌人	剩餘敵人	PDBoardPaint.cpp
+%d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
+웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardPaint.cpp
+처치 %d · 놓침 %d	Kills %d · Leaked %d	撃破 %d · 突破 %d	击杀 %d · 漏掉 %d	擊殺 %d · 漏掉 %d	PDBoardPaint.cpp
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDBoardPaint.cpp
 다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDBoardPaint.cpp
-남은 적 %d / %d	Enemies left %d / %d	残りの敵 %d / %d	剩余敌人 %d / %d	剩餘敵人 %d / %d	PDBoardPaint.cpp
-처치 %d · 놓침 %d	Kills %d · Leaked %d	撃破 %d · 突破 %d	击杀 %d · 漏掉 %d	擊殺 %d · 漏掉 %d	PDBoardPaint.cpp
-웨이브 %d 자동 시작까지 %d초	Wave %d starts in %ds	ウェーブ %d 自動開始まで %d秒	第%d波 %d秒后自动开始	第%d波 %d秒後自動開始	PDBoardPaint.cpp
-웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardPaint.cpp
-처치 %d · 놓침 %d · 최고 %d	Kills %d · Leaked %d · Best %d	撃破 %d · 突破 %d · 最高 %d	击杀 %d · 漏掉 %d · 最高 %d	擊殺 %d · 漏掉 %d · 最高 %d	PDBoardPaint.cpp
-목숨 %d	Lives %d	ライフ %d	生命 %d	生命 %d	PDBoardPaint.cpp
 레벨 %d	Level %d	レベル %d	等级 %d	等級 %d	PDBoardPaint.cpp
-포인트 %d	Points %d	ポイント %d	点数 %d	點數 %d	PDBoardPaint.cpp
 손패 %d/%d	Hand %d/%d	手札 %d/%d	手牌 %d/%d	手牌 %d/%d	PDBoardPaint.cpp
 덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
 자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
@@ -454,12 +451,12 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDBoardPaint.cpp
 타워를 놓으면 위력이 보인다	Place towers to see power	タワーを置くと威力が見える	放置塔后显示威力	放置塔後顯示威力	PDBoardPaint.cpp
 웨이브 %d 시작	Start wave %d	ウェーブ %d 開始	开始第%d波	開始第%d波	PDBoardPaint.cpp
-%d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
 웨이브 %d 진행 중	Wave %d in progress	ウェーブ %d 進行中	第%d波 进行中	第%d波 進行中	PDBoardPaint.cpp
 웨이브 시작	Start Wave	ウェーブ開始	开始波次	開始波次	PDBoardPaint.cpp
 배속 ×%d (F)	Speed ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	PDBoardPaint.cpp
 ×%d 배속	×%d speed	×%d 倍速	×%d 倍速	×%d 倍速	PDBoardPaint.cpp
 F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍速	PDBoardPaint.cpp
+포인트 %d	Points %d	ポイント %d	点数 %d	點數 %d	PDBoardPaint.cpp
 스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDBoardPaint.cpp
 조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDBoardPaint.cpp
 메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
@@ -624,10 +621,9 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 서리 구체로 맞은 적을 느리게	Frost orbs slow the enemies they hit	霜の球で当たった敵を遅くする	冰霜球使被击中的敌人减速	冰霜球使被擊中的敵人減速	PDBoardPaint.cpp
 아무 숫자·무늬로 쳐서 족보를 이어 준다	Counts as any rank and suit to complete hands	どの数字・スートにもなって役をつなぐ	可当任意点数与花色来组成牌型	可當任意點數與花色來組成牌型	PDBoardPaint.cpp
 클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click (number key) → click a tile: place · right-click: discard	クリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDBoardPaint.cpp
-족보 메뉴	Hand Menu	役メニュー	牌型菜单	牌型菜單	PDBoardPaint.cpp
+족 보	H A N D S	役	牌 型	牌 型	PDBoardPaint.cpp
 다시 클릭 / Esc: 끄기	Click again / Esc: off	もう一度クリック / Esc: やめる	再点一次 / Esc: 关闭	再點一次 / Esc: 關閉	PDBoardPaint.cpp
 클릭: 그 족보 합성	Click: fuse that hand	クリック: その役を合成	点击: 合成该牌型	點擊: 合成該牌型	PDBoardPaint.cpp
-족보	Hands	役	牌型	牌型	PDBoardPaint.cpp
 ← 족보 목록으로	← Back to hands	← 役リストへ	← 返回牌型列表	← 返回牌型列表	PDBoardPaint.cpp
 판에 조커가 없다	No Jokers on the board	盤にジョーカーがいない	棋盘上没有小丑	棋盤上沒有小丑	PDBoardPaint.cpp
 먹이 ×%d	Feed ×%d	餌 ×%d	可喂 ×%d	可餵 ×%d	PDBoardPaint.cpp
@@ -636,14 +632,10 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 상위	Upper	上位	上位	上位	PDBoardPaint.cpp
 %s + %s · 맞붙여 놓아야 해요	%s + %s · must be placed side by side	%s + %s · 隣り合わせに置く必要あり	%s + %s · 需要相邻放置	%s + %s · 需要相鄰放置	PDBoardPaint.cpp
 %s 하나만 더 있으면	Needs one more %s	%s があと1つあれば	再有一个%s就行	再有一個%s就行	PDBoardPaint.cpp
-5장 족보	5-card hands	5枚の役	5张牌型	5張牌型	PDBoardPaint.cpp
-2~4장 족보	2–4-card hands	2~4枚の役	2~4张牌型	2~4張牌型	PDBoardPaint.cpp
-조커 · 먹이	Jokers · Feed	ジョーカー · 餌	小丑 · 喂养	小丑 · 餵養	PDBoardPaint.cpp
  (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
  (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDBoardPaint.cpp
 클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
 클릭: 조커에 족보 먹이기	Click: feed hands to a Joker	クリック: ジョーカーに役を食べさせる	点击: 给小丑喂牌型	點擊: 給小丑餵牌型	PDBoardPaint.cpp
-판 %d	On board %d	盤上 %d	场上 %d	場上 %d	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
 족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
 무늬 = 공격 방식	Suit = attack type	スート = 攻撃方式	花色 = 攻击方式	花色 = 攻擊方式	PDBoardPaint.cpp
@@ -673,6 +665,16 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+남은 적 %d / %d	Enemies left %d / %d	残りの敵 %d / %d	剩余敌人 %d / %d	剩餘敵人 %d / %d	PDLangTable.inl
+웨이브 %d 자동 시작까지 %d초	Wave %d starts in %ds	ウェーブ %d 自動開始まで %d秒	第%d波 %d秒后自动开始	第%d波 %d秒後自動開始	PDLangTable.inl
+처치 %d · 놓침 %d · 최고 %d	Kills %d · Leaked %d · Best %d	撃破 %d · 突破 %d · 最高 %d	击杀 %d · 漏掉 %d · 最高 %d	擊殺 %d · 漏掉 %d · 最高 %d	PDLangTable.inl
+목숨 %d	Lives %d	ライフ %d	生命 %d	生命 %d	PDLangTable.inl
+족보 메뉴	Hand Menu	役メニュー	牌型菜单	牌型菜單	PDLangTable.inl
+족보	Hands	役	牌型	牌型	PDLangTable.inl
+5장 족보	5-card hands	5枚の役	5张牌型	5張牌型	PDLangTable.inl
+2~4장 족보	2–4-card hands	2~4枚の役	2~4张牌型	2~4張牌型	PDLangTable.inl
+조커 · 먹이	Jokers · Feed	ジョーカー · 餌	小丑 · 喂养	小丑 · 餵養	PDLangTable.inl
+판 %d	On board %d	盤上 %d	场上 %d	場上 %d	PDLangTable.inl
 레벨 %d! 포인트 +%d	Level %d! Points +%d	レベル %d! ポイント +%d	等级 %d! 点数 +%d	等級 %d! 點數 +%d	PDLangTable.inl
 레벨 %d! 포인트 +1	Level %d! Point +1	レベル %d! ポイント +1	等级 %d! 点数 +1	等級 %d! 點數 +1	PDLangTable.inl
 Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기	Tab: Basic → Upper Jokers → Potions · J / Esc: close	Tab: 基本 → 上位ジョーカー → 秘薬 · J / Esc: 閉じる	Tab: 基本 → 上位小丑 → 秘药 · J / Esc: 关闭	Tab: 基本 → 上位小丑 → 秘藥 · J / Esc: 關閉	PDLangTable.inl

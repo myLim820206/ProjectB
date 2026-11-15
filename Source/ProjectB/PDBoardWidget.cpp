@@ -1019,7 +1019,7 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 	case EHint::Joker: return Row(JokerFilterId);
 	case EHint::Feed: return Row(FeedFilterId);
 	case EHint::Swap: Out = FBox2f(FVector2f(SwapBtnX, SwapBtnY), FVector2f(SwapBtnX + SwapBtnW, SwapBtnY + SwapBtnH)); return true;
-	case EHint::Boss: Out = FBox2f(FVector2f(30.f, HudY + 34.f), FVector2f(310.f, HudY + 50.f)); return true;
+	case EHint::Boss: Out = FBox2f(FVector2f(SignWvX + 20.f, SignWvY + 56.f), FVector2f(SignWvX + SignWvW - 20.f, SignWvY + SignWvH - 4.f)); return true; // WAVE 간판의 다음 보스 줄 (D-274)
 	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + RBtnW, TreeBtnY + TreeBtnH)); return true;
 	case EHint::Sell: for (const auto& KV : Game.Towers) if (!KV.second.IsJoker()) return Cells({KV.first}); return false;
 	case EHint::UpperHow: return Row(JokerFilterId);
