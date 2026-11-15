@@ -27,17 +27,17 @@ def chip(M, x, y, txt, c):
     M.word(x + 30, y + 21, txt, c, 14, None, font=KO, anchor_center=False)
 
 
-def neon_blocks(M, cx, y, size, c, gap=12, boxes=True):
+def neon_blocks(M, cx, y, size, c, gap=12, boxes=True, bright=None):
     w = size * 0.86
     x0 = cx - (4 * w + 3 * gap) / 2
     for i, ch in enumerate('NEON'):
         x = x0 + i * (w + gap)
         if boxes: M.rr(x, y, w, size, 7, c, 1.7)
-        M.word(x + w / 2, y + size * 0.8, ch, c, size * 0.72, font=BLOCK)
+        M.word(x + w / 2, y + size * 0.8, ch, c, size * 0.72, [bright[i]] if bright else None, font=BLOCK)
 
 
 # ---------------------------------------------------------------- 1 극장 마키
-def title_1(phase=0, pal=None, gk=1.0, frame=True):
+def title_1(phase=0, pal=None, gk=1.0, frame=True, nb=None, pb=None, crown=1.0, spark=None):
     P_ = pal or {}
     CYAN, PINK, GOLD, ORANGE, WHITE, DIMC, BULB = (P_.get(k, d) for k, d in (('cyan', globals()['CYAN']), ('pink', globals()['PINK']), ('gold', globals()['GOLD']), ('orange', globals()['ORANGE']), ('white', globals()['WHITE']), ('dim', globals()['DIMC']), ('bulb', (255, 225, 150))))
     M = Sign(gk)
@@ -46,9 +46,10 @@ def title_1(phase=0, pal=None, gk=1.0, frame=True):
         M.rr(330, 118, 620, 150, 14, ORANGE, 2.4)
         bulbs(M, [(344, 132), (936, 132), (936, 254), (344, 254), (344, 132)], 24, phase, BULB)
     else:  # 간판 없이 글자만 (D-249): 칸 없는 NEON + 필기체 Pallas + 왕관 스페이드
-        neon_blocks(M, 640, 50, 66, CYAN, gap=4, boxes=False)
-    M.word(620, 228, 'Pallas', PINK, 96, None, font=SCRIPT)
-    spade_crown(M, 880, 195, 20, GOLD)
+        neon_blocks(M, 640, 50, 66, CYAN, gap=4, boxes=False, bright=nb)
+    M.word(620, 228, 'Pallas', PINK, 96, pb, font=SCRIPT)
+    spade_crown(M, 880, 195, 20, GOLD, crown)
+    if spark: M.spark(*spark)
     chip(M, 1080, 24, '칩 1,240', GOLD)
     for i, n in enumerate(MENU):
         y = 330 + i * 52
@@ -134,6 +135,29 @@ def main(outdir):
     print('muted')
     title_1(0, frame=False).save(os.path.join(outdir, 'title_1_letters.png'))
     print('letters')
+    letters_anim(outdir)
+
+
+def letters_anim(outdir):
+    """글자만 시안의 움직임 (D-250): 켜지기 → 가끔 NEON 한 글자 깜빡 → Pallas 합선 불꽃 → 버튼 전구 돌기"""
+    from PIL import Image
+    seq = []
+    # 켜지기: 꺼진 상태에서 글자가 차례로 들어옴
+    seq += [dict(nb=[0.08] * 4, pb=[0.08] * 6, crown=0.1)] * 3
+    seq += [dict(nb=[1, 0.08, 0.08, 0.08], pb=[0.08] * 6, crown=0.1), dict(nb=[1, 1, 0.08, 0.08], pb=[0.08] * 6, crown=0.1),
+            dict(nb=[1, 1, 1, 0.08], pb=[0.3] * 6, crown=0.1), dict(nb=[1] * 4, pb=[0.08] * 6, crown=0.1),
+            dict(nb=[1] * 4, pb=[1] * 6, crown=0.4), dict(nb=[1] * 4, pb=[1] * 6, crown=1.0)]
+    seq += [dict()] * 14
+    seq += [dict(nb=[1, 1, 0.1, 1]), dict(), dict(nb=[1, 1, 0.1, 1]), dict(nb=[1, 1, 0.1, 1])]
+    seq += [dict()] * 10
+    seq += [dict(pb=[1, 1, 1, 0.3, 1, 1], spark=(668, 190, 18, 56, 5)), dict(pb=[1, 1, 0.1, 1, 0.1, 1], spark=(668, 190, 18, 56, 9)),
+            dict(pb=[1, 1, 1, 0.3, 1, 1], spark=(668, 190, 14, 48, 13)), dict(pb=[0.6] * 6)]
+    seq += [dict()] * 14
+    frames = []
+    for k, st in enumerate(seq):
+        frames.append(title_1(k % 3, frame=False, **st).resize((640, 360), Image.LANCZOS).convert('P', palette=Image.ADAPTIVE, colors=128))
+    frames[0].save(os.path.join(outdir, 'title_1_letters_anim.gif'), save_all=True, append_images=frames[1:], duration=110, loop=0)
+    print('anim', len(frames))
 
 
 if __name__ == '__main__':
