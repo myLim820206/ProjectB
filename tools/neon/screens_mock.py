@@ -287,10 +287,10 @@ def m_tree():
     tube(M, 440, 8, 400, 54, 12, (180, 140, 255), 1.0, 2.2)
     M.word(640, 45, 'SKILL TREE', (180, 140, 255), 26, None, track=5, font=BLOCK)
     for k, (t, c) in enumerate((('레벨 16', GOLD), ('남은 포인트 2', MINT), ('키스톤 1 / 3', GOLD), ('찍은 노드 14', FG))):
-        px = 40 + k * 120
+        px = 40 + k * 120 if k < 3 else 860  # 간판(440~840)과 안 겹치게: 셋은 왼쪽, 하나는 오른쪽 (D-291)
         M.ln(rr_pts(px, 22, 110, 26, 13), c, 1.3, 0.8)
         M.word(px + 55, 40, t, c, 11, None, font=KO)
-    M.word(1240, 40, '이번 판에서만 · 레벨이 오를 때마다 포인트 1', DIM, 10, None, font=KO, anchor_center=False) if False else M.word(1060, 40, '이번 판에서만 · 레벨마다 포인트 1', DIM, 10, None, font=KO)
+    M.word(1240, 40, '이번 판에서만 · 레벨이 오를 때마다 포인트 1', DIM, 10, None, font=KO, anchor_center=False) if False else M.word(1110, 40, '이번 판에서만 · 레벨마다 포인트 1', DIM, 10, None, font=KO)
     # 툴팁: 키스톤 위에 마우스
     kx, ky = nodes[24][2], nodes[24][3]
     heart(M, kx, ky - 34)
