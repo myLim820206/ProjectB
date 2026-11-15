@@ -2076,13 +2076,15 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		auto MonoA = [&](float A) { return FLinearColor(Mono.R, Mono.G, Mono.B, A); };
 		// TV 빛 (D-303): 켜진 브라운관이 둘레 벽에 푸르스름한 빛을 흘리고, 화면 가운데가 은은하게 밝다. 화면 밝기처럼 살짝 일렁인다
 		const float TvFl = 0.9f + 0.06f * FMath::Sin(Clock * 7.3f) + 0.04f * FMath::Sin(Clock * 23.1f);
-		C.Spill(FCanvas::RoundRectPoints(RX + 10.f, FY + 10.f, PW - 20.f, PowCardH - 20.f, 18.f), Mono, 80.f, 0.32f * TvFl);
+		const FLinearColor TvLight = Hex(TEXT("9cc6ff")); // 브라운관 빛은 차가운 푸른색 (흰 회색은 안개처럼 뿌옜다)
+		C.Spill(FCanvas::RoundRectPoints(RX + 8.f, FY + 8.f, PW - 16.f, PowCardH - 16.f, 16.f), TvLight, 52.f, 0.5f * TvFl); // 둘레에만 좁게
 		// 틀
 		C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.85f));
 		Frame2(RX, FY, PW, PowCardH, 16.f, LavP, 0.8f);
 		const float SX = RX + 12.f, SY = FY + 12.f, SW = PW - 52.f, SH = PowCardH - 24.f;
 		C.Box(SX + 4.f, SY + 4.f, SW - 8.f, SH - 8.f, Hex(TEXT("0b0d14"), 1.f));
-		C.Spill({FVector2f(SX + SW * 0.5f, SY + SH * 0.3f), FVector2f(SX + SW * 0.5f, SY + SH * 0.7f)}, Mono, SW * 0.92f, 0.22f * TvFl); // 화면 가운데 형광 빛
+		C.SoftDisc(FVector2f(SX + SW * 0.5f, SY + SH * 0.5f), SW * 0.55f, SH * 0.55f, TvLight, 0.42f * TvFl); // 화면 가운데에서 동그랗게 퍼지는 형광 빛
+		C.Glow(FCanvas::RoundRectPoints(SX + 4.f, SY + 4.f, SW - 8.f, SH - 8.f, 18.f), WithAlpha(TvLight, 0.4f * TvFl), 2.f, 0.9f * TvFl); // 유리 가장자리로 새는 빛
 		C.Glow(FCanvas::RoundRectPoints(SX, SY, SW, SH, 22.f), WithAlpha(LavP, 0.85f), 1.5f, 0.5f);
 		{ // 토끼 귀 안테나
 			const float BX = RX + PW - 54.f, BY = FY;
@@ -3263,7 +3265,7 @@ void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) cons
 		const bool bSpill = Pass == 0;
 		auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float Wk)
 		{
-			if (bSpill) { C.Spill(Pts, Col, Wk * K, 0.3f); C.Spill(Pts, Col, Wk * 2.75f * K, 0.18f); }
+			if (bSpill) { C.Spill(Pts, Col, Wk * K, 0.45f); C.Spill(Pts, Col, Wk * 2.75f * K, 0.27f); }
 			else C.Glow(Pts, WithAlpha(Col, 0.85f), Th, 0.4f);
 		};
 		PDLogo::FPoly Ps[2];
@@ -3470,6 +3472,23 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, 12.f), WithAlpha(Lav, 0.8f), 1.7f, 0.5f);
 	for (const float Wx : {LX + 26.f, LX + LW - 26.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, HandPanelY)}, Hex(TEXT("5f6878"), 0.45f), 1.f); // 매단 줄
 	C.Lines(FCanvas::RoundRectPoints(LX + 5.f, HandPanelY + 5.f, LW - 10.f, PH - 10.f, 8.f), WithAlpha(Lav, 0.4f), 0.9f);
+	{ // 메뉴판 위 전등 (D-304): 판 윗선에 걸린 갓 전등이 아래로 따뜻한 빛을 내린다 (넓어지며 옅어지는 빛 기둥)
+		const FLinearColor Warm = Hex(TEXT("ffe2a8"));
+		const float Cx = LX + LW / 2.f, Y0 = HandPanelY + 4.f, Len = 190.f;
+		const float Fl = 0.94f + 0.06f * FMath::Sin(Clock * 3.1f);
+		for (float Dy = 0.f; Dy < Len; Dy += 2.f)
+		{
+			const float T = Dy / Len, Fade = FMath::Pow(1.f - T, 1.6f) * Fl;
+			const float W = FMath::Min(124.f + (LW - 12.f - 124.f) * FMath::Min(1.f, T * 1.8f), LW - 12.f);
+			C.Box(Cx - W / 2.f, Y0 + Dy, W, 2.f, WithAlpha(Warm, 0.09f * Fade));
+			C.Box(Cx - W * 0.35f, Y0 + Dy, W * 0.7f, 2.f, WithAlpha(Warm, 0.11f * Fade));
+		}
+		C.Spill({FVector2f(Cx - 52.f, Y0 + 1.f), FVector2f(Cx + 52.f, Y0 + 1.f)}, Warm, 26.f, 0.75f * Fl); // 갓 밑 전구 빛
+		const TArray<FVector2f> Shade = {FVector2f(Cx - 48.f, Y0 - 9.f), FVector2f(Cx + 48.f, Y0 - 9.f), FVector2f(Cx + 62.f, Y0), FVector2f(Cx - 62.f, Y0), FVector2f(Cx - 48.f, Y0 - 9.f)};
+		C.Box(Cx - 55.f, Y0 - 9.f, 110.f, 9.f, Hex(TEXT("0b0b12"), 1.f));
+		C.Glow(Shade, Hex(TEXT("c9b98f")), 1.3f, 0.5f);
+		C.Lines({FVector2f(Cx - 58.f, Y0), FVector2f(Cx + 58.f, Y0)}, WithAlpha(Warm, 0.95f * Fl), 1.6f); // 갓 밑 빛나는 테
+	}
 	if (bMenuBoard)
 	{
 		// 레터보드: 홈 파인 판 + 크림색 꽂는 글자
