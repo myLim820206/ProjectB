@@ -86,6 +86,9 @@ class Sign:
             if b > 0.25: gd.text((x * S, y * S), ch, font=f, fill=dim(c, b), anchor='ls', stroke_width=tw * 3, stroke_fill=dim(c, b))
             # 튜브: 외곽선만 (속은 배경색으로 다시 칠함)
             cd.text((x * S, y * S), ch, font=f, fill=dim(c, max(0.16, b)), anchor='ls', stroke_width=tw, stroke_fill=dim(c, max(0.16, b)))
+            if px < 26:  # 작은 글자는 속을 비우지 않는다 (읽기 쉽게)
+                cd.text((x * S, y * S), ch, font=f, fill=dim(c, max(0.16, b)), anchor='ls')
+                continue
             cd.text((x * S, y * S), ch, font=f, fill=(0, 0, 0), anchor='ls')
             if b > 0.6:  # 튜브 가운데 흰 심
                 cd.text((x * S, y * S), ch, font=f, fill=None, anchor='ls', stroke_width=max(1, tw // 3), stroke_fill=dim((255, 255, 255), 0.35 * b))
