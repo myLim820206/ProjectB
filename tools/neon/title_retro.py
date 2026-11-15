@@ -44,7 +44,6 @@ def title_1(phase=0):
     bulbs(M, [(344, 132), (936, 132), (936, 254), (344, 254), (344, 132)], 24, phase)
     M.word(620, 228, 'Pallas', PINK, 96, None, font=SCRIPT)
     spade_crown(M, 880, 195, 20, GOLD)
-    M.word(640, 300, 'GODDESS  OF  POKER', GOLD, 22, None, track=3, font=BLOCK)
     chip(M, 1080, 24, '칩 1,240', GOLD)
     for i, n in enumerate(MENU):
         y = 330 + i * 52
@@ -73,7 +72,6 @@ def title_2(phase=0):
     M.word(cx, cy + 34, 'Pallas', PINK, 78, None, font=SCRIPT)
     M.ln([(cx - 90, cy + 56), (cx + 90, cy + 56)], CYAN, 1.6)
     spade_crown(M, cx, cy + 92, 14, GOLD)
-    M.word(cx, 340, 'GODDESS  OF  POKER', GOLD, 20, None, track=3, font=BLOCK)
     chip(M, 1080, 24, '칩 1,240', GOLD)
     for i, n in enumerate(MENU):
         y = 362 + i * 50
@@ -100,7 +98,6 @@ def title_3(phase=0):
         q = [(640 + (x - 640) * 1.9, 190 + (y - 190) * 0.62) for x, y in p]
         M.ln(q, ORANGE, 2.4)
     M.word(640, 214, 'Pallas', PINK, 96, None, font=SCRIPT)
-    M.word(640, 322, 'GODDESS  OF  POKER', GOLD, 20, None, track=3, font=BLOCK)
     chip(M, 1080, 24, '칩 1,240', GOLD)
     suits = ['spade', 'heart', 'diamond', 'club', 'spade', 'heart']
     cols = [CYAN, PINK, GOLD, (138, 255, 196), CYAN, PINK]
