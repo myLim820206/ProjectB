@@ -118,7 +118,7 @@ private:
 	void PaintRanking(FCanvas& C) const;
 	bool bPaused = false;                  // 일시정지 (D-169): 위쪽 띠 버튼 또는 P. 멈춘 동안에도 카드 놓기·합성은 된다
 	// 도움말 (D-217): 게임하면서 상황에 맞춰 뜨는 작은 카드. 한 번 본 것은 진행 파일에 남아 다시 안 뜬다. 설정에서 끄기·처음부터
-	enum class EHint : uint8 { Place, Synergy, FirstHand, StartWave, Fuse, Chain, Joker, Feed, HandFull, Swap, Boss, Shop, Reward, Upper, Count }; // Upper: 상위 조커 (D-231)
+	enum class EHint : uint8 { Place, Synergy, FirstHand, StartWave, Fuse, Chain, Joker, Feed, HandFull, Swap, Boss, Shop, Reward, Upper, Sell, UpperHow, Count }; // Upper: 상위 조커 (D-231). Sell·UpperHow: 판매·상위 조커 조건 (D-243). 순서 = 저장된 비트, 새 것은 Count 앞에
 	uint32 HintSeen = 0;                   // 본 도움말 (1 << EHint)
 	int32 HintNow = -1;                    // 지금 뜬 도움말 (-1 = 없음)
 	float HintAge = 0.f;

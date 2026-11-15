@@ -590,6 +590,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 보스 웨이브	Boss wave	ボスウェーブ	首领波次	首領波次	PDBoardPaint.cpp
 레벨 업	Level Up	レベルアップ	升级	升級	PDBoardPaint.cpp
 보상 고르기	Pick a reward	報酬を選ぶ	选择奖励	選擇獎勵	PDBoardPaint.cpp
+타워 판매	Selling Towers	タワー売却	出售塔	出售塔	PDBoardPaint.cpp
+상위 조커 조건	Upper Joker Rules	上位ジョーカーの条件	上位小丑条件	上位小丑條件	PDBoardPaint.cpp
 손패 카드를 누르고 판의 빈 칸을 클릭하면	Pick a card in your hand and click an empty tile	手札のカードを押して盤の空きマスをクリックすると	选中手牌, 再点击棋盘空格	選中手牌, 再點擊棋盤空格	PDBoardPaint.cpp
 그 카드가 타워가 돼요	and it becomes a tower	そのカードがタワーになります	这张卡就会变成塔	這張卡就會變成塔	PDBoardPaint.cpp
 카드를 붙여 놓아 포커 족보(원 페어·스트레이트…)를	Place cards next to each other to form poker hands (pair, straight…)	カードを隣に置いてポーカーの役(ワンペア・ストレート…)を	把卡牌相邻放置组成扑克牌型 (对子·顺子…)	把卡牌相鄰放置組成撲克牌型 (對子·順子…)	PDBoardPaint.cpp
@@ -602,10 +604,10 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 판에서 합쳐질 칸을 클릭해 보세요	then click the tile to fuse into	盤でまとめるマスをクリックしてみましょう	再点击棋盘上要合成到的格子	再點擊棋盤上要合成到的格子	PDBoardPaint.cpp
 족보끼리 맞닿으면 연쇄 보너스로	When hands touch, the chain bonus	役同士が隣り合うと連鎖ボーナスで	牌型相邻时, 连锁加成让	牌型相鄰時, 連鎖加成讓	PDBoardPaint.cpp
 이어진 족보가 모두 더 강해져요	makes all linked hands stronger	つながった役がすべて強くなります	相连的牌型全部变强	相連的牌型全部變強	PDBoardPaint.cpp
-왼쪽 '조커' 줄을 눌러 조커를 고르고	Click the 'Joker' row on the left, pick a Joker	左の「ジョーカー」行を押してジョーカーを選び	点击左侧「小丑」行选择小丑	點擊左側「小丑」行選擇小丑	PDBoardPaint.cpp
-재료를 클릭해 조커를 만들어 보세요	and click materials to make it	素材をクリックしてジョーカーを作ってみましょう	再点击素材来制作小丑	再點擊素材來製作小丑	PDBoardPaint.cpp
-왼쪽 '먹이기' 줄에서 조커를 고르고	Pick a Joker in the 'Feed' row on the left	左の「餌やり」行でジョーカーを選び	在左侧「喂食」行选择小丑	在左側「餵食」行選擇小丑	PDBoardPaint.cpp
-옆 족보를 먹여 조커 레벨을 올려 보세요	Feed it a nearby hand to raise its Joker Level	隣の役を食べさせてジョーカーレベルを上げよう	喂给它旁边的牌型来提升小丑等级	餵給它旁邊的牌型來提升小丑等級	PDBoardPaint.cpp
+왼쪽 '조커' 줄을 눌러 만들 조커를 고르고	Click the 'Joker' row on the left and pick a joker	左の「ジョーカー」の行を押して作るジョーカーを選び	点击左侧"小丑"行，选择要制作的小丑	點擊左側「小丑」行，選擇要製作的小丑	PDBoardPaint.cpp
+'추천' 재료를 고르고, 그 재료를 다시 누르면 완성	pick 'Best' materials, then click one again to create it	「おすすめ」素材を選び、もう一度押すと完成	选择"推荐"材料，再点一次即可完成	選擇「推薦」材料，再點一次即可完成	PDBoardPaint.cpp
+'먹이기' 줄(또는 판의 조커)에서 조커를 고르고	Pick a joker from the 'Feed' row (or click a joker on the board)	「餌やり」の行（または盤のジョーカー）でジョーカーを選び	在"喂食"行（或点击场上的小丑）选择小丑	在「餵食」行（或點擊場上的小丑）選擇小丑	PDBoardPaint.cpp
+빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요	and click a glowing hand to feed it and raise its joker level	光る役のマスを押して食べさせるとジョーカーレベルが上がります	点击发光的牌型格子喂食，小丑等级就会提升	點擊發光的牌型格子餵食，小丑等級就會提升	PDBoardPaint.cpp
 카드를 오른쪽 클릭해 버리거나	Right-click a card to discard it, or	カードを右クリックで捨てるか	右键卡牌丢弃, 或	右鍵卡牌丟棄, 或	PDBoardPaint.cpp
 Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タワーの上に置いて入れ替えましょう	放到 Lv1 塔上替换	放到 Lv1 塔上替換	PDBoardPaint.cpp
 자리바꿈 버튼(X)을 누르고 타워 둘을 고르면	Press the Swap button (X) and pick two towers	入れ替えボタン(X)を押してタワーを2つ選ぶと	按换位按钮 (X) 并选两座塔	按換位按鈕 (X) 並選兩座塔	PDBoardPaint.cpp
@@ -614,10 +616,14 @@ Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タ
 위쪽에 보스 이름이 보여요	Its name is shown at the top	上にボスの名前が表示されます	顶部会显示首领名字	頂部會顯示首領名字	PDBoardPaint.cpp
 레벨이 올라 포인트가 생겼어요	You leveled up and got a point	レベルが上がってポイントを得た	升级了，获得了点数	升級了，獲得了點數	PDBoardPaint.cpp
 스킬 트리(K)에서 노드를 찍어 보세요	Spend it on a node in the Skill Tree (K)	スキルツリー(K)でノードを取ろう	在技能树(K)中点亮节点吧	在技能樹(K)中點亮節點吧	PDBoardPaint.cpp
-카드 셋 중 하나를 고르거나	Pick one of the three cards, or	3枚のカードから1枚選ぶか	从三张卡中选一张, 或	從三張卡中選一張, 或	PDBoardPaint.cpp
-S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	按 S 跳過	PDBoardPaint.cpp
+묘약(판 내내 효과)이나 즉시 보상 중 하나를 고르거나	Pick one: a potion (lasts the whole run) or an instant reward,	秘薬（ラン中ずっと効果）か即時報酬から一つ選ぶか	从秘药（整局有效）或即时奖励中选择一个，	從秘藥（整局有效）或即時獎勵中選擇一個，	PDBoardPaint.cpp
+S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potion slots	Sでスキップ。秘薬枠は5つです	或按S跳过。秘药栏位共5个	或按S跳過。秘藥欄位共5個	PDBoardPaint.cpp
 맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요	You can combine two adjacent jokers into an Upper Joker	隣り合う2体のジョーカーを合わせて上位ジョーカーを作れます	可以把相邻的两个小丑合成为上位小丑	可以把相鄰的兩個小丑合成為上位小丑	PDBoardPaint.cpp
-두 조커 사이의 금색 버튼을 눌러 보세요	Press the gold button between them	2体の間の金色のボタンを押してみよう	点击两者之间的金色按钮试试	點擊兩者之間的金色按鈕試試	PDBoardPaint.cpp
+두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요	Use the gold button between them or the 'Joker' list	二つの間の金色ボタンか「ジョーカー」リストで合体します	点击两者之间的金色按钮或在"小丑"列表中合成	點擊兩者之間的金色按鈕或在「小丑」列表中合成	PDBoardPaint.cpp
+필요 없는 타워는 오른쪽 클릭 → [판매] 버튼	Right-click a tower you don't need, then press [Sell]	不要なタワーは右クリック →［売却］ボタン	不需要的塔可右键点击 → [出售] 按钮	不需要的塔可右鍵點擊 → [出售] 按鈕	PDBoardPaint.cpp
+팔면 경험치를 받아요 (조커는 더 많이)	Selling gives XP (more for jokers)	売ると経験値がもらえます（ジョーカーはもっと）	出售可获得经验（小丑更多）	出售可獲得經驗（小丑更多）	PDBoardPaint.cpp
+다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요	Two different adjacent jokers, both joker level 10, can merge	異なるジョーカー二つが隣接し、両方ジョーカーレベル10なら合体	两个不同的小丑相邻且小丑等级都达到10即可合成	兩個不同的小丑相鄰且小丑等級都達到10即可合成	PDBoardPaint.cpp
+상위 조커는 시작 화면 [잠금 해제]에서 열어요	Unlock upper jokers first in [Unlocks] on the title screen	上位ジョーカーはタイトル画面の［解放］で開放します	上位小丑需在标题画面的 [解锁] 中解锁	上位小丑需在標題畫面的 [解鎖] 中解鎖	PDBoardPaint.cpp
 도움말	Hints	ヒント	提示	提示	PDBoardPaint.cpp
 알겠어	Got it	わかった	知道了	知道了	PDBoardPaint.cpp
 도움말 끄기	Turn off hints	ヒントを切る	关闭提示	關閉提示	PDBoardPaint.cpp
@@ -671,6 +677,13 @@ S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+왼쪽 '조커' 줄을 눌러 조커를 고르고	Click the 'Joker' row on the left, pick a Joker	左の「ジョーカー」行を押してジョーカーを選び	点击左侧「小丑」行选择小丑	點擊左側「小丑」行選擇小丑	PDLangTable.inl
+재료를 클릭해 조커를 만들어 보세요	and click materials to make it	素材をクリックしてジョーカーを作ってみましょう	再点击素材来制作小丑	再點擊素材來製作小丑	PDLangTable.inl
+왼쪽 '먹이기' 줄에서 조커를 고르고	Pick a Joker in the 'Feed' row on the left	左の「餌やり」行でジョーカーを選び	在左侧「喂食」行选择小丑	在左側「餵食」行選擇小丑	PDLangTable.inl
+옆 족보를 먹여 조커 레벨을 올려 보세요	Feed it a nearby hand to raise its Joker Level	隣の役を食べさせてジョーカーレベルを上げよう	喂给它旁边的牌型来提升小丑等级	餵給它旁邊的牌型來提升小丑等級	PDLangTable.inl
+카드 셋 중 하나를 고르거나	Pick one of the three cards, or	3枚のカードから1枚選ぶか	从三张卡中选一张, 或	從三張卡中選一張, 或	PDLangTable.inl
+S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	按 S 跳過	PDLangTable.inl
+두 조커 사이의 금색 버튼을 눌러 보세요	Press the gold button between them	2体の間の金色のボタンを押してみよう	点击两者之间的金色按钮试试	點擊兩者之間的金色按鈕試試	PDLangTable.inl
 묘약 상자 %s에서 열림	Unlocked by Potion Box %s	秘薬箱 %s で解放	由秘药箱 %s 解锁	由秘藥箱 %s 解鎖	PDLangTable.inl
 묘약 상자 I	Potion Box I	秘薬箱 I	秘药箱 I	秘藥箱 I	PDLangTable.inl
 묘약 상자 II	Potion Box II	秘薬箱 II	秘药箱 II	秘藥箱 II	PDLangTable.inl

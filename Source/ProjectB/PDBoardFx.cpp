@@ -52,6 +52,7 @@ void SPDBoardWidget::HandleEvents()
 	for (const FPDEvent& E : Game.Events)
 	{
 		HintEv |= 1u << ((int32)E.Kind & 31); // 도움말이 볼 사건 (D-217)
+		if (E.Kind == FPDEvent::EKind::Discard && E.A > 0) HintEv |= 1u << 31; // 31번 비트 = 타워 판매 (Discard 중 A = 값, D-243)
 		const FVector2f P = CellPx(E.X, E.Y);
 		switch (E.Kind)
 		{

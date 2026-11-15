@@ -2712,7 +2712,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 {
 	HintOkRect = HintOffRect = HintCardRect = FBox2f(FVector2f(-1.f, -1.f), FVector2f(-1.f, -1.f));
 	if (HintNow < 0 || bMenu || bSettings || bTree || bUpg || bCodex || bRanking || Game.Phase == EPDPhase::Title) return;
-	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("레벨 업"), TEXT("보상 고르기"), TEXT("상위 조커")};
+	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("레벨 업"), TEXT("보상 고르기"), TEXT("상위 조커"), TEXT("타워 판매"), TEXT("상위 조커 조건")};
 	static const TCHAR* Body[(int32)EHint::Count][2] = {
 		{TEXT("손패 카드를 누르고 판의 빈 칸을 클릭하면"), TEXT("그 카드가 타워가 돼요")},
 		{TEXT("카드를 붙여 놓아 포커 족보(원 페어·스트레이트…)를"), TEXT("만들면 타워가 강해져요")},
@@ -2720,14 +2720,16 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("준비가 되면 Space 또는"), TEXT("[웨이브 시작] 버튼을 누르세요")},
 		{TEXT("왼쪽 목록의 '합성 ×N' 줄을 누르고"), TEXT("판에서 합쳐질 칸을 클릭해 보세요")},
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스로"), TEXT("이어진 족보가 모두 더 강해져요")},
-		{TEXT("왼쪽 '조커' 줄을 눌러 조커를 고르고"), TEXT("재료를 클릭해 조커를 만들어 보세요")},
-		{TEXT("왼쪽 '먹이기' 줄에서 조커를 고르고"), TEXT("옆 족보를 먹여 조커 레벨을 올려 보세요")},
+		{TEXT("왼쪽 '조커' 줄을 눌러 만들 조커를 고르고"), TEXT("'추천' 재료를 고르고, 그 재료를 다시 누르면 완성")},
+		{TEXT("'먹이기' 줄(또는 판의 조커)에서 조커를 고르고"), TEXT("빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요")},
 		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
 		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
 		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("위쪽에 보스 이름이 보여요")},
 		{TEXT("레벨이 올라 포인트가 생겼어요"), TEXT("스킬 트리(K)에서 노드를 찍어 보세요")},
-		{TEXT("카드 셋 중 하나를 고르거나"), TEXT("S로 넘기세요")},
-		{TEXT("맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요"), TEXT("두 조커 사이의 금색 버튼을 눌러 보세요")}};
+		{TEXT("묘약(판 내내 효과)이나 즉시 보상 중 하나를 고르거나"), TEXT("S로 넘기세요. 묘약 칸은 5개예요")},
+		{TEXT("맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요"), TEXT("두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요")},
+		{TEXT("필요 없는 타워는 오른쪽 클릭 → [판매] 버튼"), TEXT("팔면 경험치를 받아요 (조커는 더 많이)")},
+		{TEXT("다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요"), TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요")}};
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const FLinearColor Edge = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("8a94a6"));
 	constexpr float TW = 330.f, TH = 104.f;

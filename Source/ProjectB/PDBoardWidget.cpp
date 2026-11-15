@@ -933,6 +933,8 @@ void SPDBoardWidget::UpdateHints(float Dt)
 	auto AnyFuse = [this]() { for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I) if (Game.CanFuse(I)) return true; return false; };
 	auto AnyUpper = [this]() { for (const FPDJokerMerge& M : Game.JokerMerges()) if (M.Upper >= 0) return true; return false; }; // 상위 조커를 만들 수 있다 (D-231)
 	auto AnyChain = [this]() { for (const FPDSynergy& S : Game.Synergies) if (S.Chain >= 2) return true; return false; };
+	auto BaseJokers = [this]() { uint32 M = 0; for (const auto& KV : Game.Towers) if (KV.second.IsJoker() && !IsUpperJoker(KV.second.Joker)) M |= 1u << (KV.second.Joker & 31); return FMath::CountBits(M); }; // 판 위 기본 조커 가짓수
+	const bool bSold = ((Ev >> 31) & 1u) != 0; // 타워를 팔았다 (D-243)
 	auto CanShop = [this]() {
 		return Game.PointsLeft() > 0; }; // 트리 포인트가 남음 (D-228)
 	const bool bBuild = Game.Phase == EPDPhase::Build, bWave = Game.Phase == EPDPhase::Wave;
@@ -955,7 +957,9 @@ void SPDBoardWidget::UpdateHints(float Dt)
 		case EHint::Boss: bDone = bWave; break;
 		case EHint::Shop: bDone = bTree; bGone = !bDone && !CanShop(); break;
 		case EHint::Reward: bDone = Game.Phase != EPDPhase::Reward; break;
-		case EHint::Upper: bDone = Game.UpperFound != 0; bGone = !bDone && !AnyUpper(); break;
+		case EHint::Upper: bDone = Has(FPDEvent::EKind::JokerMerge); bGone = !bDone && !AnyUpper(); break;
+		case EHint::Sell: bDone = bSold || SellCell >= 0; bGone = !bDone && Game.Towers.empty(); break; // 판매 버튼을 열었거나 팔았다
+		case EHint::UpperHow: bDone = Has(FPDEvent::EKind::JokerMerge) || HintAge > 15.f; break;
 		default: bGone = true; break;
 		}
 		if (bDone) FinishHint();
@@ -983,6 +987,8 @@ void SPDBoardWidget::UpdateHints(float Dt)
 		case EHint::Shop: bOn = (bBuild || bWave) && Game.Wave > 0 && CanShop(); break;
 		case EHint::Reward: bOn = Game.Phase == EPDPhase::Reward; break;
 		case EHint::Upper: bOn = (bBuild || bWave) && AnyUpper(); break;
+		case EHint::Sell: bOn = bBuild && Game.Wave >= 3 && Game.Towers.size() >= 4; break;
+		case EHint::UpperHow: bOn = bBuild && BaseJokers() >= 2 && !AnyUpper(); break;
 		default: break;
 		}
 		if (!bOn) continue;
@@ -1014,6 +1020,8 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 	case EHint::Swap: Out = FBox2f(FVector2f(SwapBtnX, SwapBtnY), FVector2f(SwapBtnX + SwapBtnW, SwapBtnY + SwapBtnH)); return true;
 	case EHint::Boss: Out = FBox2f(FVector2f(30.f, HudY + 34.f), FVector2f(310.f, HudY + 50.f)); return true;
 	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + RBtnW, TreeBtnY + TreeBtnH)); return true;
+	case EHint::Sell: for (const auto& KV : Game.Towers) if (!KV.second.IsJoker()) return Cells({KV.first}); return false;
+	case EHint::UpperHow: return Row(JokerFilterId);
 	case EHint::Upper: for (const FPDJokerMerge& M : Game.JokerMerges()) if (M.Upper >= 0) { const FVector2f B = MergeButtonCenter(M.Cells); Out = FBox2f(B - FVector2f(MergeW / 2.f, MergeH / 2.f), B + FVector2f(MergeW / 2.f, MergeH / 2.f)); return true; } return false;
 	default: return false;
 	}
