@@ -1201,15 +1201,14 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (Game.Phase == EPDPhase::Title && bUnlock) // 잠금 해제 (D-239): 탭, 카드 클릭 = 사기, 닫기
 	{
 		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bUnlock = false; return; }
-		for (int32 I = 0; I < 2; ++I) if (InRect(P, UnlTabX(I), UnlTabY, UnlTabW, UnlTabH)) { UnlockTab = I; UiSound(EPDSound::Move); return; }
-		if (UnlockTab == 0)
+		for (int32 Sd = 0; Sd < 2; ++Sd) if (InRect(P, UnlSideX(Sd), UnlSideY, UnlSideW, UnlSideH)) { UnlSetTab(UnlSideTab(Sd)); UiSound(EPDSound::Move); return; } // 옆 판 = 탭 바꾸기 (D-261)
+		for (int32 Dir = -1; Dir <= 1; Dir += 2)
+			if (UnlPages() > 1 && InRect(P, UnlPgX(Dir), UnlPgY, UnlPgW, UnlPgH)) { UnlFlip(Dir); UiSound(EPDSound::Move); return; }
+		const int32 K = UnlRowAt(P); // 줄 클릭 = 칩으로 열기
+		if (K >= 0)
 		{
-			for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) { const FVector2f C0 = CharmCardPos(J); if (InRect(P, C0.X, C0.Y, ChCardW, ChCardH)) { if (!BuyCharm(J)) UiSound(EPDSound::Denied); return; } }
-		}
-		else
-		{
-			for (int32 J = 0; J < (int32)EPDJoker::Count; ++J) { const FVector2f C0 = UnlJokerPos(J); if (InRect(P, C0.X, C0.Y, UnlJW, UnlJH)) { if (!BuyJoker(J)) UiSound(EPDSound::Denied); return; } }
-			for (int32 U = 0; U < UpperJokerCount; ++U) { const FVector2f C0 = UnlUpperPos(U); if (InRect(P, C0.X, C0.Y, UnlUW, UnlUH)) { if (!BuyUpper(U)) UiSound(EPDSound::Denied); return; } }
+			const bool bOk = UnlockTab == 0 ? BuyCharm(K) : UnlockTab == 1 ? BuyJoker(K) : BuyUpper(K);
+			if (!bOk) UiSound(EPDSound::Denied);
 		}
 		return;
 	}
@@ -1475,6 +1474,27 @@ bool SPDBoardWidget::MetaBuy(int32 U, int32 N)
 	return true;
 }
 
+int32 SPDBoardWidget::UnlCount(int32 Tab) const { return Tab == 0 ? (int32)EPDCharm::Count : Tab == 1 ? (int32)EPDJoker::Count : UpperJokerCount; }
+int32 SPDBoardWidget::UnlPages() const { return FMath::Max(1, (UnlCount(UnlockTab) + UnlPerPage - 1) / UnlPerPage); }
+
+int32 SPDBoardWidget::UnlRowAt(FVector2f P) const
+{
+	for (int32 Slot = 0; Slot < UnlPerPage; ++Slot)
+	{
+		const int32 K = UnlockPage * UnlPerPage + Slot;
+		if (K >= UnlCount(UnlockTab)) break;
+		const FVector2f R = UnlRowPos(Slot);
+		if (InRect(P, R.X, R.Y, UnlRowW, UnlRowH)) return K;
+	}
+	return -1;
+}
+
+FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (Game.Phase == EPDPhase::Title && bUnlock && UnlPages() > 1) { UnlFlip(MouseEvent.GetWheelDelta() > 0.f ? -1 : 1); return FReply::Handled(); }
+	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
+}
+
 bool SPDBoardWidget::BuyCharm(int32 J)
 {
 	if (Game.Phase != EPDPhase::Title || J < 0 || J >= (int32)EPDCharm::Count || ((Game.CharmUnlocked >> J) & 1u)) return false;
@@ -1625,7 +1645,7 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Start: bModeSel = true; ModeSel = ModeOpen((int32)Game.Mode) ? (int32)Game.Mode : 0; UiSound(EPDSound::Move); break; // 모드 고르기 창 (D-229)
 	case ETitleItem::Upgrades: bUpg = true; UiSound(EPDSound::Move); break;
-	case ETitleItem::Unlock: bUnlock = true; UnlockTab = 0; UiSound(EPDSound::Move); break;
+	case ETitleItem::Unlock: bUnlock = true; UnlSetTab(0); UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
 		if (OnQuit) OnQuit();
@@ -1740,6 +1760,13 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		else if (K == EKeys::Escape) bModeSel = false;
 		return FReply::Handled();
 	}
+	if (bUnlock) // 시작 화면 키보다 먼저 받는다 (D-261). 잠금 해제 (D-239, D-261): Tab = 다음 탭, 왼쪽·오른쪽 = 쪽 넘기기
+	{
+		if (K == EKeys::Escape) bUnlock = false;
+		else if (K == EKeys::Tab) UnlSetTab((UnlockTab + 1) % 3);
+		else if (K == EKeys::Left || K == EKeys::Right) UnlFlip(K == EKeys::Left ? -1 : 1);
+		return FReply::Handled();
+	}
 	if (Game.Phase == EPDPhase::Title)
 	{
 		const int32 N = (int32)ETitleItem::Count; // 시작 화면 (D-153): 위아래 고르기, Enter 결정
@@ -1771,7 +1798,6 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		return FReply::Handled();
 	}
 	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
-	if (bUnlock) { if (K == EKeys::Escape) bUnlock = false; else if (K == EKeys::Tab || K == EKeys::Left || K == EKeys::Right) UnlockTab = 1 - UnlockTab; return FReply::Handled(); } // 잠금 해제 (D-239)
 	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
 	if (!PickCells.empty())
 	{

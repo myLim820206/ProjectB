@@ -528,6 +528,15 @@ constexpr float UnlJW = 228.f, UnlJH = 112.f, UnlJGap = 12.f, UnlJY0 = 96.f; // 
 constexpr float UnlUW = 118.f, UnlUH = 96.f, UnlUGap = 6.f, UnlUY0 = 366.f;
 inline FVector2f UnlUpperPos(int U) { return FVector2f(DesignW / 2.f - (10.f * UnlUW + 9.f * UnlUGap) / 2.f + (U % 10) * (UnlUW + UnlUGap), UnlUY0 + (U / 10) * (UnlUH + UnlUGap)); }
 inline FVector2f UnlJokerPos(int J) { return FVector2f(DesignW / 2.f - (5.f * UnlJW + 4.f * UnlJGap) / 2.f + (J % 5) * (UnlJW + UnlJGap), UnlJY0 + (J / 5) * (UnlJH + UnlJGap)); }
+// 잠금 해제 시안 C (D-261): 걸린 메뉴판 셋. 가운데 큰 판 = 지금 탭, 양옆 작은 판 = 다른 두 탭 (누르면 바뀜). 줄 2단 × 15 = 한 쪽 30개
+constexpr float UnlBX = 260.f, UnlBY = 70.f, UnlBW = 760.f, UnlBH = 620.f;
+constexpr float UnlSideW = 200.f, UnlSideH = 150.f, UnlSideY = 200.f;
+inline float UnlSideX(int Side) { return Side == 0 ? 40.f : DesignW - 40.f - UnlSideW; }
+constexpr int32 UnlPerPage = 30;
+constexpr float UnlRowW = 330.f, UnlRowH = 26.f;
+inline FVector2f UnlRowPos(int Slot) { return FVector2f(305.f + (Slot / 15) * 360.f, 160.f + (Slot % 15) * 30.f); }
+constexpr float UnlPgW = 44.f, UnlPgH = 30.f, UnlPgY = 652.f;
+inline float UnlPgX(int Dir) { return Dir < 0 ? UnlBX + 30.f : UnlBX + UnlBW - 30.f - UnlPgW; }
 // 상위 조커 쪽: 6 × 5 카드
 constexpr float UpCardW = 192.f, UpCardH = 112.f, UpCardGap = 8.f, UpCardY0 = 80.f;
 inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * UpCardW + 5.f * UpCardGap) / 2.f + (U % 6) * (UpCardW + UpCardGap), UpCardY0 + (U / 6) * (UpCardH + UpCardGap)); }

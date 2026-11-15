@@ -507,15 +507,19 @@ Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jok
 카드 클릭: 크게 보기 · J / Esc: 닫기	Click a card: enlarge · J / Esc: close	カードをクリック: 拡大 · J / Esc: 閉じる	点击卡牌: 放大 · J / Esc: 关闭	點擊卡牌: 放大 · J / Esc: 關閉	PDBoardPaint.cpp
 기본 조커	Basic Jokers	基本ジョーカー	基本小丑	基本小丑	PDBoardPaint.cpp
 상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardPaint.cpp
-잠금 해제	Unlocks	解放	解锁	解鎖	PDBoardPaint.cpp
-칩 %s	Chips %s	チップ %s	筹码 %s	籌碼 %s	PDBoardPaint.cpp
 조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
+눌러서 보기	Click to view	クリックで表示	点击查看	點擊查看	PDBoardPaint.cpp
+연 묘약만 5웨이브 보상에 나온다	Only unlocked potions appear in wave-5 rewards	解放した秘薬だけが5ウェーブ報酬に出る	只有已解锁的秘药会出现在每5波奖励中	只有已解鎖的祕藥會出現在每5波獎勵中	PDBoardPaint.cpp
 열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
-%d칩	%d chips	%d チップ	%d 筹码	%d 籌碼	PDBoardPaint.cpp
-상위 조커 — 재료 조커 둘을 열어야 살 수 있다	Upper Jokers — unlock both material Jokers first	上位ジョーカー — 素材ジョーカー2体を先に解放	上位小丑 — 需先解锁两个素材小丑	上位小丑 — 需先解鎖兩個素材小丑	PDBoardPaint.cpp
+재료 먼저	Needs parts	素材が先	先解锁材料	先解鎖材料	PDBoardPaint.cpp
+줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다	Hover a row for details · Click to unlock with chips	行にカーソルで説明 · クリックでチップを使って解放	悬停查看说明 · 点击用筹码解锁	懸停查看說明 · 點擊用籌碼解鎖	PDBoardPaint.cpp
+%d / %d 쪽  ·  휠: 넘기기	Page %d / %d  ·  Wheel: flip	%d / %d ページ  ·  ホイール: めくる	第 %d / %d 页  ·  滚轮: 翻页	第 %d / %d 頁  ·  滾輪: 翻頁	PDBoardPaint.cpp
+칩 %s	Chips %s	チップ %s	筹码 %s	籌碼 %s	PDBoardPaint.cpp
 재료 조커 먼저	Unlock materials first	素材ジョーカーが先	先解锁素材小丑	先解鎖素材小丑	PDBoardPaint.cpp
-카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기	Click a card to unlock a potion · only unlocked potions appear as wave rewards · Tab: Jokers · Esc: close	カードを押して秘薬を解放 · 解放した秘薬だけが報酬に出る · Tab: ジョーカー · Esc: 閉じる	点击卡片解锁秘药 · 只有已解锁的秘药会出现在奖励中 · Tab: 小丑 · Esc: 关闭	點擊卡片解鎖秘藥 · 只有已解鎖的秘藥會出現在獎勵中 · Tab: 小丑 · Esc: 關閉	PDBoardPaint.cpp
-카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기	Click a card to unlock a Joker · locked Jokers can't be made even with materials · Tab: Potions · Esc: close	カードを押してジョーカーを解放 · 未解放のジョーカーは素材があっても作れない · Tab: 秘薬 · Esc: 閉じる	点击卡片解锁小丑 · 未解锁的小丑即使有素材也无法制作 · Tab: 秘药 · Esc: 关闭	點擊卡片解鎖小丑 · 未解鎖的小丑即使有素材也無法製作 · Tab: 秘藥 · Esc: 關閉	PDBoardPaint.cpp
+%d칩	%d chips	%d チップ	%d 筹码	%d 籌碼	PDBoardPaint.cpp
+클릭해서 열기	Click to unlock	クリックで解放	点击解锁	點擊解鎖	PDBoardPaint.cpp
+칩이 모자란다	Not enough chips	チップが足りない	筹码不足	籌碼不足	PDBoardPaint.cpp
+Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · Esc · Right-click: close	Tab: 次のボード · ←→: ページ · Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · Esc · 右鍵: 關閉	PDBoardPaint.cpp
 영구 강화	Permanent Upgrades	永久強化	永久强化	永久強化	PDBoardPaint.cpp
 판이 끝나면 칩을 받는다  ·  웨이브 + 2 × 오른 레벨 + 클리어 덤	Chips after each run  ·  waves + 2 × levels gained + clear bonus	プレイ終了でチップ獲得  ·  ウェーブ + 2 × 上がったレベル + クリアボーナス	每局结束获得筹码  ·  波次 + 2 × 提升等级 + 通关奖励	每局結束獲得籌碼  ·  波次 + 2 × 提升等級 + 通關獎勵	PDBoardPaint.cpp
 판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다	Upgrades that stay after a run. Raise them with chips on the title screen	ラン終了後も残る強化。タイトル画面でチップを使って上げる	一局结束后仍保留的强化。在标题画面用筹码提升	一局結束後仍保留的強化。在標題畫面用籌碼提升	PDBoardPaint.cpp
@@ -545,9 +549,9 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 조커 강화	Joker Upgrade	ジョーカー強化	小丑强化	小丑強化	PDBoardPaint.cpp
 짝: %s (함께 못 찍음)	Pair: %s (can't take both)	対: %s (同時に取れない)	成对: %s (不能同时点亮)	成對: %s (不能同時點亮)	PDBoardPaint.cpp
 클릭해서 찍기	Click to take	クリックで取得	点击点亮	點擊點亮	PDBoardPaint.cpp
-카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라	Place cards, build poker hands, hold back the endless horde	カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ	放置卡牌组成牌型, 挡住源源不断的敌人	放置卡牌組成牌型, 擋住源源不絕的敵人	PDBoardPaint.cpp
 이어하기	Continue	続きから	继续游戏	繼續遊戲	PDBoardPaint.cpp
 게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDBoardPaint.cpp
+잠금 해제	Unlocks	解放	解锁	解鎖	PDBoardPaint.cpp
 환경 설정	Settings	環境設定	设置	設定	PDBoardPaint.cpp
 최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
 위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정	Up/Down or mouse to choose · Enter or click to confirm	上下キーかマウスで選ぶ · Enter かクリックで決定	用上下键或鼠标选择 · 按 Enter 或点击确认	用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認	PDBoardPaint.cpp
@@ -677,6 +681,10 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+상위 조커 — 재료 조커 둘을 열어야 살 수 있다	Upper Jokers — unlock both material Jokers first	上位ジョーカー — 素材ジョーカー2体を先に解放	上位小丑 — 需先解锁两个素材小丑	上位小丑 — 需先解鎖兩個素材小丑	PDLangTable.inl
+카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기	Click a card to unlock a potion · only unlocked potions appear as wave rewards · Tab: Jokers · Esc: close	カードを押して秘薬を解放 · 解放した秘薬だけが報酬に出る · Tab: ジョーカー · Esc: 閉じる	点击卡片解锁秘药 · 只有已解锁的秘药会出现在奖励中 · Tab: 小丑 · Esc: 关闭	點擊卡片解鎖秘藥 · 只有已解鎖的秘藥會出現在獎勵中 · Tab: 小丑 · Esc: 關閉	PDLangTable.inl
+카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기	Click a card to unlock a Joker · locked Jokers can't be made even with materials · Tab: Potions · Esc: close	カードを押してジョーカーを解放 · 未解放のジョーカーは素材があっても作れない · Tab: 秘薬 · Esc: 閉じる	点击卡片解锁小丑 · 未解锁的小丑即使有素材也无法制作 · Tab: 秘药 · Esc: 关闭	點擊卡片解鎖小丑 · 未解鎖的小丑即使有素材也無法製作 · Tab: 秘藥 · Esc: 關閉	PDLangTable.inl
+카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라	Place cards, build poker hands, hold back the endless horde	カードを置いて役を作り、果てしなく押し寄せる敵を食い止めろ	放置卡牌组成牌型, 挡住源源不断的敌人	放置卡牌組成牌型, 擋住源源不絕的敵人	PDLangTable.inl
 ♠ 스페이드 강화	♠ Spade Upgrade	♠ スペード強化	♠ 黑桃强化	♠ 黑桃強化	PDLangTable.inl
 ♥ 하트 강화	♥ Heart Upgrade	♥ ハート強化	♥ 红心强化	♥ 紅心強化	PDLangTable.inl
 ♦ 다이아 강화	♦ Diamond Upgrade	♦ ダイヤ強化	♦ 方块强化	♦ 方塊強化	PDLangTable.inl

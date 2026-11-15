@@ -535,7 +535,8 @@ def charm_bottle(M, cx, cy, c, on):
 
 
 # ================================================================ A 벽 위 바 테이블 (지금 배치 그대로)
-def mock_A():
+def mock_A(left=None):
+    """left = 왼쪽 족보 패널을 그리는 함수 (족보 메뉴 시안). 없으면 지금 모양"""
     M = Bar()
     FX, FY, CS = 262, 74, 48
     FLOOR = 670
@@ -556,13 +557,15 @@ def mock_A():
     level_pill(M, 940, 22, 176, 32)
     hud_buttons(M, 1134, 23, 28, 7)
     # 왼쪽 족보 패널
-    tube(M, 16, 74, 232, 584, 12, CYAN, b=0.6)
-    M.t(30, 100, '족보', CYAN, 15, 'ls', KO, glow=True)
-    M.t(234, 100, '클릭: 그 족보 합성', DIMT, 9, 'rs')
-    hand_rows(M, 16, 110, 232, 34)
-    M.t(30, 536, '연쇄', WHITE, 12, 'ls', KO)
-    M.t(30, 552, '족보끼리 맞닿으면 하나에 +45%씩', FG, 10)
-    suits_legend(M, 30, 580)
+    if left: left(M)
+    else:
+        tube(M, 16, 74, 232, 584, 12, CYAN, b=0.6)
+        M.t(30, 100, '족보', CYAN, 15, 'ls', KO, glow=True)
+        M.t(234, 100, '클릭: 그 족보 합성', DIMT, 9, 'rs')
+        hand_rows(M, 16, 110, 232, 34)
+        M.t(30, 536, '연쇄', WHITE, 12, 'ls', KO)
+        M.t(30, 552, '족보끼리 맞닿으면 하나에 +45%씩', FG, 10)
+        suits_legend(M, 30, 580)
     # 판
     cen = board(M, FX, FY, CS, show_speed=True)
     # 오른쪽: 판 위력 · 웨이브 · 버튼 · 묘약
@@ -612,6 +615,202 @@ def mock_A():
     img = P.draw(img)
     img = reflect(img, (0, FLOOR - 104, W, FLOOR), FLOOR + 3, 0.2)
     return img
+
+
+# ================================================================ 족보 패널 = 메뉴 고르기 시안 (A 화면 안, x 16 · y 74 · 232 × 584)
+# 마우스를 올린(고른) 줄 = 스트레이트 (합성 ×1 가능), Q♥ 를 놓아 보는 중이라 플러시는 금색 미리보기
+HOVER = 6
+MULT = ['×2.5', '×5', '×2', '×3.5', '×1.5', '범위', '연사', '×2', '×1.5', '×1.5']  # 효과 글의 첫 배수 (개수가 없을 때 오른쪽)
+ICON = ['royal', 'five', 'sf', 'four', 'full', 'flush', 'straight', 'triple', 'twopair', 'pair']
+PX, PY, PWL, PHL = 16, 74, 232, 584
+
+
+def hand_icon(M, kind, cx, cy, c, b=0.85):
+    """무늬 없는 작은 족보 기호: 카드 장 수 · 모양 (18 × 14 안)"""
+    def card(x, y, ang=0.0):
+        P = [(-2.3, -3.6), (2.3, -3.6), (2.3, 3.6), (-2.3, 3.6), (-2.3, -3.6)]
+        ca, sa = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+        M.ln([(x + px * ca - py * sa, y + px * sa + py * ca) for px, py in P], c, 0.9, b, glow=False)
+    rows = {'pair': [-3, 3], 'triple': [-5.5, 0, 5.5], 'twopair': [-8, -3, 3, 8], 'four': [-8.1, -2.7, 2.7, 8.1],
+            'five': [-9.2, -4.6, 0, 4.6, 9.2], 'full': [-9.5, -5, -0.5, 5, 9.5]}
+    if kind in rows:
+        for x in rows[kind]: card(cx + x, cy)
+    elif kind in ('straight', 'sf'):
+        n = 4 if kind == 'straight' else 5
+        for i in range(n): card(cx + (i - (n - 1) / 2) * 4.6, cy + 3 - i * 6 / (n - 1))
+        if kind == 'sf': M.ln([(cx + 9, cy - 8), (cx + 11, cy - 6)], c, 0.9, b, glow=False)
+    elif kind == 'flush':
+        for a in (-24, 0, 24): card(cx + math.sin(math.radians(a)) * 4, cy + 1 - math.cos(math.radians(a)) * 2, a)
+    elif kind == 'royal':
+        M.ln([(cx - 8, cy + 4), (cx - 8, cy - 4), (cx - 4, cy), (cx, cy - 6), (cx + 4, cy), (cx + 8, cy - 4), (cx + 8, cy + 4), (cx - 8, cy + 4)], c, 1.0, b, glow=False)
+    elif kind == 'joker':
+        from neon import jester_hat
+        for p in jester_hat(cx, cy + 4, 8): M.ln(p, c, 0.9, b, glow=False)
+    elif kind == 'feed':  # 족보 → 조커 화살표
+        M.ln([(cx - 9, cy), (cx + 2, cy)], c, 1.0, b, glow=False)
+        M.ln([(cx - 2, cy - 4), (cx + 2, cy), (cx - 2, cy + 4)], c, 1.0, b, glow=False)
+        M.ln(circle(cx + 6.5, cy, 3, 12), c, 1.0, b, glow=False)
+
+
+def entries():
+    """족보 10줄 + 조커 · 먹이기: (key, 이름, 효과, 색, 개수, 합성, 아이콘)"""
+    E = [(i, n, e, hx(hc), cnt, fz, ICON[i]) for i, (n, e, hc, cnt, fz) in enumerate(HANDS)]
+    E.append(('joker', '조커', '클릭: 만들 수 있는 조커 목록', JPINK, 1, 0, 'joker'))
+    E.append(('feed', '먹이기', '클릭: 조커에 족보 먹이기', JPINK, 1, 0, 'feed'))
+    return {e[0]: e for e in E}
+
+
+def badge(M, xr, y, key, cnt, fz, c):
+    """오른쪽 끝 xr 에 맞춘 배지. 돌려준 값 = 배지 왼쪽 x"""
+    if fz: txt, bc = '합성 ×%d' % fz, GOLD
+    elif key == 'feed': txt, bc = '먹이 ×%d' % cnt, c
+    elif cnt: txt, bc = '×%d' % cnt, c
+    else: return xr
+    w = M.width(txt, 9, KO) + 14
+    M.rr(xr - w, y - 8, w, 16, 8, bc, 1.0, 0.75, glow=False)
+    M.t(xr - w / 2, y + 3.5, txt, bc, 9, 'ms', KO)
+    return xr - w
+
+
+def footer(M, y, one_row=False):
+    M.t(30, y, '연쇄', WHITE, 12, 'ls', KO)
+    M.t(30, y + 16, '족보끼리 맞닿으면 하나에 +45%씩', FG, 10)
+    if one_row:
+        M.t(30, y + 40, '무늬 = 공격 방식', GREY, 9)
+        for i, k in enumerate(('spade', 'heart', 'diamond', 'club')):
+            xx = 36 + i * 52
+            suit_shape(M, k, xx, y + 56, 5.5, None, 1.2, 0.7)
+            M.t(xx + 9, y + 60, ATK[k], SUITC[k], 10)
+    else:
+        suits_legend(M, 30, y + 44)
+
+
+def panel_head(M, title='족보', hint='클릭: 그 족보 합성'):
+    tube(M, PX, PY, PWL, PHL, 12, CYAN, b=0.6)
+    M.t(30, 100, title, CYAN, 15, 'ls', KO)
+    M.t(234, 100, hint, DIMT, 9, 'rs')
+
+
+# ---- 족보 메뉴판 시안 공통: 고르는 방식은 지금 그대로 (줄 클릭 = 그 족보 합성, 마우스를 올린 줄이 켜짐)
+#      모양만 바 메뉴판처럼: 간판 머리글, 묶음 머리글, "이름 ····· ×배수" 점선, 이름 아래 작은 설명, 추천 꼬리표(합성 · 먹이)
+CREAM = (238, 232, 218)
+GROUPS = [('5장 족보', [0, 1, 2, 4, 5, 6]), ('2~4장 족보', [3, 7, 8, 9]), ('조커 · 먹이', ['joker', 'feed'])]
+
+
+def tag(M, x, y, txt, c, rec=False):
+    """가격표 꼬리표 (왼쪽이 뾰족, 구멍 하나). rec = 추천 (합성 · 먹이): 작은 별을 단다"""
+    w = M.width(txt, 9, KO) + (24 if rec else 16)
+    P = [(x, y), (x + 6, y - 7.5), (x + w, y - 7.5), (x + w, y + 7.5), (x + 6, y + 7.5), (x, y)]
+    M.fill(P, c, 0.12 if rec else 0.06, layer=3)
+    M.ln(P, c, 1.0, 0.85, glow=False)
+    M.ln(circle(x + 5, y, 1.2, 8), c, 0.8, 0.8, glow=False)
+    tx = x + 10
+    if rec:
+        for p in suit('wild')(x + 14, y, 3.6): M.ln(p, c, 0.9, 0.95, glow=False)
+        tx += 9
+    M.t(tx, y + 3.5, txt, c, 9, 'ls', KO)
+    return w
+
+
+def menu_items(M, E, y, x0, xr, style):
+    """메뉴 항목들. style: neon / letter / marquee. 돌려준 값 = 끝 y"""
+    for gi, (title, keys) in enumerate(GROUPS):
+        cx = (x0 + xr) / 2
+        if style == 'letter':
+            M.t(cx, y + 12, title, CREAM, 10, 'ms', KO)
+            w = M.width(title, 10, KO)
+            for s in (-1, 1):
+                for k in range(3): M.ln([(cx + s * (w / 2 + 8 + k * 7), y + 8), (cx + s * (w / 2 + 11 + k * 7), y + 8)], CREAM, 1.0, 0.55, glow=False)
+        elif style == 'marquee':
+            w = M.t(x0, y + 12, title, ORANGE, 10, 'ls', KO)
+            M.ln([(x0 + w + 8, y + 8), (xr, y + 8)], ORANGE, 1.0, 0.4, glow=False)
+        else:
+            w = M.width(title, 10, KO)
+            M.t(cx, y + 12, title, FRAME, 10, 'ms', KO)
+            for s in (-1, 1):
+                M.ln([(cx + s * (w / 2 + 8), y + 8), (cx + s * (w / 2 + 40), y + 8)], FRAME, 1.0, 0.45, glow=False)
+                suit_shape(M, 'spade', cx + s * (w / 2 + 46), y + 8, 3, FRAME, 0.9, 0.6)
+        y += 19
+        for k in keys:
+            key, n, e, c, cnt, fz, ic = E[k]
+            hov, pv = key == HOVER, key == PREVIEW_ROW
+            h = 40 if hov else 28
+            if hov: tube(M, x0 - 8, y - 1, xr - x0 + 16, h + 1, 10, PINK, on=True, fill=True)
+            elif pv: M.fill_rr(x0 - 6, y, xr - x0 + 12, h, 6, GOLD, 0.09, layer=3)
+            ny = y + (18 if hov else 13)
+            dy = y + (32 if hov else 25)
+            nx = x0
+            col = WHITE if hov else GOLD if pv else c if cnt else GREY
+            if style == 'letter':  # 족보 색은 이름 앞 작은 칸으로 (글자는 모두 흰 플라스틱 글자)
+                if not hov: M.fill([(x0, ny - 7), (x0 + 5, ny - 7), (x0 + 5, ny + 1), (x0, ny + 1)], c, 0.9 if cnt else 0.35, layer=3)
+                nx = x0 + 10
+                col = WHITE if hov else CREAM if (cnt or pv) else dim(CREAM, 0.7)
+            elif style == 'marquee':
+                if not hov:
+                    M.rr(x0, y + 3, 20, 20, 4, c, 0.9, 0.8 if cnt else 0.4, glow=False)
+                    hand_icon(M, ic, x0 + 10, y + 13, c, 0.95 if cnt else 0.5)
+                nx = x0 + 26
+            if hov:  # 마우스를 올린 줄: 앞 표시 자리에 하트
+                heart_cursor(M, x0 + (10 if style == 'marquee' else 3), ny - 4, 4.5)
+                if style == 'neon': nx += 12
+            # 오른쪽 가격 = 배수 (조커 · 먹이는 개수), 추천 꼬리표는 가격 아래 (설명 줄 오른쪽)
+            price = MULT[key] if isinstance(key, int) else '×%d' % cnt
+            pc = WHITE if hov else (CREAM if style == 'letter' else GOLD if style == 'marquee' else FG)
+            isx = price.startswith('×')
+            pw = M.t(xr, ny + 1, price, pc, (12 if style != 'marquee' else 13) if isx else 10.5, 'rs', BLOCK if isx else KO)
+            tw_ = 0
+            if fz: tw_ = tag(M, xr - M.width('합성 ×%d' % fz, 9, KO) - 24, dy - 3, '합성 ×%d' % fz, GOLD, True)
+            elif key == 'feed': tw_ = tag(M, xr - M.width('먹이 ×%d' % cnt, 9, KO) - 24, dy - 3, '먹이 ×%d' % cnt, JPINK, True)
+            nw = M.t(nx, ny + 1, n, col, 11.5, 'ls', KO, maxw=xr - nx - pw - 44)
+            tx = nx + nw + 6
+            if cnt and isinstance(key, int) and not fz: tx += tag(M, tx, ny - 3, '판 %d' % cnt, c) + 4
+            for dx in range(int(tx + 2), int(xr - pw - 5), 5):
+                M.ln([(dx, ny - 1), (dx + 1.3, ny - 1)], CREAM if style == 'letter' else DIMT, 1.0, 0.4, glow=False)
+            dc = (255, 200, 225) if hov else GOLD if pv else (dim(CREAM, 0.62) if style == 'letter' else GREY)
+            M.t(nx, dy, e, dc, 9, 'ls', KOR, maxw=xr - nx - (tw_ + 5 if tw_ else 0))
+            y += h
+        y += 2
+    return y
+
+
+# ---- 1. 네온 메뉴 간판: 금색 튜브 "족 보" + MENU 글자 + 스페이드 장식
+def menu_neon(M):
+    tube(M, PX, PY, PWL, PHL, 12, CYAN, b=0.6)
+    M.t(132, 118, '족 보', GOLD, 28, 'ms', KO, glow=True, hollow=True)
+    for s in (-1, 1):
+        suit_shape(M, 'spade', 132 + s * 62, 108, 6, GOLD, 1.3, 0.9)
+    M.t(132, 134, 'H A N D S   ·   M E N U', FRAME, 9, 'ms', BLOCK)
+    M.ln([(36, 142), (228, 142)], GOLD, 1.0, 0.5)
+    M.t(228, 154, '클릭: 그 족보 합성', DIMT, 8.5, 'rs')
+    y = menu_items(M, entries(), 156, 38, 232, 'neon')
+    footer(M, y + 18, one_row=True)
+
+
+# ---- 2. 레터보드: 홈 파인 판 + 흰 플라스틱 글자, 족보 색은 이름 앞 작은 칸
+def menu_letter(M):
+    tube(M, PX, PY, PWL, PHL, 12, CYAN, b=0.6)
+    for yy in range(150, 560, 8):  # 레터보드 홈
+        M.bg([(30, yy), (234, yy)], GRID, 0.09)
+    M.t(132, 108, 'H A N D S', CREAM, 10, 'ms', BLOCK)
+    M.t(132, 134, '족보 메뉴', CREAM, 20, 'ms', KO)
+    M.ln([(36, 143), (228, 143)], CREAM, 1.0, 0.45, glow=False)
+    M.t(228, 155, '클릭: 그 족보 합성', dim(CREAM, 0.55), 8.5, 'rs')
+    y = menu_items(M, entries(), 157, 38, 232, 'letter')
+    footer(M, y + 18, one_row=True)
+
+
+# ---- 3. 마키 간판: 전구 두른 머리글, 항목마다 작은 족보 기호 칸, 가격은 금색 숫자
+def menu_marquee(M):
+    tube(M, PX, PY, PWL, PHL, 12, CYAN, b=0.6)
+    M.rr(34, 86, 196, 58, 10, ORANGE, 1.6, 0.75)
+    bulbs(M, [(42, 93), (222, 93)], 15, 0)
+    bulbs(M, [(42, 137), (222, 137)], 15, 1)
+    M.t(132, 127, '족 보', GOLD, 26, 'ms', KO, glow=True, hollow=True)
+    for s in (-1, 1): suit_shape(M, 'spade', 132 + s * 58, 115, 5.5, GOLD, 1.2, 0.9)
+    M.t(228, 160, '클릭: 그 족보 합성', DIMT, 8.5, 'rs')
+    y = menu_items(M, entries(), 162, 34, 232, 'marquee')
+    footer(M, y + 18, one_row=True)
+
 
 
 # ================================================================ B 걸린 간판
@@ -837,7 +1036,9 @@ def mock_C():
 
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    for name, fn in (('ingame_A_table', mock_A), ('ingame_B_signs', mock_B), ('ingame_C_board', mock_C)):
+    for name, fn in (('ingame_A_table', mock_A), ('ingame_B_signs', mock_B), ('ingame_C_board', mock_C),
+                     ('hands_menu_1_neon', lambda: mock_A(menu_neon)), ('hands_menu_2_letterboard', lambda: mock_A(menu_letter)),
+                     ('hands_menu_3_marquee', lambda: mock_A(menu_marquee))):
         fn().save(os.path.join(outdir, name + '.png'))
         print(name)
 

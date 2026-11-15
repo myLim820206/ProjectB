@@ -2304,73 +2304,144 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 // 잠금 해제 창 (D-239): 묘약 60 · 조커 10 을 하나씩 칩으로
 void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 {
+	// 잠금 해제 (D-261, 시안 C 걸린 메뉴판): 가운데 큰 판 = 지금 탭의 메뉴 (2단 × 15줄 '아이콘 이름 ···· 가격'), 양옆 작은 판 = 다른 탭.
+	// 줄에 마우스를 올리면 툴팁, 클릭하면 칩으로 연다. 작은 글자는 빛번짐 없이 (D-257)
 	const FPDGame& G = Game;
-	const FLinearColor Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6")), Cyan = Hex(TEXT("7fd6ff")), Green = Hex(TEXT("9cffb0"));
-	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.96f));
-	C.Text(TEXT("잠금 해제"), 34.f, 52.f, Gold, 22.f, 0, true);
-	C.Text(TrF(TEXT("칩 %s"), *CommaNum(MetaChips)), 34.f, 70.f, Gold, 12.f, 0, false);
-	static const TCHAR* Tabs[2] = {TEXT("묘약"), TEXT("조커")};
-	for (int32 I = 0; I < 2; ++I)
+	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Cyan = Hex(TEXT("6edcff")), Mint = Hex(TEXT("8affc4")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("dce4f0")), Wire = Hex(TEXT("5f6878"), 0.5f);
+	const float NK = 0.75f; // 이 창의 네온 세기
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 1.f));
+	// 두 겹 튜브 틀 (D-254/255) + 네 귀퉁이 볼트
+	auto Frame = [&](float X, float Y, float W, float H, float R, const FLinearColor& Col, float B)
 	{
-		const bool bOn = UnlockTab == I, bH = InRect(Mouse, UnlTabX(I), UnlTabY, UnlTabW, UnlTabH);
-		if (bOn) C.Box(UnlTabX(I), UnlTabY, UnlTabW, UnlTabH, WithAlpha(Cyan, 0.12f));
-		C.Glow(FCanvas::RoundRectPoints(UnlTabX(I), UnlTabY, UnlTabW, UnlTabH, 8.f), bOn ? Cyan : UiEdge, bOn || bH ? 1.6f : 1.1f, bOn ? 1.f : 0.4f);
-		C.TextCentered(Tabs[I], UnlTabX(I) + UnlTabW / 2.f, UnlTabY + UnlTabH / 2.f, bOn ? FLinearColor::White : Grey, 13.f, true);
+		C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, R), FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), 2.2f, NK * B);
+		C.Lines(FCanvas::RoundRectPoints(X, Y, W, H, R), FLinearColor(1.f, 1.f, 1.f, 0.3f * B), 0.6f);
+		C.Glow(FCanvas::RoundRectPoints(X + 6.f, Y + 6.f, W - 12.f, H - 12.f, FMath::Max(2.f, R - 6.f)), FLinearColor(Col.R * B * 0.75f, Col.G * B * 0.75f, Col.B * B * 0.75f, 1.f), 1.f, 0.4f * NK * B);
+		for (const FVector2f Bt : {FVector2f(X + 9.f, Y + 9.f), FVector2f(X + W - 9.f, Y + 9.f), FVector2f(X + 9.f, Y + H - 9.f), FVector2f(X + W - 9.f, Y + H - 9.f)})
+			C.Lines(FCanvas::CirclePoints(Bt, 2.f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
+	};
+	static const TCHAR* TabName[3] = {TEXT("묘약"), TEXT("조커"), TEXT("상위 조커")};
+	static const TCHAR* TabEn[3] = {TEXT("POTIONS"), TEXT("JOKERS"), TEXT("UPPER JOKERS")};
+	// 천장 줄 (판을 매단 선)
+	for (const float X : {300.f, 980.f}) C.Lines({FVector2f(X, 0.f), FVector2f(X, UnlBY)}, Wire, 1.f);
+	for (int32 Sd = 0; Sd < 2; ++Sd)
+		for (const float Dx : {55.f, 145.f}) C.Lines({FVector2f(UnlSideX(Sd) + Dx, 0.f), FVector2f(UnlSideX(Sd) + Dx, UnlSideY)}, Wire, 1.f);
+	// 양옆 작은 판
+	for (int32 Sd = 0; Sd < 2; ++Sd)
+	{
+		const int32 Tb = UnlSideTab(Sd);
+		const float X = UnlSideX(Sd);
+		const bool bH = InRect(Mouse, X, UnlSideY, UnlSideW, UnlSideH);
+		C.Box(X, UnlSideY, UnlSideW, UnlSideH, Hex(TEXT("08080e"), 1.f));
+		Frame(X, UnlSideY, UnlSideW, UnlSideH, 14.f, bH ? Pink : Cyan, bH ? 1.f : 0.75f);
+		if (Tb == 0) C.Shape(EPDSuit::Heart, X + UnlSideW / 2.f, UnlSideY + 50.f, 16.f, Cyan, 1.5f, 0.5f);
+		else C.JokerTower(Tb == 1 ? 0 : UpperBase, X + UnlSideW / 2.f, UnlSideY + 50.f, 18.f, 0.85f, 0.f);
+		C.TextCentered(TabName[Tb], X + UnlSideW / 2.f, UnlSideY + 98.f, Fg, 18.f, true);
+		C.TextCentered(TabEn[Tb], X + UnlSideW / 2.f, UnlSideY + 122.f, WithAlpha(Cyan, 0.75f), 10.f, true);
+		C.TextCentered(TEXT("눌러서 보기"), X + UnlSideW / 2.f, UnlSideY + UnlSideH + 26.f, Dim, 11.f, false);
+	}
+	// 가운데 큰 판
+	C.Box(UnlBX, UnlBY, UnlBW, UnlBH, Hex(TEXT("08080e"), 1.f));
+	Frame(UnlBX, UnlBY, UnlBW, UnlBH, 18.f, Pink, 1.f);
+	const float HCX = UnlBX + UnlBW / 2.f;
+	C.TextCentered(TabName[UnlockTab], HCX, 104.f, Pink, 30.f, true);
+	C.TextCentered(FString::Printf(TEXT("%s  ·  %d"), TabEn[UnlockTab], UnlCount(UnlockTab)), HCX, 136.f, WithAlpha(Pink, 0.8f), 11.f, true);
+	for (const float S : {-1.f, 1.f})
+	{
+		C.Glow({FVector2f(HCX + S * 90.f, 104.f), FVector2f(HCX + S * 190.f, 104.f)}, WithAlpha(Pink, 0.8f), 1.2f, 0.4f * NK);
+		C.Shape(EPDSuit::Spade, HCX + S * 205.f, 104.f, 6.f, Pink, 1.2f, 0.4f * NK);
+	}
+	// 항목 상태
+	struct FItem { FString Name, Desc, Note; int32 Price = 0; bool bOpen = false, bMat = true; };
+	auto Item = [&](int32 K)
+	{
+		FItem It;
+		if (UnlockTab == 0) { It.Name = CharmName(K); It.Desc = CharmDesc(K); It.Note = Tr(TEXT("연 묘약만 5웨이브 보상에 나온다")); It.Price = CharmPrice(K); It.bOpen = (G.CharmUnlocked >> K) & 1u; }
+		else if (UnlockTab == 1)
+		{
+			It.Name = JokerName(K); It.Desc = BaseJokerAbility(K); It.Price = JokerPrice(K); It.bOpen = G.JokerOpen(K);
+			for (EPDHand Hd : JokerRecipe((EPDJoker)K)) { if (!It.Note.IsEmpty()) It.Note += TEXT(" · "); It.Note += HandName(Hd); }
+		}
+		else
+		{
+			const FPDUpperDef& D = UpperDef(K);
+			It.Name = UpperName(K); It.Desc = JokerAbility(UpperBase + K); It.Price = UpperPrice(K); It.bOpen = G.UpperOpen(K);
+			It.bMat = G.JokerOpen((int32)D.A) && G.JokerOpen((int32)D.B);
+			It.Note = FString::Printf(TEXT("%s + %s"), JokerName((int32)D.A), JokerName((int32)D.B));
+		}
+		return It;
+	};
+	static const FLinearColor IconCol[4] = {Hex(TEXT("7fb8ff")), Hex(TEXT("ff6a8a")), Hex(TEXT("ffd96a")), Hex(TEXT("8affc4"))};
+	const int32 Hover = UnlRowAt(Mouse);
+	for (int32 Slot = 0; Slot < UnlPerPage; ++Slot)
+	{
+		const int32 K = UnlockPage * UnlPerPage + Slot;
+		if (K >= UnlCount(UnlockTab)) break;
+		const FItem It = Item(K);
+		const bool bCan = !It.bOpen && It.bMat && MetaChips >= It.Price, bH = Hover == K;
+		const FVector2f R = UnlRowPos(Slot);
+		const float Base = R.Y + 18.f;
+		// 아이콘 칸
+		const float IX = R.X + 10.f, IY = R.Y + 12.f;
+		if (UnlockTab == 0)
+		{
+			const FLinearColor Ic = IconCol[K % 4];
+			C.Glow(FCanvas::RoundRectPoints(IX - 10.f, IY - 10.f, 20.f, 20.f, 5.f), WithAlpha(Ic, It.bOpen ? 0.7f : 0.35f), 1.f, 0.f);
+			C.Shape((EPDSuit)(K % 4), IX, IY, 5.f, WithAlpha(Ic, It.bOpen ? 0.85f : 0.45f), 1.f, 0.f);
+		}
+		else C.JokerTower(UnlockTab == 1 ? K : UpperBase + K, IX, IY, 9.f, It.bOpen ? 0.9f : 0.4f, 0.f);
+		if (bH) C.Box(R.X + 26.f, R.Y + 1.f, UnlRowW - 26.f, UnlRowH - 2.f, WithAlpha(Pink, 0.08f));
+		const FLinearColor NameCol = bH ? FLinearColor::White : It.bOpen ? Cyan : bCan ? Gold : Dim;
+		C.Text(It.Name, R.X + 30.f, Base, NameCol, 13.f, 0, true, 200.f);
+		const float NameW = FMath::Min(200.f, FCanvas::Measure(TrS(It.Name), FCanvas::Font(13.f, true)).X);
+		const FString Pt = It.bOpen ? FString(Tr(TEXT("열림"))) : !It.bMat ? FString(Tr(TEXT("재료 먼저"))) : FString::Printf(TEXT("%d"), It.Price);
+		const FLinearColor PtCol = It.bOpen ? Mint : bCan ? Gold : Dim;
+		C.Text(Pt, R.X + UnlRowW, Base, PtCol, 13.f, 2, true);
+		const float PtW = FCanvas::Measure(TrS(Pt), FCanvas::Font(13.f, true)).X;
+		for (float Dx = R.X + 36.f + NameW; Dx < R.X + UnlRowW - PtW - 8.f; Dx += 6.f) C.Box(Dx, Base - 4.f, 1.2f, 1.2f, WithAlpha(Dim, 0.6f)); // 점선 리더
+		if (bH) C.Glow({FVector2f(R.X + 30.f, Base + 6.f), FVector2f(R.X + UnlRowW, Base + 6.f)}, Pink, 1.2f, 0.5f * NK);
+	}
+	// 아래: 안내 + 쪽 넘기기
+	C.Glow({FVector2f(UnlBX + 30.f, 640.f), FVector2f(UnlBX + UnlBW - 30.f, 640.f)}, WithAlpha(Pink, 0.5f), 1.f, 0.2f * NK);
+	C.TextCentered(TEXT("줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다"), HCX, 668.f, Dim, 12.f, false);
+	if (UnlPages() > 1)
+		for (int32 Dir = -1; Dir <= 1; Dir += 2)
+		{
+			const float X = UnlPgX(Dir);
+			const bool bOk = Dir < 0 ? UnlockPage > 0 : UnlockPage < UnlPages() - 1, bH = bOk && InRect(Mouse, X, UnlPgY, UnlPgW, UnlPgH);
+			C.Glow(FCanvas::RoundRectPoints(X, UnlPgY, UnlPgW, UnlPgH, UnlPgH / 2.f), WithAlpha(bH ? Pink : Cyan, bOk ? 0.85f : 0.25f), bH ? 1.8f : 1.3f, bOk ? 0.5f * NK : 0.f);
+			C.TextCentered(Dir < 0 ? TEXT("‹") : TEXT("›"), X + UnlPgW / 2.f, UnlPgY + UnlPgH / 2.f, bOk ? Fg : Dim, 18.f, true);
+		}
+	C.TextCentered(UnlPages() > 1 ? TrF(TEXT("%d / %d 쪽  ·  휠: 넘기기"), UnlockPage + 1, UnlPages()) : FString(), HCX, 708.f, Dim, 11.f, false);
+	// 칩 알약 + 닫기
+	{
+		const FString S = TrF(TEXT("칩 %s"), *CommaNum(MetaChips));
+		const float PW2 = 46.f + FCanvas::Measure(S, FCanvas::Font(13.f, true)).X, PX = CdxCloseX - 14.f - PW2, PY = CdxCloseY;
+		C.Glow(FCanvas::RoundRectPoints(PX, PY, PW2, CdxCloseH, CdxCloseH / 2.f), Gold, 1.4f, 0.6f * NK);
+		C.Shape(EPDSuit::Diamond, PX + 17.f, PY + CdxCloseH / 2.f, 6.f, Gold, 1.3f, 0.4f);
+		C.Text(S, PX + 30.f, PY + CdxCloseH / 2.f + 5.f, Gold, 13.f, 0, true);
 	}
 	PaintCloseButton(C, Cyan);
-	if (UnlockTab == 0)
-		for (int32 J = 0; J < (int32)EPDCharm::Count; ++J)
-		{
-			const FVector2f P = CharmCardPos(J);
-			const bool bOpen = (G.CharmUnlocked >> J) & 1u, bH = InRect(Mouse, P.X, P.Y, ChCardW, ChCardH);
-			const int32 Price = CharmPrice(J);
-			const bool bCan = !bOpen && MetaChips >= Price;
-			C.Box(P.X, P.Y, ChCardW, ChCardH, Hex(TEXT("0a0b14"), 0.92f));
-			if (bH && bCan) C.Box(P.X, P.Y, ChCardW, ChCardH, WithAlpha(Gold, 0.1f));
-			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, ChCardW, ChCardH, 8.f), bOpen ? Cyan : bCan ? Gold : UiEdge, bH ? 1.6f : 1.1f, bOpen ? 0.5f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
-			C.Text(CharmName(J), P.X + 8.f, P.Y + 20.f, bOpen ? UiValue : bCan ? Gold : Grey, 11.f, 0, true, ChCardW - 16.f);
-			Wrap2(C, CharmDesc(J), P.X + 8.f, P.Y + 42.f, bOpen ? Fg : Dim, 9.f, ChCardW - 16.f);
-			C.Text(bOpen ? FString(Tr(TEXT("열림"))) : TrF(TEXT("%d칩"), Price), P.X + 8.f, P.Y + ChCardH - 10.f, bOpen ? Green : bCan ? Gold : Dim, 10.f, 0, true);
-		}
-	else
-		for (int32 J = 0; J < (int32)EPDJoker::Count; ++J)
-		{
-			const FVector2f P = UnlJokerPos(J);
-			const bool bOpen = G.JokerOpen(J), bH = InRect(Mouse, P.X, P.Y, UnlJW, UnlJH);
-			const int32 Price = JokerPrice(J);
-			const bool bCan = !bOpen && MetaChips >= Price;
-			C.Box(P.X, P.Y, UnlJW, UnlJH, Hex(TEXT("0a0b14"), 0.92f));
-			if (bH && bCan) C.Box(P.X, P.Y, UnlJW, UnlJH, WithAlpha(Gold, 0.1f));
-			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UnlJW, UnlJH, 10.f), bOpen ? JokerPink : bCan ? Gold : UiEdge, bH ? 1.7f : 1.2f, bOpen ? 0.6f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
-			C.JokerTower(J, P.X + 30.f, P.Y + 34.f, 18.f, bOpen ? 1.f : 0.35f, 0.f);
-			C.Text(JokerName(J), P.X + 58.f, P.Y + 26.f, bOpen ? JokerPink : bCan ? Gold : Grey, 14.f, 0, true, UnlJW - 68.f);
-			C.Text(FString::Printf(TEXT("×%s"), *FString::SanitizeFloat(JokerTier((EPDJoker)J))), P.X + 58.f, P.Y + 44.f, Dim, 10.f, 0, true);
-			FString Rec;
-			for (EPDHand H : JokerRecipe((EPDJoker)J)) { if (!Rec.IsEmpty()) Rec += TEXT(" · "); Rec += HandName(H); }
-			Wrap2(C, Rec, P.X + 12.f, P.Y + 66.f, Fg, 10.f, UnlJW - 24.f);
-			C.Text(bOpen ? FString(Tr(TEXT("열림"))) : TrF(TEXT("%d칩"), Price), P.X + 12.f, P.Y + UnlJH - 12.f, bOpen ? Green : bCan ? Gold : Dim, 12.f, 0, true);
-		}
-		// 상위 조커 30종 (D-241): 재료 조커 둘이 열려 있어야 살 수 있다
-		if (UnlockTab == 1)
-		{
-			C.Text(TEXT("상위 조커 — 재료 조커 둘을 열어야 살 수 있다"), DesignW / 2.f - (10.f * UnlUW + 9.f * UnlUGap) / 2.f, UnlUY0 - 10.f, Gold, 12.f, 0, true);
-			for (int32 U = 0; U < UpperJokerCount; ++U)
-			{
-				const FVector2f P = UnlUpperPos(U);
-				const FPDUpperDef& D = UpperDef(U);
-				const bool bOpen = G.UpperOpen(U), bMat = G.JokerOpen((int32)D.A) && G.JokerOpen((int32)D.B), bH = InRect(Mouse, P.X, P.Y, UnlUW, UnlUH);
-				const int32 Price = UpperPrice(U);
-				const bool bCan = !bOpen && bMat && MetaChips >= Price;
-				C.Box(P.X, P.Y, UnlUW, UnlUH, Hex(TEXT("0a0b14"), 0.92f));
-				if (bH && bCan) C.Box(P.X, P.Y, UnlUW, UnlUH, WithAlpha(Gold, 0.1f));
-				C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UnlUW, UnlUH, 8.f), bOpen ? Gold : bCan ? Gold : UiEdge, bH ? 1.6f : 1.1f, bOpen ? 0.7f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
-				C.Text(UpperName(U), P.X + 8.f, P.Y + 18.f, bOpen ? Gold : bCan ? UiValue : Grey, 10.f, 0, true, UnlUW - 16.f);
-				Wrap2(C, FString::Printf(TEXT("%s + %s"), JokerName((int32)D.A), JokerName((int32)D.B)), P.X + 8.f, P.Y + 40.f, bMat ? Fg : Dim, 9.f, UnlUW - 16.f);
-				C.Text(bOpen ? FString(Tr(TEXT("열림"))) : !bMat ? FString(Tr(TEXT("재료 조커 먼저"))) : TrF(TEXT("%d칩"), Price), P.X + 8.f, P.Y + UnlUH - 10.f, bOpen ? Green : bCan ? Gold : Dim, 9.f, 0, true, UnlUW - 16.f);
-			}
-		}
-	C.Text(UnlockTab == 0 ? TEXT("카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기") : TEXT("카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기"),
-		DesignW - 16.f, DesignH - 10.f, Dim, 10.f, 2);
+	// 툴팁 (D-258): 속이 찬 어두운 판 + 금색 두 겹 틀
+	if (Hover >= 0)
+	{
+		const FItem It = Item(Hover);
+		const bool bCan = !It.bOpen && It.bMat && MetaChips >= It.Price;
+		const float TW = 320.f, TH = 160.f;
+		float TX = Mouse.X + 16.f, TY = Mouse.Y - TH - 8.f;
+		if (TX + TW > DesignW - 8.f) TX = Mouse.X - TW - 16.f;
+		if (TY < 8.f) TY = Mouse.Y + 20.f;
+		C.Box(TX, TY, TW, TH, Hex(TEXT("0a0910"), 1.f));
+		Frame(TX, TY, TW, TH, 12.f, Gold, 0.9f);
+		if (UnlockTab == 0) C.Shape((EPDSuit)(Hover % 4), TX + 35.f, TY + 35.f, 9.f, IconCol[Hover % 4], 1.4f, 0.3f);
+		else C.JokerTower(UnlockTab == 1 ? Hover : UpperBase + Hover, TX + 35.f, TY + 35.f, 14.f, 1.f, 0.f);
+		C.Text(It.Name, TX + 64.f, TY + 42.f, FLinearColor::White, 18.f, 0, true, TW - 80.f);
+		Wrap2(C, It.Desc, TX + 20.f, TY + 76.f, Fg, 13.f, TW - 40.f);
+		C.Text(It.Note, TX + 20.f, TY + 116.f, Dim, 11.f, 0, false, TW - 40.f);
+		C.Lines({FVector2f(TX + 16.f, TY + 126.f), FVector2f(TX + TW - 16.f, TY + 126.f)}, WithAlpha(Gold, 0.35f), 1.f);
+		C.Text(It.bOpen ? FString(Tr(TEXT("열림"))) : !It.bMat ? FString(Tr(TEXT("재료 조커 먼저"))) : TrF(TEXT("%d칩"), It.Price), TX + 20.f, TY + 148.f, It.bOpen ? Mint : bCan ? Gold : Dim, 15.f, 0, true);
+		if (!It.bOpen) C.Text(bCan ? FString(Tr(TEXT("클릭해서 열기"))) : !It.bMat ? FString() : FString(Tr(TEXT("칩이 모자란다"))), TX + TW - 20.f, TY + 148.f, bCan ? Pink : Dim, 13.f, 2, true);
+	}
+	C.Text(TEXT("Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기"), DesignW - 16.f, DesignH - 10.f, Dim, 10.f, 2);
 }
 
 void SPDBoardWidget::PaintUpgrades(FCanvas& C) const

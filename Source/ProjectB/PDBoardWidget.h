@@ -26,6 +26,7 @@ public:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override; // 잠금 해제 쪽 넘기기 (D-261)
 
 	// 게임이 낸 소리를 꺼내 간다 (게임 모드가 매 프레임 재생)
 	std::vector<PD::FPDSoundEvent> TakeSounds()
@@ -102,7 +103,14 @@ private:
 	bool MetaBuy(int32 U, int32 N);        // N레벨까지 살 수 있는 만큼 (산 레벨이 있으면 true)
 	// 잠금 해제 (D-239): 시작 화면 메뉴. 묘약·조커를 하나씩 칩으로
 	bool bUnlock = false;
-	int32 UnlockTab = 0;                   // 0 묘약, 1 조커
+	int32 UnlockTab = 0;                   // 0 묘약, 1 조커, 2 상위 조커 (D-261)
+	int32 UnlockPage = 0;                  // 가운데 판의 쪽 (한 쪽 30줄)
+	int32 UnlCount(int32 Tab) const;
+	int32 UnlPages() const;
+	int32 UnlSideTab(int32 Side) const { return Side == 0 ? (UnlockTab == 0 ? 1 : 0) : (UnlockTab == 2 ? 1 : 2); } // 양옆 작은 판이 보여 주는 탭
+	int32 UnlRowAt(FVector2f P) const;     // 마우스 아래 줄 = 항목 번호, 없으면 -1
+	void UnlSetTab(int32 T) { UnlockTab = T; UnlockPage = 0; }
+	void UnlFlip(int32 Dir) { UnlockPage = FMath::Clamp(UnlockPage + Dir, 0, UnlPages() - 1); }
 	bool BuyCharm(int32 J);
 	bool BuyJoker(int32 J);
 	bool BuyUpper(int32 U);                // 상위 조커 (D-241): 재료 조커 둘이 열려 있어야
