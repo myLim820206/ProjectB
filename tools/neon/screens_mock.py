@@ -315,9 +315,52 @@ def m_tree():
     return ImageChops.add(img, ImageChops.subtract(T.draw(), Image.new('RGB', img.size, BG)))
 
 
+# ---------------------------------------------------------------- 4-2 게임 오버: CLOSED (문 닫힌 바)
+def m_over_closed():
+    M = Sign(0.85); M.small_glow = 0.0
+    back(M)
+    # 문 + 반쯤 내려온 셔터
+    dx, dy, dw, dh = 640 - 170, 60, 340, 250
+    M.ln(rr_pts(dx, dy, dw, dh, 10), LAV, 2.0, 0.7)
+    for k in range(9): M.ln([(dx + 8, dy + 12 + k * 14), (dx + dw - 8, dy + 12 + k * 14)], DIM, 1.2, 0.6)  # 셔터 줄
+    M.ln([(dx + 8, dy + 136), (dx + dw - 8, dy + 136)], LAV, 2.0, 0.8)
+    # 걸린 CLOSED 판 (살짝 기울어)
+    a = math.radians(-6)
+    def R(px, py): return (640 + px * math.cos(a) - py * math.sin(a), 210 + px * math.sin(a) + py * math.cos(a))
+    M.ln([R(-40, -70), (640, 150)], DIM, 1.0, 0.6); M.ln([R(40, -70), (640, 150)], DIM, 1.0, 0.6)
+    M.ln([R(-110, -40), R(110, -40), R(110, 40), R(-110, 40), R(-110, -40)], RED, 2.4, 1.0)
+    M.word(640, 226, 'CLOSED', RED, 40, None, track=6, font=BLOCK)
+    M.word(640, 340, '오늘 영업은 여기까지 · 웨이브 23', FG, 15, None, font=KO)
+    bot = receipt(M, 640, 360, [('처치', '1,284'), ('레벨', '41'), ('최고 기록', '23 (갱신!)')], '+ 186')
+    btn(M, 640 - 250, bot + 22, 230, 44, '다시 열기 (R)', on=True)
+    btn(M, 640 + 20, bot + 22, 230, 44, '메인 메뉴로', c=LAV)
+    return M.draw()
+
+
+# ---------------------------------------------------------------- 4-3 게임 오버: BUST (패가 무너짐)
+def m_over_bust():
+    M = Sign(0.85); M.small_glow = 0.0
+    back(M)
+    # 흩어진 카드 다섯 장 (기울어져 떨어짐)
+    rnd = random.Random(5)
+    cols = [(232, 238, 255), (255, 106, 138), (255, 217, 106), (143, 233, 255), (255, 106, 138)]
+    for k in range(5):
+        cx, cy = 640 + (k - 2) * 70 + rnd.uniform(-10, 10), 200 + abs(k - 2) * 18 + rnd.uniform(-6, 6)
+        a = math.radians((k - 2) * 18 + rnd.uniform(-8, 8))
+        def R(px, py): return (cx + px * math.cos(a) - py * math.sin(a), cy + px * math.sin(a) + py * math.cos(a))
+        M.ln([R(-26, -38), R(26, -38), R(26, 38), R(-26, 38), R(-26, -38)], cols[k], 1.8, 0.55)
+        for p_ in suit(['spade', 'heart', 'diamond', 'club', 'heart'][k])(cx, cy + 4, 9): M.ln([(R(px - cx, py - cy)) for px, py in p_], cols[k], 1.2, 0.55)
+    M.word(640, 120, 'BUST', RED, 64, [1, 1, 0.2, 1], track=10, font=BLOCK)
+    M.word(640, 300, '패가 무너졌다 · 웨이브 23', FG, 15, None, font=KO)
+    bot = receipt(M, 640, 320, [('처치', '1,284'), ('레벨', '41'), ('최고 기록', '23 (갱신!)'), ('개인 랭킹', '3위')], '+ 186')
+    btn(M, 640 - 250, bot + 22, 230, 44, '한 판 더 (R)', on=True)
+    btn(M, 640 + 20, bot + 22, 230, 44, '메인 메뉴로', c=LAV)
+    return M.draw()
+
+
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    for name, fn in (('s1_menu', m_menu), ('s2_settings', m_settings), ('s3_mode', m_mode), ('s4_gameover', m_over), ('s5_clear', m_clear), ('s6_tree', m_tree)):
+    for name, fn in (('s1_menu', m_menu), ('s2_settings', m_settings), ('s3_mode', m_mode), ('s4_gameover', m_over), ('s4b_gameover_closed', m_over_closed), ('s4c_gameover_bust', m_over_bust), ('s5_clear', m_clear), ('s6_tree', m_tree)):
         fn().save(os.path.join(outdir, name + '.png'))
         print(name)
 
