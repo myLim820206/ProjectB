@@ -1241,7 +1241,11 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 			if (InRect(P, TitleBtnPos(I, bHasRunSave).X, TitleBtnPos(I, bHasRunSave).Y, TitleBtnW, TitleBtnH)) { TitleSelect(I); break; }
 		return;
 	}
-	if (Game.Phase == EPDPhase::Over) { RestartRun(); return; }
+	if (Game.Phase == EPDPhase::Over) // 게임 오버 (D-293): [메인 메뉴로] 버튼, 그 밖은 다시 한 판
+	{
+		if (InRect(P, OverMenuX, OverBtnY, OverBtnW, OverBtnH)) { Game.NewGame(false); TitleSel = bHasRunSave ? (int32)ETitleItem::Continue : (int32)ETitleItem::Start; UiSound(EPDSound::Move); return; }
+		RestartRun(); return;
+	}
 	if (Game.Phase == EPDPhase::Reward)
 	{
 		for (int32 I = 0; I < (int32)Game.Rewards.size(); ++I)
@@ -1731,6 +1735,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 #if WITH_EDITOR
 #if WITH_EDITOR
 	if (K == EKeys::F7 && Game.Phase != EPDPhase::Title) { LevelUpFrom = Game.Level; LevelUpTo = Game.Level + 1; LevelUpPts = 1; LevelUpAt = Clock; return FReply::Handled(); } // 레벨업 이펙트 미리 보기 (에디터, D-273)
+	if (K == EKeys::F10 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { Game.Enemies.clear(); Game.Phase = InKeyEvent.IsShiftDown() ? EPDPhase::Clear : EPDPhase::Over; return FReply::Handled(); } // 게임 오버 / (Shift) 클리어 화면 미리 보기 (에디터, D-293)
 	if (K == EKeys::F9 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { Game.Enemies.clear(); Game.Phase = EPDPhase::Reward; Game.Rewards = Game.RollRewards(); return FReply::Handled(); } // 칵테일 보상 화면 미리 보기 (에디터, D-286)
 #endif
 	if (K == EKeys::F8) { SaveAtlasAsset(); return FReply::Handled(); } // 아틀라스 에셋 만들기 (에디터)

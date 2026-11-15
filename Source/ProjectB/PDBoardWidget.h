@@ -141,6 +141,10 @@ private:
 	void PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const; // 작은 네온 팔라스 로고 (D-274)
 	void PaintBarBack(FCanvas& C) const;   // 벽돌 벽 + 바닥선 (D-274)
 	static void NeonText(FCanvas& C, const FString& S, float X, float Y, const FLinearColor& Col, float Px, int32 Align, float B); // 속 빈 네온 글자 (D-275)
+	// 네온 바 화면 공용 (D-293): 매단 전구 간판(글자마다 밝기 가능) · 두 겹 튜브 버튼 · 바 영수증(아래 끝 Y 를 돌려준다)
+	static void BulbSign(FCanvas& C, float CX, float Y, float W, float H, const FString& S, const FLinearColor& Col, float Px, float Time, const TArray<float>* LetterB = nullptr);
+	static void TubeBtn(FCanvas& C, float X, float Y, float W, float H, const FString& S, bool bOn, const FLinearColor& Col, float Pulse, float Px = 16.f);
+	static float Receipt(FCanvas& C, float CX, float Y, const TArray<TPair<FString, FString>>& RcRows, const FString& Total, const FString& Sub);
 	void PaintLevelUp(FCanvas& C) const;   // 레벨업 이펙트 (D-273): 가운데 마키 간판 → 위 레벨 자리로 날아가 매달림
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면

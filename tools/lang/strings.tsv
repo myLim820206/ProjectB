@@ -367,16 +367,20 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 60 웨이브	60 Waves	60ウェーブ	60 波	60 波	PDBoardPaint.cpp
 100 웨이브	100 Waves	100ウェーブ	100 波	100 波	PDBoardPaint.cpp
 무한	Endless	エンドレス	无尽	無盡	PDBoardPaint.cpp
-%s 모드 클리어 · 처치 %d · 레벨 %d	%s mode cleared · Kills %d · Level %d	%s モードクリア · 撃破 %d · レベル %d	%s 模式通关 · 击杀 %d · 等级 %d	%s 模式通關 · 擊殺 %d · 等級 %d	PDBoardPaint.cpp
-개인 랭킹 %d위	Personal rank #%d	個人ランキング %d位	个人排名 第%d名	個人排名 第%d名	PDBoardPaint.cpp
-개인 랭킹 20위 밖	Outside personal top 20	個人ランキング 20位圏外	未进入个人前20名	未進入個人前20名	PDBoardPaint.cpp
-칩 +%d (모은 칩 %s)	Chips +%d (total %s)	チップ +%d (所持 %s)	筹码 +%d (累计 %s)	籌碼 +%d (累計 %s)	PDBoardPaint.cpp
-새 모드가 열렸다: %s	New mode unlocked: %s	新モード解放: %s	新模式解锁: %s	新模式解鎖: %s	PDBoardPaint.cpp
-Enter 또는 화면을 눌러 시작 화면으로	Press Enter or click to return to the title	Enter または画面を押してタイトルへ	按 Enter 或点击屏幕返回标题	按 Enter 或點擊畫面返回標題	PDBoardPaint.cpp
-웨이브 %d에서 무너졌다 · 처치 %d	Fell at wave %d · %d kills	ウェーブ %d で崩れた · 撃破 %d	在第%d波失守 · 击杀 %d	在第%d波失守 · 擊殺 %d	PDBoardPaint.cpp
-최고 기록 %d웨이브%s	Best record: wave %d%s	最高記録 %dウェーブ%s	最高纪录 第%d波%s	最高紀錄 第%d波%s	PDBoardPaint.cpp
-  (갱신!)	  (new!)	  (更新!)	  (刷新!)	  (刷新!)	PDBoardPaint.cpp
-R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか画面を押して再挑戦	按 R 或点击画面重来	按 R 或點擊畫面重來	PDBoardPaint.cpp
+%s 모드 클리어 · 팔라스의 축배	%s mode clear · a toast to Pallas	%sモードクリア · パラスに乾杯	%s模式通关 · 为帕拉斯干杯	%s模式通關 · 為帕拉斯乾杯	PDBoardPaint.cpp
+처치	Kills	撃破	击杀	擊殺	PDBoardPaint.cpp
+레벨	Level	レベル	等级	等級	PDBoardPaint.cpp
+개인 랭킹	Personal	個人ランキング	个人排名	個人排名	PDBoardPaint.cpp
+%d위	#%d	%d位	第%d名	第%d名	PDBoardPaint.cpp
+20위 밖	Below #20	20位圏外	20名以外	20名以外	PDBoardPaint.cpp
+새로 열림	Unlocked	新しく解放	新解锁	新解鎖	PDBoardPaint.cpp
+모은 칩 %s	Total chips %s	所持チップ %s	累计筹码 %s	累計籌碼 %s	PDBoardPaint.cpp
+시작 화면으로	To title	タイトルへ	返回标题	返回標題	PDBoardPaint.cpp
+웨이브 %d에서 무너졌다	Fell at wave %d	ウェーブ %d で崩れた	在第%d波倒下	在第%d波倒下	PDBoardPaint.cpp
+웨이브	Wave	ウェーブ	波次	波次	PDBoardPaint.cpp
+최고 기록	Best	最高記録	最高纪录	最高紀錄	PDBoardPaint.cpp
+%d (갱신!)	%d (new!)	%d (更新!)	%d (刷新!)	%d (刷新!)	PDBoardPaint.cpp
+다시 한 판 (R)	Play again (R)	もう一回 (R)	再来一局 (R)	再來一局 (R)	PDBoardPaint.cpp
 1초 최저 %.0f fps (%.1f ms)	1s low %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	PDBoardPaint.cpp
 적 %d · 발사체 %d · 타워 %d	Enemies %d · Shots %d · Towers %d	敵 %d · 弾 %d · タワー %d	敌人 %d · 弹体 %d · 塔 %d	敵人 %d · 彈體 %d · 塔 %d	PDBoardPaint.cpp
 입자 %d · 고리 %d · 배속 ×%d · F3 닫기	Particles %d · Rings %d · Speed ×%d · F3 close	粒子 %d · リング %d · 倍速 ×%d · F3 閉じる	粒子 %d · 光环 %d · 倍速 ×%d · F3 关闭	粒子 %d · 光環 %d · 倍速 ×%d · F3 關閉	PDBoardPaint.cpp
@@ -538,7 +542,6 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 환경 설정	Settings	環境設定	设置	設定	PDBoardPaint.cpp
 최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
 위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정	Up/Down or mouse to choose · Enter or click to confirm	上下キーかマウスで選ぶ · Enter かクリックで決定	用上下键或鼠标选择 · 按 Enter 或点击确认	用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認	PDBoardPaint.cpp
-모드 고르기	Choose a Mode	モード選択	选择模式	選擇模式	PDBoardPaint.cpp
 목표 웨이브를 버티면 클리어. 30 을 깨면 60 과 무한이, 60 을 깨면 100 이 열린다	Survive to the goal wave to clear. Clearing 30 unlocks 60 and Endless; clearing 60 unlocks 100	目標ウェーブまで耐えればクリア。30をクリアで60とエンドレス、60をクリアで100が解放	撑到目标波次即通关。通关30解锁60和无尽，通关60解锁100	撐到目標波次即通關。通關30解鎖60和無盡，通關60解鎖100	PDBoardPaint.cpp
 웨이브 버티기	Survive the waves	ウェーブを耐え抜く	坚守波次	堅守波次	PDBoardPaint.cpp
 끝없이	No end	終わりなし	永无止境	永無止境	PDBoardPaint.cpp
@@ -552,8 +555,6 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 ←→ 고르기 · Enter 또는 클릭: 시작 · Esc 닫기	←→ choose · Enter or click: start · Esc close	←→ 選択 · Enter またはクリック: 開始 · Esc 閉じる	←→ 选择 · Enter 或点击: 开始 · Esc 关闭	←→ 選擇 · Enter 或點擊: 開始 · Esc 關閉	PDBoardPaint.cpp
 랭킹	Ranking	ランキング	排行榜	排行榜	PDBoardPaint.cpp
 순위	Rank	順位	名次	名次	PDBoardPaint.cpp
-웨이브	Wave	ウェーブ	波次	波次	PDBoardPaint.cpp
-처치	Kills	撃破	击杀	擊殺	PDBoardPaint.cpp
 최고 위력	Best Power	最高威力	最高威力	最高威力	PDBoardPaint.cpp
 날짜	Date	日付	日期	日期	PDBoardPaint.cpp
 아직 기록이 없다. 판이 끝나면 여기에 남는다	No records yet. They appear here when a run ends	まだ記録がない。ランが終わるとここに残る	还没有记录。一局结束后会显示在这里	還沒有記錄。一局結束後會顯示在這裡	PDBoardPaint.cpp
@@ -566,6 +567,7 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)	You can pick 3 (or 2) hands to make a Joker (anywhere on the board)	役を3つ(または2つ)選んでジョーカーを作れる (盤のどこでも)	可以选 3 个(或 2 个)牌型制作小丑 (棋盘任何位置)	可以選 3 個(或 2 個)牌型製作小丑 (棋盤任何位置)	PDBoardPaint.cpp
 자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다	The Swap reward lets you swap two towers	入れ替え報酬でタワー2つの場所を交換できる	换位奖励可以交换两座塔的位置	換位獎勵可以交換兩座塔的位置	PDBoardPaint.cpp
 무늬는 공격 방식, 숫자는 공격력	Suit sets the attack type, rank sets attack power	スートは攻撃方式、数字は攻撃力	花色决定攻击方式, 点数决定攻击力	花色決定攻擊方式, 點數決定攻擊力	PDBoardPaint.cpp
+받은 칩	Chips earned	獲得チップ	获得筹码	獲得籌碼	PDBoardPaint.cpp
 레벨 %d  →  %d	Level %d  →  %d	レベル %d  →  %d	等级 %d  →  %d	等級 %d  →  %d	PDBoardPaint.cpp
 포인트 +%d	Points +%d	ポイント +%d	点数 +%d	點數 +%d	PDBoardPaint.cpp
 카드 놓기	Place a card	カードを置く	放置卡牌	放置卡牌	PDBoardPaint.cpp
@@ -644,6 +646,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 판 %d	On board %d	盤上 %d	场上 %d	場上 %d	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
 족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
+잠깐 쉬어 가자 · 판은 그대로 멈춰 있다	Take a break · the board is paused	ひと休み · 盤面は止まっている	休息一下 · 棋盘已暂停	休息一下 · 棋盤已暫停	PDBoardPaint.cpp
 ↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)	↑↓ · Enter or click   Esc: close   (game is paused while open)	↑↓ · Enter かクリック   Esc: 閉じる   (開いている間ゲームは止まる)	↑↓ · Enter 或点击   Esc: 关闭   (打开期间游戏暂停)	↑↓ · Enter 或點擊   Esc: 關閉   (打開期間遊戲暫停)	PDBoardPaint.cpp
 언어	Language	言語	语言	語言	PDBoardPaint.cpp
 화면	Display	画面	画面	畫面	PDBoardPaint.cpp
@@ -670,6 +673,17 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+%s 모드 클리어 · 처치 %d · 레벨 %d	%s mode cleared · Kills %d · Level %d	%s モードクリア · 撃破 %d · レベル %d	%s 模式通关 · 击杀 %d · 等级 %d	%s 模式通關 · 擊殺 %d · 等級 %d	PDLangTable.inl
+개인 랭킹 %d위	Personal rank #%d	個人ランキング %d位	个人排名 第%d名	個人排名 第%d名	PDLangTable.inl
+개인 랭킹 20위 밖	Outside personal top 20	個人ランキング 20位圏外	未进入个人前20名	未進入個人前20名	PDLangTable.inl
+칩 +%d (모은 칩 %s)	Chips +%d (total %s)	チップ +%d (所持 %s)	筹码 +%d (累计 %s)	籌碼 +%d (累計 %s)	PDLangTable.inl
+새 모드가 열렸다: %s	New mode unlocked: %s	新モード解放: %s	新模式解锁: %s	新模式解鎖: %s	PDLangTable.inl
+Enter 또는 화면을 눌러 시작 화면으로	Press Enter or click to return to the title	Enter または画面を押してタイトルへ	按 Enter 或点击屏幕返回标题	按 Enter 或點擊畫面返回標題	PDLangTable.inl
+웨이브 %d에서 무너졌다 · 처치 %d	Fell at wave %d · %d kills	ウェーブ %d で崩れた · 撃破 %d	在第%d波失守 · 击杀 %d	在第%d波失守 · 擊殺 %d	PDLangTable.inl
+최고 기록 %d웨이브%s	Best record: wave %d%s	最高記録 %dウェーブ%s	最高纪录 第%d波%s	最高紀錄 第%d波%s	PDLangTable.inl
+  (갱신!)	  (new!)	  (更新!)	  (刷新!)	  (刷新!)	PDLangTable.inl
+R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか画面を押して再挑戦	按 R 或点击画面重来	按 R 或點擊畫面重來	PDLangTable.inl
+모드 고르기	Choose a Mode	モード選択	选择模式	選擇模式	PDLangTable.inl
 즉시	Instant	即時	即时	即時	PDLangTable.inl
 조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDLangTable.inl
 족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDLangTable.inl
@@ -720,7 +734,6 @@ S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	
 치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)	Crit chance %.1f%%  (+0.1%%p per level, over 100%% crits multiple times)	クリティカル率 %.1f%%  (レベルごと +0.1%%p, 100%% 超えで一撃に複数回)	暴击率 %.1f%%  (每级 +0.1%%p, 超过100%% 一击多次暴击)	暴擊率 %.1f%%  (每級 +0.1%%p, 超過100%% 一擊多次暴擊)	PDLangTable.inl
 치명타 배율 ×%.2f  (레벨당 +0.01)	Crit multiplier ×%.2f  (+0.01 per level)	クリティカル倍率 ×%.2f  (レベルごと +0.01)	暴击倍率 ×%.2f  (每级 +0.01)	暴擊倍率 ×%.2f  (每級 +0.01)	PDLangTable.inl
 그 무늬 타워 공격력 +%.0f%%  (레벨당 +2%%)	That suit's towers ATK +%.0f%%  (+2%% per level)	そのスートのタワー攻撃力 +%.0f%%  (レベルごと +2%%)	该花色塔攻击力 +%.0f%%  (每级 +2%%)	該花色塔攻擊力 +%.0f%%  (每級 +2%%)	PDLangTable.inl
-개인 랭킹	Personal	個人ランキング	个人排名	個人排名	PDLangTable.inl
 리더보드	Leaderboard	リーダーボード	排行榜	排行榜	PDLangTable.inl
 아직 기록이 없다. 게임 오버가 되면 여기에 남는다	No records yet. Your runs are saved here when the game ends	まだ記録がない。ゲームオーバーになるとここに残る	还没有记录。游戏结束后会记录在这里	還沒有紀錄。遊戲結束後會記錄在這裡	PDLangTable.inl
 스팀 리더보드 준비 중	Steam leaderboard coming soon	Steamリーダーボード準備中	Steam 排行榜准备中	Steam 排行榜準備中	PDLangTable.inl

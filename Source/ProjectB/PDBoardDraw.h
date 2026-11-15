@@ -583,6 +583,9 @@ inline float RankTabX(int I) { return DesignW / 2.f - (4.f * RankTabW + 3.f * Ra
 constexpr float ModeCardW = 170.f, ModeCardH = 210.f, ModeCardGap = 20.f, ModeCardY = 250.f;
 inline FVector2f ModeCardPos(int I) { return FVector2f(DesignW / 2.f - (4.f * ModeCardW + 3.f * ModeCardGap) / 2.f + I * (ModeCardW + ModeCardGap), ModeCardY); }
 inline FVector2f TitleBtnPos(int I, bool bCont) { const int K = bCont ? I : I - 1; return FVector2f(TitleBtnX, TitleBtnY0 + K * (TitleBtnH + TitleBtnGap)); } // 이어하기가 없으면 위로 당긴다
+// 게임 오버 · 클리어 버튼 (D-293): 영수증 아래
+constexpr float OverBtnY = 500.f, OverBtnW = 230.f, OverBtnH = 44.f, OverRestartX = DesignW / 2.f - 250.f, OverMenuX = DesignW / 2.f + 20.f;
+constexpr float ClearBtnY = 600.f, ClearBtnX = DesignW / 2.f - 115.f;
 constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
