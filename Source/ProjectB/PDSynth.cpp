@@ -290,7 +290,7 @@ struct FMusic
 	static float Pulse(float P, float W) { return (P - std::floor(P)) < W ? 1.f : -1.f; }
 	void Add(int B, size_t I, float V) { if (I < Bus[B].size()) Bus[B][I] += V; }
 
-	void Kick(float T0)
+	void Kick(float T0, float Amp = 1.f)
 	{
 		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(0.42f * Rate);
 		float Ph = 0.f;
@@ -301,10 +301,10 @@ struct FMusic
 			Ph += F / Rate;
 			const float Env = std::exp(-T / 0.16f);
 			const float Click = T < 0.004f ? (1.f - T / 0.004f) * 0.4f : 0.f;
-			Add(0, I0 + I, (std::sin(SynthTwoPi * Ph) * Env + Click) * 0.9f);
+			Add(0, I0 + I, (std::sin(SynthTwoPi * Ph) * Env + Click) * 0.9f * Amp);
 		}
 	}
-	void Snare(float T0)
+	void Snare(float T0, float Amp = 1.f)
 	{
 		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(0.34f * Rate);
 		float Lp = 0.f, Prev = 0.f, Ph = 0.f;
@@ -319,7 +319,7 @@ struct FMusic
 			const float Body = T < 0.26f ? 0.55f * std::exp(-T / 0.09f) + 0.22f : 0.22f * std::max(0.f, 1.f - (T - 0.26f) / 0.02f);
 			Ph += 185.f / Rate;
 			const float Tone = std::sin(SynthTwoPi * Ph) * std::exp(-T / 0.05f) * 0.35f;
-			Add(0, I0 + I, (Hp * 1.6f * Body + Tone) * 0.55f);
+			Add(0, I0 + I, (Hp * 1.6f * Body + Tone) * 0.55f * Amp);
 		}
 	}
 	void Tom(float T0, float F0, float Amp) // 탐 (D-188): 음높이가 살짝 내려가는 사인 + 짧은 잡음
@@ -381,58 +381,161 @@ struct FMusic
 			Add(B, I0 + I, Lp * Env * Amp);
 		}
 	}
+	// ---------------------------------------------------------------- 재즈 악기 (D-264): 칵테일바 재즈 + 신스 혼합
+	// 로즈 전자피아노: FM (1:1 변조 = 따뜻한 몸통, 세기가 금방 줄어듦) + 14배 쇳소리(톡) + 느린 트레몰로
+	void Rhodes(int B, float T0, float Dur, float Midi, float Amp)
+	{
+		const float F = MidiHz(Midi), Rel = 0.3f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float Pc = 0.f, Pt = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			Pc += F / Rate;
+			Pt += F * 14.f / Rate;
+			const float Index = 1.5f * std::exp(-T / 0.22f) + 0.22f;
+			const float V = std::sin(SynthTwoPi * Pc + Index * std::sin(SynthTwoPi * Pc)) * std::exp(-T / 1.8f);
+			const float Tine = std::sin(SynthTwoPi * Pt) * 0.16f * std::exp(-T / 0.025f);
+			float Env = T < 0.002f ? T / 0.002f : 1.f;
+			if (T > Dur) Env *= std::max(0.f, 1.f - (T - Dur) / Rel);
+			const float Trem = 1.f + 0.12f * std::sin(SynthTwoPi * 4.5f * T);
+			Add(B, I0 + I, (V + Tine) * Env * Trem * Amp);
+		}
+	}
+	// 업라이트 베이스: 사인 + 약한 배음, 손가락 튕김(짧은 잡음), 금방 줄어드는 울림
+	void Upright(int B, float T0, float Dur, float Midi, float Amp)
+	{
+		const float F = MidiHz(Midi), Rel = 0.06f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float P = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			P += F / Rate;
+			const float V = std::sin(SynthTwoPi * P) + 0.35f * std::sin(2.f * SynthTwoPi * P) * std::exp(-T / 0.15f) + 0.1f * std::sin(3.f * SynthTwoPi * P) * std::exp(-T / 0.06f);
+			float Env = T < 0.004f ? T / 0.004f : std::exp(-T / 0.6f);
+			if (T > Dur) Env *= std::max(0.f, 1.f - (T - Dur) / Rel);
+			Add(B, I0 + I, (V * Env * 0.8f + Rand() * std::exp(-T / 0.006f) * 0.2f) * Amp);
+		}
+	}
+	// 비브라폰: 사인 기음 + 4배 · 10배 부분음(금방 사라짐), 모터 떨림, 긴 울림 (Dur 뒤에는 막아서 줄임)
+	void Vibes(int B, float T0, float Dur, float Midi, float Amp)
+	{
+		const float F = MidiHz(Midi), Rel = 0.35f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float P = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			P += F / Rate;
+			const float V = std::sin(SynthTwoPi * P) + 0.22f * std::sin(4.f * SynthTwoPi * P) * std::exp(-T / 0.35f) + 0.07f * std::sin(10.f * SynthTwoPi * P) * std::exp(-T / 0.04f);
+			float Env = (T < 0.0015f ? T / 0.0015f : 1.f) * std::exp(-T / 1.5f);
+			if (T > Dur) Env *= std::exp(-(T - Dur) / (Rel * 0.4f));
+			const float Trem = 0.78f + 0.22f * std::sin(SynthTwoPi * 5.5f * T);
+			Add(B, I0 + I, V * Env * Trem * Amp);
+		}
+	}
+	// 라이드 심벌: 비배음 사각파 여섯 개 + 고역 통과(금속성) + 짧은 '땡'
+	void Ride(float T0, float Amp, float Len = 0.9f)
+	{
+		static const float Fs[6] = {3150.f, 3810.f, 4470.f, 5230.f, 6120.f, 7350.f};
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(Len * Rate);
+		float Ph[6] = {0.1f, 0.3f, 0.5f, 0.7f, 0.2f, 0.9f}, Prev = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			float X = 0.f;
+			for (int K = 0; K < 6; ++K) { Ph[K] += Fs[K] / Rate; X += Pulse(Ph[K], 0.5f); }
+			X = X / 6.f + Rand() * 0.25f;
+			const float Hp = X - Prev;
+			Prev = X * 0.9f;
+			const float Ping = std::sin(SynthTwoPi * 5200.f * T) * std::exp(-T / 0.06f) * 0.25f;
+			Add(0, I0 + I, (Hp * std::exp(-T / (Len * 0.33f)) + Ping) * Amp);
+		}
+	}
+	// 브러시: 걸러진 잡음. bTap = 짧게 탁, 아니면 마디 길이로 천천히 쓸기
+	void Brush(float T0, float Len, float Amp, bool bTap)
+	{
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(Len * Rate);
+		float Lp = 0.f, Prev = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			const float R = Rand();
+			Lp += (R - Lp) * 0.35f;
+			const float Hp = Lp - Prev * 0.7f;
+			Prev = Lp;
+			const float Env = bTap ? (T < 0.002f ? T / 0.002f : std::exp(-T / 0.07f)) : std::sin(3.1415926f * T / Len) * (0.7f + 0.3f * std::sin(SynthTwoPi * 2.f * T / Len));
+			Add(0, I0 + I, Hp * Env * Amp);
+		}
+	}
+	// 신스 금관 찌르기: 디튠 톱니 세 겹, 필터가 확 열렸다 닫힘, 끝에서 음이 살짝 떨어짐(폴)
+	void Brass(int B, float T0, float Dur, float Midi, float Amp, bool bFall = false)
+	{
+		const float F = MidiHz(Midi), Rel = 0.06f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float P[3] = {Rand() * 0.5f + 0.5f, Rand() * 0.5f + 0.5f, Rand() * 0.5f + 0.5f}, L1 = 0.f, L2 = 0.f;
+		static const float Dt[3] = {-0.007f, 0.f, 0.006f};
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			float Fk = 1.f;
+			if (bFall && T > Dur * 0.55f) { const float U = (T - Dur * 0.55f) / (Dur * 0.45f + Rel); Fk = 1.f - 0.08f * U * U; }
+			float X = 0.f;
+			for (int K = 0; K < 3; ++K) { P[K] += F * Fk * (1.f + Dt[K]) / Rate; X += Saw(P[K]); }
+			X /= 3.f;
+			const float Swell = std::min(1.f, T / 0.025f);
+			const float Cut = 350.f + 4200.f * Swell * std::exp(-T / 0.12f);
+			const float A = 1.f - std::exp(-SynthTwoPi * Cut / Rate);
+			L1 += (X - L1) * A;
+			L2 += (L1 - L2) * A;
+			float Env = Swell;
+			if (T > Dur) Env *= std::max(0.f, 1.f - (T - Dur) / Rel);
+			Add(B, I0 + I, L2 * Env * Amp);
+		}
+	}
+	// 약음 트럼펫 느낌 리드: 펄스 + 톱니를 두 번 거른 소리, 숨처럼 부푸는 어택, 늦은 비브라토
+	void MuteLead(int B, float T0, float Dur, float Midi, float Amp)
+	{
+		const float F = MidiHz(Midi), Rel = 0.09f;
+		const size_t I0 = (size_t)(T0 * Rate), N = (size_t)((Dur + Rel) * Rate);
+		float P = 0.f, L1 = 0.f, L2 = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float T = (float)I / Rate;
+			const float Vib = T > 0.22f ? 1.f + 0.007f * std::sin(SynthTwoPi * 5.2f * T) * std::min(1.f, (T - 0.22f) / 0.2f) : 1.f;
+			P += F * Vib / Rate;
+			const float X = 0.6f * Pulse(P, 0.3f) + 0.4f * Saw(P) + 0.06f * Rand() * std::exp(-T / 0.05f);
+			const float Swell = std::min(1.f, T / 0.04f);
+			const float Cut = 700.f + 1500.f * Swell;
+			const float A = 1.f - std::exp(-SynthTwoPi * Cut / Rate);
+			L1 += (X - L1) * A;
+			L2 += (L1 - L2) * A;
+			float Env = Swell;
+			if (T > Dur) Env *= std::max(0.f, 1.f - (T - Dur) / Rel);
+			Add(B, I0 + I, L2 * Env * Amp);
+		}
+	}
+	// 레코드판 지글 (메뉴): 가끔 톡 튀는 소리 + 아주 작은 쉬익
+	void Crackle(size_t N, float Amp)
+	{
+		float Lp = 0.f;
+		for (size_t I = 0; I < N; ++I)
+		{
+			const float R = Rand();
+			Lp += (R - Lp) * 0.08f;
+			float V = Lp * 0.25f;
+			if (std::fabs(Rand()) > 0.9996f) V += Rand() * 2.5f;
+			Add(0, I, V * Amp);
+		}
+	}
 };
 } // namespace
 
-static std::vector<int16_t> MixDown(FMusic& M, const std::vector<float>& Kicks, float Beat, size_t LoopN, size_t TailN, int SampleRate);
-
-std::vector<int16_t> SynthesizeMusic(int SampleRate)
+// 섞기 (D-264): 킥 눌림(사이드체인) + 점 8분 메아리 + 작은 방 잔향 + 끝에서 넘친 꼬리를 처음에 더해 이음매 없이 반복
+struct FMixOpt { float Duck = 0.65f; float EchoFb = 0.35f; float EchoMix = 0.6f; float Room = 0.f; float Gain = 0.9f; };
+static std::vector<int16_t> MixDown(FMusic& M, const std::vector<float>& Kicks, float Beat, size_t LoopN, size_t TailN, int SampleRate, const FMixOpt& O)
 {
-	const float Bpm = 104.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
-	const int Bars = 16;
-	const float Loop = Bars * Bar;
-	const size_t LoopN = (size_t)(Loop * SampleRate), TailN = (size_t)(2.f * SampleRate);
-	FMusic M(SampleRate, LoopN + TailN);
-	// Am - F - C - G (마디마다). 베이스 근음, 패드 세 음
-	struct FChord { float Bass; float Pad[3]; };
-	const FChord Ch[4] = {{45.f, {57.f, 60.f, 64.f}}, {41.f, {57.f, 60.f, 65.f}}, {48.f, {55.f, 60.f, 64.f}}, {43.f, {55.f, 59.f, 62.f}}};
-	std::vector<float> Kicks;
-	for (int B = 0; B < Bars; ++B)
-	{
-		const float T = B * Bar;
-		const FChord& C = Ch[B % 4];
-		const bool bIntro = B < 4, bLead = B >= 12;
-		// 드럼
-		for (int K = 0; K < 4; ++K) { M.Kick(T + K * Beat); Kicks.push_back(T + K * Beat); }
-		if (!bIntro || B >= 2) { M.Snare(T + Beat); M.Snare(T + 3.f * Beat); }
-		for (int K = 0; K < 8; ++K) M.Hat(T + K * Beat / 2.f, K % 2 ? 0.06f : 0.035f, K % 2 ? 0.16f : 0.09f);
-		if (B % 4 == 3) M.Hat(T + 3.5f * Beat, 0.25f, 0.13f); // 열린 하이햇
-		// 베이스: 8분 근음, 옥타브 왕복
-		for (int K = 0; K < 8; ++K) M.SawNote(1, T + K * Beat / 2.f, Beat / 2.f * 0.8f, C.Bass + (K % 2 ? 12.f : 0.f), 0.42f, 1400.f, 280.f, 0.06f, 0.003f, 0.02f, 0.004f);
-		// 패드: 마디 내내, 천천히 열림
-		for (float N : C.Pad) M.SawNote(1, T, Bar * 0.98f, N, 0.075f, 500.f, 1600.f, 0.8f, 0.25f, 0.35f, 0.006f);
-		// 아르페지오: 16분, 화음 두 옥타브 오르내림 (도입부엔 없음)
-		if (!bIntro)
-		{
-			const float Arp[8] = {C.Pad[0] + 12.f, C.Pad[1] + 12.f, C.Pad[2] + 12.f, C.Pad[0] + 24.f, C.Pad[2] + 12.f, C.Pad[1] + 12.f, C.Pad[0] + 12.f, C.Pad[1] + 12.f};
-			for (int K = 0; K < 16; ++K) M.PulseNote(2, T + K * S16, S16 * 0.9f, Arp[K % 8], bLead ? 0.07f : 0.1f);
-		}
-	}
-	// 리드 멜로디 (13~16마디): (마디 안 박, 길이 박, 음)
-	struct FLeadNote { int Bar; float At, Len, Midi; };
-	const FLeadNote Lead[] = {
-		{12, 0.f, 1.5f, 76.f}, {12, 1.5f, 0.5f, 74.f}, {12, 2.f, 1.f, 72.f}, {12, 3.f, 1.f, 69.f},
-		{13, 0.f, 1.f, 72.f}, {13, 1.f, 0.5f, 69.f}, {13, 1.5f, 0.5f, 72.f}, {13, 2.f, 2.f, 74.f},
-		{14, 0.f, 1.f, 76.f}, {14, 1.f, 1.f, 79.f}, {14, 2.f, 1.f, 76.f}, {14, 3.f, 1.f, 74.f},
-		{15, 0.f, 1.5f, 74.f}, {15, 1.5f, 0.5f, 71.f}, {15, 2.f, 2.f, 67.f}};
-	for (const FLeadNote& L : Lead) M.SawNote(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.95f, L.Midi, 0.16f, 2600.f, 1800.f, 0.3f, 0.01f, 0.12f, 0.005f, 0.006f);
-	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate);
-}
-
-// 킥 눌림 + 메아리 + 섞기 (일반·보스 음악 공용)
-static std::vector<int16_t> MixDown(FMusic& M, const std::vector<float>& Kicks, float Beat, size_t LoopN, size_t TailN, int SampleRate)
-{
-	// 킥 눌림(사이드체인): 눌리는 소리를 킥마다 잠깐 줄인다
 	std::vector<float>& Duck = M.Bus[1];
 	size_t KI = 0;
 	for (size_t I = 0; I < Duck.size(); ++I)
@@ -440,25 +543,192 @@ static std::vector<int16_t> MixDown(FMusic& M, const std::vector<float>& Kicks, 
 		const float T = (float)I / SampleRate;
 		while (KI + 1 < Kicks.size() && Kicks[KI + 1] <= T) ++KI;
 		const float Since = Kicks.empty() || Kicks[KI] > T ? 1.f : T - Kicks[KI];
-		Duck[I] *= 1.f - 0.65f * std::exp(-Since / 0.11f);
+		Duck[I] *= 1.f - O.Duck * std::exp(-Since / 0.11f);
 	}
-	// 메아리 (점 8분, 되먹임 0.35)
 	std::vector<float>& Send = M.Bus[2];
 	const size_t D = (size_t)(Beat * 0.75f * SampleRate);
 	std::vector<float> Wet(Send.size(), 0.f);
-	for (size_t I = D; I < Send.size(); ++I) Wet[I] = (Send[I - D] + Wet[I - D]) * 0.35f;
-	// 섞기 + 끝에서 넘친 꼬리를 처음에 더해 이음매 없이 반복
+	for (size_t I = D; I < Send.size(); ++I) Wet[I] = (Send[I - D] + Wet[I - D]) * O.EchoFb;
+	// 작은 방 잔향 (슈뢰더: 빗살 넷 + 전역 통과 둘)
+	std::vector<float> Rev(Send.size(), 0.f);
+	if (O.Room > 0.f)
+	{
+		std::vector<float> In(Send.size());
+		for (size_t I = 0; I < In.size(); ++I) In[I] = Send[I] + 0.5f * M.Bus[1][I] + 0.25f * M.Bus[0][I];
+		static const float Combs[4] = {0.0297f, 0.0371f, 0.0411f, 0.0437f};
+		for (float Cd : Combs)
+		{
+			const size_t CD = (size_t)(Cd * SampleRate);
+			std::vector<float> Y(In.size(), 0.f);
+			float Lp = 0.f;
+			for (size_t I = 0; I < In.size(); ++I)
+			{
+				const float Back = I >= CD ? Y[I - CD] : 0.f;
+				Lp += (Back - Lp) * 0.45f;
+				Y[I] = In[I] + Lp * 0.8f;
+				Rev[I] += Y[I] * 0.25f;
+			}
+		}
+		for (const float Ad : {0.005f, 0.0017f})
+		{
+			const size_t AD = (size_t)(Ad * SampleRate);
+			std::vector<float> X = Rev;
+			for (size_t I = 0; I < Rev.size(); ++I) Rev[I] = -0.7f * X[I] + (I >= AD ? X[I - AD] + 0.7f * Rev[I - AD] : 0.f);
+		}
+	}
 	std::vector<float> Mix(LoopN, 0.f);
 	for (size_t I = 0; I < LoopN + TailN; ++I)
 	{
-		const float V = M.Bus[0][I] * 0.8f + M.Bus[1][I] + Send[I] + Wet[I] * 0.6f;
+		const float V = M.Bus[0][I] * 0.8f + M.Bus[1][I] + Send[I] + Wet[I] * O.EchoMix + Rev[I] * O.Room;
 		Mix[I % LoopN] += V;
 	}
 	std::vector<int16_t> Out(LoopN);
-	for (size_t I = 0; I < LoopN; ++I) Out[I] = (int16_t)std::lround(std::tanh(Mix[I] * 0.9f) * 28000.f);
+	for (size_t I = 0; I < LoopN; ++I) Out[I] = (int16_t)std::lround(std::tanh(Mix[I] * O.Gain) * 28000.f);
 	return Out;
 }
 
+// 코드 한 마디: 근음(베이스), 3도·7도 간격, 손 화음 네 음
+struct FJazzChord { float Root; float Third; float Seventh; float Voice[4]; };
+// 워킹 베이스 한 마디 (4분 넷): 근음 → 3도 → 5도 → 다음 근음 반음 위/아래 (Alt 로 번갈아)
+static void WalkBar(FMusic& M, float T, float Beat, const FJazzChord& C, float NextRoot, bool Alt, float Amp, bool bSynth)
+{
+	float Nr = NextRoot;
+	while (Nr - C.Root > 6.f) Nr -= 12.f;
+	while (C.Root - Nr > 6.f) Nr += 12.f;
+	const float Notes[4] = {C.Root, C.Root + C.Third, C.Root + 7.f, Nr + (Alt ? 1.f : -1.f)};
+	for (int K = 0; K < 4; ++K)
+	{
+		M.Upright(1, T + K * Beat, Beat * 0.88f, Notes[K], Amp);
+		if (bSynth) M.SawNote(1, T + K * Beat, Beat * 0.6f, Notes[K], Amp * 0.35f, 700.f, 220.f, 0.05f, 0.003f, 0.03f, 0.003f);
+	}
+}
+
+struct FLead { int Bar; float At, Len, Midi; };
+
+// ---------------------------------------------------------------- 1. 메뉴: 칵테일바 라운지 스윙 (D-264)
+// 88 BPM 스윙, F 장조 16마디 (I-vi-ii-V 돌고 IV 로 갔다가 돌아옴). 로즈 찰스턴 반주, 워킹 업라이트 베이스, 라이드 · 브러시,
+// 5~12마디 비브라폰 선율, 13~16마디 약음 트럼펫 느낌 리드, 레코드판 지글, 작은 방 잔향. 신스는 아주 옅은 패드만
+std::vector<int16_t> SynthesizeMenuMusic(int SampleRate)
+{
+	const float Bpm = 88.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, Sw = 2.f / 3.f; // 스윙 8분: 뒷박이 2/3 자리
+	const int Bars = 16;
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(2.5f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	M.Rng = 0x51ed27u;
+	const FJazzChord Ch[16] = {
+		{41.f, 4.f, 11.f, {57.f, 60.f, 64.f, 67.f}}, {38.f, 3.f, 10.f, {53.f, 57.f, 60.f, 64.f}}, {43.f, 3.f, 10.f, {53.f, 57.f, 58.f, 62.f}}, {36.f, 4.f, 10.f, {52.f, 57.f, 58.f, 62.f}},
+		{45.f, 3.f, 10.f, {55.f, 60.f, 64.f, 67.f}}, {38.f, 4.f, 10.f, {54.f, 59.f, 60.f, 64.f}}, {43.f, 3.f, 10.f, {53.f, 57.f, 58.f, 62.f}}, {36.f, 4.f, 10.f, {52.f, 57.f, 58.f, 62.f}},
+		{41.f, 4.f, 11.f, {57.f, 60.f, 64.f, 67.f}}, {41.f, 4.f, 10.f, {57.f, 60.f, 63.f, 67.f}}, {46.f, 4.f, 11.f, {57.f, 60.f, 62.f, 65.f}}, {46.f, 3.f, 9.f, {53.f, 55.f, 58.f, 61.f}},
+		{45.f, 3.f, 10.f, {55.f, 60.f, 64.f, 67.f}}, {38.f, 4.f, 10.f, {54.f, 60.f, 63.f, 66.f}}, {43.f, 3.f, 10.f, {53.f, 57.f, 58.f, 62.f}}, {36.f, 4.f, 10.f, {52.f, 58.f, 61.f, 64.f}}};
+	for (int B = 0; B < Bars; ++B)
+	{
+		const float T = B * Bar;
+		const FJazzChord& C = Ch[B];
+		// 드럼: 라이드 '딩 딩-다 딩 딩-다', 2·4박 발 하이햇, 마디 내내 브러시 쓸기 + 2·4박 탁, 1·3박 아주 작은 킥
+		for (const float At : {0.f, 1.f, 1.f + Sw, 2.f, 3.f, 3.f + Sw}) M.Ride(T + At * Beat, At == 1.f + Sw || At == 3.f + Sw ? 0.06f : 0.1f);
+		for (const float At : {1.f, 3.f}) { M.Hat(T + At * Beat, 0.03f, 0.07f); M.Brush(T + At * Beat, 0.2f, 0.16f, true); }
+		M.Brush(T, Bar, 0.06f, false);
+		for (const float At : {0.f, 2.f}) M.Kick(T + At * Beat, 0.25f);
+		// 베이스: 워킹
+		WalkBar(M, T, Beat, C, Ch[(B + 1) % Bars].Root, B % 2 == 1, 0.42f, false);
+		// 로즈: 찰스턴 (1박 짧게 + 2박 뒷박 길게), 홀수 마디는 2박 · 3박 뒷박
+		const bool bOdd = B % 2 == 1;
+		const float Hits[2][2] = {{0.f, 0.6f}, {1.f + Sw, 1.2f}}, HitsO[2][2] = {{1.f, 0.5f}, {2.f + Sw, 1.1f}};
+		for (int H = 0; H < 2; ++H)
+		{
+			const float At = bOdd ? HitsO[H][0] : Hits[H][0], Len = bOdd ? HitsO[H][1] : Hits[H][1];
+			for (float N : C.Voice) M.Rhodes(1, T + At * Beat, Len * Beat, N, 0.07f);
+		}
+		// 옅은 신스 패드 (혼합 맛)
+		for (int K = 0; K < 3; ++K) M.SawNote(1, T, Bar * 0.98f, C.Voice[K + 1] - 12.f, 0.018f, 300.f, 700.f, 1.f, 0.4f, 0.4f, 0.006f);
+	}
+	// 비브라폰 (5~12마디)
+	const FLead Vib[] = {
+		{4, 0.f, 1.f, 72.f}, {4, 1.f, Sw, 76.f}, {4, 1.f + Sw, 1.f + 1.f / 3.f, 79.f}, {4, 3.f, 1.f, 76.f},
+		{5, 0.f, 1.5f, 78.f}, {5, 1.f + Sw, 1.f / 3.f, 76.f}, {5, 2.f, 2.f, 74.f},
+		{6, 0.f, Sw, 74.f}, {6, Sw, 1.f / 3.f, 77.f}, {6, 1.f, 1.f, 81.f}, {6, 2.f, 1.f, 79.f}, {6, 3.f, 1.f, 77.f},
+		{7, 0.f, 2.f, 76.f}, {7, 2.f + Sw, 1.f / 3.f, 74.f}, {7, 3.f, 1.f, 72.f},
+		{8, 0.f, 1.f, 69.f}, {8, 1.f, Sw, 72.f}, {8, 1.f + Sw, 1.f / 3.f, 76.f}, {8, 2.f, 2.f, 79.f},
+		{9, 0.f, 1.f, 81.f}, {9, 1.f, 1.f, 79.f}, {9, 2.f, 1.f, 75.f}, {9, 3.f, 1.f, 72.f},
+		{10, 0.f, 3.f, 74.f}, {10, 3.f, 1.f, 77.f},
+		{11, 0.f, 2.f, 73.f}, {11, 2.f, 1.f, 72.f}, {11, 3.f, 1.f, 70.f}};
+	for (const FLead& L : Vib) M.Vibes(2, L.Bar * Bar + L.At * Beat, L.Len * Beat, L.Midi, 0.16f);
+	// 약음 리드 (13~16마디)
+	const FLead Mute[] = {
+		{12, 0.f, 1.f, 76.f}, {12, 1.f, 1.f, 72.f}, {12, 2.f, Sw, 74.f}, {12, 2.f + Sw, 1.f / 3.f, 76.f}, {12, 3.f, 1.f, 79.f},
+		{13, 0.f, 2.f, 78.f}, {13, 2.f, 1.f, 75.f}, {13, 3.f, 1.f, 72.f},
+		{14, 0.f, 1.f, 70.f}, {14, 1.f, 1.f, 74.f}, {14, 2.f, 1.f, 77.f}, {14, 3.f, 1.f, 81.f},
+		{15, 0.f, 2.f, 79.f}, {15, 2.f, 1.f, 76.f}, {15, 3.f, 1.f, 73.f}};
+	for (const FLead& L : Mute) M.MuteLead(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.92f, L.Midi, 0.13f);
+	M.Crackle(LoopN + TailN, 0.05f);
+	FMixOpt O;
+	O.Duck = 0.f; O.EchoFb = 0.2f; O.EchoMix = 0.25f; O.Room = 0.35f; O.Gain = 1.1f;
+	return MixDown(M, {}, Beat, LoopN, TailN, SampleRate, O);
+}
+
+// ---------------------------------------------------------------- 2. 인게임: 재즈 펑크 + 신스 (D-264)
+// 104 BPM, A 단조 Am9 - D9 - Fmaj7 - E7#9 16마디. 16분 하이햇(살짝 스윙), 킥 1 · 2박 뒷박 · 3박 뒷박, 2·4박 스네어 + 고스트,
+// 로즈 당김 반주, 신스 베이스 + 업라이트 겹친 펑크 베이스, 옅은 신스 패드, 9~16마디 펄스 아르페지오, 9~12 비브라폰, 13~16 약음 리드
+std::vector<int16_t> SynthesizeMusic(int SampleRate)
+{
+	const float Bpm = 104.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
+	auto Sw16 = [&](int K) { return K * S16 + (K % 2 ? S16 * 0.16f : 0.f); }; // 16분 뒷박을 조금 늦게 (스윙 감)
+	const int Bars = 16;
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(2.f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	const FJazzChord Ch[4] = {{45.f, 3.f, 10.f, {60.f, 64.f, 67.f, 71.f}}, {38.f, 4.f, 10.f, {54.f, 60.f, 64.f, 69.f}}, {41.f, 4.f, 11.f, {57.f, 60.f, 64.f, 67.f}}, {40.f, 4.f, 10.f, {56.f, 62.f, 67.f, 71.f}}};
+	std::vector<float> Kicks;
+	for (int B = 0; B < Bars; ++B)
+	{
+		const float T = B * Bar;
+		const FJazzChord& C = Ch[B % 4];
+		const bool bHalf2 = B >= 8;
+		for (const int K : {0, 6, 10}) { M.Kick(T + Sw16(K), 0.85f); Kicks.push_back(T + Sw16(K)); }
+		for (const int K : {4, 12}) M.Snare(T + Sw16(K), 0.8f);
+		for (const int K : {7, 15}) M.Brush(T + Sw16(K), 0.12f, 0.12f, true); // 고스트
+		for (int K = 0; K < 16; ++K) M.Hat(T + Sw16(K), 0.03f, K % 2 ? 0.05f : 0.1f);
+		if (B % 4 == 3) M.Hat(T + Sw16(14), 0.2f, 0.11f);
+		// 펑크 베이스 (16분 자리): 근음 · 근음 · 옥타브 · 근음 · 7도 · 옥타브 · 다음 근음 반음 아래
+		float Nr = Ch[(B + 1) % 4].Root;
+		while (Nr - C.Root > 6.f) Nr -= 12.f;
+		while (C.Root - Nr > 6.f) Nr += 12.f;
+		const int BPos[7] = {0, 3, 6, 8, 10, 11, 14};
+		const float BNote[7] = {C.Root, C.Root, C.Root + 12.f, C.Root, C.Root + C.Seventh, C.Root + 12.f, Nr - 1.f};
+		for (int K = 0; K < 7; ++K)
+		{
+			const float Len = (K == 3 ? 2.f : 1.5f) * S16;
+			M.SawNote(1, T + Sw16(BPos[K]), Len, BNote[K], 0.3f, 1100.f, 240.f, 0.05f, 0.002f, 0.02f, 0.004f);
+			M.Upright(1, T + Sw16(BPos[K]), Len, BNote[K], 0.25f);
+		}
+		// 로즈 당김 반주: 16분 3 · 6 · 11 자리 (짝수 마디는 2 · 7 · 12)
+		const int RPos[2][3] = {{3, 6, 11}, {2, 7, 12}};
+		for (int K = 0; K < 3; ++K) for (float N : C.Voice) M.Rhodes(1, T + Sw16(RPos[B % 2][K]), S16 * (K == 2 ? 3.f : 1.6f), N, 0.055f);
+		// 옅은 신스 패드
+		for (float N : C.Voice) M.SawNote(1, T, Bar * 0.98f, N - 12.f, 0.03f, 400.f, 1200.f, 0.8f, 0.3f, 0.35f, 0.006f);
+		// 펄스 아르페지오 (9~16마디, 신스 맛)
+		if (bHalf2)
+			for (int K = 0; K < 16; ++K) M.PulseNote(2, T + Sw16(K), S16 * 0.8f, C.Voice[(K * 3) % 4] + 12.f, 0.03f);
+	}
+	const FLead Vib[] = {
+		{8, 0.f, 0.75f, 76.f}, {8, 0.75f, 0.25f, 79.f}, {8, 1.f, 1.f, 81.f}, {8, 2.5f, 0.5f, 79.f}, {8, 3.f, 1.f, 76.f},
+		{9, 0.f, 0.5f, 74.f}, {9, 0.5f, 0.5f, 76.f}, {9, 1.f, 1.5f, 78.f}, {9, 2.75f, 0.25f, 76.f}, {9, 3.f, 1.f, 74.f},
+		{10, 0.f, 1.f, 72.f}, {10, 1.f, 0.5f, 76.f}, {10, 1.5f, 0.5f, 79.f}, {10, 2.f, 2.f, 81.f},
+		{11, 0.f, 1.f, 80.f}, {11, 1.f, 1.f, 79.f}, {11, 2.f, 1.f, 76.f}, {11, 3.f, 1.f, 74.f}};
+	for (const FLead& L : Vib) M.Vibes(2, L.Bar * Bar + L.At * Beat, L.Len * Beat, L.Midi, 0.13f);
+	const FLead Mute[] = {
+		{12, 0.f, 1.5f, 69.f}, {12, 1.5f, 0.5f, 72.f}, {12, 2.f, 1.f, 76.f}, {12, 3.f, 0.5f, 74.f}, {12, 3.5f, 0.5f, 72.f},
+		{13, 0.f, 2.f, 74.f}, {13, 2.f, 1.f, 78.f}, {13, 3.f, 1.f, 81.f},
+		{14, 0.f, 1.f, 79.f}, {14, 1.f, 1.f, 76.f}, {14, 2.f, 1.f, 72.f}, {14, 3.f, 1.f, 71.f},
+		{15, 0.f, 1.5f, 68.f}, {15, 1.5f, 0.5f, 71.f}, {15, 2.f, 2.f, 76.f}};
+	for (const FLead& L : Mute) M.MuteLead(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.92f, L.Midi, 0.12f);
+	FMixOpt O;
+	O.Duck = 0.35f; O.EchoFb = 0.28f; O.EchoMix = 0.4f; O.Room = 0.18f; O.Gain = 1.f;
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
+}
+
+// ---------------------------------------------------------------- 3. 보스: 신스 + 빅밴드 금관 (D-188 → D-264)
+// 140 BPM D 단조 Dm - B♭ - Gm - A7 16마디. 4박 킥 + 마디 끝 두 번, 게이트 스네어, 16분 하이햇 + 4분 라이드, 4마디마다 탐 채움,
+// 8분 워킹 베이스(신스 + 업라이트), 금관 찌르기(1박 · 2박 뒷박, 채움 마디는 3 · 3½ · 4박 몰아치기), 반음 경보 동기, 9마디부터 약음 리드
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate)
 {
 	const float Bpm = 140.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
@@ -466,34 +736,38 @@ std::vector<int16_t> SynthesizeBossMusic(int SampleRate)
 	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(2.f * SampleRate);
 	FMusic M(SampleRate, LoopN + TailN);
 	M.Rng = 0x9e3779b9u;
-	// Dm - B♭ - Gm - A (A 장화음이 긴장을 끌고 다시 Dm 으로)
-	struct FChord { float Bass; float Pad[3]; };
-	const FChord Ch[4] = {{38.f, {62.f, 65.f, 69.f}}, {34.f, {62.f, 65.f, 70.f}}, {43.f, {62.f, 67.f, 70.f}}, {45.f, {61.f, 64.f, 69.f}}};
+	const FJazzChord Ch[4] = {{38.f, 3.f, 10.f, {62.f, 65.f, 69.f, 74.f}}, {34.f, 4.f, 11.f, {62.f, 65.f, 70.f, 74.f}}, {43.f, 3.f, 10.f, {62.f, 67.f, 70.f, 74.f}}, {45.f, 4.f, 10.f, {61.f, 64.f, 67.f, 69.f}}};
 	std::vector<float> Kicks;
 	for (int B = 0; B < Bars; ++B)
 	{
 		const float T = B * Bar;
-		const FChord& C = Ch[B % 4];
+		const FJazzChord& C = Ch[B % 4];
 		const bool bFill = B % 4 == 3, bLead = B >= 8;
-		// 드럼: 4박 킥 + 마디 끝 두 번 킥, 스네어 2·4, 16분 하이햇, 4마디마다 탐 채움
 		for (int K = 0; K < 4; ++K) { M.Kick(T + K * Beat); Kicks.push_back(T + K * Beat); }
 		if (!bFill) { M.Kick(T + 3.5f * Beat); Kicks.push_back(T + 3.5f * Beat); }
 		M.Snare(T + Beat);
 		if (!bFill) M.Snare(T + 3.f * Beat);
-		for (int K = 0; K < 16; ++K) M.Hat(T + K * S16, 0.035f, K % 4 == 2 ? 0.16f : 0.07f);
-		if (bFill) for (int K = 0; K < 8; ++K) M.Tom(T + 2.f * Beat + K * S16, 180.f - K * 14.f, 0.5f);
-		// 베이스: 16분으로 몰아치는 근음 (네 번째마다 옥타브)
-		for (int K = 0; K < 16; ++K) M.SawNote(1, T + K * S16, S16 * 0.7f, C.Bass + (K % 4 == 3 ? 12.f : 0.f), 0.38f, 1800.f, 300.f, 0.04f, 0.002f, 0.015f, 0.005f);
-		// 찌르는 화음: 1박과 2박 반 (짧고 세게)
-		for (const float At : {0.f, 1.5f})
-			for (float N : C.Pad) M.SawNote(1, T + At * Beat, Beat * 0.4f, N, 0.07f, 3000.f, 700.f, 0.08f, 0.003f, 0.08f, 0.008f);
-		// 경보 동기: 높은 음과 반음 위를 8분으로 번갈아 (위협하는 느낌)
-		const float Hi = C.Pad[0] + 12.f;
-		for (int K = 0; K < 8; ++K) M.PulseNote(2, T + K * Beat / 2.f, Beat / 2.f * 0.8f, K % 2 ? Hi + 1.f : Hi, bLead ? 0.045f : 0.07f);
+		for (int K = 0; K < 16; ++K) M.Hat(T + K * S16, 0.03f, K % 4 == 2 ? 0.12f : 0.05f);
+		for (int K = 0; K < 4; ++K) M.Ride(T + K * Beat, 0.06f, 0.6f);
+		if (bFill) for (int K = 0; K < 8; ++K) M.Tom(T + 2.f * Beat + K * S16, 180.f - K * 14.f, 0.45f);
+		// 8분 워킹 베이스: 근음 · 3도 · 5도 · 7도 · 옥타브 · 7도 · 5도 · 다음 근음 반음 위/아래
+		float Nr = Ch[(B + 1) % 4].Root;
+		while (Nr - C.Root > 6.f) Nr -= 12.f;
+		while (C.Root - Nr > 6.f) Nr += 12.f;
+		const float Wk[8] = {C.Root, C.Root + C.Third, C.Root + 7.f, C.Root + C.Seventh, C.Root + 12.f, C.Root + C.Seventh, C.Root + 7.f, Nr + (B % 2 ? 1.f : -1.f)};
+		for (int K = 0; K < 8; ++K)
+		{
+			M.SawNote(1, T + K * Beat / 2.f, Beat / 2.f * 0.75f, Wk[K], 0.32f, 1700.f, 300.f, 0.04f, 0.002f, 0.015f, 0.005f);
+			M.Upright(1, T + K * Beat / 2.f, Beat / 2.f * 0.8f, Wk[K], 0.22f);
+		}
+		// 금관 찌르기
+		if (!bFill) { for (const float At : {0.f, 1.5f}) for (float N : C.Voice) M.Brass(1, T + At * Beat, Beat * (At == 0.f ? 0.45f : 0.9f), N, 0.06f, At > 0.f); }
+		else for (const float At : {0.f, 2.f, 2.5f, 3.f}) for (float N : C.Voice) M.Brass(1, T + At * Beat, Beat * 0.4f, N + (At >= 2.f ? 2.f : 0.f), 0.065f, At == 3.f);
+		// 반음 경보 동기
+		const float Hi = C.Voice[0] + 12.f;
+		for (int K = 0; K < 8; ++K) M.PulseNote(2, T + K * Beat / 2.f, Beat / 2.f * 0.8f, K % 2 ? Hi + 1.f : Hi, bLead ? 0.035f : 0.055f);
 	}
-	// 리드 (9~16마디): 낮게 깔려 올라가는 단조 선율
-	struct FLeadNote { int Bar; float At, Len, Midi; };
-	const FLeadNote Lead[] = {
+	const FLead Lead[] = {
 		{8, 0.f, 1.f, 74.f}, {8, 1.f, 1.f, 77.f}, {8, 2.f, 2.f, 76.f},
 		{9, 0.f, 1.f, 74.f}, {9, 1.f, 1.f, 70.f}, {9, 2.f, 2.f, 72.f},
 		{10, 0.f, 1.f, 70.f}, {10, 1.f, 1.f, 74.f}, {10, 2.f, 1.f, 79.f}, {10, 3.f, 1.f, 77.f},
@@ -502,7 +776,9 @@ std::vector<int16_t> SynthesizeBossMusic(int SampleRate)
 		{13, 0.f, 1.f, 74.f}, {13, 1.f, 1.f, 77.f}, {13, 2.f, 2.f, 82.f},
 		{14, 0.f, 1.f, 79.f}, {14, 1.f, 1.f, 77.f}, {14, 2.f, 2.f, 74.f},
 		{15, 0.f, 2.f, 73.f}, {15, 2.f, 2.f, 76.f}};
-	for (const FLeadNote& L : Lead) M.SawNote(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.95f, L.Midi, 0.15f, 3200.f, 1900.f, 0.25f, 0.008f, 0.1f, 0.006f, 0.008f);
-	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate);
+	for (const FLead& L : Lead) M.MuteLead(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.92f, L.Midi, 0.15f);
+	FMixOpt O;
+	O.Room = 0.12f;
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
 }
 } // namespace PD

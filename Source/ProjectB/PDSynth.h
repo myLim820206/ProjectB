@@ -40,9 +40,11 @@ struct FPDSoundEvent
 
 // 소리 하나를 합성한다. 모노 16비트 PCM
 std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int SampleRate = 44100);
-// 배경 음악 (D-117): 80년대 신스웨이브. 104 BPM, A 단조, Am-F-C-G 16마디(약 37초), 끝과 처음이 이어지는 반복용 PCM
+// 메뉴 음악 (D-264): 칵테일바 라운지 스윙. 88 BPM F 장조 16마디(약 44초), 로즈 · 워킹 베이스 · 라이드 · 브러시 · 비브라폰
+std::vector<int16_t> SynthesizeMenuMusic(int SampleRate = 44100);
+// 인게임 음악 (D-117 → D-264): 재즈 펑크 + 신스. 104 BPM A 단조 Am9-D9-Fmaj7-E7#9 16마디(약 37초), 끝과 처음이 이어지는 반복용 PCM
 std::vector<int16_t> SynthesizeMusic(int SampleRate = 44100);
-// 보스 웨이브 음악 (D-188): 140 BPM, D 단조 Dm-B♭-Gm-A 16마디(약 27초). 16분 베이스, 탐 채움, 반음 경보 동기, 긴장된 리드
+// 보스 웨이브 음악 (D-188 → D-264): 140 BPM D 단조 Dm-B♭-Gm-A7 16마디(약 27초). 8분 워킹 베이스, 금관 찌르기, 탐 채움, 반음 경보 동기, 약음 리드
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate = 44100);
 // 캐시 키
 inline int SoundKey(EPDSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }

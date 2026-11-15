@@ -127,8 +127,12 @@ void APDGameMode::UpdateMusic()
 	const double Now = FPlatformTime::Seconds();
 	const float Dt = LastMusicTime > 0.0 ? FMath::Min(0.25f, (float)(Now - LastMusicTime)) : 0.f; // 실제 시간 (배속과 상관없이)
 	LastMusicTime = Now;
-	if (BoardWidget.IsValid()) BossMix = FMath::Clamp(BossMix + (BoardWidget->WantBossMusic() ? 1.f : -1.f) * Dt / 1.5f, 0.f, 1.f); // 1.5초에 걸쳐 엇갈려 바뀐다
-	for (int32 I = 0; I < 2; ++I)
+	if (BoardWidget.IsValid()) // 지금 곡: 시작 화면 = 메뉴, 보스 웨이브 = 보스, 나머지 = 인게임. 1.5초에 걸쳐 엇갈려 바뀐다
+	{
+		const int32 Want = BoardWidget->WantMenuMusic() ? 2 : BoardWidget->WantBossMusic() ? 1 : 0;
+		for (int32 I = 0; I < MusicN; ++I) MusicMix[I] = FMath::Clamp(MusicMix[I] + (I == Want ? 1.f : -1.f) * Dt / 1.5f, 0.f, 1.f);
+	}
+	for (int32 I = 0; I < MusicN; ++I)
 	{
 		TArray<uint8>& Pcm = MusicPcm[I];
 		if (Pcm.Num() == 0)
@@ -150,7 +154,7 @@ void APDGameMode::UpdateMusic()
 		}
 		if (!MusicWave[I] || !MusicVoice[I] || !BoardWidget.IsValid()) continue;
 		if (MusicWave[I]->GetAvailableAudioByteCount() < Pcm.Num() / 2) MusicWave[I]->QueueAudio(Pcm.GetData(), Pcm.Num()); // 반 바퀴 남으면 한 바퀴 더
-		const float Mix = I == 0 ? FMath::Cos(BossMix * HALF_PI) : FMath::Sin(BossMix * HALF_PI); // 같은 크기로 들리게 엇갈림
+		const float Mix = FMath::Sin(MusicMix[I] * HALF_PI); // 같은 크기로 들리게 엇갈림
 		MusicVoice[I]->SetVolumeMultiplier(FMath::Max(0.001f, BoardWidget->GetMusicVolume() * Mix));
 	}
 }
@@ -158,7 +162,8 @@ void APDGameMode::UpdateMusic()
 void APDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	MusicJob[0] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMusic(PDSampleRate); }); // 배경 음악 합성 (D-117)
+	MusicJob[2] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMenuMusic(PDSampleRate); }); // 메뉴 음악 (D-264): 시작 화면이 먼저라 먼저 합성
+	MusicJob[0] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMusic(PDSampleRate); }); // 인게임 음악 (D-117, D-264)
 	MusicJob[1] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeBossMusic(PDSampleRate); }); // 보스 음악 (D-188)
 	if (!GEngine || !GEngine->GameViewport) return;
 
@@ -303,7 +308,7 @@ void APDGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	for (UAudioComponent* V : Voices)
 		if (V) V->DestroyComponent();
 	Voices.Empty();
-	for (int32 I = 0; I < 2; ++I)
+	for (int32 I = 0; I < MusicN; ++I)
 	{
 		if (MusicVoice[I]) { MusicVoice[I]->Stop(); MusicVoice[I]->DestroyComponent(); MusicVoice[I] = nullptr; }
 		MusicWave[I] = nullptr;

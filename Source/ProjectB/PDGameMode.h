@@ -48,15 +48,16 @@ private:
 	TArray<TObjectPtr<UNiagaraSystem>> FxSystems; // SPDBoardWidget::EWorldFx 순서
 
 	// 배경 음악 (D-117): 시작할 때 백그라운드에서 한 번 합성, 큐가 줄면 한 바퀴를 다시 넣어 이음매 없이 반복
-	// 보스 음악 (D-188): [0] 일반, [1] 보스. 둘 다 계속 흘리고 소리 크기만 엇갈려 바꾼다
+	// 음악 세 곡 (D-188 → D-264): [0] 인게임, [1] 보스, [2] 메뉴. 셋 다 계속 흘리고 소리 크기만 엇갈려 바꾼다
 	void UpdateMusic();
-	TFuture<std::vector<int16_t>> MusicJob[2];
-	TArray<uint8> MusicPcm[2];
+	static constexpr int32 MusicN = 3;
+	TFuture<std::vector<int16_t>> MusicJob[MusicN];
+	TArray<uint8> MusicPcm[MusicN];
 	UPROPERTY(Transient)
-	TObjectPtr<USoundWaveProcedural> MusicWave[2];
+	TObjectPtr<USoundWaveProcedural> MusicWave[MusicN];
 	UPROPERTY(Transient)
-	TObjectPtr<UAudioComponent> MusicVoice[2];
-	float BossMix = 0.f; // 0 = 일반 음악, 1 = 보스 음악
+	TObjectPtr<UAudioComponent> MusicVoice[MusicN];
+	float MusicMix[MusicN] = {0.f, 0.f, 1.f}; // 곡마다 0~1 (지금 곡 쪽으로 1.5초에 걸쳐)
 	double LastMusicTime = 0.0;
 
 	// 합성한 PCM 캐시 (소리 종류별로 한 번만 합성)

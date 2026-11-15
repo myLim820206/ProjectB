@@ -1251,16 +1251,12 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		}
 		return;
 	}
-	if (bCodex) // 도감 (D-119): 카드 클릭 = 크게 보기, 닫기 버튼·오른쪽 클릭 = 닫기
+	if (bCodex) // 도감 (D-265): 잠금 해제와 같은 걸린 메뉴판. 옆 판 = 탭, ‹ › = 쪽, 닫기 버튼 · 오른쪽 클릭 = 닫기
 	{
 		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bCodex = false; return; }
-		for (int32 I = 0; I < 3; ++I) if (InRect(P, CdxTabX(I), CdxTabY, CdxTabW - 30.f, CdxTabH)) { bCodexUpper = I == 1; bCodexCharm = I == 2; UiSound(EPDSound::Move); return; } // 쪽 탭 (D-231, D-234)
-		if (bCodexUpper || bCodexCharm) return;
-		for (int32 K = 0; K < (int32)EPDJoker::Count; ++K)
-		{
-			const FVector2f C0 = CodexCardPos(K);
-			if (InRect(P, C0.X, C0.Y, CdxCardW, CdxCardH)) { CodexSel = K; UiSound(EPDSound::Move); }
-		}
+		for (int32 Sd = 0; Sd < 2; ++Sd) if (InRect(P, UnlSideX(Sd), UnlSideY, UnlSideW, UnlSideH)) { UnlSetTab(UnlSideTab(Sd)); UiSound(EPDSound::Move); return; }
+		for (int32 Dir = -1; Dir <= 1; Dir += 2)
+			if (UnlPages() > 1 && InRect(P, UnlPgX(Dir), UnlPgY, UnlPgW, UnlPgH)) { UnlFlip(Dir); UiSound(EPDSound::Move); return; }
 		return;
 	}
 	if (bUpg)
@@ -1347,7 +1343,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
-	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; Sel = -1; return; }
+	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; UnlSetTab(1); Sel = -1; return; } // 도감은 조커 판부터 (D-265)
 	// 위쪽 띠 버튼 (D-119): 속도, 설정
 	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
 	if (!bRight && InRect(P, PauseBtnX, HudBtnY, HudBtnS, HudBtnS) && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { bPaused = !bPaused; UiSound(EPDSound::Move); return; } // 일시정지 (D-169)
@@ -1491,7 +1487,7 @@ int32 SPDBoardWidget::UnlRowAt(FVector2f P) const
 
 FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (Game.Phase == EPDPhase::Title && bUnlock && UnlPages() > 1) { UnlFlip(MouseEvent.GetWheelDelta() > 0.f ? -1 : 1); return FReply::Handled(); }
+	if (((Game.Phase == EPDPhase::Title && bUnlock) || bCodex) && UnlPages() > 1) { UnlFlip(MouseEvent.GetWheelDelta() > 0.f ? -1 : 1); return FReply::Handled(); } // 잠금 해제 · 도감 (D-265)
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
@@ -1791,10 +1787,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bCodex)
 	{
 		if (K == EKeys::J || K == EKeys::Escape) bCodex = false;
-		else if (K == EKeys::Tab) { const int32 Pg = (bCodexCharm ? 2 : bCodexUpper ? 1 : 0) + 1; bCodexUpper = Pg % 3 == 1; bCodexCharm = Pg % 3 == 2; } // 기본 → 상위 조커 → 부적 (D-231, D-234)
-		else if (K == EKeys::Left || K == EKeys::A) CodexSel = (CodexSel + 9) % 10; // 화살표로 넘겨 보기
-		else if (K == EKeys::Right || K == EKeys::D) CodexSel = (CodexSel + 1) % 10;
-		else if (K == EKeys::Up || K == EKeys::Down || K == EKeys::W || K == EKeys::S) CodexSel = (CodexSel + 5) % 10;
+		else if (K == EKeys::Tab) UnlSetTab((UnlockTab + 1) % 3); // 다음 판 (D-265)
+		else if (K == EKeys::Left || K == EKeys::A || K == EKeys::Right || K == EKeys::D) UnlFlip(K == EKeys::Left || K == EKeys::A ? -1 : 1);
 		return FReply::Handled();
 	}
 	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
@@ -1826,7 +1820,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
 	else if (K == EKeys::Escape) { if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
-	else if (K == EKeys::J) bCodex = !bCodex;
+	else if (K == EKeys::J) { bCodex = !bCodex; if (bCodex) UnlSetTab(1); }
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = NextSpeed(Game.Speed);
 	else if (K == EKeys::P || K == EKeys::Pause) bPaused = !bPaused; // 일시정지 (D-169)
