@@ -2077,8 +2077,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
-		Btn(TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.PointsLeft() > 0);
-		Btn(UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH, TEXT("영구 강화"), TEXT("U"), Gold, false); // D-228: 판 안에서는 보기만
+		Btn(TreeBtnX, TreeBtnY, RBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.PointsLeft() > 0); // 판 안 영구 강화 버튼은 뺐다 (D-240): 트리가 한 줄을 다 쓴다
 		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("조커 도감"), TEXT("J"), JokerPink, false);
 		Btn(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, TEXT("메뉴"), TEXT("Esc"), Grey, false);
 	}

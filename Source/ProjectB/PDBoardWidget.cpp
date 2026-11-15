@@ -1011,7 +1011,7 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 	case EHint::Feed: return Row(FeedFilterId);
 	case EHint::Swap: Out = FBox2f(FVector2f(SwapBtnX, SwapBtnY), FVector2f(SwapBtnX + SwapBtnW, SwapBtnY + SwapBtnH)); return true;
 	case EHint::Boss: Out = FBox2f(FVector2f(30.f, HudY + 34.f), FVector2f(310.f, HudY + 50.f)); return true;
-	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + TreeBtnW * 2.f + 8.f, TreeBtnY + TreeBtnH)); return true;
+	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + RBtnW, TreeBtnY + TreeBtnH)); return true;
 	case EHint::Upper: for (const FPDJokerMerge& M : Game.JokerMerges()) if (M.Upper >= 0) { const FVector2f B = MergeButtonCenter(M.Cells); Out = FBox2f(B - FVector2f(MergeW / 2.f, MergeH / 2.f), B + FVector2f(MergeW / 2.f, MergeH / 2.f)); return true; } return false;
 	default: return false;
 	}
@@ -1333,8 +1333,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
-	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, TreeBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; }
-	if (!bRight && InRect(P, UpgOpenX, UpgOpenY, UpgOpenW, UpgOpenH)) { bUpg = true; Sel = -1; return; }
+	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
 	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; Sel = -1; return; }
 	// 위쪽 띠 버튼 (D-119): 속도, 설정
 	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
@@ -1776,7 +1775,6 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) bCodex = !bCodex;
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
-	else if (K == EKeys::U) { bUpg = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = NextSpeed(Game.Speed);
 	else if (K == EKeys::P || K == EKeys::Pause) bPaused = !bPaused; // 일시정지 (D-169)
 	else if (K == EKeys::M) SetSound(!Settings.bSound);
