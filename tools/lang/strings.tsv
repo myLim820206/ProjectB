@@ -349,8 +349,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 %s %d개 합침!	Merged %s ×%d!	%s %d体を合体!	%s %d个合体!	%s %d個合體!	PDBoardFx.cpp
 기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
 합성 레벨 %d!	Fusion Lv %d!	合成レベル %d!	合成等级 %d!	合成等級 %d!	PDBoardFx.cpp
-레벨 %d! 포인트 +%d	Level %d! Points +%d	レベル %d! ポイント +%d	等级 %d! 点数 +%d	等級 %d! 點數 +%d	PDBoardFx.cpp
-레벨 %d! 포인트 +1	Level %d! Point +1	レベル %d! ポイント +1	等级 %d! 点数 +1	等級 %d! 點數 +1	PDBoardFx.cpp
 시작	Start	スタート	起点	起點	PDBoardPaint.cpp
 키스톤: %s	Keystone: %s	キーストーン: %s	基石: %s	基石: %s	PDBoardPaint.cpp
 조커 강화: %s	Joker Upgrade: %s	ジョーカー強化: %s	小丑强化: %s	小丑強化: %s	PDBoardPaint.cpp
@@ -570,6 +568,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)	You can pick 3 (or 2) hands to make a Joker (anywhere on the board)	役を3つ(または2つ)選んでジョーカーを作れる (盤のどこでも)	可以选 3 个(或 2 个)牌型制作小丑 (棋盘任何位置)	可以選 3 個(或 2 個)牌型製作小丑 (棋盤任何位置)	PDBoardPaint.cpp
 자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다	The Swap reward lets you swap two towers	入れ替え報酬でタワー2つの場所を交換できる	换位奖励可以交换两座塔的位置	換位獎勵可以交換兩座塔的位置	PDBoardPaint.cpp
 무늬는 공격 방식, 숫자는 공격력	Suit sets the attack type, rank sets attack power	スートは攻撃方式、数字は攻撃力	花色决定攻击方式, 点数决定攻击力	花色決定攻擊方式, 點數決定攻擊力	PDBoardPaint.cpp
+레벨 %d  →  %d	Level %d  →  %d	レベル %d  →  %d	等级 %d  →  %d	等級 %d  →  %d	PDBoardPaint.cpp
+포인트 +%d	Points +%d	ポイント +%d	点数 +%d	點數 +%d	PDBoardPaint.cpp
 카드 놓기	Place a card	カードを置く	放置卡牌	放置卡牌	PDBoardPaint.cpp
 족보 만들기	Make a hand	役を作る	组成牌型	組成牌型	PDBoardPaint.cpp
 족보 완성!	Hand made!	役が完成!	牌型完成!	牌型完成!	PDBoardPaint.cpp
@@ -673,6 +673,8 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+레벨 %d! 포인트 +%d	Level %d! Points +%d	レベル %d! ポイント +%d	等级 %d! 点数 +%d	等級 %d! 點數 +%d	PDLangTable.inl
+레벨 %d! 포인트 +1	Level %d! Point +1	レベル %d! ポイント +1	等级 %d! 点数 +1	等級 %d! 點數 +1	PDLangTable.inl
 Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기	Tab: Basic → Upper Jokers → Potions · J / Esc: close	Tab: 基本 → 上位ジョーカー → 秘薬 · J / Esc: 閉じる	Tab: 基本 → 上位小丑 → 秘药 · J / Esc: 关闭	Tab: 基本 → 上位小丑 → 秘藥 · J / Esc: 關閉	PDLangTable.inl
 서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커	Two different jokers side by side, both Joker Level 10 (5 if you took its tree tip) → Upper Joker	異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 (ツリー末端を取ったジョーカーは5) → 上位ジョーカー	两个不同的小丑相邻，且都达到小丑等级10 (点了技能树末端的小丑为5) → 上位小丑	兩個不同的小丑相鄰，且都達到小丑等級10 (點了技能樹末端的小丑為5) → 上位小丑	PDLangTable.inl
 Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jokers · J / Esc: close	Tab: 基本 ↔ 上位ジョーカー · J / Esc: 閉じる	Tab: 基本 ↔ 上位小丑 · J / Esc: 关闭	Tab: 基本 ↔ 上位小丑 · J / Esc: 關閉	PDLangTable.inl

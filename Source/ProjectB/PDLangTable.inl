@@ -350,8 +350,6 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("%s %d개 합침!"), TEXT("Merged %s ×%d!"), TEXT("%s %d体を合体!"), TEXT("%s %d个合体!"), TEXT("%s %d個合體!")},
 	{TEXT("기절!"), TEXT("Stunned!"), TEXT("気絶!"), TEXT("晕眩!"), TEXT("暈眩!")},
 	{TEXT("합성 레벨 %d!"), TEXT("Fusion Lv %d!"), TEXT("合成レベル %d!"), TEXT("合成等级 %d!"), TEXT("合成等級 %d!")},
-	{TEXT("레벨 %d! 포인트 +%d"), TEXT("Level %d! Points +%d"), TEXT("レベル %d! ポイント +%d"), TEXT("等级 %d! 点数 +%d"), TEXT("等級 %d! 點數 +%d")},
-	{TEXT("레벨 %d! 포인트 +1"), TEXT("Level %d! Point +1"), TEXT("レベル %d! ポイント +1"), TEXT("等级 %d! 点数 +1"), TEXT("等級 %d! 點數 +1")},
 	{TEXT("시작"), TEXT("Start"), TEXT("スタート"), TEXT("起点"), TEXT("起點")},
 	{TEXT("키스톤: %s"), TEXT("Keystone: %s"), TEXT("キーストーン: %s"), TEXT("基石: %s"), TEXT("基石: %s")},
 	{TEXT("조커 강화: %s"), TEXT("Joker Upgrade: %s"), TEXT("ジョーカー強化: %s"), TEXT("小丑强化: %s"), TEXT("小丑強化: %s")},
@@ -571,6 +569,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)"), TEXT("You can pick 3 (or 2) hands to make a Joker (anywhere on the board)"), TEXT("役を3つ(または2つ)選んでジョーカーを作れる (盤のどこでも)"), TEXT("可以选 3 个(或 2 个)牌型制作小丑 (棋盘任何位置)"), TEXT("可以選 3 個(或 2 個)牌型製作小丑 (棋盤任何位置)")},
 	{TEXT("자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다"), TEXT("The Swap reward lets you swap two towers"), TEXT("入れ替え報酬でタワー2つの場所を交換できる"), TEXT("换位奖励可以交换两座塔的位置"), TEXT("換位獎勵可以交換兩座塔的位置")},
 	{TEXT("무늬는 공격 방식, 숫자는 공격력"), TEXT("Suit sets the attack type, rank sets attack power"), TEXT("スートは攻撃方式、数字は攻撃力"), TEXT("花色决定攻击方式, 点数决定攻击力"), TEXT("花色決定攻擊方式, 點數決定攻擊力")},
+	{TEXT("레벨 %d  →  %d"), TEXT("Level %d  →  %d"), TEXT("レベル %d  →  %d"), TEXT("等级 %d  →  %d"), TEXT("等級 %d  →  %d")},
+	{TEXT("포인트 +%d"), TEXT("Points +%d"), TEXT("ポイント +%d"), TEXT("点数 +%d"), TEXT("點數 +%d")},
 	{TEXT("카드 놓기"), TEXT("Place a card"), TEXT("カードを置く"), TEXT("放置卡牌"), TEXT("放置卡牌")},
 	{TEXT("족보 만들기"), TEXT("Make a hand"), TEXT("役を作る"), TEXT("组成牌型"), TEXT("組成牌型")},
 	{TEXT("족보 완성!"), TEXT("Hand made!"), TEXT("役が完成!"), TEXT("牌型完成!"), TEXT("牌型完成!")},
@@ -674,6 +674,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("레벨 %d! 포인트 +%d"), TEXT("Level %d! Points +%d"), TEXT("レベル %d! ポイント +%d"), TEXT("等级 %d! 点数 +%d"), TEXT("等級 %d! 點數 +%d")},
+	{TEXT("레벨 %d! 포인트 +1"), TEXT("Level %d! Point +1"), TEXT("レベル %d! ポイント +1"), TEXT("等级 %d! 点数 +1"), TEXT("等級 %d! 點數 +1")},
 	{TEXT("Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기"), TEXT("Tab: Basic → Upper Jokers → Potions · J / Esc: close"), TEXT("Tab: 基本 → 上位ジョーカー → 秘薬 · J / Esc: 閉じる"), TEXT("Tab: 基本 → 上位小丑 → 秘药 · J / Esc: 关闭"), TEXT("Tab: 基本 → 上位小丑 → 秘藥 · J / Esc: 關閉")},
 	{TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 (트리 끝자락을 찍은 조커는 5) → 상위 조커"), TEXT("Two different jokers side by side, both Joker Level 10 (5 if you took its tree tip) → Upper Joker"), TEXT("異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 (ツリー末端を取ったジョーカーは5) → 上位ジョーカー"), TEXT("两个不同的小丑相邻，且都达到小丑等级10 (点了技能树末端的小丑为5) → 上位小丑"), TEXT("兩個不同的小丑相鄰，且都達到小丑等級10 (點了技能樹末端的小丑為5) → 上位小丑")},
 	{TEXT("Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기"), TEXT("Tab: Basic ↔ Upper Jokers · J / Esc: close"), TEXT("Tab: 基本 ↔ 上位ジョーカー · J / Esc: 閉じる"), TEXT("Tab: 基本 ↔ 上位小丑 · J / Esc: 关闭"), TEXT("Tab: 基本 ↔ 上位小丑 · J / Esc: 關閉")},
@@ -848,4 +850,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 847;
+static const int32 PDLangRowCount = 849;

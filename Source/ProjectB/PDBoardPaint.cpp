@@ -328,6 +328,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintBoardUi(F); Part(3); // 판 위 UI 를 패널 뒤에 그려 툴팁이 패널 위로 나갈 수 있게 (D-150)
 	PaintHandTip(C); // 손패 툴팁은 판 위 UI 위에 (D-214)
 	PaintHint(C); // 도움말 카드 (D-217)
+	PaintLevelUp(C); // 레벨업 (D-273)
 	PaintScreens(C); Part(5);
 	PaintTree(C);
 	// 화면 번쩍임과 덮개 화면 (제목, 게임 오버), 메뉴
@@ -2846,6 +2847,121 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 
 // 왼쪽 족보 안내 (D-119): 이름 + 효과 한 줄. 판 위에 있는 족보는 밝게, 개수 표시
 // 도움말 카드 (D-217): 가리킬 자리 둘레에 숨 쉬는 고리 + 카드에서 이어지는 선, 카드엔 제목·설명·[알겠어]·[도움말 끄기]
+// 레벨업 이펙트 (D-273, 시안 A1 마키 간판): 0~0.3초 경험치 막대 번쩍 → 0.3초 화면 가운데에 전구 두른 금색 간판이 떨어져 튕기고
+// 'LEVEL UP' 글자가 하나씩 지직 켜짐 + 빠직 불티 + '레벨 7 → 8' → 1.35초부터 줄어들며 위 레벨 글자 밑으로 날아가 매달린 간판 + '포인트 +N' → 2.4초에 꺼짐
+void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
+{
+	const float T = Clock - LevelUpAt;
+	if (T < 0.f || T >= 2.4f || Game.Phase == EPDPhase::Title) return;
+	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Wire = Hex(TEXT("5f6878"));
+	auto Ease = [](float U) { U = FMath::Clamp(U, 0.f, 1.f); return 1.f - (1.f - U) * (1.f - U) * (1.f - U); };
+	// 경험치 막대 번쩍 (위쪽 띠의 레벨 막대 자리)
+	if (T < 0.45f) { const float Fl = FMath::Max(0.f, 1.f - FMath::Abs(T - 0.25f) / 0.2f); C.Box(980.f, HudY + 31.f, 140.f, 7.f, FLinearColor(1.f, 1.f, 1.f, 0.7f * Fl)); }
+	static const float Seq[5] = {0.4f, 0.08f, 0.9f, 0.2f, 1.f};
+	const FString Word = TEXT("LEVEL UP");
+	// 간판 글자: 글자마다 따로, 시작 시각 T0 부터 25fps 단계로 지직 켜짐
+	auto SignWord = [&](float CX, float BaseY, float Px, float T0, float Fade)
+	{
+		const FSlateFontInfo Fn = FCanvas::Font(Px, true);
+		const float Track = Px * 0.12f;
+		float W = 0.f;
+		for (int32 I = 0; I < Word.Len(); ++I) W += FCanvas::Measure(Word.Mid(I, 1), Fn).X + (I > 0 ? Track : 0.f);
+		float X = CX - W / 2.f;
+		const int32 Kf = FMath::FloorToInt((T - T0) * 25.f);
+		for (int32 I = 0; I < Word.Len(); ++I)
+		{
+			const FString Ch = Word.Mid(I, 1);
+			const float Cw = FCanvas::Measure(Ch, Fn).X;
+			const int32 J = Kf - I;
+			const float B = (J < 0 ? 0.08f : J < 5 ? Seq[J] : 1.f) * Fade;
+			if (Ch != TEXT(" "))
+			{
+				if (B > 0.3f) C.Text(Ch, X - 1.f, BaseY, FLinearColor(Gold.R, Gold.G, Gold.B, 0.25f * B), Px + 2.f, 0, true); // 옅은 번짐
+				C.Text(Ch, X, BaseY, FLinearColor(Gold.R * B, Gold.G * B, Gold.B * B, 1.f), Px, 0, true);
+			}
+			X += Cw + Track;
+		}
+	};
+	// 빠직 불티 (타이틀 로고와 같은 움직임)
+	auto Crackle = [&](FVector2f O, int32 K, int32 Seed)
+	{
+		const FLinearColor Hot(1.f, 0.96f, 0.82f, 1.f), Warm(1.f, 0.88f, 0.59f, 1.f);
+		if (K == 0) C.Glow(FCanvas::CirclePoints(O, 3.f, 10), Hot, 2.5f, 1.4f);
+		FRandomStream Rp(Seed * 104729 + 3);
+		for (int32 N = 0; N < 10; ++N)
+		{
+			const float A = Rp.FRand() < 0.7f ? Rp.FRandRange(-PI * 0.95f, -PI * 0.05f) : Rp.FRandRange(0.f, PI);
+			const float Sp = Rp.FRandRange(3.f, 6.5f);
+			const int32 Life = Rp.RandRange(7, 12);
+			const bool bWhite = Rp.FRand() >= 0.7f;
+			if (K < 1 || K > Life) continue;
+			auto At = [&](float Tt) { return O + FVector2f(FMath::Cos(A) * Sp * Tt, FMath::Sin(A) * Sp * Tt + 0.35f * Tt * Tt); };
+			const float Fd = 1.f - (K / (float)Life) * 0.8f;
+			C.Glow({At(K - 1.f), At((float)K)}, WithAlpha(bWhite ? Hot : Warm, Fd), 1.5f, Fd);
+		}
+	};
+	// 가운데 간판 (0.3 ~ 1.75초)
+	if (T > 0.3f && T < 1.75f)
+	{
+		const float U = T - 0.3f;
+		float CX = FX + Cols * CS / 2.f, CY = FY + Rows * CS * 0.46f, K = 1.f;
+		if (T < 1.35f)
+		{
+			const float Drop = Ease(U / 0.25f), BU = FMath::Min(1.f, U / 0.45f);
+			CY += -220.f * (1.f - Drop) + FMath::Sin(BU * TwoPi) * 10.f * (1.f - BU);
+		}
+		else
+		{
+			const float V = Ease((T - 1.35f) / 0.4f);
+			CX += (900.f - CX) * V;
+			CY += (121.f - CY) * V;
+			K = 1.f - 0.55f * V;
+		}
+		const float W = 380.f * K, H = 170.f * K;
+		C.Box(CX - W / 2.f, CY - H / 2.f, W, H, Hex(TEXT("06060b"), 0.82f));
+		C.Glow(FCanvas::RoundRectPoints(CX - W / 2.f, CY - H / 2.f, W, H, 14.f * K), Gold, 2.4f, 0.9f);
+		C.Lines(FCanvas::RoundRectPoints(CX - W / 2.f + 7.f * K, CY - H / 2.f + 7.f * K, W - 14.f * K, H - 14.f * K, 9.f * K), WithAlpha(Gold, 0.7f), 1.f);
+		if (K > 0.8f) // 전구 테두리: 셋 중 하나가 꺼진 채로 돈다
+		{
+			const float X0 = CX - W / 2.f + 16.f, Y0 = CY - H / 2.f + 16.f, X1 = CX + W / 2.f - 16.f, Y1 = CY + H / 2.f - 16.f;
+			const float Per = 2.f * ((X1 - X0) + (Y1 - Y0));
+			const int32 NB = FMath::FloorToInt(Per / 18.f), Ph = FMath::FloorToInt(T * 12.f) % 3;
+			for (int32 Bi = 0; Bi < NB; ++Bi)
+			{
+				float D = Bi * 18.f;
+				FVector2f P;
+				if (D < X1 - X0) P = FVector2f(X0 + D, Y0);
+				else if ((D -= X1 - X0) < Y1 - Y0) P = FVector2f(X1, Y0 + D);
+				else if ((D -= Y1 - Y0) < X1 - X0) P = FVector2f(X1 - D, Y1);
+				else P = FVector2f(X0, Y1 - (D - (X1 - X0)));
+				const bool bOn = (Bi + Ph) % 3 != 0;
+				if (bOn) C.Glow(FCanvas::CirclePoints(P, 3.6f, 10), Hex(TEXT("ffe196")), 1.3f, 0.7f);
+				else C.Lines(FCanvas::CirclePoints(P, 3.6f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+			}
+		}
+		SignWord(CX, CY + 16.f * K, 50.f * K, 0.45f, 1.f);
+		if (T < 1.35f)
+		{
+			const float G2 = Ease((U - 0.5f) / 0.2f);
+			if (G2 > 0.f) C.TextCentered(TrF(TEXT("레벨 %d  →  %d"), LevelUpFrom, LevelUpTo), CX, CY + 52.f, FLinearColor(1.f, 1.f, 1.f, G2), 20.f, true);
+			const int32 KK = FMath::FloorToInt((U - 0.15f) * 25.f) - Word.Len() - 1;
+			if (KK >= 0 && KK < 12) { Crackle(FVector2f(CX + 150.f, CY - 55.f), KK, 21); Crackle(FVector2f(CX - 150.f, CY - 55.f), KK, 22); }
+		}
+	}
+	// 위 레벨 글자 밑에 매달린 간판 (1.75 ~ 2.4초) + 포인트 꼬리표
+	if (T >= 1.75f)
+	{
+		const float Fade = T < 2.f ? 1.f : FMath::Max(0.f, 1.f - (T - 2.f) / 0.4f);
+		for (const float X : {850.f, 950.f}) C.Lines({FVector2f(X, HudY + 50.f), FVector2f(X, 92.f)}, WithAlpha(Wire, 0.5f * Fade), 1.f);
+		C.Box(796.f, 92.f, 208.f, 58.f, Hex(TEXT("06060b"), 0.82f * Fade));
+		C.Glow(FCanvas::RoundRectPoints(796.f, 92.f, 208.f, 58.f, 10.f), WithAlpha(Gold, Fade), 2.f, 0.8f * Fade);
+		SignWord(900.f, 132.f, 27.f, -10.f, Fade);
+		C.Box(840.f, 158.f, 120.f, 24.f, Hex(TEXT("06060b"), 0.82f * Fade));
+		C.Glow(FCanvas::RoundRectPoints(840.f, 158.f, 120.f, 24.f, 12.f), WithAlpha(Pink, Fade), 1.6f, 0.6f * Fade);
+		C.TextCentered(TrF(TEXT("포인트 +%d"), LevelUpPts), 900.f, 170.f, FLinearColor(1.f, 1.f, 1.f, Fade), 13.f, true);
+	}
+}
+
 void SPDBoardWidget::PaintHint(FCanvas& C) const
 {
 	HintOkRect = HintOffRect = HintCardRect = FBox2f(FVector2f(-1.f, -1.f), FVector2f(-1.f, -1.f));

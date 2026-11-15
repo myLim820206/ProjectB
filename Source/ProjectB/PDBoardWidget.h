@@ -138,6 +138,7 @@ private:
 	void FinishHint();                     // 지금 도움말을 본 것으로
 	bool HintTarget(int32 H, FBox2f& Out) const; // 가리킬 자리
 	void PaintHint(FCanvas& C) const;
+	void PaintLevelUp(FCanvas& C) const;   // 레벨업 이펙트 (D-273): 가운데 마키 간판 → 위 레벨 자리로 날아가 매달림
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
@@ -347,6 +348,8 @@ private:
 	bool bUpg = false;                     // 골드 강화 화면 (U)
 	int32 TreeBuyId = -1;                  // 방금 찍은 노드 (연출)
 	float TreeBuyT = 0.f;
+	float LevelUpAt = -100.f;               // 레벨업 이펙트 시작 시각 (Clock, 배속과 상관없음, D-273)
+	int32 LevelUpFrom = 0, LevelUpTo = 0, LevelUpPts = 0;
 	FString PreviewKey;
 
 	// 이펙트 상태

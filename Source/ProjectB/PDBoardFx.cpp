@@ -344,11 +344,13 @@ void SPDBoardWidget::HandleEvents()
 			TreeBuyId = E.A;
 			TreeBuyT = 0.8f;
 			break;
-		case FPDEvent::EKind::LevelUp: // 레벨업 (D-228): 위쪽 레벨 글자 옆에서 금빛 글자 + 불꽃
+		case FPDEvent::EKind::LevelUp: // 레벨업 (D-228 → D-273): 가운데 마키 간판 → 위 레벨 자리로 날아가 매달림 (PaintLevelUp)
 		{
-			const FVector2f At(1050.f, HudY + 70.f);
-			Floats.Add({E.B > 1 ? TrF(TEXT("레벨 %d! 포인트 +%d"), E.A, E.B) : TrF(TEXT("레벨 %d! 포인트 +1"), E.A), At, 0.f, 1.6f, 18.f, Hex(TEXT("ffd96a"))});
-			Burst(At - FVector2f(0.f, 30.f), 24, Hex(TEXT("ffd96a")), 50.f, 200.f, 0.7f, 2.2f, true);
+			const bool bRunning = Clock - LevelUpAt < 2.4f;
+			if (!bRunning) { LevelUpFrom = E.A - E.B; LevelUpPts = 0; } // 이펙트 도중 또 오르면 처음 레벨은 그대로, 포인트는 더한다
+			LevelUpTo = E.A;
+			LevelUpPts += E.B;
+			LevelUpAt = Clock;
 			break;
 		}
 		case FPDEvent::EKind::Reward:
