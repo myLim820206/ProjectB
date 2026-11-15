@@ -1723,6 +1723,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 #if WITH_EDITOR
 #if WITH_EDITOR
 	if (K == EKeys::F7 && Game.Phase != EPDPhase::Title) { LevelUpFrom = Game.Level; LevelUpTo = Game.Level + 1; LevelUpPts = 1; LevelUpAt = Clock; return FReply::Handled(); } // 레벨업 이펙트 미리 보기 (에디터, D-273)
+	if (K == EKeys::F9 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { Game.Enemies.clear(); Game.Phase = EPDPhase::Reward; Game.Rewards = Game.RollRewards(); return FReply::Handled(); } // 칵테일 보상 화면 미리 보기 (에디터, D-286)
 #endif
 	if (K == EKeys::F8) { SaveAtlasAsset(); return FReply::Handled(); } // 아틀라스 에셋 만들기 (에디터)
 #endif

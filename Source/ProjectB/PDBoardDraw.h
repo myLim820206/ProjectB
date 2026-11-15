@@ -343,8 +343,9 @@ inline const TCHAR* InstantDesc(int I)
 	return Tr(N[I]);
 }
 // 보상 카드 위치 (판 가운데 3장)
-inline FVector2f RewardPos(int I) { return FVector2f(FX + Cols * CS / 2.f - 360.f + I * 250.f, FY + 160.f); }
-constexpr float RewardW = 220.f, RewardH = 170.f;
+// 칵테일 보상 = 바텐더 추천 (D-286): 선반 위 잔 + 가격표 꼬리표. 칸 = 잔부터 꼬리표 아래 글자까지 (마우스 · 클릭)
+constexpr float RewardW = 220.f, RewardH = 236.f, RewardShelfY = FY + 270.f;
+inline FVector2f RewardPos(int I) { return FVector2f(FX + Cols * CS / 2.f - RewardW / 2.f + (I - 1) * 245.f, FY + 146.f); }
 inline FVector2f CellPx(float X, float Y) { return FVector2f(FX + X * CS, FY + Y * CS); } // 칸 좌표(실수) → 화면
 inline FVector2f CellCenter(int Key) { return CellPx(Key % Cols + 0.5f, Key / Cols + 0.5f); }
 // 조커 합성 버튼: 묶음 맨 위 칸(같으면 왼쪽)의 위 변 가운데

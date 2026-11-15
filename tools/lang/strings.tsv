@@ -471,7 +471,7 @@ Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space star
 K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Codex · Esc Menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單	PDBoardPaint.cpp
 웨이브 %d 칵테일 — 하나를 고른다	Wave %d cocktail — pick one	ウェーブ %d カクテル — 1つ選ぶ	第%d波 鸡尾酒 — 选择一个	第%d波 雞尾酒 — 選擇一個	PDBoardPaint.cpp
 칵테일	Cocktail	カクテル	鸡尾酒	雞尾酒	PDBoardPaint.cpp
-즉시	Instant	即時	即时	即時	PDBoardPaint.cpp
+서비스	On the house	サービス	店家招待	店家招待	PDBoardPaint.cpp
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
 칵테일 칸이 가득 찼다 (5/5)	Cocktail slots are full (5/5)	カクテル枠がいっぱい (5/5)	鸡尾酒栏已满 (5/5)	雞尾酒欄已滿 (5/5)	PDBoardPaint.cpp
 조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
@@ -669,6 +669,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+즉시	Instant	即時	即时	即時	PDLangTable.inl
 조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDLangTable.inl
 족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDLangTable.inl
 족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDLangTable.inl

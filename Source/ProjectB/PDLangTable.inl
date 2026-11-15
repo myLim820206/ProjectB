@@ -472,7 +472,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴"), TEXT("K Skill Tree · U Upgrades · J Codex · Esc Menu"), TEXT("K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー"), TEXT("K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单"), TEXT("K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單")},
 	{TEXT("웨이브 %d 칵테일 — 하나를 고른다"), TEXT("Wave %d cocktail — pick one"), TEXT("ウェーブ %d カクテル — 1つ選ぶ"), TEXT("第%d波 鸡尾酒 — 选择一个"), TEXT("第%d波 雞尾酒 — 選擇一個")},
 	{TEXT("칵테일"), TEXT("Cocktail"), TEXT("カクテル"), TEXT("鸡尾酒"), TEXT("雞尾酒")},
-	{TEXT("즉시"), TEXT("Instant"), TEXT("即時"), TEXT("即时"), TEXT("即時")},
+	{TEXT("서비스"), TEXT("On the house"), TEXT("サービス"), TEXT("店家招待"), TEXT("店家招待")},
 	{TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), TEXT("Pick with 1 · 2 · 3 or click   S: skip"), TEXT("1 · 2 · 3 かクリックで選ぶ   S: スキップ"), TEXT("按 1 · 2 · 3 或点击选择   S: 跳过"), TEXT("按 1 · 2 · 3 或點擊選擇   S: 跳過")},
 	{TEXT("칵테일 칸이 가득 찼다 (5/5)"), TEXT("Cocktail slots are full (5/5)"), TEXT("カクテル枠がいっぱい (5/5)"), TEXT("鸡尾酒栏已满 (5/5)"), TEXT("雞尾酒欄已滿 (5/5)")},
 	{TEXT("조커"), TEXT("Joker"), TEXT("ジョーカー"), TEXT("小丑"), TEXT("小丑")},
@@ -670,6 +670,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("즉시"), TEXT("Instant"), TEXT("即時"), TEXT("即时"), TEXT("即時")},
 	{TEXT("조커 도감"), TEXT("Joker Codex"), TEXT("ジョーカー図鑑"), TEXT("小丑图鉴"), TEXT("小丑圖鑑")},
 	{TEXT("족보 덤 ×%.1f"), TEXT("Hand bonus ×%.1f"), TEXT("役ボーナス ×%.1f"), TEXT("牌型加成 ×%.1f"), TEXT("牌型加成 ×%.1f")},
 	{TEXT("족보 %d · 조커 %d"), TEXT("Hands %d · Jokers %d"), TEXT("役 %d · ジョーカー %d"), TEXT("牌型 %d · 小丑 %d"), TEXT("牌型 %d · 小丑 %d")},
@@ -848,4 +849,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 847;
+static const int32 PDLangRowCount = 848;

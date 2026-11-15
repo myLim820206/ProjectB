@@ -2242,26 +2242,93 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 	const FPDGame& G = Game;
 	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-	// 부적 고르기 (5웨이브마다, D-101)
+	// 칵테일 고르기 (5웨이브마다, D-101 → D-286 바텐더 추천): 전구 두른 'BARTENDER'S CHOICE' 간판, 선반 위 잔 셋(칵테일마다 잔 모양 · 서비스는 칩 접시),
+	// 아래 가격표 꼬리표에 이름 · 효과. 마우스를 올린 잔은 술이 차고 위에서 병이 기울어 따른다
 	if (G.Phase == EPDPhase::Reward)
 	{
-		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.9f));
-		C.TextCentered(TrF(TEXT("웨이브 %d 칵테일 — 하나를 고른다"), G.Wave), FX + Cols * CS / 2.f, FY + 112.f, Gold, 22.f, true, Cols * CS - 20.f);
+		const FLinearColor Orange = Hex(TEXT("ffa046")), PinkR = Hex(TEXT("ff6aaa")), Lav = Hex(TEXT("a896e1")), White = FLinearColor::White, Mint = Hex(TEXT("9cffb0"));
+		const float CXb = FX + Cols * CS / 2.f;
+		C.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("06060b"), 0.92f));
+		{ // 간판
+			const float SX = CXb - 200.f, SY = FY + 24.f, SW = 400.f, SH = 64.f;
+			C.Glow(FCanvas::RoundRectPoints(SX, SY, SW, SH, 12.f), Orange, 2.f, 0.9f);
+			C.Lines(FCanvas::RoundRectPoints(SX, SY, SW, SH, 12.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
+			C.Glow(FCanvas::RoundRectPoints(SX + 5.f, SY + 5.f, SW - 10.f, SH - 10.f, 7.f), WithAlpha(Orange, 0.7f), 1.f, 0.4f);
+			const int32 Ph = FMath::FloorToInt(Clock * 8.f) % 3;
+			const float X0 = SX + 14.f, Y0 = SY + 12.f, X1 = SX + SW - 14.f, Y1 = SY + SH - 12.f, Per = 2.f * ((X1 - X0) + (Y1 - Y0));
+			for (int32 Bi = 0; Bi < FMath::FloorToInt(Per / 16.f); ++Bi)
+			{
+				float D = Bi * 16.f;
+				FVector2f Q;
+				if (D < X1 - X0) Q = FVector2f(X0 + D, Y0);
+				else if ((D -= X1 - X0) < Y1 - Y0) Q = FVector2f(X1, Y0 + D);
+				else if ((D -= Y1 - Y0) < X1 - X0) Q = FVector2f(X1 - D, Y1);
+				else Q = FVector2f(X0, Y1 - (D - (X1 - X0)));
+				if ((Bi + Ph) % 3 != 0) C.Glow(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196")), 1.1f, 0.5f);
+				else C.Lines(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+			}
+			NeonText(C, TEXT("BARTENDER'S CHOICE"), CXb, SY + 42.f, Gold, 21.f, 1, 1.f);
+			C.TextCentered(TrF(TEXT("웨이브 %d 칵테일 — 하나를 고른다"), G.Wave), CXb, SY + SH + 22.f, Fg, 13.f, true, Cols * CS - 40.f);
+		}
+		// 선반
+		C.Glow({FVector2f(FX + 60.f, RewardShelfY), FVector2f(FX + Cols * CS - 60.f, RewardShelfY)}, Lav, 2.f, 0.6f);
+		for (const float Bx : {FX + 90.f, FX + Cols * CS - 90.f}) C.Lines({FVector2f(Bx, RewardShelfY), FVector2f(Bx - 10.f, RewardShelfY + 18.f)}, WithAlpha(Lav, 0.6f), 1.4f);
+		static const TCHAR* CockCol[5] = {TEXT("ff6aaa"), TEXT("e8eeff"), TEXT("ffd26e"), TEXT("8fe9ff"), TEXT("b48cff")};
 		for (int32 I = 0; I < (int32)G.Rewards.size(); ++I)
 		{
 			const FPDReward& R = G.Rewards[I];
 			const FVector2f P = RewardPos(I);
 			const bool bHov = InRect(Mouse, P.X, P.Y, RewardW, RewardH);
-			const FLinearColor Col = R.bCharm ? Gold : Cyan;
-			C.Box(P.X, P.Y, RewardW, RewardH, Hex(TEXT("0a0b14")));
-			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, RewardW, RewardH, 12.f), Col, bHov ? 2.6f : 1.6f, bHov ? 1.6f + 0.6f * Pulse : 0.8f);
-			C.Text(R.bCharm ? TEXT("칵테일") : TEXT("즉시"), P.X + 16.f, P.Y + 26.f, Col, 11.f);
-			C.Text(FString::FromInt(I + 1), P.X + RewardW - 16.f, P.Y + 26.f, Dim, 11.f, 2);
-			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), P.X + RewardW / 2.f, P.Y + 74.f, Col, 20.f, true, RewardW - 20.f);
-			C.TextCentered(R.bCharm ? CharmDesc(R.Id) : InstantDesc(R.Id), P.X + RewardW / 2.f, P.Y + 108.f, Fg, 11.f, false, RewardW - 16.f);
+			const float GX = P.X + RewardW / 2.f, BY = RewardShelfY - 2.f, B = bHov ? 1.f : 0.6f;
+			const FLinearColor Col = R.bCharm ? Hex(CockCol[R.Id % 5]) : Cyan;
+			const FLinearColor CB(Col.R * B, Col.G * B, Col.B * B, 1.f);
+			const int32 Kind = R.bCharm ? R.Id % 3 : 3; // 0 마티니 1 하이볼 2 온더록 3 칩 접시 (서비스)
+			auto L = [&](std::initializer_list<FVector2f> Pts, float Th) { C.Glow(TArray<FVector2f>(Pts), CB, Th, 0.5f * B); };
+			if (Kind == 0)
+			{
+				L({FVector2f(GX - 26.f, BY - 70.f), FVector2f(GX + 26.f, BY - 70.f), FVector2f(GX, BY - 36.f), FVector2f(GX - 26.f, BY - 70.f)}, 1.8f);
+				L({FVector2f(GX, BY - 36.f), FVector2f(GX, BY - 4.f)}, 1.6f);
+				L({FVector2f(GX - 16.f, BY - 2.f), FVector2f(GX + 16.f, BY - 2.f)}, 1.6f);
+				if (bHov) { for (int32 K = 0; K < 5; ++K) { const float Hw = 22.f * (1.f - K * 5.f / 30.f); C.Lines({FVector2f(GX - Hw, BY - 64.f + K * 5.f), FVector2f(GX + Hw, BY - 64.f + K * 5.f)}, WithAlpha(Col, 0.5f), 1.f); }
+					C.Lines(FCanvas::CirclePoints(FVector2f(GX + 9.f, BY - 66.f), 4.f, 12), Mint, 1.2f); }
+			}
+			else if (Kind == 1)
+			{
+				L({FVector2f(GX - 18.f, BY - 78.f), FVector2f(GX - 16.f, BY - 2.f), FVector2f(GX + 16.f, BY - 2.f), FVector2f(GX + 18.f, BY - 78.f)}, 1.8f);
+				C.Lines({FVector2f(GX + 6.f, BY - 92.f), FVector2f(GX - 4.f, BY - 30.f)}, FLinearColor(1.f, 1.f, 1.f, 0.6f * B), 1.2f); // 빨대
+				if (bHov) for (int32 K = 0; K < 8; ++K) C.Lines({FVector2f(GX - 15.f, BY - 60.f + K * 7.f), FVector2f(GX + 15.f, BY - 60.f + K * 7.f)}, WithAlpha(Col, 0.45f), 1.f);
+			}
+			else if (Kind == 2)
+			{
+				L({FVector2f(GX - 24.f, BY - 46.f), FVector2f(GX - 22.f, BY - 2.f), FVector2f(GX + 22.f, BY - 2.f), FVector2f(GX + 24.f, BY - 46.f)}, 1.8f);
+				C.Lines({FVector2f(GX - 12.f, BY - 30.f), FVector2f(GX - 2.f, BY - 38.f), FVector2f(GX + 8.f, BY - 30.f), FVector2f(GX - 2.f, BY - 22.f), FVector2f(GX - 12.f, BY - 30.f)}, FLinearColor(1.f, 1.f, 1.f, 0.6f * B), 1.f); // 얼음
+			}
+			else
+			{
+				L({FVector2f(GX - 34.f, BY - 2.f), FVector2f(GX + 34.f, BY - 2.f)}, 1.6f);
+				for (int32 K = 0; K < 4; ++K) { const float Y = BY - 10.f - K * 9.f; L({FVector2f(GX - 18.f, Y), FVector2f(GX + 18.f, Y)}, 3.f); }
+			}
+			if (bHov && Kind < 3) // 위에서 병이 기울어 술을 따른다
+			{
+				const float Tx = GX + 30.f, Ty = BY - 128.f;
+				C.Glow({FVector2f(Tx + 4.f, Ty - 6.f), FVector2f(Tx + 46.f, Ty - 34.f), FVector2f(Tx + 56.f, Ty - 20.f), FVector2f(Tx + 14.f, Ty + 8.f), FVector2f(Tx + 4.f, Ty - 6.f)}, Lav, 1.4f, 0.5f);
+				C.Glow({FVector2f(Tx + 4.f, Ty - 6.f), FVector2f(Tx - 10.f, Ty + 2.f), FVector2f(Tx - 4.f, Ty + 10.f), FVector2f(Tx + 14.f, Ty + 8.f)}, Lav, 1.2f, 0.4f); // 병 목
+				const float Wob = FMath::Sin(Clock * 18.f) * 1.2f;
+				C.Glow({FVector2f(Tx - 8.f, Ty + 8.f), FVector2f(GX + 2.f + Wob, Ty + 30.f), FVector2f(GX + Wob, BY - (Kind == 2 ? 40.f : 64.f))}, Col, 1.8f, 0.8f); // 술줄기
+			}
+			// 가격표 꼬리표: 이름 · 효과
+			const float TX = P.X, TY = RewardShelfY + 32.f, TW = RewardW, TH = 48.f;
+			const FLinearColor TagC = bHov ? PinkR : R.bCharm ? Gold : Cyan;
+			const TArray<FVector2f> Tg = {FVector2f(TX, TY + TH / 2.f), FVector2f(TX + 14.f, TY), FVector2f(TX + TW, TY), FVector2f(TX + TW, TY + TH), FVector2f(TX + 14.f, TY + TH), FVector2f(TX, TY + TH / 2.f)};
+			C.Box(TX + 14.f, TY, TW - 14.f, TH, Hex(TEXT("06060b"), 0.9f));
+			C.Glow(Tg, TagC, bHov ? 1.8f : 1.4f, bHov ? 0.8f : 0.45f);
+			C.Lines(FCanvas::CirclePoints(FVector2f(TX + 12.f, TY + TH / 2.f), 3.f, 10), WithAlpha(Fg, 0.6f), 1.f);
+			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), TX + TW / 2.f + 8.f, TY + 16.f, bHov ? White : Fg, 13.f, true, TW - 34.f);
+			C.TextCentered(R.bCharm ? CharmDesc(R.Id) : InstantDesc(R.Id), TX + TW / 2.f + 8.f, TY + 34.f, Fg, 10.f, false, TW - 34.f);
+			C.TextCentered(FString::Printf(TEXT("%s  ·  %d"), R.bCharm ? Tr(TEXT("칵테일")) : Tr(TEXT("서비스")), I + 1), GX, TY + TH + 18.f, R.bCharm ? Gold : Cyan, 10.f, true);
 		}
-		C.TextCentered(TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), FX + Cols * CS / 2.f, FY + 372.f, Grey, 12.f, false, Cols * CS - 20.f);
-		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("칵테일 칸이 가득 찼다 (5/5)"), FX + Cols * CS / 2.f, FY + 396.f, Dim, 11.f, false);
+		C.TextCentered(TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), CXb, FY + Rows * CS - 30.f, Grey, 12.f, false, Cols * CS - 20.f);
+		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("칵테일 칸이 가득 찼다 (5/5)"), CXb, FY + Rows * CS - 12.f, Dim, 11.f, false);
 	}
 
 	if (bCodex) PaintUnlock(C); // 조커 도감 (J): 잠금 해제와 같은 걸린 메뉴판 (D-265)
