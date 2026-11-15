@@ -457,7 +457,7 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍速	PDBoardPaint.cpp
 포인트 %d	Points %d	ポイント %d	点数 %d	點數 %d	PDBoardPaint.cpp
 스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDBoardPaint.cpp
-조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDBoardPaint.cpp
+도감	Codex	図鑑	图鉴	圖鑑	PDBoardPaint.cpp
 메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
 칵테일 %d/%d	Cocktails %d/%d	カクテル %d/%d	鸡尾酒 %d/%d	雞尾酒 %d/%d	PDBoardPaint.cpp
 다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
@@ -468,7 +468,7 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
 족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기	Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed	役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ	鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养	滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養	PDBoardPaint.cpp
 Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
-K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Joker Codex · Esc Menu	K スキルツリー · U 永久強化 · J ジョーカー図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 小丑图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 小丑圖鑑 · Esc 選單	PDBoardPaint.cpp
+K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Codex · Esc Menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單	PDBoardPaint.cpp
 웨이브 %d 칵테일 — 하나를 고른다	Wave %d cocktail — pick one	ウェーブ %d カクテル — 1つ選ぶ	第%d波 鸡尾酒 — 选择一个	第%d波 雞尾酒 — 選擇一個	PDBoardPaint.cpp
 칵테일	Cocktail	カクテル	鸡尾酒	雞尾酒	PDBoardPaint.cpp
 즉시	Instant	即時	即时	即時	PDBoardPaint.cpp
@@ -669,6 +669,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+조커 도감	Joker Codex	ジョーカー図鑑	小丑图鉴	小丑圖鑑	PDLangTable.inl
 족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDLangTable.inl
 족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDLangTable.inl
 족 보	H A N D S	役	牌 型	牌 型	PDLangTable.inl
@@ -843,5 +844,5 @@ P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P
 대장간	Smithy	鍛冶場	铁匠铺	鐵匠鋪	PDLangTable.inl
 조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDLangTable.inl
 다과회 초대장	Tea Party Invitation	お茶会の招待状	茶会请柬	茶會請柬	PDLangTable.inl
-연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDTreeText.inl
-쌍둥이	Twins	双子	双胞胎	雙胞胎	PDTreeText.inl
+연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDLangTable.inl
+쌍둥이	Twins	双子	双胞胎	雙胞胎	PDLangTable.inl

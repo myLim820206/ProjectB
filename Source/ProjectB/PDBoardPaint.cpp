@@ -2174,7 +2174,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
 		Btn(TreeBtnX, TreeBtnY, RBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.PointsLeft() > 0); // 판 안 영구 강화 버튼은 뺐다 (D-240): 트리가 한 줄을 다 쓴다
-		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("조커 도감"), TEXT("J"), JokerPink, false);
+		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("도감"), TEXT("J"), JokerPink, false); // 칵테일도 나오니 그냥 도감 (D-285)
 		Btn(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, TEXT("메뉴"), TEXT("Esc"), Grey, false);
 	}
 	// ---- 부적: 이름·설명
@@ -2227,7 +2227,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		if (bHov)
 		{
 			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
-				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴")};
+				TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴")};
 			const float W = 400.f, Hh = 24.f + UE_ARRAY_COUNT(Lines) * 18.f, X = DesignW - 16.f - W, Y = HelpY - 6.f - Hh;
 			C.Box(X, Y, W, Hh, Hex(TEXT("0a0b14"), 0.96f));
 			C.Glow(FCanvas::RoundRectPoints(X, Y, W, Hh, 8.f), Cyan, 1.f, 0.4f);
@@ -2352,7 +2352,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 			{
 				It.bHave = G.Has((EPDCharm)K);
 				It.Right = It.bHave ? FString(Tr(TEXT("가진 칵테일"))) : It.bOpen ? FString(Tr(TEXT("열림"))) : FString(Tr(TEXT("잠김")));
-				if (!It.bOpen) It.Desc = TrF(TEXT("잠금 해제에서 %d칩"), It.Price);
+				if (!It.bOpen) It.Note = TrF(TEXT("잠금 해제에서 %d칩"), It.Price); // 잠긴 것도 효과는 보여 준다 (D-283)
 				It.bKnown = It.bOpen;
 			}
 			else if (UnlockTab == 1)

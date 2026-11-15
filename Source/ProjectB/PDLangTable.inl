@@ -458,7 +458,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("F: 배속 바꾸기"), TEXT("F: change speed"), TEXT("F: 倍速切替"), TEXT("F: 切换倍速"), TEXT("F: 切換倍速")},
 	{TEXT("포인트 %d"), TEXT("Points %d"), TEXT("ポイント %d"), TEXT("点数 %d"), TEXT("點數 %d")},
 	{TEXT("스킬 트리"), TEXT("Skill Tree"), TEXT("スキルツリー"), TEXT("技能树"), TEXT("技能樹")},
-	{TEXT("조커 도감"), TEXT("Joker Codex"), TEXT("ジョーカー図鑑"), TEXT("小丑图鉴"), TEXT("小丑圖鑑")},
+	{TEXT("도감"), TEXT("Codex"), TEXT("図鑑"), TEXT("图鉴"), TEXT("圖鑑")},
 	{TEXT("메뉴"), TEXT("Menu"), TEXT("メニュー"), TEXT("菜单"), TEXT("選單")},
 	{TEXT("칵테일 %d/%d"), TEXT("Cocktails %d/%d"), TEXT("カクテル %d/%d"), TEXT("鸡尾酒 %d/%d"), TEXT("雞尾酒 %d/%d")},
 	{TEXT("다음 %d웨이브"), TEXT("Next: wave %d"), TEXT("次 %dウェーブ"), TEXT("下次 第%d波"), TEXT("下次 第%d波")},
@@ -469,7 +469,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"), TEXT("Right-click: discard card · cancel selection"), TEXT("右クリック: カードを捨てる · 選択解除"), TEXT("右键: 弃牌 · 取消选择"), TEXT("右鍵: 棄牌 · 取消選擇")},
 	{TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed"), TEXT("役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ"), TEXT("鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养"), TEXT("滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養")},
 	{TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("Space start wave · F speed · M sound · F3 frame stats"), TEXT("Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示"), TEXT("Space 开始波次 · F 速度 · M 声音 · F3 帧数显示"), TEXT("Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示")},
-	{TEXT("K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴"), TEXT("K Skill Tree · U Upgrades · J Joker Codex · Esc Menu"), TEXT("K スキルツリー · U 永久強化 · J ジョーカー図鑑 · Esc メニュー"), TEXT("K 技能树 · U 永久强化 · J 小丑图鉴 · Esc 菜单"), TEXT("K 技能樹 · U 永久強化 · J 小丑圖鑑 · Esc 選單")},
+	{TEXT("K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴"), TEXT("K Skill Tree · U Upgrades · J Codex · Esc Menu"), TEXT("K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー"), TEXT("K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单"), TEXT("K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單")},
 	{TEXT("웨이브 %d 칵테일 — 하나를 고른다"), TEXT("Wave %d cocktail — pick one"), TEXT("ウェーブ %d カクテル — 1つ選ぶ"), TEXT("第%d波 鸡尾酒 — 选择一个"), TEXT("第%d波 雞尾酒 — 選擇一個")},
 	{TEXT("칵테일"), TEXT("Cocktail"), TEXT("カクテル"), TEXT("鸡尾酒"), TEXT("雞尾酒")},
 	{TEXT("즉시"), TEXT("Instant"), TEXT("即時"), TEXT("即时"), TEXT("即時")},
@@ -670,6 +670,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("조커 도감"), TEXT("Joker Codex"), TEXT("ジョーカー図鑑"), TEXT("小丑图鉴"), TEXT("小丑圖鑑")},
 	{TEXT("족보 덤 ×%.1f"), TEXT("Hand bonus ×%.1f"), TEXT("役ボーナス ×%.1f"), TEXT("牌型加成 ×%.1f"), TEXT("牌型加成 ×%.1f")},
 	{TEXT("족보 %d · 조커 %d"), TEXT("Hands %d · Jokers %d"), TEXT("役 %d · ジョーカー %d"), TEXT("牌型 %d · 小丑 %d"), TEXT("牌型 %d · 小丑 %d")},
 	{TEXT("족 보"), TEXT("H A N D S"), TEXT("役"), TEXT("牌 型"), TEXT("牌 型")},
@@ -847,4 +848,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 846;
+static const int32 PDLangRowCount = 847;
