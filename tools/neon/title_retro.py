@@ -37,7 +37,7 @@ def neon_blocks(M, cx, y, size, c, gap=12, boxes=True, bright=None):
 
 
 # ---------------------------------------------------------------- 1 극장 마키
-def title_1(phase=0, pal=None, gk=1.0, frame=True, nb=None, pb=None, crown=1.0, spark=None):
+def title_1(phase=0, pal=None, gk=1.0, frame=True, nb=None, pb=None, crown=1.0, spark=None, fx=None):
     P_ = pal or {}
     CYAN, PINK, GOLD, ORANGE, WHITE, DIMC, BULB = (P_.get(k, d) for k, d in (('cyan', globals()['CYAN']), ('pink', globals()['PINK']), ('gold', globals()['GOLD']), ('orange', globals()['ORANGE']), ('white', globals()['WHITE']), ('dim', globals()['DIMC']), ('bulb', (255, 225, 150))))
     M = Sign(gk)
@@ -50,6 +50,7 @@ def title_1(phase=0, pal=None, gk=1.0, frame=True, nb=None, pb=None, crown=1.0, 
     M.word(620, 228, 'Pallas', PINK, 96, pb, font=SCRIPT)
     spade_crown(M, 880, 195, 20, GOLD, crown)
     if spark: M.spark(*spark)
+    if fx: fx(M)
     chip(M, 1080, 24, '칩 1,240', GOLD)
     for i, n in enumerate(MENU):
         y = 330 + i * 52
@@ -138,27 +139,72 @@ def main(outdir):
     letters_anim(outdir)
 
 
-def letters_anim(outdir):
-    """글자만 시안의 움직임 (D-250): 켜지기 → 가끔 NEON 한 글자 깜빡 → Pallas 합선 불꽃 → 버튼 전구 돌기"""
-    from PIL import Image
-    seq = []
-    # 켜지기: 꺼진 상태에서 글자가 차례로 들어옴
-    seq += [dict(nb=[0.08] * 4, pb=[0.08] * 6, crown=0.1)] * 3
-    seq += [dict(nb=[1, 0.08, 0.08, 0.08], pb=[0.08] * 6, crown=0.1), dict(nb=[1, 1, 0.08, 0.08], pb=[0.08] * 6, crown=0.1),
-            dict(nb=[1, 1, 1, 0.08], pb=[0.3] * 6, crown=0.1), dict(nb=[1] * 4, pb=[0.08] * 6, crown=0.1),
-            dict(nb=[1] * 4, pb=[1] * 6, crown=0.4), dict(nb=[1] * 4, pb=[1] * 6, crown=1.0)]
-    seq += [dict()] * 14
-    seq += [dict(nb=[1, 1, 0.1, 1]), dict(), dict(nb=[1, 1, 0.1, 1]), dict(nb=[1, 1, 0.1, 1])]
-    seq += [dict()] * 10
-    seq += [dict(pb=[1, 1, 1, 0.3, 1, 1], spark=(668, 190, 18, 56, 5)), dict(pb=[1, 1, 0.1, 1, 0.1, 1], spark=(668, 190, 18, 56, 9)),
-            dict(pb=[1, 1, 1, 0.3, 1, 1], spark=(668, 190, 14, 48, 13)), dict(pb=[0.6] * 6)]
-    seq += [dict()] * 14
-    frames = []
-    for k, st in enumerate(seq):
-        frames.append(title_1(k % 3, frame=False, **st).resize((640, 360), Image.LANCZOS).convert('P', palette=Image.ADAPTIVE, colors=128))
-    frames[0].save(os.path.join(outdir, 'title_1_letters_anim.gif'), save_all=True, append_images=frames[1:], duration=110, loop=0)
-    print('anim', len(frames))
+def crackle(M, x, y, k, seed):
+    """글자 옆 '빠직': k=0 작은 섬광 + 짧은 번개, 그 뒤 불티 몇 개가 튀어 떨어지며 꺼진다 (D-251)"""
+    import random
+    rnd = random.Random(seed)
+    if k == 0:
+        M.dots.append((x, y, 3.4))
+        for _ in range(2):
+            a = rnd.uniform(0, math.tau)
+            p1 = (x + math.cos(a) * 7, y + math.sin(a) * 7)
+            p2 = (p1[0] + math.cos(a + rnd.uniform(-1, 1)) * 8, p1[1] + math.sin(a + rnd.uniform(-1, 1)) * 8)
+            M.ln([(x, y), p1, p2], (255, 245, 210), 1.4)
+    if k == 1: M.dots.append((x, y, 2.0))
+    for _ in range(8):
+        a = rnd.uniform(-math.pi * 0.95, -math.pi * 0.05) if rnd.random() < 0.7 else rnd.uniform(0, math.pi)
+        sp = rnd.uniform(2.4, 5.0)
+        vx, vy = math.cos(a) * sp, math.sin(a) * sp
+        life = rnd.randint(6, 11)
+        if k < 1 or k > life: continue
+        def at(t): return (x + vx * t, y + vy * t + 0.35 * t * t)
+        M.ln([at(k - 1), at(k)], (255, 225, 150) if rnd.random() < 0.7 else (255, 255, 235), 1.5, 1.0 - (k / life) * 0.8)
 
+
+def letters_anim(outdir):
+    """글자만 시안의 움직임 (D-250, D-251): 켜지기 → NEON 한 글자 옆 빠직 + 그 글자 깜빡 → Pallas 한 글자 빠직 → 버튼 전구 돎. 25fps"""
+    from PIL import Image, ImageFont
+    # 글자 위치
+    w = 66 * 0.86
+    x0 = 640 - (4 * w + 3 * 4) / 2
+    neon_x = [x0 + i * (w + 4) for i in range(4)]
+    f = ImageFont.truetype(SCRIPT, 96)
+    pw = [f.getlength(ch) for ch in 'Pallas']
+    px0 = 620 - sum(pw) / 2
+    pal_x = [px0 + sum(pw[:i]) for i in range(6)]
+    T = []  # 프레임마다 (nb, pb, crown, fx)
+    def add(n, nb=None, pb=None, crown=1.0, fx=None):
+        for _ in range(n): T.append((nb, pb, crown, fx))
+    OFF = 0.08
+    add(10, [OFF] * 4, [OFF] * 6, 0.1)
+    # 켜지기: 글자마다 지직거리며 들어온다
+    flick = [0.5, OFF, 0.9, 0.3, 1.0]
+    nb = [OFF] * 4
+    for i in range(4):
+        for v in flick:
+            nb = nb[:]; nb[i] = v; add(1, nb, [OFF] * 6, 0.1)
+        add(2, nb, [OFF] * 6, 0.1)
+    for v in [0.4, OFF, OFF, 0.8, 0.5, 1.0]: add(1, [1] * 4, [v] * 6, 0.1)
+    for v in [0.3, 0.6, 1.0]: add(1, [1] * 4, [1] * 6, v)
+    add(38)
+    # 빠직 1: NEON 의 E 오른쪽 위
+    ex, ey = neon_x[1] + w * 0.86, 66
+    pat = [0.1, 1, OFF, OFF, 0.7, OFF, 1, 1, 0.5, 1, 1, 1]
+    for k, v in enumerate(pat):
+        add(1, [1, v, 1, 1], None, 1.0, (lambda M, k=k: crackle(M, ex, ey, k, 3)))
+    add(40)
+    # 빠직 2: Pallas 의 두 번째 l 옆
+    lx, ly = pal_x[3] + pw[3] * 0.9, 168
+    pat = [0.1, 1, OFF, 0.6, OFF, OFF, 1, 0.4, 1, 1, 1, 1]
+    for k, v in enumerate(pat):
+        pb = [1] * 6; pb[3] = v
+        add(1, None, pb, 1.0, (lambda M, k=k: crackle(M, lx, ly, k, 11)))
+    add(34)
+    frames = []
+    for k, (nb, pb, crown, fx) in enumerate(T):
+        frames.append(title_1((k // 5) % 3, frame=False, nb=nb, pb=pb, crown=crown, fx=fx).resize((960, 540), Image.LANCZOS).convert('P', palette=Image.ADAPTIVE, colors=128))
+    frames[0].save(os.path.join(outdir, 'title_1_letters_anim.gif'), save_all=True, append_images=frames[1:], duration=40, loop=0)
+    print('anim', len(frames))
 
 if __name__ == '__main__':
     main(sys.argv[1] if len(sys.argv) > 1 else '.')
