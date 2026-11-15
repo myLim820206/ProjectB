@@ -2607,7 +2607,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 {
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.97f));
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 1.f)); // 뒤 게임판이 비치지 않게 불투명 (D-255)
 	// 벽돌 벽 (흐린 선) + 바닥 경계
 	const FLinearColor Brick = Hex(TEXT("3c303a"), 0.6f);
 	for (int32 R = 0; R < 14; ++R)
@@ -2738,20 +2738,22 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			const FVector2f P = TitleBtnPos(I, bHasRunSave);
 			const bool bSel = TitleSel == I;
 			const FLinearColor Col = bSel ? Pink : Cyan;
+			// 네온 간판 버튼 (D-254, D-255): 불이 들어온 튜브 두 겹 (로고와 같은 흰 심 튜브). 고르지 않은 것도 켜져 있고, 고른 것은 분홍으로 더 밝게
 			TArray<FVector2f> Rr = FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, TitleBtnH / 2.f);
+			TArray<FVector2f> Ri = FCanvas::RoundRectPoints(P.X + 6.f, P.Y + 6.f, TitleBtnW - 12.f, TitleBtnH - 12.f, (TitleBtnH - 12.f) / 2.f);
+			const float Bo = bSel ? 0.9f + 0.1f * Pulse : 0.8f;
 			if (Pass == 0) // 반사
 			{
 				for (FVector2f& V : Rr) V.Y = 2.f * TitleFloorY - V.Y;
-				C.Glow(Rr, WithAlpha(Col, bSel ? 0.16f : 0.06f), 1.4f, bSel ? 0.3f : 0.f);
+				Tube(Rr, Col, 2.2f, Bo * 0.6f, true);
 				continue;
 			}
 			if (bSel) C.Box(P.X + 10.f, P.Y + 4.f, TitleBtnW - 20.f, TitleBtnH - 8.f, WithAlpha(Pink, 0.06f + 0.04f * Pulse));
-			C.Glow(Rr, bSel ? Col : WithAlpha(Col, 0.55f), bSel ? 2.4f : 1.3f, bSel ? 1.1f + 0.4f * Pulse : 0.25f);
-			// 네온 간판 테두리 (D-254): 안쪽 가는 튜브 + 양 끝 회색 고정 볼트
-			C.Glow(FCanvas::RoundRectPoints(P.X + 6.f, P.Y + 6.f, TitleBtnW - 12.f, TitleBtnH - 12.f, (TitleBtnH - 12.f) / 2.f), WithAlpha(Col, bSel ? 0.75f : 0.3f), 1.f, bSel ? 0.6f : 0.f);
+			Tube(Rr, Col, bSel ? 2.8f : 2.2f, Bo, false);
+			Tube(Ri, Col, 1.3f, Bo * 0.75f, false);
 			for (const float Bx : {P.X + 3.f + TitleBtnH / 4.f, P.X + TitleBtnW - 3.f - TitleBtnH / 4.f})
 				C.Lines(FCanvas::CirclePoints(FVector2f(Bx, P.Y + TitleBtnH / 2.f), 2.2f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
-			C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : WithAlpha(Cyan, 0.7f), 18.f, true);
+			C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Hex(TEXT("d8f4ff")), 18.f, true);
 			if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Pink, 1.4f, 0.8f);
 		}
 	if (Game.BestWave > 0) C.Text(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), TitleBtnX, TitleFloorY - 14.f, Grey, 12.f, 0, false);
