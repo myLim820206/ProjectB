@@ -564,9 +564,9 @@ inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * U
 constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
 inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
-enum class EMenuItem : uint8_t { Resume, NewGame, Settings, Quit, Count }; // 튜토리얼은 뺐다 (D-217, 도움말로)
+enum class EMenuItem : uint8_t { Resume, NewGame, Title, Settings, Quit, Count }; // Title: 메인 메뉴로 (D-287) // 튜토리얼은 뺐다 (D-217, 도움말로)
 constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
-constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
+constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 280.f; // 버튼 5개 (D-287)
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 // 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
 enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Settings, Quit, Count }; // 랭킹은 뺐다 (D-242) // Unlock: 잠금 해제 (D-239) // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
@@ -586,7 +586,7 @@ inline FVector2f TitleBtnPos(int I, bool bCont) { const int K = bCont ? I : I - 
 constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
-	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("설정"), TEXT("게임 종료")};
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("메인 메뉴로"), TEXT("설정"), TEXT("게임 종료")};
 	return Tr(N[I]);
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼

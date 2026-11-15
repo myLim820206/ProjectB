@@ -324,6 +324,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("그 무늬 타워 공격력 +%.0f%%  (레벨당 +4%%)"), TEXT("That suit's towers ATK +%.0f%%  (+4%% per level)"), TEXT("そのスートのタワー攻撃力 +%.0f%%  (レベルごと +4%%)"), TEXT("该花色塔攻击力 +%.0f%%  (每级 +4%%)"), TEXT("該花色塔攻擊力 +%.0f%%  (每級 +4%%)")},
 	{TEXT("계속하기"), TEXT("Resume"), TEXT("続ける"), TEXT("继续"), TEXT("繼續")},
 	{TEXT("새 게임"), TEXT("New Game"), TEXT("ニューゲーム"), TEXT("新游戏"), TEXT("新遊戲")},
+	{TEXT("메인 메뉴로"), TEXT("Main Menu"), TEXT("メインメニューへ"), TEXT("返回主菜单"), TEXT("返回主選單")},
 	{TEXT("설정"), TEXT("Settings"), TEXT("設定"), TEXT("设置"), TEXT("設定")},
 	{TEXT("게임 종료"), TEXT("Quit Game"), TEXT("ゲーム終了"), TEXT("退出游戏"), TEXT("退出遊戲")},
 	{TEXT("파이브"), TEXT("Five"), TEXT("ファイブ"), TEXT("五条"), TEXT("五條")},
@@ -849,4 +850,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 848;
+static const int32 PDLangRowCount = 849;

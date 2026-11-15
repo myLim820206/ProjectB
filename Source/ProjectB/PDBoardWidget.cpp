@@ -1657,6 +1657,14 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 	{
 	case EMenuItem::Resume: bMenu = false; break;
 	case EMenuItem::NewGame: RestartRun(); break;
+	case EMenuItem::Title: // 메인 메뉴로 (D-287): 판은 저장해 두고 (준비 중이면 지금 상태, 웨이브 중이면 웨이브 직전) 시작 화면으로. 이어하기로 돌아온다
+		if (Game.Phase == EPDPhase::Build) WriteRunSave(Game.SaveRun());
+		Game.NewGame(false);
+		bTree = bUpg = bCodex = bMenu = bSettings = bPaused = false;
+		Sel = -1; HandFilter = -1; FeedJoker = -1; PickCells.clear(); CraftJoker = -1; CraftUpper = -1; CraftPicks.clear();
+		TitleSel = bHasRunSave ? (int32)ETitleItem::Continue : (int32)ETitleItem::Start;
+		UiSound(EPDSound::Move);
+		break;
 	case EMenuItem::Settings: bSettings = true; SetSel = 0; break;
 	case EMenuItem::Quit:
 		bMenu = false;
