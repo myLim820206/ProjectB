@@ -3201,7 +3201,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	int32 Count[(int)EPDHand::Count] = {};
 	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
 	for (const FPDSynergy& S : G.Synergies) ++Count[(int)S.Kind];
-	const float PH = FloorY - 4.f - HandPanelY; // 바닥선에서 끝 (D-275, 시안 B)
+	const float PH = DesignH - 16.f - HandPanelY; // 화면 아래까지 (D-276: 손패가 왼쪽까지 안 와서 답답하지 않게)
 	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
 	const FLinearColor Cream = Hex(TEXT("eee8da")), Lav = Hex(TEXT("a896e1")), PinkH = Hex(TEXT("ff6aaa"));
 	C.Box(LX, HandPanelY, LW, PH, Hex(TEXT("06060b"), 0.85f));
@@ -3384,7 +3384,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			const int32 Fz = bHand ? FuseN[Id] : 0;
 			const bool bPv = bHand && PvKinds.Contains(Id), bOn = Cnt > 0, bHov = HovId == Id, bFilt = HandFilter == Id;
 			const FLinearColor HC = bHand ? HandColor(H) : JokerPink;
-			const float NY = Y + 12.f, DY = Y + 23.f; // 줄 28 (D-275)
+			const float NY = Y + 14.f, DY = Y + 28.f; // 줄 36 (D-276)
 			// 줄 바탕: 미리보기(금) · 합성 맥박(금) · 마우스(분홍 튜브) · 필터(족보 색 튜브)
 			if (bPv) C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(Gold, 0.09f));
 			if (Fz > 0 && HandFilter < 0 && !bHov) C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(Gold, 0.02f + 0.08f * Fl));
@@ -3420,7 +3420,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		}
 	}
 	if (!bMenuBoard) return; // 조커 · 먹이기 목록은 바닥선까지 쓴다
-	const float FootY = HandMenuEndY + 14.f; // 연쇄 한 줄 + 무늬 한 줄 (D-275)
+	const float FootY = HandMenuEndY + 18.f; // 연쇄 한 줄 + 무늬 한 줄 (D-275)
 	C.Text(TEXT("연쇄"), LX + 14.f, FootY, FLinearColor::White, 11.f, 0, true);
 	C.Text(TrF(TEXT("족보끼리 맞닿으면 하나에 +%d%%씩"), G.Has(EPDCharm::ChainLink) ? 45 : 25), LX + 46.f, FootY, Hex(TEXT("cfd8e6")), 9.f, 0, false, LW - 60.f);
 	for (int32 I = 0; I < 4; ++I)

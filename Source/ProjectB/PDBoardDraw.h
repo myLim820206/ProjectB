@@ -32,17 +32,17 @@ constexpr float CS = 48.f;          // 칸 크기
 constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
 constexpr float FY = 98.f; // 인게임 시안 B (D-274): 위에 걸린 간판 자리만큼 판을 내림 (예전 74, FX + FY 는 12 의 배수)
-constexpr float HandRowH = 34.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
+constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
 constexpr float BoardCardK = 0.74f; // 판 위 카드·조커 그림 크기 (D-167): 칸 테두리·족보 테두리와 겹치지 않게 조금 작게
 constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 아래 '조커' 줄 (D-152): 조커 합성 버튼을 모두 펼친다
 constexpr int32 FeedFilterId = JokerFilterId + 1;         // 족보 목록 맨 아래 '먹이기' 줄 (D-213): 판 위 조커 목록 → 고른 조커에 족보 먹이기
 constexpr int32 HandRowsN = (int32)EPDHand::Count + 2;
 // 족보 메뉴판 (D-263, 레터보드 시안): 묶음 순서로 줄을 놓는다 (5장 족보 / 2~4장 족보 / 조커 · 먹이), 묶음마다 머리글 한 줄.
 // 조커 · 먹이기 목록(D-210/213)은 예전 자리(HandRowY0, HandRowH)를 그대로 쓴다
-// 레터보드 족보 (D-263 → D-275): 인게임 시안 B 안에서는 패널이 바닥선에서 끝나므로 줄 28
+// 레터보드 족보 (D-263 → D-276): 패널은 화면 아래까지 (손패가 왼쪽까지 안 오므로), 줄 36
 constexpr int32 HandMenuOrder[HandRowsN] = {0, 1, 2, 4, 5, 6, 3, 7, 8, 9, JokerFilterId, FeedFilterId};
 constexpr float HandPanelY = 66.f; // 왼쪽 패널 윗선 (판보다 위, 로고 배지 아래)
-constexpr float HandMenuY0 = HandPanelY + 84.f, HandMenuRowH = 28.f, HandMenuGroupH = 18.f;
+constexpr float HandMenuY0 = HandPanelY + 84.f, HandMenuRowH = 36.f, HandMenuGroupH = 18.f;
 inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
 inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
 inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
