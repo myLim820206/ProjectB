@@ -3050,10 +3050,26 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
 	for (const FPDSynergy& S : G.Synergies) ++Count[(int)S.Kind];
 	const float PH = DesignH - 16.f - FY;
-	C.Box(LX, FY, LW, PH, Hex(TEXT("06060b"), 0.5f));
-	C.Glow(FCanvas::RoundRectPoints(LX, FY, LW, PH, 10.f), Cyan, 1.f, 0.3f);
-	C.Text(TEXT("족보"), LX + 14.f, FY + 24.f, Cyan, 15.f, 0, true);
-	C.Text(HandFilter >= 0 ? TEXT("다시 클릭 / Esc: 끄기") : TEXT("클릭: 그 족보 합성"), LX + LW - 14.f, FY + 24.f, HandFilter >= 0 ? Gold : Dim, 9.f, 2, false, LW - 70.f);
+	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
+	const FLinearColor Cream = Hex(TEXT("eee8da")), Lav = Hex(TEXT("a896e1")), PinkH = Hex(TEXT("ff6aaa"));
+	C.Box(LX, FY, LW, PH, Hex(TEXT("06060b"), 0.85f));
+	// 두 겹 틀 (연보라, D-260)
+	C.Glow(FCanvas::RoundRectPoints(LX, FY, LW, PH, 12.f), WithAlpha(Lav, 0.6f), 1.6f, 0.25f);
+	C.Lines(FCanvas::RoundRectPoints(LX + 5.f, FY + 5.f, LW - 10.f, PH - 10.f, 8.f), WithAlpha(Lav, 0.4f), 0.9f);
+	if (bMenuBoard)
+	{
+		// 레터보드: 홈 파인 판 + 크림색 꽂는 글자
+		for (float GY = FY + 76.f; GY < HandMenuEndY; GY += 8.f) C.Box(LX + 14.f, GY, LW - 28.f, 1.f, Hex(TEXT("788cb4"), 0.09f));
+		C.TextCentered(TEXT("H A N D S"), LX + LW / 2.f, FY + 30.f, Cream, 10.f, true);
+		C.TextCentered(TEXT("족보 메뉴"), LX + LW / 2.f, FY + 52.f, Cream, 20.f, true);
+		C.Lines({FVector2f(LX + 20.f, FY + 69.f), FVector2f(LX + LW - 20.f, FY + 69.f)}, WithAlpha(Cream, 0.45f), 1.f);
+		C.Text(HandFilter >= 0 ? TEXT("다시 클릭 / Esc: 끄기") : TEXT("클릭: 그 족보 합성"), LX + LW - 20.f, FY + 81.f, HandFilter >= 0 ? Gold : WithAlpha(Cream, 0.55f), 8.5f, 2, false, LW - 40.f);
+	}
+	else
+	{
+		C.Text(TEXT("족보"), LX + 14.f, FY + 24.f, Cyan, 15.f, 0, true);
+		C.Text(HandFilter >= 0 ? TEXT("다시 클릭 / Esc: 끄기") : TEXT("클릭: 그 족보 합성"), LX + LW - 14.f, FY + 24.f, HandFilter >= 0 ? Gold : Dim, 9.f, 2, false, LW - 70.f);
+	}
 	int32 FuseN[(int)EPDHand::Count] = {};
 	for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) if (G.CanFuse(I)) ++FuseN[(int)G.Synergies[I].Kind];
 	const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
@@ -3177,68 +3193,80 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	}
 	else
 	{
-		for (int32 I = 0; I < (int32)EPDHand::Count; ++I)
+		// 족보 메뉴판 (D-263, 레터보드): 묶음 머리글, 줄 = [색 칸] 이름 [판 N 꼬리표] ····· ×배수, 아래 작은 설명, 합성 · 먹이는 추천 꼬리표
+		const float X0 = LX + 22.f, XR = LX + LW - 18.f;
+		const int32 HovId = HandMenuAt(Mouse.X, Mouse.Y);
+		const FSlateFontInfo NameFn = FCanvas::Font(11.5f, true), PriceFn = FCanvas::Font(12.f, true), TagFn = FCanvas::Font(9.f, true);
+		// 가격표 꼬리표 (왼쪽이 뾰족, 구멍 하나). bRec = 추천 (작은 별). 돌려준 값 = 너비
+		auto PriceTag = [&](float X, float Y, const FString& S, const FLinearColor& Col, bool bRec)
 		{
-			const EPDHand H = (EPDHand)I;
-			const float Y = Y0 + I * RowH;
-			const bool bPv = PvKinds.Contains(I), bOn = Count[I] > 0;
-			const FLinearColor HC = HandColor(H);
-			if (bPv) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.1f));
-			else if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(HC, 0.08f));
-			FString Name = HandName(H);
-			if (H == EPDHand::Flush) Name += Tr(TEXT(" (3~5장)"));
-			if (H == EPDHand::Straight) Name += Tr(TEXT(" (2~5장)"));
-			C.Text(Name, LX + 18.f, Y + 16.f, bPv ? Gold : bOn ? HC : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-			C.Text(HandEffect(H), LX + 18.f, Y + 31.f, bPv ? Gold : Dim, 9.f, 0, false, LW - 44.f);
-			if (HandFilter == I) // 족보 필터 (D-148): 고른 줄은 테두리
-				C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), HC, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-			else if (FuseN[I] > 0 && HandFilter < 0) // 합성할 수 있으면 줄이 번쩍 (D-199, D-189 버튼과 같은 맥박)
-			{
-				C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Gold, 0.03f + 0.12f * Fl));
-				C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), Gold, 1.2f, 0.3f + 1.f * Fl);
-			}
-			if (FuseN[I] > 0) // 합성 가능 개수 (금색)
-			{
-				C.Glow(FCanvas::RoundRectPoints(LX + LW - 62.f, Y + 6.f, 48.f, 16.f, 8.f), Gold, 1.1f, 0.6f);
-				C.TextCentered(TrF(TEXT("합성 ×%d"), FuseN[I]), LX + LW - 38.f, Y + 14.f, Gold, 9.f, true, 46.f);
-			}
-			else if (bOn)
-			{
-				C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), HC, 1.1f, 0.5f);
-				C.TextCentered(FString::Printf(TEXT("×%d"), Count[I]), LX + LW - 28.f, Y + 14.f, HC, 10.f, true);
-			}
+			const float W = FCanvas::Measure(TrS(S), TagFn).X + (bRec ? 24.f : 16.f);
+			if (bRec) C.Box(X + 6.f, Y - 7.5f, W - 6.f, 15.f, WithAlpha(Col, 0.12f));
+			C.Lines({FVector2f(X, Y), FVector2f(X + 6.f, Y - 7.5f), FVector2f(X + W, Y - 7.5f), FVector2f(X + W, Y + 7.5f), FVector2f(X + 6.f, Y + 7.5f), FVector2f(X, Y)}, WithAlpha(Col, 0.85f), 1.f);
+			C.Lines(FCanvas::CirclePoints(FVector2f(X + 5.f, Y), 1.2f, 8), WithAlpha(Col, 0.8f), 0.8f);
+			float TX = X + 10.f;
+			if (bRec) { C.Shape(EPDSuit::Wild, X + 14.f, Y, 3.6f, Col, 0.9f, 0.f); TX += 9.f; }
+			C.Text(S, TX, Y + 3.5f, Col, 9.f, 0, true);
+			return W;
+		};
+		static const TCHAR* GroupName[3] = {TEXT("5장 족보"), TEXT("2~4장 족보"), TEXT("조커 · 먹이")};
+		for (int32 Gp = 0; Gp < 3; ++Gp)
+		{
+			const int32 FirstSlot = Gp == 0 ? 0 : Gp == 1 ? 6 : 10;
+			const float GY = HandMenuTop(HandMenuOrder[FirstSlot]) - HandMenuGroupH;
+			const FString GN = Tr(GroupName[Gp]);
+			const float GW = FCanvas::Measure(GN, FCanvas::Font(10.f, true)).X, CX = LX + LW / 2.f;
+			C.TextCentered(GN, CX, GY + 9.f, Cream, 10.f, true);
+			for (const float Sg : {-1.f, 1.f})
+				for (int32 K = 0; K < 3; ++K) { const float DX = CX + Sg * (GW / 2.f + 8.f + K * 7.f); C.Lines({FVector2f(DX, GY + 9.f), FVector2f(DX + Sg * 3.f, GY + 9.f)}, WithAlpha(Cream, 0.55f), 1.f); }
 		}
-		{ // 조커 줄 (D-152): 만들 수 있는 조커 수, 클릭하면 조커 합성 버튼을 모두 펼친다
-			const float Y = Y0 + JokerFilterId * RowH;
-			const int32 NJ = (int32)JGroups.size();
-			const bool bOn = NJ > 0;
-			if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.08f));
-			if (HandFilter == JokerFilterId)
-				C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, 6.f), JokerPink, 1.6f, 0.9f + 0.4f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-			C.Text(TEXT("조커"), LX + 18.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-			C.Text(TEXT("클릭: 만들 수 있는 조커 목록"), LX + 18.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
-			if (bOn)
-			{
-				C.Glow(FCanvas::RoundRectPoints(LX + LW - 42.f, Y + 6.f, 28.f, 16.f, 8.f), JokerPink, 1.1f, 0.5f);
-				C.TextCentered(FString::Printf(TEXT("×%d"), NJ), LX + LW - 28.f, Y + 14.f, JokerPink, 10.f, true);
-			}
-		}
-		{ // 먹이기 줄 (D-213): 먹일 수 있는 족보 수, 있으면 번쩍
-			const float Y = Y0 + FeedFilterId * RowH;
-			const int32 NF = (int32)G.FeedTargets().size();
-			const bool bOn = NF > 0;
-			const float FFl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
-			if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.03f + 0.1f * FFl));
-			C.Text(TEXT("먹이기"), LX + 18.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.95f), 12.f, 0, true, LW - 78.f);
-			C.Text(TEXT("클릭: 조커에 족보 먹이기"), LX + 18.f, Y + 31.f, Dim, 9.f, 0, false, LW - 44.f);
-			if (bOn)
-			{
-				C.Glow(FCanvas::RoundRectPoints(LX + LW - 62.f, Y + 6.f, 48.f, 16.f, 8.f), JokerPink, 1.1f, 0.6f);
-				C.TextCentered(TrF(TEXT("먹이 ×%d"), NF), LX + LW - 38.f, Y + 14.f, JokerPink, 9.f, true, 46.f);
-			}
+		for (int32 Slot = 0; Slot < HandRowsN; ++Slot)
+		{
+			const int32 Id = HandMenuOrder[Slot];
+			const float Y = HandMenuTop(Id);
+			const bool bHand = Id < (int32)EPDHand::Count;
+			const EPDHand H = bHand ? (EPDHand)Id : EPDHand::Pair;
+			const int32 NJ = (int32)JGroups.size(), NF = Id == FeedFilterId ? (int32)G.FeedTargets().size() : 0;
+			const int32 Cnt = bHand ? Count[Id] : Id == JokerFilterId ? NJ : NF;
+			const int32 Fz = bHand ? FuseN[Id] : 0;
+			const bool bPv = bHand && PvKinds.Contains(Id), bOn = Cnt > 0, bHov = HovId == Id, bFilt = HandFilter == Id;
+			const FLinearColor HC = bHand ? HandColor(H) : JokerPink;
+			const float NY = Y + 13.f, DY = Y + 25.f;
+			// 줄 바탕: 미리보기(금) · 합성 맥박(금) · 마우스(분홍 튜브) · 필터(족보 색 튜브)
+			if (bPv) C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(Gold, 0.09f));
+			if (Fz > 0 && HandFilter < 0 && !bHov) C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(Gold, 0.02f + 0.08f * Fl));
+			if (Id == FeedFilterId && bOn && !bHov) C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(JokerPink, 0.02f + 0.08f * Fl));
+			if (bHov) { C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(PinkH, 0.1f)); C.Glow(FCanvas::RoundRectPoints(X0 - 10.f, Y, XR - X0 + 18.f, HandMenuRowH, 8.f), PinkH, 1.5f, 0.6f); }
+			else if (bFilt) C.Glow(FCanvas::RoundRectPoints(X0 - 10.f, Y, XR - X0 + 18.f, HandMenuRowH, 8.f), HC, 1.5f, 0.7f + 0.3f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
+			// 이름 앞 색 칸 (마우스를 올린 줄은 하트)
+			if (bHov) C.Shape(EPDSuit::Heart, X0 + 1.f, NY - 4.f, 4.5f, PinkH, 1.2f, 0.4f);
+			else C.Box(X0 - 2.f, NY - 8.f, 5.f, 8.f, WithAlpha(HC, bOn ? 0.9f : 0.35f));
+			const float NX = X0 + 10.f;
+			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수
+			FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
+			if (H == EPDHand::Flush && bHand) Name += Tr(TEXT(" (3~5장)"));
+			if (H == EPDHand::Straight && bHand) Name += Tr(TEXT(" (2~5장)"));
+			const FString Eff = bHand ? FString(HandEffect(H)) : FString(Tr(Id == JokerFilterId ? TEXT("클릭: 만들 수 있는 조커 목록") : TEXT("클릭: 조커에 족보 먹이기")));
+			FString Price;
+			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);
+			else { int32 XI = INDEX_NONE; if (Eff.FindChar(TEXT('×'), XI)) { int32 E2 = XI + 1; while (E2 < Eff.Len() && (FChar::IsDigit(Eff[E2]) || Eff[E2] == TEXT('.'))) ++E2; if (E2 > XI + 1) Price = Eff.Mid(XI, E2 - XI); } }
+			const FLinearColor PC = bHov ? FLinearColor::White : Cream;
+			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, PriceFn).X;
+			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, PC, 12.f, 2, true);
+			const FLinearColor NameCol = bHov ? FLinearColor::White : bPv ? Gold : (bOn ? Cream : WithAlpha(Cream, 0.7f));
+			const float NMax = XR - NX - PrW - 44.f;
+			C.Text(Name, NX, NY + 1.f, NameCol, 11.5f, 0, true, NMax);
+			float TX = NX + FMath::Min(NMax, FCanvas::Measure(TrS(Name), NameFn).X) + 6.f;
+			if (bHand && bOn && Fz == 0) TX += PriceTag(TX, NY - 3.f, TrF(TEXT("판 %d"), Cnt), HC, false) + 4.f;
+			for (float DX = TX + 2.f; DX < XR - PrW - 5.f; DX += 5.f) C.Box(DX, NY - 1.5f, 1.3f, 1.f, WithAlpha(Cream, 0.4f)); // 점선 리더
+			float TagW = 0.f;
+			if (Fz > 0) { const FString S = TrF(TEXT("합성 ×%d"), Fz); TagW = FCanvas::Measure(TrS(S), TagFn).X + 24.f; PriceTag(XR - TagW, DY - 3.f, S, Gold, true); }
+			else if (Id == FeedFilterId && bOn) { const FString S = TrF(TEXT("먹이 ×%d"), Cnt); TagW = FCanvas::Measure(TrS(S), TagFn).X + 24.f; PriceTag(XR - TagW, DY - 3.f, S, JokerPink, true); }
+			const FLinearColor DC = bHov ? Hex(TEXT("ffc8e1")) : bPv ? Gold : WithAlpha(Cream, 0.62f);
+			C.Text(Eff, NX, DY, DC, 9.f, 0, false, XR - NX - (TagW > 0.f ? TagW + 5.f : 0.f));
 		}
 	}
-	const float FootY = Y0 + HandRowsN * RowH + 18.f;
+	const float FootY = bMenuBoard ? HandMenuEndY + 18.f : Y0 + HandRowsN * RowH + 18.f;
 	C.Text(TEXT("연쇄"), LX + 14.f, FootY, FLinearColor::White, 12.f, 0, true);
 	C.Text(TrF(TEXT("족보끼리 맞닿으면 하나에 +%d%%씩"), G.Has(EPDCharm::ChainLink) ? 45 : 25), LX + 14.f, FootY + 16.f, Hex(TEXT("cfd8e6")), 10.f, 0, false, LW - 28.f);
 	// 무늬 = 공격 방식
@@ -3247,9 +3275,9 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	for (int32 I = 0; I < 4; ++I)
 	{
 		const EPDSuit S = (EPDSuit)I;
-		const float X = LX + 14.f + (I % 2) * 108.f, Y = SuitY + 20.f + (I / 2) * 22.f;
+		const float X = bMenuBoard ? LX + 14.f + I * 52.f : LX + 14.f + (I % 2) * 108.f, Y = bMenuBoard ? SuitY + 18.f : SuitY + 20.f + (I / 2) * 22.f; // 메뉴판은 한 줄 (D-263)
 		C.Shape(S, X + 6.f, Y, 6.f, SuitColor(S), 1.3f, 0.6f);
-		C.Text(SuitName(S), X + 18.f, Y + 4.f, SuitColor(S), 11.f, 0, false, 86.f);
+		C.Text(SuitName(S), X + (bMenuBoard ? 14.f : 18.f), Y + 4.f, SuitColor(S), bMenuBoard ? 10.f : 11.f, 0, false, bMenuBoard ? 38.f : 86.f);
 	}
 }
 

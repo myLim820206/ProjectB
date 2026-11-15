@@ -37,6 +37,14 @@ constexpr float BoardCardK = 0.74f; // 판 위 카드·조커 그림 크기 (D-1
 constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 아래 '조커' 줄 (D-152): 조커 합성 버튼을 모두 펼친다
 constexpr int32 FeedFilterId = JokerFilterId + 1;         // 족보 목록 맨 아래 '먹이기' 줄 (D-213): 판 위 조커 목록 → 고른 조커에 족보 먹이기
 constexpr int32 HandRowsN = (int32)EPDHand::Count + 2;
+// 족보 메뉴판 (D-263, 레터보드 시안): 묶음 순서로 줄을 놓는다 (5장 족보 / 2~4장 족보 / 조커 · 먹이), 묶음마다 머리글 한 줄.
+// 조커 · 먹이기 목록(D-210/213)은 예전 자리(HandRowY0, HandRowH)를 그대로 쓴다
+constexpr int32 HandMenuOrder[HandRowsN] = {0, 1, 2, 4, 5, 6, 3, 7, 8, 9, JokerFilterId, FeedFilterId};
+constexpr float HandMenuY0 = FY + 84.f, HandMenuRowH = 30.f, HandMenuGroupH = 18.f;
+inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
+inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
+inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
+constexpr float HandMenuEndY = HandMenuY0 + 3.f * HandMenuGroupH + HandRowsN * HandMenuRowH;
 constexpr float HandY = FY + Rows * CS + 14.f;
 constexpr float SwapBtnX = FX, SwapBtnY = HandY + 54.f, SwapBtnW = 86.f, SwapBtnH = 28.f; // 자리바꿈 버튼 (D-149, 덱 글자 아래)
 constexpr float CraftBtnX = FX, CraftBtnY = SwapBtnY + SwapBtnH + 6.f, CraftBtnW = 86.f, CraftBtnH = 28.f; // 조커 만들기 버튼 (D-195, 자리바꿈 아래)

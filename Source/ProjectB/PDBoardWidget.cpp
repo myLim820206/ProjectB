@@ -1008,7 +1008,7 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 		for (int K : Cs) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); Mn = FVector2f(FMath::Min(Mn.X, C0.X), FMath::Min(Mn.Y, C0.Y)); Mx = FVector2f(FMath::Max(Mx.X, C0.X + CS), FMath::Max(Mx.Y, C0.Y + CS)); }
 		Out = FBox2f(Mn, Mx);
 		return true; };
-	auto Row = [&](int32 R) { Out = FBox2f(FVector2f(LX + 8.f, HandRowY0 + R * HandRowH), FVector2f(LX + LW - 8.f, HandRowY0 + (R + 1) * HandRowH)); return true; };
+	auto Row = [&](int32 R) { Out = FBox2f(FVector2f(LX + 8.f, HandMenuTop(R)), FVector2f(LX + LW - 8.f, HandMenuTop(R) + HandMenuRowH)); return true; }; // 족보 메뉴판 줄 (D-263)
 	switch ((EHint)H)
 	{
 	case EHint::Place: case EHint::HandFull: Out = FBox2f(FVector2f(FX + 92.f, HandY - 14.f), FVector2f(FX + Cols * CS, HandY + CardH + 2.f)); return true;
@@ -1333,9 +1333,9 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	// 족보 필터 (D-148): 왼쪽 족보 목록 한 줄 클릭 = 그 족보만 보기, 다시 클릭 = 끄기
-	if (!bRight && InRect(P, LX + 8.f, HandRowY0, LW - 16.f, HandRowH * HandRowsN))
+	if (!bRight && HandMenuAt(P.X, P.Y) >= 0) // 족보 메뉴판 줄 (D-263)
 	{
-		const int32 Hi = FMath::Clamp((int32)((P.Y - HandRowY0) / HandRowH), 0, HandRowsN - 1);
+		const int32 Hi = HandMenuAt(P.X, P.Y);
 		const bool bAny = Hi == JokerFilterId ? !JGroups.empty() : std::any_of(Game.Synergies.begin(), Game.Synergies.end(), [Hi](const FPDSynergy& S) { return (int32)S.Kind == Hi; });
 		if (Hi == JokerFilterId) { ToggleCraft(); return; } // 조커 줄 = 조커 만들기 (D-195)
 		if (Hi == FeedFilterId) { ToggleFeed(); return; } // 먹이기 줄 (D-213)
