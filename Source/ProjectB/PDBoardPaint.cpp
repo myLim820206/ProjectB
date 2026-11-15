@@ -2077,7 +2077,8 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		// TV 빛 (D-303): 켜진 브라운관이 둘레 벽에 푸르스름한 빛을 흘리고, 화면 가운데가 은은하게 밝다. 화면 밝기처럼 살짝 일렁인다
 		const float TvFl = 0.9f + 0.06f * FMath::Sin(Clock * 7.3f) + 0.04f * FMath::Sin(Clock * 23.1f);
 		const FLinearColor TvLight = Hex(TEXT("9cc6ff")); // 브라운관 빛은 차가운 푸른색 (흰 회색은 안개처럼 뿌옜다)
-		C.Spill(FCanvas::RoundRectPoints(RX + 8.f, FY + 8.f, PW - 16.f, PowCardH - 16.f, 16.f), TvLight, 52.f, 0.5f * TvFl); // 둘레에만 좁게
+		C.Spill(FCanvas::RoundRectPoints(RX + 8.f, FY + 8.f, PW - 16.f, PowCardH - 16.f, 16.f), TvLight, 60.f, 0.5f * TvFl); // 둘레 빛
+		C.SoftDisc(FVector2f(RX + PW * 0.45f, FY + PowCardH * 0.5f), PW * 0.95f, PowCardH * 0.85f, TvLight, 0.3f * TvFl); // TV 밖 벽까지 동그랗게 번지는 빛
 		// 틀
 		C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.85f));
 		Frame2(RX, FY, PW, PowCardH, 16.f, LavP, 0.8f);
