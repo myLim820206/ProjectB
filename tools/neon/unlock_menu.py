@@ -56,7 +56,7 @@ def leader(M, x0, x1, y, c, b=0.5):
         x += 6
 
 
-def row(M, x, y, w, j, sel=False, px=13):
+def row(M, x, y, w, j, sel=False, px=13, heart=True):
     op, pr = is_open(j), price(j)
     can = not op and CHIPS >= pr
     name = CHARMS[j]
@@ -64,7 +64,8 @@ def row(M, x, y, w, j, sel=False, px=13):
     nb = 0.75 if op else 1.0 if can else 0.55
     if sel:
         nc, nb = WHITE, 1.0
-        for p in suit('heart')(x - 12, y - 5, 5): M.ln(p, PINK, 1.2)
+        if heart:
+            for p in suit('heart')(x - 12, y - 5, 5): M.ln(p, PINK, 1.2)
         M.ln([(x - 2, y + 6), (x + w, y + 6)], PINK, 1.4)
     M.word(x, y, name, nc, px, [nb] * len(name), font=KO, anchor_center=False)
     tw = len(name) * px * 0.95
@@ -188,12 +189,39 @@ def unlock_C():
         x, y = 310 + c * 360, 180 + r * 30
         M.rr(x, y - 15, 20, 20, 5, cols[k % 4], 1.0, 0.7 if is_open(k) else 0.35)
         for p in suit(sts[k % 4])(x + 10, y - 5, 5): M.ln(p, cols[k % 4], 1.0, 0.8 if is_open(k) else 0.4)
-        row(M, x + 30, y, 290, k, k == SEL, 13)
+        row(M, x + 30, y, 290, k, k == SEL, 13, heart=False)
     M.ln([(290, 640), (990, 640)], PINK, 1.0, 0.4)
-    M.word(300, 672, f'{CHARMS[SEL]}  ·  {SEL_DESC}', WHITE, 14, None, font=KO, anchor_center=False)
-    buy_btn(M, 820, 650, 170, 40, f'{price(SEL)}칩 열기')
+    M.word(640, 672, '줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다', DIMC, 13, None, font=KO)
     M.word(640, 712, '1 / 2 쪽  ·  휠: 넘기기', DIMC, 11, None, font=KO)
-    return M.draw()
+    img = M.draw()
+    return tooltip(img, 430, 470, SEL, (418, 563))
+
+
+def tooltip(img, x, y, j, cur):
+    """마우스 오버 툴팁 (D-258): 속이 찬 어두운 판 + 두 겹 튜브 틀, 이름 · 설명 · 상태/가격 · 클릭 안내. 마우스 화살표"""
+    from PIL import ImageChops, ImageDraw, Image
+    from logo_mock import BG
+    w, h = 310, 150
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([x, y, x + w, y + h], 12, fill=(10, 9, 16))
+    T = Sign(0.75)
+    T.small_glow = 0.0
+    tube2(T, x, y, w, h, 12, GOLD, 0.9, 1.8)
+    sts = ['heart', 'spade', 'diamond', 'club']
+    cols = [PINK, CYAN, GOLD, (138, 255, 196)]
+    T.rr(x + 18, y + 18, 34, 34, 7, cols[j % 4], 1.4)
+    for p in suit(sts[j % 4])(x + 35, y + 35, 9): T.ln(p, cols[j % 4], 1.4)
+    T.word(x + 64, y + 42, CHARMS[j], WHITE, 18, None, font=KO, anchor_center=False)
+    T.word(x + 20, y + 80, SEL_DESC, (220, 228, 240), 14, None, font=KO, anchor_center=False)
+    T.word(x + 20, y + 104, '연 묘약만 5웨이브 보상에 나온다', DIMC, 11, None, font=KO, anchor_center=False)
+    T.ln([(x + 16, y + 116), (x + w - 16, y + 116)], GOLD, 1.0, 0.35)
+    T.word(x + 20, y + 138, f'{price(j)}칩', GOLD, 15, None, font=KO, anchor_center=False)
+    T.word(x + w - 20 - 9 * 12, y + 138, '클릭해서 열기', PINK, 13, None, font=KO, anchor_center=False)
+    # 마우스 화살표
+    cx, cy = cur
+    T.ln([(cx, cy), (cx, cy + 20), (cx + 5, cy + 15), (cx + 9, cy + 23), (cx + 12, cy + 21), (cx + 8, cy + 14), (cx + 14, cy + 14), (cx, cy)], WHITE, 1.4)
+    tip = ImageChops.subtract(T.draw(), Image.new('RGB', img.size, BG))
+    return ImageChops.add(img, tip)
 
 
 def main(outdir):
