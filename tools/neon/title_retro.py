@@ -27,23 +27,26 @@ def chip(M, x, y, txt, c):
     M.word(x + 30, y + 21, txt, c, 14, None, font=KO, anchor_center=False)
 
 
-def neon_blocks(M, cx, y, size, c, gap=12):
+def neon_blocks(M, cx, y, size, c, gap=12, boxes=True):
     w = size * 0.86
     x0 = cx - (4 * w + 3 * gap) / 2
     for i, ch in enumerate('NEON'):
         x = x0 + i * (w + gap)
-        M.rr(x, y, w, size, 7, c, 1.7)
+        if boxes: M.rr(x, y, w, size, 7, c, 1.7)
         M.word(x + w / 2, y + size * 0.8, ch, c, size * 0.72, font=BLOCK)
 
 
 # ---------------------------------------------------------------- 1 극장 마키
-def title_1(phase=0, pal=None, gk=1.0):
+def title_1(phase=0, pal=None, gk=1.0, frame=True):
     P_ = pal or {}
     CYAN, PINK, GOLD, ORANGE, WHITE, DIMC, BULB = (P_.get(k, d) for k, d in (('cyan', globals()['CYAN']), ('pink', globals()['PINK']), ('gold', globals()['GOLD']), ('orange', globals()['ORANGE']), ('white', globals()['WHITE']), ('dim', globals()['DIMC']), ('bulb', (255, 225, 150))))
     M = Sign(gk)
-    neon_blocks(M, 640, 40, 62, CYAN)
-    M.rr(330, 118, 620, 150, 14, ORANGE, 2.4)
-    bulbs(M, [(344, 132), (936, 132), (936, 254), (344, 254), (344, 132)], 24, phase, BULB)
+    if frame:
+        neon_blocks(M, 640, 40, 62, CYAN)
+        M.rr(330, 118, 620, 150, 14, ORANGE, 2.4)
+        bulbs(M, [(344, 132), (936, 132), (936, 254), (344, 254), (344, 132)], 24, phase, BULB)
+    else:  # 간판 없이 글자만 (D-249): 칸 없는 NEON + 필기체 Pallas + 왕관 스페이드
+        neon_blocks(M, 640, 50, 66, CYAN, gap=4, boxes=False)
     M.word(620, 228, 'Pallas', PINK, 96, None, font=SCRIPT)
     spade_crown(M, 880, 195, 20, GOLD)
     chip(M, 1080, 24, '칩 1,240', GOLD)
@@ -129,6 +132,8 @@ def main(outdir):
     title_1(0, soft, 0.6).save(os.path.join(outdir, 'title_1_soft.png'))
     title_1(0, vint, 0.38).save(os.path.join(outdir, 'title_1_vintage.png'))
     print('muted')
+    title_1(0, frame=False).save(os.path.join(outdir, 'title_1_letters.png'))
+    print('letters')
 
 
 if __name__ == '__main__':
