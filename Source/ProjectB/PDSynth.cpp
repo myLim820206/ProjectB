@@ -808,8 +808,8 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate)
 	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
 }
 
-// ---------------------------------------------------------------- 3. 보스 (D-188 → D-264 → D-267): 느와르 기어가기 시안(0)으로 확정
-std::vector<int16_t> SynthesizeBossMusic(int SampleRate) { return SynthesizeBossMusicAlt(0, SampleRate); }
+// ---------------------------------------------------------------- 3. 보스 (D-188 → D-264 → D-267 → D-270): 느와르 위압 시안(3)으로 확정
+std::vector<int16_t> SynthesizeBossMusic(int SampleRate) { return SynthesizeBossMusicAlt(3, SampleRate); } // 느와르 위압 (D-270)
 
 // ---------------------------------------------------------------- 위압감 보스 시안 (D-269)
 // 3 느와르 위압: 66 BPM D 단조 Dm · Dm · B♭ · A · Dm · Dm · E♭ · A7, 마디 첫 박 쿵 + 팀파니 + 찌그러진 낮은 금관 덩어리(반음 부딪힘),

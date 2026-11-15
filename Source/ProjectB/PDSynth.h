@@ -44,7 +44,7 @@ std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int SampleRat
 std::vector<int16_t> SynthesizeMenuMusic(int SampleRate = 44100);
 // 인게임 음악 (D-117 → D-264): 재즈 펑크 + 신스. 104 BPM A 단조 Am9-D9-Fmaj7-E7#9 16마디(약 37초), 끝과 처음이 이어지는 반복용 PCM
 std::vector<int16_t> SynthesizeMusic(int SampleRate = 44100);
-// 보스 웨이브 음악 (D-188 → D-267): 느와르 기어가기. 72 BPM 반박자 D 단조 블루스 8마디(약 27초), 서브 베이스 · 팀파니 탐 · 부푸는 낮은 금관 · 로즈 불협 · 비브라폰 동기
+// 보스 웨이브 음악 (D-188 → D-270): 느와르 위압. 66 BPM D 단조 8마디(약 29초), 쿵 · 팀파니 · 찌그러진 낮은 금관 덩어리 · 심장 박동 킥 · 반음 베이스 · 어두운 합창 · 비브라폰 증4도
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate = 44100);
 // 보스 음악 시안 (D-266): 무겁게. 0 느와르 기어가기 72 BPM, 1 느린 빅밴드 위협 92 BPM 스윙, 2 둠 펑크 84 BPM
 std::vector<int16_t> SynthesizeBossMusicAlt(int Variant, int SampleRate = 44100);
