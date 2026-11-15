@@ -22,12 +22,25 @@ FString TreeNodeNameKo(int Id)
 FString TreeNodeName(int Id) { return TrS(TreeNodeNameKo(Id)); } // 언어팩 (D-159)
 } // namespace
 
+// 글자를 두 줄로 (D-239): 한 줄에 안 들어가면 가운데 가까운 띄어쓰기에서 나눈다
+void SPDBoardWidget::Wrap2(FCanvas& C, const FString& InS, float X, float Y, const FLinearColor& Col, float Px, float MaxW)
+{
+	const FString S = TrS(InS);
+	const FSlateFontInfo Fn = FCanvas::Font(Px, false);
+	if (FCanvas::Measure(S, Fn).X <= MaxW) { C.Text(S, X, Y, Col, Px, 0, false, MaxW); return; }
+	int32 Best = -1;
+	for (int32 I = 0; I < S.Len(); ++I) if (S[I] == TEXT(' ') && (Best < 0 || FMath::Abs(I - S.Len() / 2) < FMath::Abs(Best - S.Len() / 2))) Best = I;
+	if (Best < 0) { C.Text(S, X, Y, Col, Px, 0, false, MaxW); return; }
+	C.Text(S.Left(Best), X, Y, Col, Px, 0, false, MaxW);
+	C.Text(S.Mid(Best + 1), X, Y + Px + 4.f, Col, Px, 0, false, MaxW);
+}
+
 // 창 오른쪽 위 닫기 버튼 (도감·트리, D-119)
 void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 {
 	const bool bHov = InRect(Mouse, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH);
 	C.Glow(FCanvas::RoundRectPoints(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, 8.f), UiEdge, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.4f);
-	C.TextCentered(bTree ? TEXT("닫기  K") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
+	C.TextCentered(bTree ? TEXT("닫기  K") : bUnlock ? TEXT("닫기  Esc") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
 }
 
 // 아틀라스 굽기 (D-140): 칸마다 타워 카드(레벨 틀·점 포함) / 조커를 지금 코드 그대로, 맥박은 가운데 값
@@ -327,7 +340,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		C.TextCentered(TEXT("일시정지"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f - 14.f, WithAlpha(UiTitle, 0.75f + 0.25f * Pulse2), 40.f, true, Cols * CS - 40.f);
 		C.TextCentered(TEXT("스페이스·P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다"), FX + Cols * CS / 2.f, FY + Rows * CS / 2.f + 26.f, Hex(TEXT("cfd8e6")), 13.f, false, Cols * CS - 40.f);
 	}
-	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) { PaintTitle(C); if (bModeSel) PaintModeSel(C); if (bUpg) PaintUpgrades(C); }
+	if (G.Phase == EPDPhase::Title && LoadT <= 0.f) { PaintTitle(C); if (bModeSel) PaintModeSel(C); if (bUpg) PaintUpgrades(C); if (bUnlock) PaintUnlock(C); }
 	else if (G.Phase == EPDPhase::Clear) // 클리어 (D-229)
 	{
 		static const TCHAR* ModeNames[(int32)EPDMode::Count] = {TEXT("30 웨이브"), TEXT("60 웨이브"), TEXT("100 웨이브"), TEXT("무한")};
@@ -2146,12 +2159,9 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			const bool bOpen = (G.CharmUnlocked >> J) & 1u, bHave = G.Has((EPDCharm)J);
 			C.Box(P.X, P.Y, ChCardW, ChCardH, Hex(TEXT("0a0b14"), 0.92f));
 			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, ChCardW, ChCardH, 8.f), WithAlpha(bHave ? Gold : Cyan, bOpen ? 1.f : 0.3f), bHave ? 1.6f : 1.1f, bOpen ? (bHave ? 0.9f : 0.4f) : 0.15f);
-			C.Text(CharmName(J), P.X + 10.f, P.Y + 20.f, bOpen ? (bHave ? Gold : UiValue) : Dim, 12.f, 0, true, ChCardW - 20.f);
-			int32 Box = -1;
-			for (int32 B = 0; B < CharmBoxCount; ++B) if (J >= CharmBoxes[B].First && J < CharmBoxes[B].First + CharmBoxes[B].Count) Box = B;
-			C.Text(bOpen ? FString(CharmDesc(J)) : TrF(TEXT("묘약 상자 %s에서 열림"), Box == 0 ? TEXT("I") : Box == 1 ? TEXT("II") : Box == 2 ? TEXT("III") : TEXT("IV")),
-				P.X + 10.f, P.Y + 44.f, bOpen ? Fg : Dim, 10.f, 0, false, ChCardW - 20.f);
-			if (bHave) C.Text(TEXT("가진 묘약"), P.X + ChCardW - 10.f, P.Y + 20.f, Gold, 9.f, 2, true);
+			C.Text(CharmName(J), P.X + 8.f, P.Y + 20.f, bOpen ? (bHave ? Gold : UiValue) : Dim, 11.f, 0, true, ChCardW - 16.f);
+			Wrap2(C, bOpen ? FString(CharmDesc(J)) : TrF(TEXT("잠금 해제에서 %d칩"), CharmPrice(J)), P.X + 8.f, P.Y + 46.f, bOpen ? Fg : Dim, 9.f, ChCardW - 16.f);
+			if (bHave) C.Text(TEXT("가진 묘약"), P.X + 8.f, P.Y + ChCardH - 10.f, Gold, 9.f, 0, true);
 		}
 		C.Text(TEXT("Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기"), DesignW - 16.f, DesignH - 8.f, Dim, 9.f, 2);
 	}
@@ -2290,6 +2300,60 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 }
 
 // 영구 강화 창 (D-230): 시작 화면에서는 칩으로 산다, 판 안에서는 지금 레벨만 본다
+
+// 잠금 해제 창 (D-239): 묘약 60 · 조커 10 을 하나씩 칩으로
+void SPDBoardWidget::PaintUnlock(FCanvas& C) const
+{
+	const FPDGame& G = Game;
+	const FLinearColor Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6")), Cyan = Hex(TEXT("7fd6ff")), Green = Hex(TEXT("9cffb0"));
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.96f));
+	C.Text(TEXT("잠금 해제"), 34.f, 52.f, Gold, 22.f, 0, true);
+	C.Text(TrF(TEXT("칩 %s"), *CommaNum(MetaChips)), 34.f, 70.f, Gold, 12.f, 0, false);
+	static const TCHAR* Tabs[2] = {TEXT("묘약"), TEXT("조커")};
+	for (int32 I = 0; I < 2; ++I)
+	{
+		const bool bOn = UnlockTab == I, bH = InRect(Mouse, UnlTabX(I), UnlTabY, UnlTabW, UnlTabH);
+		if (bOn) C.Box(UnlTabX(I), UnlTabY, UnlTabW, UnlTabH, WithAlpha(Cyan, 0.12f));
+		C.Glow(FCanvas::RoundRectPoints(UnlTabX(I), UnlTabY, UnlTabW, UnlTabH, 8.f), bOn ? Cyan : UiEdge, bOn || bH ? 1.6f : 1.1f, bOn ? 1.f : 0.4f);
+		C.TextCentered(Tabs[I], UnlTabX(I) + UnlTabW / 2.f, UnlTabY + UnlTabH / 2.f, bOn ? FLinearColor::White : Grey, 13.f, true);
+	}
+	PaintCloseButton(C, Cyan);
+	if (UnlockTab == 0)
+		for (int32 J = 0; J < (int32)EPDCharm::Count; ++J)
+		{
+			const FVector2f P = CharmCardPos(J);
+			const bool bOpen = (G.CharmUnlocked >> J) & 1u, bH = InRect(Mouse, P.X, P.Y, ChCardW, ChCardH);
+			const int32 Price = CharmPrice(J);
+			const bool bCan = !bOpen && MetaChips >= Price;
+			C.Box(P.X, P.Y, ChCardW, ChCardH, Hex(TEXT("0a0b14"), 0.92f));
+			if (bH && bCan) C.Box(P.X, P.Y, ChCardW, ChCardH, WithAlpha(Gold, 0.1f));
+			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, ChCardW, ChCardH, 8.f), bOpen ? Cyan : bCan ? Gold : UiEdge, bH ? 1.6f : 1.1f, bOpen ? 0.5f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
+			C.Text(CharmName(J), P.X + 8.f, P.Y + 20.f, bOpen ? UiValue : bCan ? Gold : Grey, 11.f, 0, true, ChCardW - 16.f);
+			Wrap2(C, CharmDesc(J), P.X + 8.f, P.Y + 42.f, bOpen ? Fg : Dim, 9.f, ChCardW - 16.f);
+			C.Text(bOpen ? FString(Tr(TEXT("열림"))) : TrF(TEXT("%d칩"), Price), P.X + 8.f, P.Y + ChCardH - 10.f, bOpen ? Green : bCan ? Gold : Dim, 10.f, 0, true);
+		}
+	else
+		for (int32 J = 0; J < (int32)EPDJoker::Count; ++J)
+		{
+			const FVector2f P = UnlJokerPos(J);
+			const bool bOpen = G.JokerOpen(J), bH = InRect(Mouse, P.X, P.Y, UnlJW, UnlJH);
+			const int32 Price = JokerPrice(J);
+			const bool bCan = !bOpen && MetaChips >= Price;
+			C.Box(P.X, P.Y, UnlJW, UnlJH, Hex(TEXT("0a0b14"), 0.92f));
+			if (bH && bCan) C.Box(P.X, P.Y, UnlJW, UnlJH, WithAlpha(Gold, 0.1f));
+			C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UnlJW, UnlJH, 10.f), bOpen ? JokerPink : bCan ? Gold : UiEdge, bH ? 1.7f : 1.2f, bOpen ? 0.6f : bCan ? (bH ? 1.1f : 0.6f) : 0.2f);
+			C.JokerTower(J, P.X + 34.f, P.Y + 40.f, 22.f, bOpen ? 1.f : 0.35f, 0.f);
+			C.Text(JokerName(J), P.X + 66.f, P.Y + 32.f, bOpen ? JokerPink : bCan ? Gold : Grey, 14.f, 0, true, UnlJW - 76.f);
+			C.Text(FString::Printf(TEXT("×%s"), *FString::SanitizeFloat(JokerTier((EPDJoker)J))), P.X + 66.f, P.Y + 50.f, Dim, 10.f, 0, true);
+			FString Rec;
+			for (EPDHand H : JokerRecipe((EPDJoker)J)) { if (!Rec.IsEmpty()) Rec += TEXT(" · "); Rec += HandName(H); }
+			Wrap2(C, Rec, P.X + 12.f, P.Y + 84.f, Fg, 10.f, UnlJW - 24.f);
+			C.Text(bOpen ? FString(Tr(TEXT("열림"))) : TrF(TEXT("%d칩"), Price), P.X + 12.f, P.Y + UnlJH - 14.f, bOpen ? Green : bCan ? Gold : Dim, 12.f, 0, true);
+		}
+	C.Text(UnlockTab == 0 ? TEXT("카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기") : TEXT("카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기"),
+		DesignW - 16.f, DesignH - 10.f, Dim, 10.f, 2);
+}
+
 void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 {
 	const FPDGame& G = Game;
@@ -2299,6 +2363,7 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 	C.Text(TEXT("영구 강화"), UpgRowX, 52.f, Hex(TEXT("ff9a6a")), 22.f, 0, true);
 	C.Text(bShop ? TrF(TEXT("칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)"), *CommaNum(MetaChips)) : FString(Tr(TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"))),
 		UpgRowX, 82.f, Gold, 12.f, 0, false, UpgRowW);
+	C.Text(UpgCap() > UpgradeMax ? FString(Tr(TEXT("100 웨이브 클리어: 레벨 9999까지"))) : FString(Tr(TEXT("레벨 20까지 · 100 웨이브를 클리어하면 9999까지 열린다"))), UpgRowX + UpgRowW, 52.f, UpgCap() > UpgradeMax ? Gold : Grey, 11.f, 2, false, 420.f); // D-238
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
 	{
 		const float Y = UpgRowY + U * UpgRowH;
@@ -2306,38 +2371,19 @@ void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 		const FLinearColor Col = UpgradeColor(U);
 		C.Lines(FCanvas::RectPoints(UpgRowX, Y + 4.f, UpgRowW, UpgRowH - 8.f), WithAlpha(Col, 0.25f), 1.f);
 		C.Text(UpgradeName(U), UpgRowX + 16.f, Y + 24.f, Col, 15.f, 0, true, 180.f);
-		C.Text(FString::Printf(TEXT("Lv %d / %d"), Lv, UpgradeMax), UpgRowX + 200.f, Y + 24.f, Lv >= UpgradeMax ? Gold : Fg, 13.f, 0, true);
+		C.Text(FString::Printf(TEXT("Lv %d / %d"), Lv, UpgCap()), UpgRowX + 200.f, Y + 24.f, Lv >= UpgCap() ? Gold : Fg, 13.f, 0, true);
 		C.Text(UpgradeEffect(U, Lv), UpgRowX + 16.f, Y + 46.f, Grey, 11.f, 0, false, UpgRowW - 4.f * (UpgBtnW + 8.f) - 24.f);
 		if (!bShop) continue;
 		for (int32 K = 0; K < 4; ++K)
 		{
 			const FVector2f B = UpgButtonPos(U, K);
 			int32 N = 0, Cost = 0;
-			for (int32 L = Lv; L < UpgradeMax && N < UpgSteps[K] && Cost + UpgradeCost(L) <= (K < 3 ? INT32_MAX : MetaChips); ++L) { Cost += UpgradeCost(L); ++N; }
+			for (int32 L = Lv; L < UpgCap() && N < UpgSteps[K] && Cost + UpgradeCost(L) <= (K < 3 ? INT32_MAX : MetaChips); ++L) { Cost += UpgradeCost(L); ++N; }
 			const bool bCan = N > 0 && Cost <= MetaChips;
 			const bool bHov = InRect(Mouse, B.X, B.Y, UpgBtnW, UpgBtnH);
 			C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, UpgBtnW, UpgBtnH, 6.f), WithAlpha(Col, bCan ? 1.f : 0.3f), bHov ? 1.8f : 1.2f, bCan ? (bHov ? 1.2f : 0.5f) : 0.15f);
 			C.TextCentered(K < 3 ? FString::Printf(TEXT("+%d"), UpgSteps[K]) : FString(Tr(TEXT("최대"))), B.X + UpgBtnW / 2.f, B.Y + 10.f, WithAlpha(Col, bCan ? 1.f : 0.4f), 11.f, true);
 			C.TextCentered(N > 0 ? FString::Printf(TEXT("%d"), Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 22.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
-		}
-	}
-	if (bShop) // 부적 상자 (D-233): 새 부적을 연다
-	{
-		static const TCHAR* Names[CharmBoxCount] = {TEXT("묘약 상자 I"), TEXT("묘약 상자 II"), TEXT("묘약 상자 III"), TEXT("묘약 상자 IV")};
-		for (int32 I = 0; I < CharmBoxCount; ++I)
-		{
-			const FPDCharmBox& B = CharmBoxes[I];
-			const FPDCharmBits Bits = ((FPDCharmBits(1) << B.Count) - 1u) << B.First;
-			const bool bOwned = (G.CharmUnlocked & Bits) == Bits, bCan = !bOwned && MetaChips >= B.Price;
-			const float X = BoxBtnX(I);
-			const bool bHov = InRect(Mouse, X, BoxBtnY, BoxBtnW, BoxBtnH);
-			const FLinearColor Col = bOwned ? Grey : JokerPink;
-			C.Box(X, BoxBtnY, BoxBtnW, BoxBtnH, Hex(TEXT("0a0b14"), 0.92f));
-			C.Glow(FCanvas::RoundRectPoints(X, BoxBtnY, BoxBtnW, BoxBtnH, 8.f), WithAlpha(Col, bCan || bOwned ? 1.f : 0.4f), bHov ? 1.6f : 1.1f, bCan ? (bHov ? 1.2f : 0.6f) : 0.2f);
-			C.Text(TrF(TEXT("%s · 새 묘약 %d종"), Tr(Names[I]), B.Count), X + 12.f, BoxBtnY + 18.f, bOwned ? Grey : FLinearColor::White, 12.f, 0, true, BoxBtnW - 24.f);
-			FString List;
-			for (int32 J = B.First; J < B.First + B.Count; ++J) List += (J > B.First ? TEXT(", ") : TEXT("")) + FString(CharmName(J));
-			C.Text(bOwned ? FString(Tr(TEXT("열림"))) + TEXT(" · ") + List : TrF(TEXT("칩 %d"), B.Price) + TEXT(" · ") + List, X + 12.f, BoxBtnY + 34.f, bOwned ? Dim : (bCan ? Gold : Dim), 9.f, 0, false, BoxBtnW - 24.f);
 		}
 	}
 	C.TextCentered(bShop ? FString(Tr(TEXT("버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기"))) : FString(Tr(TEXT("U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"))),
@@ -2508,7 +2554,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
 	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
 	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
-	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("랭킹"), TEXT("환경 설정"), TEXT("게임 종료")};
 	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
 	{
 		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 빈 자리 (D-162)

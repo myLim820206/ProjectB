@@ -95,15 +95,33 @@ enum class EPDCharm : uint8_t
 	Herald,       // 레벨업할 때마다 목숨 +1
 	BossHunter,   // 보스에게 주는 피해 +40%
 	Sweeper,      // 웨이브 통과 경험치 ×2
+	// 묘약 60종 (D-239): 잠금 해제 메뉴에서 하나씩
+	JackGuard,    // J 타워 공격력 +80%
+	TwoRebel,     // 숫자 2 타워 공격력 ×3
+	Rainbow,      // 판에 무늬 4종이 다 있으면 모든 타워 공격력 +25%
+	StraightFlushFan, // 스트레이트 플러시·로열 위력 +60%
+	TwoPairFan,   // 투 페어 위력 +60%
+	TripleFan,    // 트리플 공격 ×2 → ×2.6
+	FourFan,      // 포카드 위력 +50%
+	TwoCards,     // 2장 족보 타워 공격력 +60%
+	FourCards,    // 4장 족보 타워 공격력 +40%
+	QuickFuse,    // 합성 타워 연사 +30%
+	BigJoker,     // 조커 사거리 +30%
+	SniperScope,  // ♠ 사거리 +50%
+	IceCrystal,   // ♣ 둔화 +15%p
+	Rapid,        // ♦ 연사 +40%
+	OldWatch,     // 보스 웨이브 동안 모든 피해 +30%
+	FirstBeat,    // 웨이브 시작 10초 동안 모든 피해 +50%
+	FoodChain,    // 먹이기 흡수 60% → 90%
+	Dexterity,    // 손패 최대 +1, 웨이브마다 카드 +1
 	Count
 };
 constexpr int CharmBaseCount = 18;                            // 처음부터 열린 부적
 using FPDCharmBits = uint64_t; // 부적 비트 (D-233: 32개를 넘기려고 64비트)
 constexpr FPDCharmBits CharmBaseMask = (FPDCharmBits(1) << CharmBaseCount) - 1u;
 // 부적 상자 3개 (D-233): 상자마다 열리는 부적 범위와 칩 값
-struct FPDCharmBox { int First, Count, Price; };
-constexpr int CharmBoxCount = 4;
-constexpr FPDCharmBox CharmBoxes[CharmBoxCount] = {{18, 5, 100}, {23, 5, 250}, {28, 4, 450}, {32, 10, 700}};
+// 잠금 해제 (D-239): 묘약·조커를 하나씩 칩으로 연다 (예전 묘약 상자 D-233 은 없앴다)
+inline int CharmPrice(int J) { return J < 18 ? 0 : J < 23 ? 60 : J < 28 ? 120 : J < 32 ? 180 : J < 42 ? 250 : 320; }
 inline bool HasCharm(FPDCharmBits Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;
@@ -191,8 +209,9 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned);
 // ---------------------------------------------------------------- 강화 (D-228: 판 안 골드 강화 → 판 밖 영구 강화로 옮기는 중)
 enum class EPDUpgrade : uint8_t { Attack, Speed, Crit, CritMult, Spade, Heart, Diamond, Club, Count };
 constexpr int UpgradeMax = 20; // 영구 강화 레벨 상한 (D-230)
+constexpr int UpgradeMaxCleared = 9999; // 100 웨이브 모드를 클리어하면 (D-238): 무한 모드용
 constexpr float BaseCrit = 0.05f, BaseCritMult = 1.5f; // 기본 치명타 5%, ×1.5. 100%를 넘으면 한 방에 치명타가 여러 번
-int UpgradeCost(int Level);           // Level → Level+1 칩 값 (D-230: 5 + 5 × 레벨)
+int UpgradeCost(int Level);           // Level → Level+1 칩 값 (D-230: 5 + 5 × 레벨, 21부터 105 + 2 × (레벨 − 20), D-238)
 float UpgradeStep(EPDUpgrade U);      // 레벨당 효과
 void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>& Lv);
 
@@ -234,6 +253,9 @@ struct FPDFeed
 };
 // 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
+// 조커 잠금 (D-239): 처음엔 희비극·웃는 가면·잭·지휘봉만. 나머지는 잠금 해제 메뉴에서 칩으로
+constexpr uint32_t JokerStarterMask = (1u << 3) | (1u << 2) | (1u << 6) | (1u << 5);
+inline int JokerPrice(int J) { static const int P[10] = {350, 350, 0, 0, 150, 0, 0, 250, 200, 500}; return J >= 0 && J < 10 ? P[J] : 0; }
 constexpr float JokerBonus = 1.2f; // 조커 합성: 재료 위력 합 × 1.2
 constexpr float JokerCardBonus = 0.1f; // 재료 카드 한 장마다 조커 위력 +10% (4장 ×1.4, 10장 ×2) (D-114, D-118)
 constexpr float JokerMergeBonus = 1.3f; // 같은 조커끼리 합치기: 위력 합 × 1.3 (D-114)
@@ -512,12 +534,15 @@ public:
 	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
-	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 부적 (부적 상자로 늘어남, D-233)
+	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 묘약 (잠금 해제 메뉴로 늘어남, D-233, D-239)
+	uint32_t JokerUnlocked = 0x3FFu;                    // 만들 수 있는 기본 조커 (1 << EPDJoker, D-239). 규칙·봇은 모두 열림, 게임은 진행 파일로
+	float WaveStartT = 0.f;                             // 웨이브가 시작된 Time (첫 박자 묘약, D-239)
+	bool JokerOpen(int J) const { return J < 0 || J >= 32 || ((JokerUnlocked >> J) & 1u); }
 	int UpperNeed(const FPDTower& T) const;          // 이 조커가 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
 	std::vector<FPDReward> RollRewards();
 	FPDCharmBits CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
-	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + Mods.HandAdd; }
+	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.HandAdd; }
 	// 스킬 트리
 	enum class EBuy : uint8_t { Ok, Owned, NotLinked, Sealed, KeyCap, NoPoint, Closed };
 	// 레벨 (D-228): 적을 잡아 경험치 → 레벨업마다 트리 포인트 1. 다음 레벨까지 = 예전 n번째 포인트 골드 값 (20 × 1.22^(레벨-1))

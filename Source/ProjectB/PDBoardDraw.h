@@ -191,7 +191,9 @@ inline const TCHAR* CharmName(int J)
 		TEXT("넓은 물결"), TEXT("그림 카드"), TEXT("작은 수"), TEXT("행운의 7"), TEXT("큰 손"), TEXT("보급"), TEXT("재활용"), TEXT("조준경"), TEXT("서리"), TEXT("연쇄 폭발"), TEXT("관통탄"),
 		TEXT("에이스"), TEXT("짝수"), TEXT("홀수"), TEXT("풀하우스 팬"), TEXT("네잎클로버"), TEXT("왕실 근위"), TEXT("유리 대포"), TEXT("장거리 사격"), TEXT("대폭발"),
 		TEXT("과부하"), TEXT("조커 팬"), TEXT("먹보"), TEXT("대장간 불꽃"), TEXT("현상금"),
-		TEXT("여왕 친위대"), TEXT("왕의 눈"), TEXT("연쇄 열기"), TEXT("긴 손"), TEXT("셋의 힘"), TEXT("외톨이"), TEXT("와일드 하트"), TEXT("전령"), TEXT("보스 사냥꾼"), TEXT("청소부")};
+		TEXT("여왕 친위대"), TEXT("왕의 눈"), TEXT("연쇄 열기"), TEXT("긴 손"), TEXT("셋의 힘"), TEXT("외톨이"), TEXT("와일드 하트"), TEXT("전령"), TEXT("보스 사냥꾼"), TEXT("청소부"),
+		TEXT("잭 경호원"), TEXT("2의 반란"), TEXT("무지개"), TEXT("스트레이트 플러시 팬"), TEXT("투 페어 팬"), TEXT("트리플 팬"), TEXT("포카드 팬"), TEXT("두 장의 힘"), TEXT("네 장의 힘"),
+		TEXT("재빠른 합성"), TEXT("큰 조커"), TEXT("저격 망원경"), TEXT("얼음 결정"), TEXT("연발"), TEXT("낡은 회중시계"), TEXT("첫 박자"), TEXT("먹이 사슬"), TEXT("손재주")}; // D-239
 	return Tr(N[J]);
 }
 inline const TCHAR* CharmDesc(int J)
@@ -204,7 +206,10 @@ inline const TCHAR* CharmDesc(int J)
 		TEXT("로열·스트레이트 플러시 공격력 ×1.5 더"), TEXT("모든 타워 공격력 +30% / 고를 때 목숨 −3"), TEXT("♠ 타워 사거리 +30%"), TEXT("♥ 타워 폭발 범위 +0.5칸"),
 		TEXT("♦ 타워 연사 +30%"), TEXT("조커 위력 +30%"), TEXT("먹이기 경험치 +50%"), TEXT("합성 타워 공격력 +30%"), TEXT("처치 경험치 +25%"),
 		TEXT("Q 타워 연사 +80%"), TEXT("K 타워 사거리 +40%, 공격력 +30%"), TEXT("연쇄 3 이상에 든 타워 공격력 +30%"), TEXT("5장 족보 타워 공격력 +35%"), TEXT("3장 족보 타워 공격력 +40%"),
-		TEXT("족보에 안 든 타워 공격력 +60%"), TEXT("와일드 카드 타워 공격력 ×2"), TEXT("레벨업할 때마다 목숨 +1"), TEXT("보스에게 주는 피해 +40%"), TEXT("웨이브 통과 경험치 ×2")};
+		TEXT("족보에 안 든 타워 공격력 +60%"), TEXT("와일드 카드 타워 공격력 ×2"), TEXT("레벨업할 때마다 목숨 +1"), TEXT("보스에게 주는 피해 +40%"), TEXT("웨이브 통과 경험치 ×2"),
+		TEXT("J 타워 공격력 +80%"), TEXT("숫자 2 타워 공격력 ×3"), TEXT("판에 ♠♥♦♣ 가 다 있으면 모든 타워 공격력 +25%"), TEXT("스트레이트 플러시·로열 위력 +60%"), TEXT("투 페어 위력 +60%"),
+		TEXT("트리플 공격 ×2 → ×2.6"), TEXT("포카드 위력 +50%"), TEXT("2장 족보 타워 공격력 +60%"), TEXT("4장 족보 타워 공격력 +40%"), TEXT("합성 타워 연사 +30%"), TEXT("조커 사거리 +30%"),
+		TEXT("♠ 타워 사거리 +50%"), TEXT("♣ 타워 둔화 +15%p"), TEXT("♦ 타워 연사 +40%"), TEXT("보스 웨이브 동안 모든 피해 +30%"), TEXT("웨이브 시작 10초 동안 모든 피해 +50%"), TEXT("먹이기 흡수 60% → 90%"), TEXT("손패 최대 +1, 웨이브마다 카드 +1")};
 	return Tr(N[J]);
 }
 // 상위 조커 30종 (D-231, docs/18 4절 순서)
@@ -493,7 +498,7 @@ inline FString UpgradeEffect(int U, int Level)
 inline FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? SuitColor((EPDSuit)(U - (int)EPDUpgrade::Spade)) : U >= (int)EPDUpgrade::Crit ? Hex(TEXT("ff9a6a")) : Hex(TEXT("ffd96a")); }
 constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.f;
 constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
-const int32 UpgSteps[4] = {1, 5, 10, UpgradeMax}; // 영구 강화 (D-230, 상한 20)
+const int32 UpgSteps[4] = {1, 10, 100, UpgradeMaxCleared}; // 영구 강화 버튼: +1 · +10 · +100 · 최대 (D-238)
 // 부적 상자 버튼 3개 (D-233): 영구 강화 창 아래
 constexpr float BoxBtnW = 233.f, BoxBtnH = 44.f, BoxBtnY = UpgRowY + 8 * UpgRowH + 6.f;
 inline float BoxBtnX(int I) { return UpgRowX + I * (BoxBtnW + 16.f); }
@@ -511,8 +516,13 @@ constexpr float CdxDetX = 884.f, CdxDetW = 380.f;
 constexpr float CdxTabW = 150.f, CdxTabH = 30.f, CdxTabY = HudY + 10.f, CdxTabX0 = 820.f;
 inline float CdxTabX(int I) { return CdxTabX0 - 110.f + I * (CdxTabW - 30.f + 8.f); } // 탭 3개 (기본 · 상위 · 부적)
 // 부적 쪽 (D-234): 6 × 7 카드
-constexpr float ChCardW = 192.f, ChCardH = 76.f, ChCardGap = 6.f, ChCardY0 = 78.f;
-inline FVector2f CharmCardPos(int J) { return FVector2f(DesignW / 2.f - (6.f * ChCardW + 5.f * ChCardGap) / 2.f + (J % 6) * (ChCardW + ChCardGap), ChCardY0 + (J / 6) * (ChCardH + ChCardGap)); }
+constexpr float ChCardW = 118.f, ChCardH = 96.f, ChCardGap = 6.f, ChCardY0 = 78.f; // 묘약 60개 = 10 × 6 (D-239)
+inline FVector2f CharmCardPos(int J) { return FVector2f(DesignW / 2.f - (10.f * ChCardW + 9.f * ChCardGap) / 2.f + (J % 10) * (ChCardW + ChCardGap), ChCardY0 + (J / 10) * (ChCardH + ChCardGap)); }
+// 잠금 해제 창 (D-239): 탭 둘(묘약·조커), 묘약은 도감과 같은 10 × 6, 조커는 5 × 2 큰 카드
+constexpr float UnlTabW = 140.f, UnlTabH = 32.f, UnlTabY = 34.f;
+inline float UnlTabX(int I) { return DesignW / 2.f - UnlTabW - 6.f + I * (UnlTabW + 12.f); }
+constexpr float UnlJW = 228.f, UnlJH = 150.f, UnlJGap = 14.f, UnlJY0 = 140.f;
+inline FVector2f UnlJokerPos(int J) { return FVector2f(DesignW / 2.f - (5.f * UnlJW + 4.f * UnlJGap) / 2.f + (J % 5) * (UnlJW + UnlJGap), UnlJY0 + (J / 5) * (UnlJH + UnlJGap)); }
 // 상위 조커 쪽: 6 × 5 카드
 constexpr float UpCardW = 192.f, UpCardH = 112.f, UpCardGap = 8.f, UpCardY0 = 80.f;
 inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * UpCardW + 5.f * UpCardGap) / 2.f + (U % 6) * (UpCardW + UpCardGap), UpCardY0 + (U / 6) * (UpCardH + UpCardGap)); }
@@ -524,12 +534,12 @@ constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
 constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 300.f;
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 // 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
-enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Ranking, Settings, Quit, Count }; // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
+enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Ranking, Settings, Quit, Count }; // Unlock: 잠금 해제 (D-239) // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
 // 큰 창 자리 (랭킹이 쓴다. 튜토리얼 화면 D-166 은 D-217 에 뺐다)
 constexpr float TutW = 780.f, TutH = 500.f, TutX = DesignW / 2.f - TutW / 2.f, TutY = 104.f;
 constexpr float TutBtnW = 120.f, TutBtnH = 38.f, TutBtnY = TutY + TutH - 56.f;
 constexpr float TutNextX = TutX + TutW - 24.f - TutBtnW, TutPrevX = TutNextX - 12.f - TutBtnW, TutSkipX = TutX + 24.f;
-constexpr float TitleBtnW = 300.f, TitleBtnH = 40.f, TitleBtnGap = 10.f, TitleBtnY0 = 336.f; // 튜토리얼·랭킹이 늘어 조금 줄임 (D-166, D-168)
+constexpr float TitleBtnW = 300.f, TitleBtnH = 36.f, TitleBtnGap = 8.f, TitleBtnY0 = 330.f; // 잠금 해제가 늘어 줄임 (D-239) // 튜토리얼·랭킹이 늘어 조금 줄임 (D-166, D-168)
 // 랭킹 (D-168): 개인 랭킹 (이 PC 기록 상위 20) + 리더보드 (스팀, 준비 중). 창 크기는 튜토리얼과 같다
 constexpr int32 RankMax = 20;
 constexpr float RankTabW = 120.f, RankTabH = 34.f, RankTabY = 104.f + 60.f, RankTabGap = 10.f; // 탭 = 모드 4개 (D-229)

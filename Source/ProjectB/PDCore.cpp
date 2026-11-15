@@ -161,7 +161,7 @@ bool JokerHas(int Joker, EPDJoker K)
 }
 EPDUpperSpecial JokerSpecial(int Joker) { return IsUpperJoker(Joker) ? UpperDef(Joker - UpperBase).Special : EPDUpperSpecial::None; }
 
-int UpgradeCost(int Level) { return 5 + 5 * Level; } // 칩 5, 10, 15 … 20레벨까지 한 종류 1,050 (D-230)
+int UpgradeCost(int Level) { return Level < UpgradeMax ? 5 + 5 * Level : 105 + 2 * (Level - UpgradeMax); } // 칩 5, 10, 15 … 20레벨까지 한 종류 1,050 (D-230). 그 뒤는 천천히 (D-238)
 float UpgradeStep(EPDUpgrade U)
 {
 	switch (U)
@@ -577,6 +577,13 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, c
 			}
 		}
 	}
+	// 무지개 묘약 (D-239): 판에 ♠♥♦♣ 가 다 있으면 모든 타워 공격력 +25%
+	if (HasCharm(Charms, EPDCharm::Rainbow))
+	{
+		uint32_t Suits = 0;
+		for (const auto& KV : Towers) if (!KV.second.Card.IsWild() && !KV.second.IsJoker()) Suits |= 1u << (int)KV.second.Card.Suit;
+		if (Suits == 0xFu) for (auto& KV : Towers) KV.second.Eff.Dmg *= 1.25f;
+	}
 	return Syn;
 }
 
@@ -728,6 +735,21 @@ FPDTowerStats TowerStats(const FPDTower& T, FPDCharmBits Charms, const FPDTreeMo
 	if (HasCharm(Charms, EPDCharm::Triad) && T.Eff.N == 3) St.Dmg *= 1.4f;
 	if (HasCharm(Charms, EPDCharm::Loner) && T.Eff.Kind < 0 && !T.IsJoker()) St.Dmg *= 1.6f;
 	if (HasCharm(Charms, EPDCharm::WildHeart) && T.Card.IsWild() && !T.IsJoker()) St.Dmg *= 2.f;
+	// 묘약 60종 (D-239)
+	auto InHand = [&T](EPDHand H) { return ((T.Eff.Kinds >> (int)H) & 1u) != 0; };
+	if (HasCharm(Charms, EPDCharm::JackGuard) && bNum && R == 11) St.Dmg *= 1.8f;
+	if (HasCharm(Charms, EPDCharm::TwoRebel) && bNum && R == 2) St.Dmg *= 3.f;
+	if (HasCharm(Charms, EPDCharm::StraightFlushFan) && (InHand(EPDHand::StraightFlush) || InHand(EPDHand::RoyalFlush))) St.Dmg *= 1.6f;
+	if (HasCharm(Charms, EPDCharm::TwoPairFan) && InHand(EPDHand::TwoPair)) St.Dmg *= 1.6f;
+	if (HasCharm(Charms, EPDCharm::TripleFan) && InHand(EPDHand::Triple)) St.Dmg *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::FourFan) && InHand(EPDHand::Four)) St.Dmg *= 1.5f;
+	if (HasCharm(Charms, EPDCharm::TwoCards) && T.Eff.N == 2) St.Dmg *= 1.6f;
+	if (HasCharm(Charms, EPDCharm::FourCards) && T.Eff.N == 4) St.Dmg *= 1.4f;
+	if (HasCharm(Charms, EPDCharm::QuickFuse) && !T.IsJoker() && T.Level >= 2) St.Rate *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::BigJoker) && T.IsJoker()) St.Range *= 1.3f;
+	if (HasCharm(Charms, EPDCharm::SniperScope) && bNum && T.Card.Suit == EPDSuit::Spade) St.Range *= 1.5f;
+	if (HasCharm(Charms, EPDCharm::IceCrystal) && bNum && T.Card.Suit == EPDSuit::Club) St.Slow = std::min(0.75f, St.Slow + 0.15f);
+	if (HasCharm(Charms, EPDCharm::Rapid) && bNum && T.Card.Suit == EPDSuit::Diamond) St.Rate *= 1.4f;
 	// 스킬 트리: 작은·특급 노드는 같은 종류끼리 더해서 한 번에 곱한다 (increased)
 	const int Si = T.Card.IsWild() ? 4 : (int)T.Card.Suit;
 	const int K = T.Eff.Kind;
@@ -1133,6 +1155,7 @@ void FPDGame::StartWave()
 	PreWaveSave = SaveRun(); // 중단 저장 (D-162): 웨이브 중에 그만두면 여기로
 	++SaveSerial;
 	AutoStartT = -1.f;
+	WaveStartT = Time;
 	Wave++;
 	Phase = EPDPhase::Wave;
 	Pending = WaveSpec(Wave);
@@ -1150,7 +1173,7 @@ void FPDGame::EndWave()
 {
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	int Got = 0;
-	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + Mods.DrawAdd, &Got);
+	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.DrawAdd, &Got);
 	AddXp((5.f + Wave) * (Has(EPDCharm::Sweeper) ? 2.f : 1.f)); // 웨이브 통과 덤 (청소부 ×2, D-234)
 	if (Goal() > 0 && Wave >= Goal()) // 모드 목표 달성 (D-229)
 	{
@@ -1437,13 +1460,13 @@ std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 			if (Kind[I] < 0 || Kind[J] < 0 || JokerNodesClash(Nodes[I], Nodes[J])) continue;
 			{
 				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J]});
-				if (R != EPDJoker::Count) Cands.push_back({{I, J, -1}, 2, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J])});
+				if (R != EPDJoker::Count && JokerOpen((int)R)) Cands.push_back({{I, J, -1}, 2, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J])});
 			}
 			for (int K = J + 1; K < NN; ++K)
 			{
 				if (Kind[K] < 0 || JokerNodesClash(Nodes[I], Nodes[K]) || JokerNodesClash(Nodes[J], Nodes[K])) continue;
 				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J], (EPDHand)Kind[K]});
-				if (R != EPDJoker::Count) Cands.push_back({{I, J, K}, 3, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J]) + HandBaseValue((EPDHand)Kind[K])});
+				if (R != EPDJoker::Count && JokerOpen((int)R)) Cands.push_back({{I, J, K}, 3, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J]) + HandBaseValue((EPDHand)Kind[K])});
 			}
 		}
 	// 3개 레시피 먼저 (카드가 많아 세다), 같은 개수끼리는 낮은 족보부터, 칸이 겹치지 않게
@@ -1536,7 +1559,8 @@ EPDJoker FPDGame::JokerCraftResult(const std::vector<int>& Picks) const
 		for (size_t J = 0; J < I; ++J) if (Picks[J] == Picks[I] || JokerNodesClash(Nodes[Picks[J]], Nodes[Picks[I]])) return EPDJoker::Count; // 같은 재료 두 번, 합성 타워와 그 족보 (D-220)
 		Hands.push_back(Nodes[Picks[I]].Kind);
 	}
-	return MatchJokerRecipe(Hands);
+	const EPDJoker R = MatchJokerRecipe(Hands);
+	return JokerOpen((int)R) ? R : EPDJoker::Count; // 잠긴 조커는 못 만든다 (D-239)
 }
 
 bool FPDGame::JokerCraft(const std::vector<int>& Picks, int TargetCell)
@@ -1829,7 +1853,7 @@ std::vector<FPDFeed> FPDGame::FeedTargets(int OnlyJoker) const
 		const FPDTower& Jt = Towers.at(Best);
 		float Val = 0.f;
 		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); if (!T.IsJoker()) Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
-		const float Gain = JokerFeedAbsorb * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate));
+		const float Gain = (Has(EPDCharm::FoodChain) ? 0.9f : JokerFeedAbsorb) * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate)); // 먹이 사슬 묘약 90% (D-239)
 		Out.push_back({I, Best, S.Value * MultSum / Fed, Gain});
 	}
 	return Out;
@@ -1998,6 +2022,8 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	if (E.bDead || E.Untargetable()) return; // 유령: 무적인 동안은 안 맞음
 	const float Armor = E.Armor + (InWarlordAura(E) ? Boss::AuraArmor : 0.f);
 	if (Has(EPDCharm::BossHunter) && EnemyDef(E.Type).bBoss) Dmg *= 1.4f; // 보스 사냥꾼 (D-234)
+	if (Has(EPDCharm::OldWatch) && Phase == EPDPhase::Wave && NextBossWave() == Wave) Dmg *= 1.3f; // 낡은 회중시계 (D-239)
+	if (Has(EPDCharm::FirstBeat) && Phase == EPDPhase::Wave && Time - WaveStartT < 10.f) Dmg *= 1.5f; // 첫 박자 (D-239)
 	if (Armor > 0.f && !Has(EPDCharm::Pierce)) Dmg = std::max(Dmg * 0.25f, Dmg - Armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
 	if (E.Shield > 0.f) { const float A = std::min(E.Shield, Dmg); E.Shield -= A; Dmg -= A; } // 수호자 보호막이 먼저 받는다
 	E.Hp -= Dmg;

@@ -836,6 +836,27 @@ static void UnitTests()
 			const bool bSold = G.SellTower(CellKey(2, Row)) && !G.Towers.count(CellKey(2, Row)) && G.XpEarned == G0 + B * 9 && !G.SellTower(CellKey(2, Row));
 			Expect(bPrice && bSold, "판매: 카드 4, Lv3 합성 36, 조커 40 골드 (웨이브 12), 판 타워만 팔림");
 		}
+		{ // 잠금 해제 (D-239): 잠긴 조커는 못 만든다, 새 묘약 효과
+			G.Towers.clear();
+			Put(G.Towers, 0, Row, C(14, Di), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::RoyalFlush;
+			Put(G.Towers, 4, Row, C(3, He), 2); G.Towers[CellKey(4, Row)].FuseHand = (int)EPDHand::StraightFlush;
+			G.Synergies = ApplyEffects(G.Towers, 0);
+			const uint32_t Keep = G.JokerUnlocked;
+			G.JokerUnlocked = JokerStarterMask;
+			const bool bLocked = G.JokerGroups().empty() && G.BestJokerPicks(EPDJoker::Star).empty();
+			G.JokerUnlocked |= 1u << (int)EPDJoker::Star;
+			const bool bOpen = !G.JokerGroups().empty() && G.BestJokerPicks(EPDJoker::Star).size() == 2;
+			G.JokerUnlocked = Keep;
+			FPDTower T2; T2.Card = C(2); FPDTower T7; T7.Card = C(7);
+			const FPDCharmBits Rebel = FPDCharmBits(1) << (int)EPDCharm::TwoRebel;
+			const bool bRebel = std::fabs(TowerStats(T2, Rebel).Dmg / TowerStats(T2).Dmg - 3.f) < 1e-3f && std::fabs(TowerStats(T7, Rebel).Dmg - TowerStats(T7).Dmg) < 1e-3f;
+			FPDTowerMap Four;
+			Put(Four, 0, 0, C(5)); Put(Four, 3, 0, C(5, He)); Put(Four, 6, 0, C(5, Di)); Put(Four, 9, 0, C(5, Cl));
+			ApplyEffects(Four, FPDCharmBits(1) << (int)EPDCharm::Rainbow);
+			const bool bRainbow = std::fabs(Four.begin()->second.Eff.Dmg - 1.25f) < 1e-3f;
+			Expect(bLocked && bOpen && bRebel && bRainbow && (int)EPDCharm::Count == 60 && CharmPrice(59) > 0 && JokerPrice((int)EPDJoker::Star) == 500,
+				"잠긴 스타는 못 만들고 열면 된다, 2의 반란 ×3, 무지개 +25%, 묘약 60종");
+		}
 		{ // 족보에 든 합성 타워도 기억한 족보로 재료 (D-220): 로열 A♠ Lv2 가 Lv2 A♦ 와 원 페어
 			G.Towers.clear();
 			Put(G.Towers, 0, Row, C(14), 2); G.Towers[CellKey(0, Row)].FuseHand = (int)EPDHand::RoyalFlush;
@@ -1128,7 +1149,7 @@ static void UnitTests()
 		for (int K = 0; K < 200; ++K) for (const FPDReward& R : G.RollRewards()) if (R.bCharm) bLocked = bLocked && R.Id < CharmBaseCount;
 		G.CharmUnlocked = ~FPDCharmBits(0);
 		for (int K = 0; K < 200 && !bSeen; ++K) for (const FPDReward& R : G.RollRewards()) if (R.bCharm) bSeen = bSeen || R.Id >= CharmBaseCount;
-		Expect((int)EPDCharm::Count == 42 && bLocked && bSeen, "부적 42개: 상자로 열기 전엔 새 부적이 안 나오고, 열면 나온다");
+		Expect((int)EPDCharm::Count == 60 && bLocked && bSeen, "묘약 60개: 열기 전엔 새 묘약이 안 나오고, 열면 나온다 (D-239)");
 		FPDTower A;
 		A.Card = C(14);
 		const float D0 = TowerStats(A, 0).Dmg;
@@ -1273,6 +1294,7 @@ static void UnitTests()
 		long long Total = 0;
 		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);
 		Expect(UpgradeMax == 20 && Total == 1050, "20레벨까지 한 종류 칩 " + std::to_string(Total));
+		Expect(UpgradeCost(20) == 105 && UpgradeCost(21) == 107 && UpgradeCost(120) == 305 && UpgradeMaxCleared == 9999, "21레벨부터 105 + 2씩 (100 클리어 뒤 9999까지, D-238)");
 	}
 }
 

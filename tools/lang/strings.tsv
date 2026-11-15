@@ -93,6 +93,24 @@ ko	en	ja	zh-Hans	zh-Hant	file
 전령	Herald	伝令	传令	傳令	PDBoardDraw.h
 보스 사냥꾼	Boss Hunter	ボスハンター	首领猎手	首領獵手	PDBoardDraw.h
 청소부	Sweeper	掃除屋	清道夫	清道夫	PDBoardDraw.h
+잭 경호원	Jack's Guard	ジャックの護衛	杰克护卫	傑克護衛	PDBoardDraw.h
+2의 반란	Rebel Twos	2の反乱	2的反叛	2的反叛	PDBoardDraw.h
+무지개	Rainbow	虹	彩虹	彩虹	PDBoardDraw.h
+스트레이트 플러시 팬	Straight Flush Fan	ストレートフラッシュ好き	同花顺爱好者	同花順愛好者	PDBoardDraw.h
+투 페어 팬	Two Pair Fan	ツーペア好き	两对爱好者	兩對愛好者	PDBoardDraw.h
+트리플 팬	Triple Fan	スリーカード好き	三条爱好者	三條愛好者	PDBoardDraw.h
+포카드 팬	Four of a Kind Fan	フォーカード好き	四条爱好者	四條愛好者	PDBoardDraw.h
+두 장의 힘	Power of Two	2枚の力	两张之力	兩張之力	PDBoardDraw.h
+네 장의 힘	Power of Four	4枚の力	四张之力	四張之力	PDBoardDraw.h
+재빠른 합성	Quick Fusion	素早い合成	快速合成	快速合成	PDBoardDraw.h
+큰 조커	Big Joker	大きなジョーカー	大小丑	大小丑	PDBoardDraw.h
+저격 망원경	Sniper Scope	狙撃スコープ	狙击镜	狙擊鏡	PDBoardDraw.h
+얼음 결정	Ice Crystal	氷の結晶	冰晶	冰晶	PDBoardDraw.h
+연발	Rapid Fire	連発	连发	連發	PDBoardDraw.h
+낡은 회중시계	Old Pocket Watch	古い懐中時計	旧怀表	舊懷錶	PDBoardDraw.h
+첫 박자	First Beat	最初の拍子	第一拍	第一拍	PDBoardDraw.h
+먹이 사슬	Food Chain	食物連鎖	食物链	食物鏈	PDBoardDraw.h
+손재주	Dexterity	手先の器用さ	灵巧	靈巧	PDBoardDraw.h
 ♥ 타워 공격력 +40%	♥ towers ATK +40%	♥ タワー攻撃力 +40%	♥ 塔攻击力 +40%	♥ 塔攻擊力 +40%	PDBoardDraw.h
 ♠ 타워 공격력 +40%	♠ towers ATK +40%	♠ タワー攻撃力 +40%	♠ 塔攻击力 +40%	♠ 塔攻擊力 +40%	PDBoardDraw.h
 ♦ 타워 공격력 +40%	♦ towers ATK +40%	♦ タワー攻撃力 +40%	♦ 塔攻击力 +40%	♦ 塔攻擊力 +40%	PDBoardDraw.h
@@ -135,6 +153,24 @@ K 타워 사거리 +40%, 공격력 +30%	K towers range +40%, ATK +30%	K のタ�
 레벨업할 때마다 목숨 +1	+1 life on every level up	レベルアップごとにライフ +1	每次升级生命 +1	每次升級生命 +1	PDBoardDraw.h
 보스에게 주는 피해 +40%	Damage to bosses +40%	ボスへのダメージ +40%	对首领伤害 +40%	對首領傷害 +40%	PDBoardDraw.h
 웨이브 통과 경험치 ×2	Wave clear XP ×2	ウェーブ突破経験値 ×2	通过波次经验 ×2	通過波次經驗 ×2	PDBoardDraw.h
+J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻击力 +80%	J 塔攻擊力 +80%	PDBoardDraw.h
+숫자 2 타워 공격력 ×3	Rank 2 tower damage ×3	数字 2 のタワー攻撃力 ×3	点数 2 塔攻击力 ×3	點數 2 塔攻擊力 ×3	PDBoardDraw.h
+판에 ♠♥♦♣ 가 다 있으면 모든 타워 공격력 +25%	If ♠♥♦♣ are all on the board, all tower damage +25%	盤に ♠♥♦♣ が揃えば全タワー攻撃力 +25%	棋盘上 ♠♥♦♣ 齐全时所有塔攻击力 +25%	棋盤上 ♠♥♦♣ 齊全時所有塔攻擊力 +25%	PDBoardDraw.h
+스트레이트 플러시·로열 위력 +60%	Straight flush · royal power +60%	ストレートフラッシュ・ロイヤル威力 +60%	同花顺·皇家同花顺威力 +60%	同花順·皇家同花順威力 +60%	PDBoardDraw.h
+투 페어 위력 +60%	Two pair power +60%	ツーペア威力 +60%	两对威力 +60%	兩對威力 +60%	PDBoardDraw.h
+트리플 공격 ×2 → ×2.6	Triple damage ×2 → ×2.6	スリーカード攻撃 ×2 → ×2.6	三条攻击 ×2 → ×2.6	三條攻擊 ×2 → ×2.6	PDBoardDraw.h
+포카드 위력 +50%	Four of a kind power +50%	フォーカード威力 +50%	四条威力 +50%	四條威力 +50%	PDBoardDraw.h
+2장 족보 타워 공격력 +60%	2-card hand tower damage +60%	2枚役のタワー攻撃力 +60%	2 张牌型塔攻击力 +60%	2 張牌型塔攻擊力 +60%	PDBoardDraw.h
+4장 족보 타워 공격력 +40%	4-card hand tower damage +40%	4枚役のタワー攻撃力 +40%	4 张牌型塔攻击力 +40%	4 張牌型塔攻擊力 +40%	PDBoardDraw.h
+합성 타워 연사 +30%	Fused tower fire rate +30%	合成タワー連射 +30%	合成塔连射 +30%	合成塔連射 +30%	PDBoardDraw.h
+조커 사거리 +30%	Joker range +30%	ジョーカー射程 +30%	小丑射程 +30%	小丑射程 +30%	PDBoardDraw.h
+♠ 타워 사거리 +50%	♠ tower range +50%	♠ タワー射程 +50%	♠ 塔射程 +50%	♠ 塔射程 +50%	PDBoardDraw.h
+♣ 타워 둔화 +15%p	♣ tower slow +15%p	♣ タワー鈍化 +15%p	♣ 塔减速 +15%p	♣ 塔減速 +15%p	PDBoardDraw.h
+♦ 타워 연사 +40%	♦ tower fire rate +40%	♦ タワー連射 +40%	♦ 塔连射 +40%	♦ 塔連射 +40%	PDBoardDraw.h
+보스 웨이브 동안 모든 피해 +30%	During boss waves, all damage +30%	ボスウェーブ中は全ダメージ +30%	首领波次期间所有伤害 +30%	首領波次期間所有傷害 +30%	PDBoardDraw.h
+웨이브 시작 10초 동안 모든 피해 +50%	First 10s of a wave: all damage +50%	ウェーブ開始から10秒間 全ダメージ +50%	波次开始 10 秒内所有伤害 +50%	波次開始 10 秒內所有傷害 +50%	PDBoardDraw.h
+먹이기 흡수 60% → 90%	Feeding absorbs 60% → 90%	餌やり吸収 60% → 90%	喂食吸收 60% → 90%	餵食吸收 60% → 90%	PDBoardDraw.h
+손패 최대 +1, 웨이브마다 카드 +1	Max hand +1, +1 card per wave	手札上限 +1、ウェーブごとにカード +1	手牌上限 +1, 每波卡牌 +1	手牌上限 +1, 每波卡牌 +1	PDBoardDraw.h
 장미 칠하는 정원사	The Rose Painters	バラを塗る庭師	涂玫瑰的园丁	塗玫瑰的園丁	PDBoardDraw.h
 트위들덤과 트위들디	Tweedledum and Tweedledee	トゥイードルダムとトゥイードルディー	叮当兄和叮当弟	叮噹兄和叮噹弟	PDBoardDraw.h
 도도새	The Dodo	ドードー	渡渡鸟	渡渡鳥	PDBoardDraw.h
@@ -323,6 +359,7 @@ K 타워 사거리 +40%, 공격력 +30%	K towers range +40%, ATK +30%	K のタ�
 살림	Economy	やりくり	经济	經濟	PDBoardPaint.cpp
 작은 노드	Small Node	小ノード	小节点	小節點	PDBoardPaint.cpp
 닫기  K	Close  K	閉じる  K	关闭  K	關閉  K	PDBoardPaint.cpp
+닫기  Esc	Close  Esc	閉じる  Esc	关闭  Esc	關閉  Esc	PDBoardPaint.cpp
 닫기  U	Close  U	閉じる  U	关闭  U	關閉  U	PDBoardPaint.cpp
 닫기  J	Close  J	閉じる  J	关闭  J	關閉  J	PDBoardPaint.cpp
 일시정지	Paused	一時停止	已暂停	已暫停	PDBoardPaint.cpp
@@ -444,7 +481,7 @@ K 스킬 트리 · U 영구 강화 · J 조커 도감 · Esc 메뉴	K Skill Tree
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
 묘약 칸이 가득 찼다 (5/5)	Potion slots are full (5/5)	秘薬枠がいっぱい (5/5)	秘药栏已满 (5/5)	秘藥欄已滿 (5/5)	PDBoardPaint.cpp
 묘약 %d / %d 열림	Potions %d / %d unlocked	秘薬 %d / %d 解放	秘药 %d / %d 已解锁	秘藥 %d / %d 已解鎖	PDBoardPaint.cpp
-묘약 상자 %s에서 열림	Unlocked by Potion Box %s	秘薬箱 %s で解放	由秘药箱 %s 解锁	由秘藥箱 %s 解鎖	PDBoardPaint.cpp
+잠금 해제에서 %d칩	%d chips in Unlocks	解放メニューで %d チップ	在解锁中 %d 筹码	在解鎖中 %d 籌碼	PDBoardPaint.cpp
 가진 묘약	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
 Tab: 기본 조커 → 상위 조커 → 묘약 · J / Esc: 닫기	Tab: Basic → Upper Jokers → Potions · J / Esc: close	Tab: 基本 → 上位ジョーカー → 秘薬 · J / Esc: 閉じる	Tab: 基本 → 上位小丑 → 秘药 · J / Esc: 关闭	Tab: 基本 → 上位小丑 → 秘藥 · J / Esc: 關閉	PDBoardPaint.cpp
 상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardPaint.cpp
@@ -471,16 +508,18 @@ Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jok
 카드 클릭: 크게 보기 · J / Esc: 닫기	Click a card: enlarge · J / Esc: close	カードをクリック: 拡大 · J / Esc: 閉じる	点击卡牌: 放大 · J / Esc: 关闭	點擊卡牌: 放大 · J / Esc: 關閉	PDBoardPaint.cpp
 기본 조커	Basic Jokers	基本ジョーカー	基本小丑	基本小丑	PDBoardPaint.cpp
 상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardPaint.cpp
+잠금 해제	Unlocks	解放	解锁	解鎖	PDBoardPaint.cpp
+칩 %s	Chips %s	チップ %s	筹码 %s	籌碼 %s	PDBoardPaint.cpp
+조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
+열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
+%d칩	%d chips	%d チップ	%d 筹码	%d 籌碼	PDBoardPaint.cpp
+카드를 눌러 묘약을 연다 · 연 묘약만 5웨이브 보상에 나온다 · Tab: 조커 · Esc: 닫기	Click a card to unlock a potion · only unlocked potions appear as wave rewards · Tab: Jokers · Esc: close	カードを押して秘薬を解放 · 解放した秘薬だけが報酬に出る · Tab: ジョーカー · Esc: 閉じる	点击卡片解锁秘药 · 只有已解锁的秘药会出现在奖励中 · Tab: 小丑 · Esc: 关闭	點擊卡片解鎖秘藥 · 只有已解鎖的秘藥會出現在獎勵中 · Tab: 小丑 · Esc: 關閉	PDBoardPaint.cpp
+카드를 눌러 조커를 연다 · 잠긴 조커는 재료가 있어도 못 만든다 · Tab: 묘약 · Esc: 닫기	Click a card to unlock a Joker · locked Jokers can't be made even with materials · Tab: Potions · Esc: close	カードを押してジョーカーを解放 · 未解放のジョーカーは素材があっても作れない · Tab: 秘薬 · Esc: 閉じる	点击卡片解锁小丑 · 未解锁的小丑即使有素材也无法制作 · Tab: 秘药 · Esc: 关闭	點擊卡片解鎖小丑 · 未解鎖的小丑即使有素材也無法製作 · Tab: 秘藥 · Esc: 關閉	PDBoardPaint.cpp
 칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)	Chips %s · You earn chips when a run ends (wave + 2 × levels gained + clear bonus)	チップ %s · ラン終了時にチップを得る (ウェーブ + 2 × 上がったレベル + クリアボーナス)	筹码 %s · 一局结束时获得筹码 (波次 + 2 × 提升的等级 + 通关奖励)	籌碼 %s · 一局結束時獲得籌碼 (波次 + 2 × 提升的等級 + 通關獎勵)	PDBoardPaint.cpp
 판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다	Upgrades that stay after a run. Raise them with chips on the title screen	ラン終了後も残る強化。タイトル画面でチップを使って上げる	一局结束后仍保留的强化。在标题画面用筹码提升	一局結束後仍保留的強化。在標題畫面用籌碼提升	PDBoardPaint.cpp
+100 웨이브 클리어: 레벨 9999까지	Wave 100 cleared: up to level 9999	100 ウェーブクリア: レベル 9999 まで	已通关 100 波: 最高 9999 级	已通關 100 波: 最高 9999 級	PDBoardPaint.cpp
+레벨 20까지 · 100 웨이브를 클리어하면 9999까지 열린다	Up to level 20 · clear wave 100 to raise it to 9999	レベル 20 まで · 100 ウェーブをクリアすると 9999 まで	最高 20 级 · 通关 100 波后提升至 9999	最高 20 級 · 通關 100 波後提升至 9999	PDBoardPaint.cpp
 최대	Max	最大	最大	最大	PDBoardPaint.cpp
-묘약 상자 I	Potion Box I	秘薬箱 I	秘药箱 I	秘藥箱 I	PDBoardPaint.cpp
-묘약 상자 II	Potion Box II	秘薬箱 II	秘药箱 II	秘藥箱 II	PDBoardPaint.cpp
-묘약 상자 III	Potion Box III	秘薬箱 III	秘药箱 III	秘藥箱 III	PDBoardPaint.cpp
-묘약 상자 IV	Potion Box IV	秘薬箱 IV	秘药箱 IV	秘藥箱 IV	PDBoardPaint.cpp
-%s · 새 묘약 %d종	%s · %d new potions	%s · 新しい秘薬 %d種	%s · 新秘药 %d种	%s · 新秘藥 %d種	PDBoardPaint.cpp
-열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
-칩 %d	%d chips	チップ %d	筹码 %d	籌碼 %d	PDBoardPaint.cpp
 버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기	Click a button: upgrade with chips   U or Esc · right-click: close	ボタンをクリック: チップで強化   U または Esc · 右クリック: 閉じる	点击按钮: 用筹码强化   U 或 Esc · 右键: 关闭	點擊按鈕: 用籌碼強化   U 或 Esc · 右鍵: 關閉	PDBoardPaint.cpp
 U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U or Esc · right-click: close   (the game pauses while open)	U または Esc · 右クリック: 閉じる   (開いている間はゲームが止まる)	U 或 Esc · 右键: 关闭   (打开时游戏暂停)	U 或 Esc · 右鍵: 關閉   (打開時遊戲暫停)	PDBoardPaint.cpp
 남은 포인트 %d	Points left %d	残りポイント %d	剩余点数 %d	剩餘點數 %d	PDBoardPaint.cpp
@@ -600,7 +639,6 @@ S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	
  (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
  (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
-조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
 클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
 클릭: 조커에 족보 먹이기	Click: feed hands to a Joker	クリック: ジョーカーに役を食べさせる	点击: 给小丑喂牌型	點擊: 給小丑餵牌型	PDBoardPaint.cpp
 족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
@@ -631,6 +669,13 @@ S로 넘기세요	press S to skip	S でスキップしましょう	按 S 跳过	
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+묘약 상자 %s에서 열림	Unlocked by Potion Box %s	秘薬箱 %s で解放	由秘药箱 %s 解锁	由秘藥箱 %s 解鎖	PDLangTable.inl
+묘약 상자 I	Potion Box I	秘薬箱 I	秘药箱 I	秘藥箱 I	PDLangTable.inl
+묘약 상자 II	Potion Box II	秘薬箱 II	秘药箱 II	秘藥箱 II	PDLangTable.inl
+묘약 상자 III	Potion Box III	秘薬箱 III	秘药箱 III	秘藥箱 III	PDLangTable.inl
+묘약 상자 IV	Potion Box IV	秘薬箱 IV	秘药箱 IV	秘藥箱 IV	PDLangTable.inl
+%s · 새 묘약 %d종	%s · %d new potions	%s · 新しい秘薬 %d種	%s · 新秘药 %d种	%s · 新秘藥 %d種	PDLangTable.inl
+칩 %d	%d chips	チップ %d	筹码 %d	籌碼 %d	PDLangTable.inl
 모든 타워 공격력 +%.0f%%  (레벨당 +1%%)	All towers ATK +%.0f%%  (+1%% per level)	全タワー攻撃力 +%.0f%%  (レベルごと +1%%)	所有塔攻击力 +%.0f%%  (每级 +1%%)	所有塔攻擊力 +%.0f%%  (每級 +1%%)	PDLangTable.inl
 모든 타워 공격 속도 +%.0f%%  (레벨당 +1%%)	All towers attack speed +%.0f%%  (+1%% per level)	全タワー攻撃速度 +%.0f%%  (レベルごと +1%%)	所有塔攻击速度 +%.0f%%  (每级 +1%%)	所有塔攻擊速度 +%.0f%%  (每級 +1%%)	PDLangTable.inl
 치명타 확률 %.1f%%  (레벨당 +0.1%%p, 100%% 넘으면 한 방에 여러 번)	Crit chance %.1f%%  (+0.1%%p per level, over 100%% crits multiple times)	クリティカル率 %.1f%%  (レベルごと +0.1%%p, 100%% 超えで一撃に複数回)	暴击率 %.1f%%  (每级 +0.1%%p, 超过100%% 一击多次暴击)	暴擊率 %.1f%%  (每級 +0.1%%p, 超過100%% 一擊多次暴擊)	PDLangTable.inl

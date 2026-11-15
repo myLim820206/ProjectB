@@ -91,6 +91,7 @@ private:
 	bool bModeSel = false;
 	int32 ModeSel = 0;
 	uint32 ModesCleared = 0;               // 클리어한 모드 (1 << EPDMode), 진행 파일에 저장
+	int32 UpgCap() const { return (ModesCleared >> (int32)PD::EPDMode::W100) & 1u ? PD::UpgradeMaxCleared : PD::UpgradeMax; } // 영구 강화 상한 (D-238)
 	bool ModeOpen(int32 M) const;
 	void StartMode(int32 M);
 	void PaintModeSel(FCanvas& C) const;
@@ -99,7 +100,13 @@ private:
 	int32 MetaChips = 0;
 	int32 LastChips = 0;                   // 방금 끝난 판에서 받은 칩
 	bool MetaBuy(int32 U, int32 N);        // N레벨까지 살 수 있는 만큼 (산 레벨이 있으면 true)
-	bool BuyCharmBox(int32 I);             // 부적 상자 (D-233)
+	// 잠금 해제 (D-239): 시작 화면 메뉴. 묘약·조커를 하나씩 칩으로
+	bool bUnlock = false;
+	int32 UnlockTab = 0;                   // 0 묘약, 1 조커
+	bool BuyCharm(int32 J);
+	bool BuyJoker(int32 J);
+	void PaintUnlock(FCanvas& C) const;
+	static void Wrap2(FCanvas& C, const FString& S, float X, float Y, const FLinearColor& Col, float Px, float MaxW); // 글자 두 줄 (D-239)
 	void PaintUpgrades(FCanvas& C) const;
 	int32 LastRankPos = -1;                // 방금 판이 몇 위로 들어갔나 (-1 = 못 들어감)
 	bool bRankRecorded = false;            // 이번 게임 오버를 이미 기록했다

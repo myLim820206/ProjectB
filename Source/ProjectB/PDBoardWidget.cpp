@@ -329,6 +329,7 @@ void SPDBoardWidget::LoadUserData()
 	bHasRunSave = FPaths::FileExists(PDRunSavePath()); // 이어할 판 (D-162)
 	if (bHasRunSave) TitleSel = (int32)ETitleItem::Continue;
 	else TitleSel = (int32)ETitleItem::Start;
+	Game.JokerUnlocked = JokerStarterMask; // 처음엔 조커 4종 (D-239)
 	if (FFileHelper::LoadFileToStringArray(Lines, *PDProgressPath()))
 		for (const FString& L : Lines)
 		{
@@ -340,12 +341,13 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("Modes")) ModesCleared = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("Chips")) MetaChips = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("Uppers")) Game.UpperFound |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 상위 조커 도감 (D-231)
-			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 부적 상자로 연 부적 (D-233)
+			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 연 묘약 (D-233, D-239)
+			else if (Key == TEXT("Jokers")) { Game.JokerUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10) | JokerStarterMask; } // 연 조커 (D-239)
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
 				Val.ParseIntoArray(Parts, TEXT(","));
-				for (int32 U = 0; U < Parts.Num() && U < (int32)EPDUpgrade::Count; ++U) Game.Upg[U] = FMath::Clamp(FCString::Atoi(*Parts[U]), 0, UpgradeMax);
+				for (int32 U = 0; U < Parts.Num() && U < (int32)EPDUpgrade::Count; ++U) Game.Upg[U] = FMath::Clamp(FCString::Atoi(*Parts[U]), 0, UpgradeMaxCleared);
 			}
 		}
 	SavedDiscovered = Game.Discovered;
@@ -380,7 +382,7 @@ void SPDBoardWidget::SaveProgress()
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -1185,6 +1187,18 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		else if (!InRect(P, MenuX - 30.f, MenuItemY0 - 80.f, MenuW + 60.f, (int32)EMenuItem::Count * (MenuItemH + MenuGap) + 110.f)) bMenu = false; // 창 바깥 클릭 = 닫기
 		return;
 	}
+	if (Game.Phase == EPDPhase::Title && bUnlock) // 잠금 해제 (D-239): 탭, 카드 클릭 = 사기, 닫기
+	{
+		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bUnlock = false; return; }
+		for (int32 I = 0; I < 2; ++I) if (InRect(P, UnlTabX(I), UnlTabY, UnlTabW, UnlTabH)) { UnlockTab = I; UiSound(EPDSound::Move); return; }
+		if (UnlockTab == 0)
+		{
+			for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) { const FVector2f C0 = CharmCardPos(J); if (InRect(P, C0.X, C0.Y, ChCardW, ChCardH)) { if (!BuyCharm(J)) UiSound(EPDSound::Denied); return; } }
+		}
+		else
+			for (int32 J = 0; J < (int32)EPDJoker::Count; ++J) { const FVector2f C0 = UnlJokerPos(J); if (InRect(P, C0.X, C0.Y, UnlJW, UnlJH)) { if (!BuyJoker(J)) UiSound(EPDSound::Denied); return; } }
+		return;
+	}
 	if (Game.Phase == EPDPhase::Title && bUpg) // 영구 강화 (D-230): 시작 화면에서 칩으로 산다
 	{
 		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bUpg = false; return; }
@@ -1194,7 +1208,6 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 				const FVector2f B = UpgButtonPos(U, K);
 				if (InRect(P, B.X, B.Y, UpgBtnW, UpgBtnH) && !MetaBuy(U, UpgSteps[K])) UiSound(EPDSound::Denied);
 			}
-		for (int32 I = 0; I < CharmBoxCount; ++I) if (InRect(P, BoxBtnX(I), BoxBtnY, BoxBtnW, BoxBtnH) && !BuyCharmBox(I)) UiSound(EPDSound::Denied); // 부적 상자 (D-233)
 		return;
 	}
 	if (Game.Phase == EPDPhase::Title && bModeSel) // 모드 고르기 (D-229): 카드 클릭 = 시작, 창 밖·오른쪽 클릭 = 닫기
@@ -1437,7 +1450,7 @@ bool SPDBoardWidget::MetaBuy(int32 U, int32 N)
 {
 	if (Game.Phase != EPDPhase::Title || U < 0 || U >= (int32)EPDUpgrade::Count) return false;
 	int32 Done = 0;
-	while (Done < N && Game.Upg[U] < UpgradeMax && MetaChips >= UpgradeCost(Game.Upg[U]))
+	while (Done < N && Game.Upg[U] < UpgCap() && MetaChips >= UpgradeCost(Game.Upg[U]))
 	{
 		MetaChips -= UpgradeCost(Game.Upg[U]);
 		Game.Upg[U]++;
@@ -1449,14 +1462,25 @@ bool SPDBoardWidget::MetaBuy(int32 U, int32 N)
 	return true;
 }
 
-bool SPDBoardWidget::BuyCharmBox(int32 I)
+bool SPDBoardWidget::BuyCharm(int32 J)
 {
-	if (Game.Phase != EPDPhase::Title || I < 0 || I >= CharmBoxCount) return false;
-	const FPDCharmBox& B = CharmBoxes[I];
-	const FPDCharmBits Bits = ((FPDCharmBits(1) << B.Count) - 1u) << B.First;
-	if ((Game.CharmUnlocked & Bits) == Bits || MetaChips < B.Price) return false;
-	MetaChips -= B.Price;
-	Game.CharmUnlocked |= Bits;
+	if (Game.Phase != EPDPhase::Title || J < 0 || J >= (int32)EPDCharm::Count || ((Game.CharmUnlocked >> J) & 1u)) return false;
+	const int32 Price = CharmPrice(J);
+	if (MetaChips < Price) return false;
+	MetaChips -= Price;
+	Game.CharmUnlocked |= FPDCharmBits(1) << J;
+	UiSound(EPDSound::Win);
+	SaveProgress();
+	return true;
+}
+
+bool SPDBoardWidget::BuyJoker(int32 J)
+{
+	if (Game.Phase != EPDPhase::Title || J < 0 || J >= (int32)EPDJoker::Count || Game.JokerOpen(J)) return false;
+	const int32 Price = JokerPrice(J);
+	if (MetaChips < Price) return false;
+	MetaChips -= Price;
+	Game.JokerUnlocked |= 1u << J;
 	UiSound(EPDSound::Win);
 	SaveProgress();
 	return true;
@@ -1574,6 +1598,7 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Start: bModeSel = true; ModeSel = ModeOpen((int32)Game.Mode) ? (int32)Game.Mode : 0; UiSound(EPDSound::Move); break; // 모드 고르기 창 (D-229)
 	case ETitleItem::Upgrades: bUpg = true; UiSound(EPDSound::Move); break;
+	case ETitleItem::Unlock: bUnlock = true; UnlockTab = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Ranking: bRanking = true; RankTab = (int32)Game.Mode; UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
@@ -1720,6 +1745,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		return FReply::Handled();
 	}
 	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
+	if (bUnlock) { if (K == EKeys::Escape) bUnlock = false; else if (K == EKeys::Tab || K == EKeys::Left || K == EKeys::Right) UnlockTab = 1 - UnlockTab; return FReply::Handled(); } // 잠금 해제 (D-239)
 	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
 	if (!PickCells.empty())
 	{
