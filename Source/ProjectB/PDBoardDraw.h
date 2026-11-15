@@ -544,7 +544,7 @@ enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Settings, Q
 constexpr float TutW = 780.f, TutH = 500.f, TutX = DesignW / 2.f - TutW / 2.f, TutY = 104.f;
 constexpr float TutBtnW = 120.f, TutBtnH = 38.f, TutBtnY = TutY + TutH - 56.f;
 constexpr float TutNextX = TutX + TutW - 24.f - TutBtnW, TutPrevX = TutNextX - 12.f - TutBtnW, TutSkipX = TutX + 24.f;
-constexpr float TitleBtnW = 300.f, TitleBtnH = 36.f, TitleBtnGap = 8.f, TitleBtnY0 = 330.f; // 잠금 해제가 늘어 줄임 (D-239) // 튜토리얼·랭킹이 늘어 조금 줄임 (D-166, D-168)
+constexpr float TitleBtnW = 300.f, TitleBtnH = 44.f, TitleBtnGap = 14.f, TitleBtnY0 = 120.f, TitleBtnX = 860.f, TitleFloorY = 500.f; // 대문 시안 B (D-253): 오른쪽 세로 튜브 버튼, 벽과 바닥 경계 // 잠금 해제가 늘어 줄임 (D-239) // 튜토리얼·랭킹이 늘어 조금 줄임 (D-166, D-168)
 // 랭킹 (D-168): 개인 랭킹 (이 PC 기록 상위 20) + 리더보드 (스팀, 준비 중). 창 크기는 튜토리얼과 같다
 constexpr int32 RankMax = 20;
 constexpr float RankTabW = 120.f, RankTabH = 34.f, RankTabY = 104.f + 60.f, RankTabGap = 10.f; // 탭 = 모드 4개 (D-229)
@@ -552,7 +552,7 @@ inline float RankTabX(int I) { return DesignW / 2.f - (4.f * RankTabW + 3.f * Ra
 // 모드 고르기 창 (D-229): 시작 화면 '게임 시작'에서 연다. 카드 4장 (30 · 60 · 100 · 무한)
 constexpr float ModeCardW = 170.f, ModeCardH = 210.f, ModeCardGap = 20.f, ModeCardY = 250.f;
 inline FVector2f ModeCardPos(int I) { return FVector2f(DesignW / 2.f - (4.f * ModeCardW + 3.f * ModeCardGap) / 2.f + I * (ModeCardW + ModeCardGap), ModeCardY); }
-inline FVector2f TitleBtnPos(int I, bool bCont) { const int K = bCont ? I : I - 1; return FVector2f(DesignW / 2.f - TitleBtnW / 2.f, TitleBtnY0 + K * (TitleBtnH + TitleBtnGap)); } // 이어하기가 없으면 위로 당긴다
+inline FVector2f TitleBtnPos(int I, bool bCont) { const int K = bCont ? I : I - 1; return FVector2f(TitleBtnX, TitleBtnY0 + K * (TitleBtnH + TitleBtnGap)); } // 이어하기가 없으면 위로 당긴다
 constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {

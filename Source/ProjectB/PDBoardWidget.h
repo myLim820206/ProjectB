@@ -354,6 +354,7 @@ private:
 	FString BannerText, BannerSub;
 	FLinearColor BannerCol = FLinearColor::White;
 	float Clock = 0.f;
+	float TitleT = 0.f; // 시작 화면을 연 뒤 시간 (로고 켜짐 · 빠직, D-253)
 
 	// 그릴 때 정한 화면 배율 (마우스 좌표 변환, 월드 이펙트 좌표에 씀)
 	mutable float ViewScale = 1.f;

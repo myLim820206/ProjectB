@@ -1,5 +1,6 @@
 ﻿// 포커 디펜스 화면 그리기: 판, 적, 발사체, 이펙트, 버튼, 패널, 창 (화풍 docs/15-art-style.md)
 #include "PDBoardDraw.h"
+#include "PDLogo.h"
 #include "Misc/ScopeExit.h"
 #include "Misc/CommandLine.h"
 
@@ -2600,32 +2601,157 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	}
 }
 
-// 시작 화면 (D-153): 제목 + 게임 시작 · 환경 설정 · 게임 종료
+// 시작 화면 (D-153 → D-253 대문 시안 B): 벽돌 벽에 네온 팔라스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
+// 로고는 손으로 그린 네온 선 (PDLogo.h). 켜질 때 글자마다 지직, 그 뒤 몇 초마다 한 글자 옆에서 '빠직' 불티 + 그 글자 깜빡
 void SPDBoardWidget::PaintTitle(FCanvas& C) const
 {
-	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
-	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f), CX = DesignW / 2.f;
+	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
+	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.97f));
-	// 무늬 넷이 천천히 떠다닌다
-	for (int32 I = 0; I < 4; ++I)
-		C.Shape((EPDSuit)I, CX - 210.f + I * 140.f, 150.f + 8.f * FMath::Sin(Clock * 1.5f + I * 1.3f), 18.f, SuitColor((EPDSuit)I), 1.6f, 0.8f + 0.3f * Pulse);
-	C.TextCentered(TEXT("POKER DEFENSE"), CX, 240.f, Gold, 58.f, true);
-	C.TextCentered(TEXT("카드를 놓아 족보를 만들고, 끝없이 몰려오는 적을 막아라"), CX, 296.f, Fg, 15.f, false);
-	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
-	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
+	// 벽돌 벽 (흐린 선) + 바닥 경계
+	const FLinearColor Brick = Hex(TEXT("3c303a"), 0.6f);
+	for (int32 R = 0; R < 14; ++R)
 	{
-		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 빈 자리 (D-162)
-		const FVector2f P = TitleBtnPos(I, bHasRunSave);
-		const bool bSel = TitleSel == I;
-		const FLinearColor Col = I <= 1 ? Gold : Cyan;
-		C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, Hex(TEXT("0a0b14"), 0.92f));
-		if (bSel) C.Box(P.X, P.Y, TitleBtnW, TitleBtnH, WithAlpha(Col, 0.12f + 0.06f * Pulse));
-		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, 10.f), UiEdge, bSel ? 2.2f : 1.3f, bSel ? 1.2f + 0.5f * Pulse : 0.5f);
-		C.TextCentered(Labels[I], CX, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Col, 18.f, true);
+		const float Y = 20.f + R * 34.f;
+		C.Lines({FVector2f(0.f, Y), FVector2f(DesignW, Y)}, Brick, 1.f);
+		for (int32 K = 0; K < 21; ++K)
+		{
+			const float X = K * 64.f + (R % 2 ? 32.f : 0.f);
+			C.Lines({FVector2f(X, Y), FVector2f(X, FMath::Min(Y + 34.f, TitleFloorY))}, Brick, 1.f);
+		}
 	}
-	const float FootY = TitleBtnPos((int32)ETitleItem::Count, bHasRunSave).Y + 14.f;
-	if (Game.BestWave > 0) C.TextCentered(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), CX, FootY, Grey, 12.f, false);
-	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), CX, DesignH - 30.f, Dim, 11.f, false);
+	C.Glow({FVector2f(0.f, TitleFloorY), FVector2f(DesignW, TitleFloorY)}, Hex(TEXT("786e8c"), 0.7f), 1.3f, 0.3f);
+
+	// ---- 로고 밝기: 켜짐 → 빠직
+	const float T = TitleT, Off = 0.08f;
+	float NB[4], PB[PDLogo::PallasLetters];
+	static const float OnN[] = {0.5f, 0.08f, 0.9f, 0.3f, 1.f}, OnP[] = {0.4f, 0.08f, 0.08f, 0.8f, 0.5f, 1.f};
+	auto Seq = [](const float* S, int32 N, float U) { if (U < 0.f) return 0.08f; const int32 I = (int32)(U * 25.f); return I >= N ? 1.f : S[I]; };
+	for (int32 I = 0; I < 4; ++I) NB[I] = Seq(OnN, 5, T - 0.4f - I * 0.28f);
+	for (int32 I = 0; I < PDLogo::PallasLetters; ++I) PB[I] = Seq(OnP, 6, T - 1.6f);
+	const float CB = FMath::Clamp((T - 1.9f) / 0.15f, 0.1f, 1.f);
+	static const float PatN[] = {0.1f, 1.f, 0.08f, 0.08f, 0.7f, 0.08f, 1.f, 1.f, 0.5f, 1.f, 1.f, 1.f};
+	static const float PatP[] = {0.1f, 1.f, 0.08f, 0.6f, 0.08f, 0.08f, 1.f, 0.4f, 1.f, 1.f, 1.f, 1.f};
+	int32 SpWhich = -1, SpLetter = 0, SpK = 0, SpSeed = 0;
+	if (T > 2.5f)
+	{
+		const float U0 = T - 2.5f;
+		const int32 Cyc = (int32)(U0 / 6.f);
+		const float U = U0 - Cyc * 6.f;
+		const uint32 Hs = (uint32)(Cyc + 7) * 2654435761u;
+		if (U >= 1.2f && U < 1.2f + 12.f / 25.f) { SpWhich = 0; SpLetter = (int32)((Hs >> 8) % 4u); SpK = FMath::Min(11, (int32)((U - 1.2f) * 25.f)); NB[SpLetter] = PatN[SpK]; SpSeed = Cyc * 2 + 1; }
+		else if (U >= 3.8f && U < 3.8f + 12.f / 25.f) { SpWhich = 1; SpLetter = (int32)((Hs >> 12) % 6u); SpK = FMath::Min(11, (int32)((U - 3.8f) * 25.f)); PB[SpLetter] = PatP[SpK]; SpSeed = Cyc * 2 + 2; }
+	}
+	(void)Off;
+
+	// ---- 로고 (반사는 바닥선 기준으로 뒤집어 흐리게)
+	const float LgX = 400.f, LY = 110.f, LK = 1.55f;
+	const float NX0 = LgX - (3.f * PDLogo::NeonAdv + 44.f * 0.8f) * LK / 2.f;
+	const FVector2f PO(LgX - 140.f * LK, LY + 170.f * LK);
+	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, bool bRefl)
+	{
+		if (bRefl) { if (B > 0.25f) C.Glow(Pts, WithAlpha(Col, 0.18f * B), Th, 0.35f * B); return; }
+		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
+		C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B);
+		C.Lines(Pts, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), Th * 0.25f); // 튜브 가운데 흰 심
+	};
+	auto Logo = [&](bool bRefl)
+	{
+		auto Map = [&](FVector2f V) { if (bRefl) V.Y = 2.f * TitleFloorY - V.Y; return V; };
+		PDLogo::FPoly Ps[2];
+		for (int32 I = 0; I < 4; ++I)
+		{
+			const int32 N = PDLogo::NeonPolys(I, Ps);
+			for (int32 J = 0; J < N; ++J)
+			{
+				TArray<FVector2f> Pts;
+				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(Map(FVector2f(NX0 + (I * PDLogo::NeonAdv + Ps[J].P[Q * 2] * 0.8f) * LK, LY + (60.f + Ps[J].P[Q * 2 + 1]) * LK)));
+				Tube(Pts, Cyan, 2.4f, NB[I], bRefl);
+			}
+		}
+		for (int32 I = 0; I < PDLogo::PallasLetters; ++I)
+		{
+			const int32 N = PDLogo::PallasStrokes(I, Ps);
+			for (int32 J = 0; J < N; ++J) Tube(PDLogo::Catmull(Ps[J], PO, LK, bRefl ? TitleFloorY : 0.f), Pink, 4.f, PB[I], bRefl);
+		}
+		// 왕관 스페이드
+		const float CX = LgX + 170.f * LK, CY = LY + 135.f * LK, R = 20.f * LK;
+		TArray<FVector2f> Sp = FCanvas::HeartPoints(CX, CY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f);
+		for (FVector2f& V : Sp) V = Map(V);
+		Tube(Sp, Gold, 2.2f, CB, bRefl);
+		Tube({Map(FVector2f(CX, CY + R * 0.6f)), Map(FVector2f(CX + R * 0.24f, CY + R * 1.05f)), Map(FVector2f(CX - R * 0.24f, CY + R * 1.05f)), Map(FVector2f(CX, CY + R * 0.6f))}, Gold, 2.f, CB, bRefl);
+		const float CrX[] = {-0.8f, -0.8f, -0.4f, 0.f, 0.4f, 0.8f, 0.8f, -0.8f}, CrY[] = {-0.55f, -1.05f, -0.78f, -1.25f, -0.78f, -1.05f, -0.55f, -0.55f};
+		TArray<FVector2f> Cr;
+		for (int32 K = 0; K < 8; ++K) Cr.Add(Map(FVector2f(CX + CrX[K] * R, CY + CrY[K] * R)));
+		Tube(Cr, Gold, 2.f, CB, bRefl);
+	};
+	Logo(true);
+	Logo(false);
+	// 빠직: 작은 섬광 + 짧은 번개, 불티가 튀어 떨어지며 꺼진다
+	if (SpWhich >= 0)
+	{
+		const FVector2f O = SpWhich == 0 ? FVector2f(NX0 + (SpLetter * PDLogo::NeonAdv + 35.f) * LK, LY + 6.f * LK)
+			: PO + FVector2f(PDLogo::PallasSpark[SpLetter][0], PDLogo::PallasSpark[SpLetter][1]) * LK;
+		FRandomStream Rs(SpSeed * 7919 + 13);
+		const FLinearColor Hot(1.f, 0.96f, 0.82f, 1.f), Warm(1.f, 0.88f, 0.59f, 1.f);
+		if (SpK == 0)
+		{
+			C.Glow(FCanvas::CirclePoints(O, 3.f, 10), Hot, 2.5f, 1.6f);
+			for (int32 K = 0; K < 2; ++K)
+			{
+				const float A = Rs.FRandRange(0.f, TwoPi);
+				const FVector2f P1 = O + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 7.f;
+				const float A2 = A + Rs.FRandRange(-1.f, 1.f);
+				C.Glow({O, P1, P1 + FVector2f(FMath::Cos(A2), FMath::Sin(A2)) * 8.f}, Hot, 1.4f, 1.f);
+			}
+		}
+		else if (SpK == 1) C.Glow(FCanvas::CirclePoints(O, 1.8f, 8), Hot, 2.f, 1.f);
+		FRandomStream Rp(SpSeed * 104729 + 3);
+		for (int32 K = 0; K < 8; ++K)
+		{
+			const float A = Rp.FRand() < 0.7f ? Rp.FRandRange(-PI * 0.95f, -PI * 0.05f) : Rp.FRandRange(0.f, PI);
+			const float Sp2 = Rp.FRandRange(2.4f, 5.f);
+			const int32 Life = Rp.RandRange(6, 11);
+			const bool bWhite = Rp.FRand() >= 0.7f;
+			if (SpK < 1 || SpK > Life) continue;
+			auto At = [&](float Tt) { return O + FVector2f(FMath::Cos(A) * Sp2 * Tt, FMath::Sin(A) * Sp2 * Tt + 0.35f * Tt * Tt); };
+			const float Fade = 1.f - (SpK / (float)Life) * 0.8f;
+			C.Glow({At(SpK - 1.f), At((float)SpK)}, WithAlpha(bWhite ? Hot : Warm, Fade), 1.5f, Fade);
+		}
+	}
+
+	// ---- 칩 알약 (오른쪽 위)
+	{
+		const FString S = TrF(TEXT("칩 %s"), *CommaNum(MetaChips));
+		const float PW2 = 46.f + FCanvas::Measure(S, FCanvas::Font(13.f, true)).X, PH = 30.f, PX = DesignW - 80.f - PW2, PY = 24.f;
+		C.Glow(FCanvas::RoundRectPoints(PX, PY, PW2, PH, PH / 2.f), Gold, 1.4f, 0.7f);
+		C.Shape(EPDSuit::Diamond, PX + 17.f, PY + PH / 2.f, 6.f, Gold, 1.3f, 0.5f);
+		C.Text(S, PX + 30.f, PY + PH / 2.f + 5.f, Gold, 13.f, 0, true);
+	}
+
+	// ---- 튜브 버튼 (고른 것만 분홍으로 켜짐, 왼쪽 하트) + 바닥 반사
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
+	for (int32 Pass = 0; Pass < 2; ++Pass)
+		for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
+		{
+			if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 위로 당긴다 (D-162)
+			const FVector2f P = TitleBtnPos(I, bHasRunSave);
+			const bool bSel = TitleSel == I;
+			const FLinearColor Col = bSel ? Pink : Cyan;
+			TArray<FVector2f> Rr = FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, TitleBtnH / 2.f);
+			if (Pass == 0) // 반사
+			{
+				for (FVector2f& V : Rr) V.Y = 2.f * TitleFloorY - V.Y;
+				C.Glow(Rr, WithAlpha(Col, bSel ? 0.16f : 0.06f), 1.4f, bSel ? 0.3f : 0.f);
+				continue;
+			}
+			if (bSel) C.Box(P.X + 10.f, P.Y + 4.f, TitleBtnW - 20.f, TitleBtnH - 8.f, WithAlpha(Pink, 0.06f + 0.04f * Pulse));
+			C.Glow(Rr, bSel ? Col : WithAlpha(Col, 0.55f), bSel ? 2.4f : 1.3f, bSel ? 1.1f + 0.4f * Pulse : 0.25f);
+			C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : WithAlpha(Cyan, 0.7f), 18.f, true);
+			if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Pink, 1.4f, 0.8f);
+		}
+	if (Game.BestWave > 0) C.Text(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), TitleBtnX, TitleFloorY - 14.f, Grey, 12.f, 0, false);
+	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), DesignW / 2.f, DesignH - 20.f, Dim, 11.f, false);
 }
 
 // 모드 고르기 창 (D-229): 카드 4장. 잠긴 모드는 흐리게 + 여는 조건, 클리어한 모드는 금색 표시

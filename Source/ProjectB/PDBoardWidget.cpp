@@ -586,6 +586,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	const double TickT0 = FPlatformTime::Seconds();
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
+	TitleT = Game.Phase == EPDPhase::Title && LoadT <= 0.f ? TitleT + Dt : 0.f;
 	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
 	{
 		const float AutoT0 = Game.AutoStartT;
