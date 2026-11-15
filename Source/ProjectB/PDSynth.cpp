@@ -726,61 +726,9 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate)
 	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
 }
 
-// ---------------------------------------------------------------- 3. 보스: 신스 + 빅밴드 금관 (D-188 → D-264)
-// 140 BPM D 단조 Dm - B♭ - Gm - A7 16마디. 4박 킥 + 마디 끝 두 번, 게이트 스네어, 16분 하이햇 + 4분 라이드, 4마디마다 탐 채움,
-// 8분 워킹 베이스(신스 + 업라이트), 금관 찌르기(1박 · 2박 뒷박, 채움 마디는 3 · 3½ · 4박 몰아치기), 반음 경보 동기, 9마디부터 약음 리드
-std::vector<int16_t> SynthesizeBossMusic(int SampleRate)
-{
-	const float Bpm = 140.f, Beat = 60.f / Bpm, Bar = 4.f * Beat, S16 = Beat / 4.f;
-	const int Bars = 16;
-	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(2.f * SampleRate);
-	FMusic M(SampleRate, LoopN + TailN);
-	M.Rng = 0x9e3779b9u;
-	const FJazzChord Ch[4] = {{38.f, 3.f, 10.f, {62.f, 65.f, 69.f, 74.f}}, {34.f, 4.f, 11.f, {62.f, 65.f, 70.f, 74.f}}, {43.f, 3.f, 10.f, {62.f, 67.f, 70.f, 74.f}}, {45.f, 4.f, 10.f, {61.f, 64.f, 67.f, 69.f}}};
-	std::vector<float> Kicks;
-	for (int B = 0; B < Bars; ++B)
-	{
-		const float T = B * Bar;
-		const FJazzChord& C = Ch[B % 4];
-		const bool bFill = B % 4 == 3, bLead = B >= 8;
-		for (int K = 0; K < 4; ++K) { M.Kick(T + K * Beat); Kicks.push_back(T + K * Beat); }
-		if (!bFill) { M.Kick(T + 3.5f * Beat); Kicks.push_back(T + 3.5f * Beat); }
-		M.Snare(T + Beat);
-		if (!bFill) M.Snare(T + 3.f * Beat);
-		for (int K = 0; K < 16; ++K) M.Hat(T + K * S16, 0.03f, K % 4 == 2 ? 0.12f : 0.05f);
-		for (int K = 0; K < 4; ++K) M.Ride(T + K * Beat, 0.06f, 0.6f);
-		if (bFill) for (int K = 0; K < 8; ++K) M.Tom(T + 2.f * Beat + K * S16, 180.f - K * 14.f, 0.45f);
-		// 8분 워킹 베이스: 근음 · 3도 · 5도 · 7도 · 옥타브 · 7도 · 5도 · 다음 근음 반음 위/아래
-		float Nr = Ch[(B + 1) % 4].Root;
-		while (Nr - C.Root > 6.f) Nr -= 12.f;
-		while (C.Root - Nr > 6.f) Nr += 12.f;
-		const float Wk[8] = {C.Root, C.Root + C.Third, C.Root + 7.f, C.Root + C.Seventh, C.Root + 12.f, C.Root + C.Seventh, C.Root + 7.f, Nr + (B % 2 ? 1.f : -1.f)};
-		for (int K = 0; K < 8; ++K)
-		{
-			M.SawNote(1, T + K * Beat / 2.f, Beat / 2.f * 0.75f, Wk[K], 0.32f, 1700.f, 300.f, 0.04f, 0.002f, 0.015f, 0.005f);
-			M.Upright(1, T + K * Beat / 2.f, Beat / 2.f * 0.8f, Wk[K], 0.22f);
-		}
-		// 금관 찌르기
-		if (!bFill) { for (const float At : {0.f, 1.5f}) for (float N : C.Voice) M.Brass(1, T + At * Beat, Beat * (At == 0.f ? 0.45f : 0.9f), N, 0.06f, At > 0.f); }
-		else for (const float At : {0.f, 2.f, 2.5f, 3.f}) for (float N : C.Voice) M.Brass(1, T + At * Beat, Beat * 0.4f, N + (At >= 2.f ? 2.f : 0.f), 0.065f, At == 3.f);
-		// 반음 경보 동기
-		const float Hi = C.Voice[0] + 12.f;
-		for (int K = 0; K < 8; ++K) M.PulseNote(2, T + K * Beat / 2.f, Beat / 2.f * 0.8f, K % 2 ? Hi + 1.f : Hi, bLead ? 0.035f : 0.055f);
-	}
-	const FLead Lead[] = {
-		{8, 0.f, 1.f, 74.f}, {8, 1.f, 1.f, 77.f}, {8, 2.f, 2.f, 76.f},
-		{9, 0.f, 1.f, 74.f}, {9, 1.f, 1.f, 70.f}, {9, 2.f, 2.f, 72.f},
-		{10, 0.f, 1.f, 70.f}, {10, 1.f, 1.f, 74.f}, {10, 2.f, 1.f, 79.f}, {10, 3.f, 1.f, 77.f},
-		{11, 0.f, 2.f, 76.f}, {11, 2.f, 1.f, 73.f}, {11, 3.f, 1.f, 76.f},
-		{12, 0.f, 1.5f, 81.f}, {12, 1.5f, 0.5f, 79.f}, {12, 2.f, 2.f, 77.f},
-		{13, 0.f, 1.f, 74.f}, {13, 1.f, 1.f, 77.f}, {13, 2.f, 2.f, 82.f},
-		{14, 0.f, 1.f, 79.f}, {14, 1.f, 1.f, 77.f}, {14, 2.f, 2.f, 74.f},
-		{15, 0.f, 2.f, 73.f}, {15, 2.f, 2.f, 76.f}};
-	for (const FLead& L : Lead) M.MuteLead(2, L.Bar * Bar + L.At * Beat, L.Len * Beat * 0.92f, L.Midi, 0.15f);
-	FMixOpt O;
-	O.Room = 0.12f;
-	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
-}
+// ---------------------------------------------------------------- 3. 보스 (D-188 → D-264 → D-267): 느와르 기어가기 시안(0)으로 확정
+std::vector<int16_t> SynthesizeBossMusic(int SampleRate) { return SynthesizeBossMusicAlt(0, SampleRate); }
+
 // ---------------------------------------------------------------- 보스 시안 (D-266): 빠르지 않고 무겁게, 1 · 2번 곡과 같은 재즈 결
 // 0 느와르 기어가기: 72 BPM 반박자 느낌, D 단조 블루스(Dm · Dm · Gm · A7♭9), 낮은 업라이트 + 서브 베이스 2분음, 팀파니 같은 낮은 탐,
 //   낮은 금관이 천천히 부풀었다 꺼짐, 로즈 불협 덩어리, 비브라폰 불길한 동기, 브러시 대신 묵직한 킥 · 림
