@@ -893,7 +893,7 @@ struct SPDBoardWidget::FCanvas
 	}
 	// 띠 찍기 (D-146/147 → D-295): 꺾은선 하나를 이어진 띠 한 줄로 (꼭짓점마다 두 마디가 같은 점을 나눠 쓰는 맞춤 이음).
 	// 예전처럼 마디마다 따로 찍으면 모서리에 틈이 나고, 곡선은 번짐 띠가 마디마다 겹쳐 구슬처럼 끊겨 보였다.
-	// 띠 끝(U 끝)은 꺾은선의 처음과 끝에만 쓰고 가운데는 U 가운데. 닫힌 선(처음 = 끝)은 끝도 이어 붙인다. 120° 넘게 꺾이면 거기서 끊고 새로 시작
+	// 띠 끝(U 끝)은 꺾은선의 처음과 끝에만 쓰고 가운데는 U 가운데. 닫힌 선(처음 = 끝)은 끝도 이어 붙인다. 72° 넘게 꺾이면 거기서 끊고 반 굵기 겹쳐 새로 시작
 	FSlateRenderTransform RT;
 	void Stamp(const TArray<FVector2f>& P0, const FLinearColor& T, const FSlateBrush* Band, float Th)
 	{
@@ -914,32 +914,33 @@ struct SPDBoardWidget::FCanvas
 		int32 Start = 0;
 		while (Start < N - 1)
 		{
-			// 이번 띠의 끝: 너무 날카롭게 꺾이는 곳 앞까지
+			// 이번 띠의 끝: 72° 넘게 꺾이는 곳 앞까지 (D-298: 120° 까지 맞춤 이음을 하니 하트 끝 같은 곳에서 모서리 점이 멀리 튀어 빛이 번진 듯 보였다)
 			int32 End = Start + 1;
-			while (End < N - 1 && FVector2f::DotProduct(Dir(End - 1), Dir(End)) > -0.5f) ++End;
+			while (End < N - 1 && FVector2f::DotProduct(Dir(End - 1), Dir(End)) > 0.3f) ++End;
 			const bool bLoop = bClosed && Start == 0 && End == N - 1;
+			const bool bCapStart = Start == 0 && !bClosed, bCapEnd = End == N - 1 && !bClosed; // 끝이 흐려지는 띠 끝은 진짜 꺾은선 끝에만
 			SlateIndex Prev0 = 0, Prev1 = 0;
 			for (int32 I = Start; I <= End; ++I)
 			{
-				FVector2f Off;
+				FVector2f Off, At = P[I];
 				const bool bFirst = I == Start, bLast = I == End;
 				int32 KIn = I - 1, KOut = I;
 				if (bLoop && bFirst) KIn = N - 2;
 				if (bLoop && bLast) KOut = 0;
-				if ((bFirst && !bLoop) || KIn < 0) Off = Nrm(KOut) * H;
-				else if ((bLast && !bLoop) || KOut > N - 2) Off = Nrm(KIn) * H;
+				if (bFirst && !bLoop) { Off = Nrm(KOut) * H; if (!bCapStart) At -= Dir(KOut) * H * 0.5f; } // 꺾여 끊긴 곳은 반 굵기만큼 겹쳐 틈을 막는다
+				else if (bLast && !bLoop) { Off = Nrm(KIn) * H; if (!bCapEnd) At += Dir(KIn) * H * 0.5f; }
 				else
 				{
 					const FVector2f NI = Nrm(KIn), NO = Nrm(KOut);
 					FVector2f M = NI + NO;
 					const float ML = M.Size();
 					if (ML < 1e-3f) Off = NO * H;
-					else { M /= ML; Off = M * FMath::Min(H / FMath::Max(0.35f, FVector2f::DotProduct(M, NO)), H * 2.5f); }
+					else { M /= ML; Off = M * FMath::Min(H / FMath::Max(0.5f, FVector2f::DotProduct(M, NO)), H * 1.6f); }
 				}
-				const float U = bLoop ? UMid : bFirst ? UV.Min.X : bLast ? UV.Max.X : UMid;
+				const float U = bLoop ? UMid : bFirst ? (bCapStart ? UV.Min.X : UMid) : bLast ? (bCapEnd ? UV.Max.X : UMid) : UMid;
 				const SlateIndex B = (SlateIndex)QV.Num();
-				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] - Off, FVector2f(U, UV.Min.Y), Col32));
-				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] + Off, FVector2f(U, UV.Max.Y), Col32));
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, At - Off, FVector2f(U, UV.Min.Y), Col32));
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, At + Off, FVector2f(U, UV.Max.Y), Col32));
 				if (!bFirst) { QI.Add(Prev0); QI.Add(B); QI.Add(B + 1); QI.Add(Prev0); QI.Add(B + 1); QI.Add(Prev1); ++GPDDebug.Boxes; }
 				Prev0 = B; Prev1 = B + 1;
 			}
