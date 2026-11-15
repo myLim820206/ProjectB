@@ -1955,8 +1955,7 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		for (int32 I = 0; I < NBulb; ++I)
 		{
 			const FVector2f P(SignEnX + 17.f + I * 9.8f, SignEnY + 40.f);
-			if (I < On) C.Glow(FCanvas::CirclePoints(P, 3.2f, 10), bAuto ? Green : Hex(TEXT("ffe196")), 1.1f, 0.6f);
-			else C.Lines(FCanvas::CirclePoints(P, 3.2f, 10), Hex(TEXT("ffe196"), 0.15f), 1.f);
+			Bulb(C, P, 3.2f, I < On, bAuto ? Green : Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 		}
 		C.TextCentered(TrF(TEXT("처치 %d · 놓침 %d"), G.Kills, G.Leaks), SignEnX + SignEnW / 2.f, SignEnY + 56.f, Grey, 8.f, false, SignEnW - 20.f);
 	}
@@ -2149,8 +2148,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			for (int32 K = 0; K < 11; ++K)
 			{
 				const FVector2f P(RBtnX + 20.f + K * (RBtnW - 40.f) / 10.f, StartBtnY + 8.f);
-				if (bLit && (K + Ph) % 3 != 0) C.Glow(FCanvas::CirclePoints(P, 2.8f, 10), Hex(TEXT("ffe196")), 1.f, 0.5f);
-				else C.Lines(FCanvas::CirclePoints(P, 2.8f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+				Bulb(C, P, 2.8f, bLit && (K + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 			}
 		}
 		if (G.Phase == EPDPhase::Build)
@@ -2298,8 +2296,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 				else if ((D -= X1 - X0) < Y1 - Y0) Q = FVector2f(X1, Y0 + D);
 				else if ((D -= Y1 - Y0) < X1 - X0) Q = FVector2f(X1 - D, Y1);
 				else Q = FVector2f(X0, Y1 - (D - (X1 - X0)));
-				if ((Bi + Ph) % 3 != 0) C.Glow(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196")), 1.1f, 0.5f);
-				else C.Lines(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+				Bulb(C, Q, 3.f, (Bi + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 			}
 			NeonText(C, TEXT("BARTENDER'S CHOICE"), CXb, SY + 42.f, Gold, 21.f, 1, 1.f);
 			C.TextCentered(TrF(TEXT("웨이브 %d 칵테일 — 하나를 고른다"), G.Wave), CXb, SY + SH + 22.f, Fg, 13.f, true, Cols * CS - 40.f);
@@ -3116,6 +3113,15 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 
 // 왼쪽 족보 안내 (D-119): 이름 + 효과 한 줄. 판 위에 있는 족보는 밝게, 개수 표시
 // 도움말 카드 (D-217): 가리킬 자리 둘레에 숨 쉬는 고리 + 카드에서 이어지는 선, 카드엔 제목·설명·[알겠어]·[도움말 끄기]
+// 동그란 전구 (D-294): 켜진 전구 = 부드러운 둥근 빛 + 꽉 찬 알 + 흰 심, 꺼진 전구 = 흐린 얇은 원. 톱니처럼 보이던 10각 테두리 대신
+void SPDBoardWidget::Bulb(FCanvas& C, FVector2f P, float R, bool bOn, const FLinearColor& Col)
+{
+	if (!bOn) { C.Lines(FCanvas::CirclePoints(P, R, 20), FLinearColor(Col.R, Col.G, Col.B, 0.2f), 1.f); C.Box(P.X - 0.6f, P.Y - 0.6f, 1.2f, 1.2f, FLinearColor(Col.R, Col.G, Col.B, 0.25f)); return; }
+	for (int32 K = 0; K < 3; ++K) C.Lines(FCanvas::CirclePoints(P, R * (1.15f + 0.3f * K), 24), FLinearColor(Col.R, Col.G, Col.B, 0.28f - 0.08f * K), 1.3f); // 둥근 빛: 옅은 고리 셋 (번짐 띠는 작은 원에서 톱니가 됐다)
+	for (float Rr = R * 0.75f; Rr > 0.4f; Rr -= 0.9f) C.Lines(FCanvas::CirclePoints(P, Rr, 16), Col, 1.2f); // 꽉 찬 알
+	C.Lines(FCanvas::CirclePoints(P, R * 0.3f, 10), FLinearColor(1.f, 1.f, 1.f, 0.85f), 1.f); // 흰 심
+}
+
 // ---- 네온 바 화면 공용 (D-293)
 void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, const FString& S, const FLinearColor& Col, float Px, float Time, const TArray<float>* LetterB)
 {
@@ -3135,8 +3141,7 @@ void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, c
 		else if ((D -= X1 - X0) < Y1 - Y0) Q = FVector2f(X1, Y0 + D);
 		else if ((D -= Y1 - Y0) < X1 - X0) Q = FVector2f(X1 - D, Y1);
 		else Q = FVector2f(X0, Y1 - (D - (X1 - X0)));
-		if ((Bi + Ph) % 3 != 0) C.Glow(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196")), 1.1f, 0.5f);
-		else C.Lines(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+		Bulb(C, Q, 3.f, (Bi + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 	}
 	const float BY = Y + H / 2.f + Px * 0.36f;
 	if (!LetterB) { NeonText(C, S, CX, BY, Col, Px, 1, 1.f); return; }
@@ -3349,8 +3354,7 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 				else if ((D -= Y1 - Y0) < X1 - X0) P = FVector2f(X1 - D, Y1);
 				else P = FVector2f(X0, Y1 - (D - (X1 - X0)));
 				const bool bOn = (Bi + Ph) % 3 != 0;
-				if (bOn) C.Glow(FCanvas::CirclePoints(P, 3.6f, 10), Hex(TEXT("ffe196")), 1.3f, 0.7f);
-				else C.Lines(FCanvas::CirclePoints(P, 3.6f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+				Bulb(C, P, 3.6f, bOn, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 			}
 		}
 		SignWord(CX, CY + 16.f * K, 50.f * K, 0.45f, 1.f);
@@ -3749,8 +3753,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		{
 			const float A = PI * (1.f - K / 20.f);
 			const FVector2f Q(MidX + FMath::Cos(A) * (Rx - 24.f), Shoulder - FMath::Sin(A) * (Shoulder - Top - 20.f));
-			if ((K + Ph) % 3 != 0) C.Glow(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196")), 1.1f, 0.5f);
-			else C.Lines(FCanvas::CirclePoints(Q, 3.f, 10), Hex(TEXT("ffe196"), 0.18f), 1.f);
+			Bulb(C, Q, 3.f, (K + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 		}
 		NeonText(C, TEXT("JUKEBOX"), MidX, SetBoxY + 22.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f);
 		C.TextCentered(TEXT("설정"), MidX, SetBoxY + 42.f, Fg, 12.f, true);
