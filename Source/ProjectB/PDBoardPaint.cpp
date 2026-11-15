@@ -2374,39 +2374,78 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 
 void SPDBoardWidget::PaintUpgrades(FCanvas& C) const
 {
+	// 영구 강화 (D-244, 시안 A 카드 테이블): 4 × 2 카드. 아이콘 + 이름, 레벨 고리, 효과, 버튼 +1 · +10 · +100 · 최대
 	const FPDGame& G = Game;
-	const FLinearColor Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6"));
+	const FLinearColor Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6")), Felt = Hex(TEXT("0b1512"));
 	const bool bShop = G.Phase == EPDPhase::Title;
-	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.95f));
-	C.Text(TEXT("영구 강화"), UpgRowX, 52.f, Hex(TEXT("ff9a6a")), 22.f, 0, true);
-	C.Text(bShop ? TrF(TEXT("칩 %s · 판이 끝나면 칩을 받는다 (웨이브 + 2 × 오른 레벨 + 클리어 덤)"), *CommaNum(MetaChips)) : FString(Tr(TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"))),
-		UpgRowX, 82.f, Gold, 12.f, 0, false, UpgRowW);
-	C.Text(UpgCap() > UpgradeMax ? FString(Tr(TEXT("100 웨이브 클리어: 레벨 9999까지"))) : FString(Tr(TEXT("레벨 20까지 · 100 웨이브를 클리어하면 9999까지 열린다"))), UpgRowX + UpgRowW, 52.f, UpgCap() > UpgradeMax ? Gold : Grey, 11.f, 2, false, 420.f); // D-238
+	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.96f));
+	C.Text(TEXT("영구 강화"), 60.f, 54.f, Gold, 26.f, 0, true);
+	C.Text(bShop ? FString(Tr(TEXT("판이 끝나면 칩을 받는다  ·  웨이브 + 2 × 오른 레벨 + 클리어 덤"))) : FString(Tr(TEXT("판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다"))), 60.f, 84.f, Grey, 12.f, 0, false, 700.f);
+	C.Text(UpgCap() > UpgradeMax ? FString(Tr(TEXT("100 웨이브 클리어: 레벨 9999까지"))) : FString(Tr(TEXT("레벨 20까지 · 100 웨이브를 클리어하면 9999까지 열린다"))), DesignW - 60.f, 100.f, UpgCap() > UpgradeMax ? Gold : Dim, 10.f, 2, false, 420.f); // D-238
+	{ // 칩 알약
+		const FString S = TrF(TEXT("칩 %s"), *CommaNum(MetaChips));
+		const float PW2 = 46.f + FCanvas::Measure(S, FCanvas::Font(13.f, true)).X, PX = CdxCloseX - 14.f - PW2, PY = CdxCloseY;
+		C.Box(PX, PY, PW2, CdxCloseH, WithAlpha(Gold, 0.08f));
+		C.Glow(FCanvas::RoundRectPoints(PX, PY, PW2, CdxCloseH, CdxCloseH / 2.f), Gold, 1.4f, 0.7f);
+		C.Shape(EPDSuit::Diamond, PX + 17.f, PY + CdxCloseH / 2.f, 6.f, Gold, 1.3f, 0.5f);
+		C.Text(S, PX + 30.f, PY + CdxCloseH / 2.f + 5.f, Gold, 13.f, 0, true);
+	}
+	const int32 Cap = UpgCap();
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U)
 	{
-		const float Y = UpgRowY + U * UpgRowH;
+		const FVector2f P = UpgCardPos(U);
 		const int32 Lv = G.Upg[U];
 		const FLinearColor Col = UpgradeColor(U);
-		C.Lines(FCanvas::RectPoints(UpgRowX, Y + 4.f, UpgRowW, UpgRowH - 8.f), WithAlpha(Col, 0.25f), 1.f);
-		C.Text(UpgradeName(U), UpgRowX + 16.f, Y + 24.f, Col, 15.f, 0, true, 180.f);
-		C.Text(FString::Printf(TEXT("Lv %d / %d"), Lv, UpgCap()), UpgRowX + 200.f, Y + 24.f, Lv >= UpgCap() ? Gold : Fg, 13.f, 0, true);
-		C.Text(UpgradeEffect(U, Lv), UpgRowX + 16.f, Y + 46.f, Grey, 11.f, 0, false, UpgRowW - 4.f * (UpgBtnW + 8.f) - 24.f);
+		C.Box(P.X, P.Y, UpgCardW, UpgCardH, WithAlpha(Felt, 0.92f));
+		C.Glow(FCanvas::RoundRectPoints(P.X, P.Y, UpgCardW, UpgCardH, 14.f), Col, 1.4f, 0.6f);
+		// 아이콘: 무늬 강화는 무늬, 나머지는 칼 · 번개 · 별 · 터짐
+		const float IX = P.X + 26.f, IY = P.Y + 30.f, IR = 11.f;
+		if (U >= (int32)EPDUpgrade::Spade) C.Shape((EPDSuit)(U - (int32)EPDUpgrade::Spade), IX, IY, IR, Col, 1.5f, 0.6f);
+		else if (U == (int32)EPDUpgrade::Attack)
+		{
+			C.Glow({FVector2f(IX - IR * 0.7f, IY + IR * 0.7f), FVector2f(IX + IR * 0.7f, IY - IR * 0.7f)}, Col, 1.5f, 0.6f);
+			C.Glow({FVector2f(IX - IR * 0.3f, IY - IR * 0.05f), FVector2f(IX + IR * 0.05f, IY + IR * 0.3f)}, Col, 1.5f, 0.6f);
+		}
+		else if (U == (int32)EPDUpgrade::Speed) C.Glow({FVector2f(IX + IR * 0.2f, IY - IR), FVector2f(IX - IR * 0.45f, IY + IR * 0.1f), FVector2f(IX + IR * 0.05f, IY + IR * 0.1f), FVector2f(IX - IR * 0.2f, IY + IR)}, Col, 1.5f, 0.6f);
+		else if (U == (int32)EPDUpgrade::Crit)
+		{
+			TArray<FVector2f> St;
+			for (int32 K = 0; K <= 10; ++K) { const float A = -0.5f * UE_PI + K * UE_PI / 5.f, R2 = K % 2 == 0 ? IR : IR * 0.45f; St.Add(FVector2f(IX + FMath::Cos(A) * R2, IY + FMath::Sin(A) * R2)); }
+			C.Glow(St, Col, 1.5f, 0.6f);
+		}
+		else for (int32 K = 0; K < 8; ++K) { const float A = K * UE_PI / 4.f; C.Glow({FVector2f(IX + FMath::Cos(A) * IR * 0.35f, IY + FMath::Sin(A) * IR * 0.35f), FVector2f(IX + FMath::Cos(A) * IR, IY + FMath::Sin(A) * IR)}, Col, 1.5f, 0.6f); }
+		C.Text(UpgradeName(U), P.X + 48.f, P.Y + 36.f, Col, 17.f, 0, true, UpgCardW - 60.f);
+		// 레벨 고리: 20까지는 20칸 기준, 그 뒤(상한 9999)는 100레벨마다 한 바퀴
+		const FVector2f RC(P.X + UpgCardW / 2.f, P.Y + 116.f);
+		const float Frac = Lv >= Cap ? 1.f : Lv < UpgradeMax ? Lv / (float)UpgradeMax : ((Lv - UpgradeMax) % 100) / 100.f;
+		C.Glow(FCanvas::CirclePoints(RC, 44.f, 48), Hex(TEXT("1c2a26")), 4.f, 0.2f);
+		if (Frac > 0.f)
+		{
+			TArray<FVector2f> Arc;
+			const int32 NA = FMath::Max(2, FMath::CeilToInt(40.f * Frac));
+			for (int32 K = 0; K <= NA; ++K) { const float A = -0.5f * UE_PI + TwoPi * Frac * K / NA; Arc.Add(RC + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 44.f); }
+			C.Glow(Arc, Col, 4.f, 0.9f);
+		}
+		C.TextCentered(FString::Printf(TEXT("Lv %d"), Lv), RC.X, RC.Y - 6.f, Lv >= Cap ? Gold : UiValue, 20.f, true);
+		C.TextCentered(FString::Printf(TEXT("/ %d"), Cap), RC.X, RC.Y + 16.f, Dim, 11.f, false);
+		Wrap2(C, UpgradeEffect(U, Lv), P.X + 16.f, P.Y + 178.f, Fg, 11.f, UpgCardW - 32.f);
 		if (!bShop) continue;
 		for (int32 K = 0; K < 4; ++K)
 		{
 			const FVector2f B = UpgButtonPos(U, K);
 			int32 N = 0, Cost = 0;
-			for (int32 L = Lv; L < UpgCap() && N < UpgSteps[K] && Cost + UpgradeCost(L) <= (K < 3 ? INT32_MAX : MetaChips); ++L) { Cost += UpgradeCost(L); ++N; }
+			for (int32 L = Lv; L < Cap && N < UpgSteps[K] && Cost + UpgradeCost(L) <= (K < 3 ? INT32_MAX : MetaChips); ++L) { Cost += UpgradeCost(L); ++N; }
 			const bool bCan = N > 0 && Cost <= MetaChips;
 			const bool bHov = InRect(Mouse, B.X, B.Y, UpgBtnW, UpgBtnH);
-			C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, UpgBtnW, UpgBtnH, 6.f), WithAlpha(Col, bCan ? 1.f : 0.3f), bHov ? 1.8f : 1.2f, bCan ? (bHov ? 1.2f : 0.5f) : 0.15f);
-			C.TextCentered(K < 3 ? FString::Printf(TEXT("+%d"), UpgSteps[K]) : FString(Tr(TEXT("최대"))), B.X + UpgBtnW / 2.f, B.Y + 10.f, WithAlpha(Col, bCan ? 1.f : 0.4f), 11.f, true);
-			C.TextCentered(N > 0 ? FString::Printf(TEXT("%d"), Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 22.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
+			if (bCan) C.Box(B.X, B.Y, UpgBtnW, UpgBtnH, WithAlpha(Col, bHov ? 0.2f : 0.1f));
+			C.Glow(FCanvas::RoundRectPoints(B.X, B.Y, UpgBtnW, UpgBtnH, 9.f), WithAlpha(bCan ? Col : Dim, bCan ? 1.f : 0.6f), bHov ? 1.7f : 1.3f, bCan ? (bHov ? 1.2f : 0.6f) : 0.15f);
+			C.TextCentered(K < 3 ? FString::Printf(TEXT("+%d"), UpgSteps[K]) : FString(Tr(TEXT("최대"))), B.X + UpgBtnW / 2.f, B.Y + 13.f, bCan ? Col : Dim, 12.f, true);
+			C.TextCentered(N > 0 ? CommaNum(Cost) : FString(TEXT("-")), B.X + UpgBtnW / 2.f, B.Y + 28.f, bCan ? Gold : Dim, 9.f, false, UpgBtnW - 4.f);
 		}
 	}
 	C.TextCentered(bShop ? FString(Tr(TEXT("버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기"))) : FString(Tr(TEXT("U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)"))),
 		DesignW / 2.f, DesignH - 16.f, Dim, 11.f, false);
-	PaintCloseButton(C, Hex(TEXT("ff9a6a")));
+	PaintCloseButton(C, Gold);
 }
 
 // 스킬 트리 창 (K, D-119): 위쪽 띠, 노드마다 하는 일 아이콘, 범례, 설명

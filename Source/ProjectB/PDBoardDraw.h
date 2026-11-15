@@ -480,7 +480,7 @@ inline FLinearColor TreeNodeColor(int Id)
 // ---- 골드 강화 (U)
 inline const TCHAR* UpgradeName(int U)
 {
-	static const TCHAR* N[] = {TEXT("공격"), TEXT("공격 속도"), TEXT("치명타 확률"), TEXT("치명타 배율"), TEXT("♠ 스페이드 강화"), TEXT("♥ 하트 강화"), TEXT("♦ 다이아 강화"), TEXT("♣ 클로버 강화")};
+	static const TCHAR* N[] = {TEXT("공격"), TEXT("공격 속도"), TEXT("치명타 확률"), TEXT("치명타 배율"), TEXT("스페이드"), TEXT("하트"), TEXT("다이아"), TEXT("클로버")}; // 카드 시안 A (D-244): 무늬는 아이콘으로
 	return Tr(N[U]);
 }
 inline FString UpgradeEffect(int U, int Level)
@@ -497,12 +497,15 @@ inline FString UpgradeEffect(int U, int Level)
 }
 inline FLinearColor UpgradeColor(int U) { return U >= (int)EPDUpgrade::Spade ? SuitColor((EPDSuit)(U - (int)EPDUpgrade::Spade)) : U >= (int)EPDUpgrade::Crit ? Hex(TEXT("ff9a6a")) : Hex(TEXT("ffd96a")); }
 constexpr float UpgRowX = 150.f, UpgRowY = 120.f, UpgRowW = 980.f, UpgRowH = 64.f;
-constexpr float UpgBtnW = 76.f, UpgBtnH = 30.f;
+// 영구 강화 카드 (D-244, 시안 A): 4 × 2 카드, 카드마다 아이콘 · 레벨 고리 · 효과 · 버튼 넷
+constexpr float UpgCardW = 276.f, UpgCardH = 260.f;
+inline FVector2f UpgCardPos(int I) { return FVector2f(60.f + (I % 4) * 296.f, 120.f + (I / 4) * 280.f); }
+constexpr float UpgBtnW = 58.f, UpgBtnH = 38.f;
 const int32 UpgSteps[4] = {1, 10, 100, UpgradeMaxCleared}; // 영구 강화 버튼: +1 · +10 · +100 · 최대 (D-238)
 // 부적 상자 버튼 3개 (D-233): 영구 강화 창 아래
 constexpr float BoxBtnW = 233.f, BoxBtnH = 44.f, BoxBtnY = UpgRowY + 8 * UpgRowH + 6.f;
 inline float BoxBtnX(int I) { return UpgRowX + I * (BoxBtnW + 16.f); }
-inline FVector2f UpgButtonPos(int Row, int K) { return FVector2f(UpgRowX + UpgRowW - 4 * (UpgBtnW + 8.f) + K * (UpgBtnW + 8.f), UpgRowY + Row * UpgRowH + (UpgRowH - UpgBtnH) / 2.f); }
+inline FVector2f UpgButtonPos(int Row, int K) { const FVector2f C0 = UpgCardPos(Row); return FVector2f(C0.X + 14.f + K * 63.f, C0.Y + 208.f); }
 // 웨이브 시작 버튼 아래 2×2 버튼 (D-119): 트리 K · 강화 U / 도감 J · 메뉴 Esc
 constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 36.f;
 constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = TreeBtnH;
