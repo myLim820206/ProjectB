@@ -44,6 +44,44 @@ namespace PDLogo
 	// 글자마다 '빠직' 불티가 튀는 자리 (오른쪽 위)
 	static const float PallasSpark[PallasLetters][2] = {{70, -72}, {104, -38}, {142, -84}, {174, -84}, {212, -38}, {248, -38}};
 
+	// 이어지는 글자 획을 조절점 단계에서 합친 줄 (D-299): 글자 끝과 다음 글자 시작이 같은 점이고 밝기가 같으면 한 줄로 → 이음매에서도 곡선이 매끈
+	struct FRun { TArray<FVector2f> Pts; int32 Letter; };
+	inline TArray<FRun> PallasRuns(const float* LetterB)
+	{
+		TArray<FRun> Out;
+		FPoly Ps[2];
+		for (int32 I = 0; I < PallasLetters; ++I)
+		{
+			const int32 N = PallasStrokes(I, Ps);
+			for (int32 J = 0; J < N; ++J)
+			{
+				TArray<FVector2f> C;
+				for (int32 Q = 0; Q < Ps[J].N; ++Q) C.Add(FVector2f(Ps[J].P[Q * 2], Ps[J].P[Q * 2 + 1]));
+				FRun* Last = Out.Num() ? &Out.Last() : nullptr;
+				if (Last && FVector2f::Distance(Last->Pts.Last(), C[0]) < 0.01f && (!LetterB || FMath::IsNearlyEqual(LetterB[Last->Letter], LetterB[I]))) { C.RemoveAt(0); Last->Pts.Append(C); }
+				else Out.Add({MoveTemp(C), I});
+			}
+		}
+		return Out;
+	}
+	inline TArray<FVector2f> CatmullPts(const TArray<FVector2f>& Cp, FVector2f O, float K, float Mirror = 0.f, int32 Seg = 8)
+	{
+		const int32 N = Cp.Num();
+		auto Pt = [&](int32 I) { return Cp[FMath::Clamp(I, 0, N - 1)]; };
+		TArray<FVector2f> R;
+		auto Put = [&](FVector2f V) { FVector2f W = O + V * K; if (Mirror > 0.f) W.Y = 2.f * Mirror - W.Y; R.Add(W); };
+		for (int32 I = 0; I + 1 < N; ++I)
+		{
+			const FVector2f P0 = Pt(I - 1), P1 = Pt(I), P2 = Pt(I + 1), P3 = Pt(I + 2);
+			for (int32 J = 0; J < Seg; ++J)
+			{
+				const float T = J / (float)Seg, T2 = T * T, T3 = T2 * T;
+				Put(0.5f * ((2.f * P1) + (P2 - P0) * T + (2.f * P0 - 5.f * P1 + 4.f * P2 - P3) * T2 + (3.f * P1 - P0 - 3.f * P2 + P3) * T3));
+			}
+		}
+		Put(Pt(N - 1));
+		return R;
+	}
 	// 조절점을 지나는 부드러운 곡선 (끝점 복제)
 	inline TArray<FVector2f> Catmull(const FPoly& S, FVector2f O, float K, float Mirror = 0.f, int32 Seg = 8)
 	{

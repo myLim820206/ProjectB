@@ -2890,11 +2890,8 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 				Tube(Pts, Cyan, 2.4f, NB[I], bRefl);
 			}
 		}
-		for (int32 I = 0; I < PDLogo::PallasLetters; ++I)
-		{
-			const int32 N = PDLogo::PallasStrokes(I, Ps);
-			for (int32 J = 0; J < N; ++J) Tube(PDLogo::Catmull(Ps[J], PO, LK, bRefl ? TitleFloorY : 0.f), Pink, 4.f, PB[I], bRefl);
-		}
+		// 이어지는 글자(a → l → l, a → s)는 밝기가 같으면 조절점부터 한 줄로 (D-299: 글자마다 끝이 따로 있으면 이음매에 자국이 남았다)
+		for (const PDLogo::FRun& Rn : PDLogo::PallasRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, LK, bRefl ? TitleFloorY : 0.f), Pink, 4.f, PB[Rn.Letter], bRefl);
 		// 왕관 스페이드
 		const float CX = LgX + 170.f * LK, CY = LY + 135.f * LK, R = 20.f * LK;
 		TArray<FVector2f> Sp = FCanvas::HeartPoints(CX, CY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f);
@@ -3257,11 +3254,7 @@ void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) cons
 		}
 	}
 	const FVector2f PO(CX - 140.f * K, Y + 170.f * K);
-	for (int32 I = 0; I < PDLogo::PallasLetters; ++I)
-	{
-		const int32 N = PDLogo::PallasStrokes(I, Ps);
-		for (int32 J = 0; J < N; ++J) C.Glow(PDLogo::Catmull(Ps[J], PO, K, 0.f, 5), WithAlpha(Pink, 0.85f), 1.5f, 0.4f);
-	}
+	for (const PDLogo::FRun& Rn : PDLogo::PallasRuns(nullptr)) C.Glow(PDLogo::CatmullPts(Rn.Pts, PO, K, 0.f, 5), WithAlpha(Pink, 0.85f), 1.5f, 0.4f); // 이어지는 글자는 한 줄로 (D-299)
 	const float SX = CX + 170.f * K, SY = Y + 135.f * K, R = 20.f * K;
 	C.Glow(FCanvas::HeartPoints(SX, SY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f), WithAlpha(Gold, 0.85f), 1.f, 0.3f);
 	const float CrX[] = {-0.8f, -0.8f, -0.4f, 0.f, 0.4f, 0.8f, 0.8f, -0.8f}, CrY[] = {-0.55f, -1.05f, -0.78f, -1.25f, -0.78f, -1.05f, -0.55f, -0.55f};

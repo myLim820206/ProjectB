@@ -893,7 +893,7 @@ struct SPDBoardWidget::FCanvas
 	}
 	// 띠 찍기 (D-146/147 → D-295): 꺾은선 하나를 이어진 띠 한 줄로 (꼭짓점마다 두 마디가 같은 점을 나눠 쓰는 맞춤 이음).
 	// 예전처럼 마디마다 따로 찍으면 모서리에 틈이 나고, 곡선은 번짐 띠가 마디마다 겹쳐 구슬처럼 끊겨 보였다.
-	// 띠 끝(U 끝)은 꺾은선의 처음과 끝에만 쓰고 가운데는 U 가운데. 닫힌 선(처음 = 끝)은 끝도 이어 붙인다. 72° 넘게 꺾이면 거기서 끊고 반 굵기 겹쳐 새로 시작
+	// 띠 끝(U 끝)은 꺾은선의 처음과 끝에만 쓰고 가운데는 U 가운데. 닫힌 선(처음 = 끝)은 끝도 이어 붙인다. 72° 넘게 꺾이면 거기서 끊고 같은 점에서 새로 시작
 	FSlateRenderTransform RT;
 	void Stamp(const TArray<FVector2f>& P0, const FLinearColor& T, const FSlateBrush* Band, float Th)
 	{
@@ -927,8 +927,8 @@ struct SPDBoardWidget::FCanvas
 				int32 KIn = I - 1, KOut = I;
 				if (bLoop && bFirst) KIn = N - 2;
 				if (bLoop && bLast) KOut = 0;
-				if (bFirst && !bLoop) { Off = Nrm(KOut) * H; if (!bCapStart) At -= Dir(KOut) * H * 0.5f; } // 꺾여 끊긴 곳은 반 굵기만큼 겹쳐 틈을 막는다
-				else if (bLast && !bLoop) { Off = Nrm(KIn) * H; if (!bCapEnd) At += Dir(KIn) * H * 0.5f; }
+				if (bFirst && !bLoop) Off = Nrm(KOut) * H; // 꺾여 끊긴 곳은 끝을 흐리지 않고 그 점에서 바로 맞붙인다 (D-299: 반 굵기씩 내밀었더니 날카로운 곳에서 X 자로 엇갈렸다)
+				else if (bLast && !bLoop) Off = Nrm(KIn) * H;
 				else
 				{
 					const FVector2f NI = Nrm(KIn), NO = Nrm(KOut);
@@ -944,6 +944,28 @@ struct SPDBoardWidget::FCanvas
 				if (!bFirst) { QI.Add(Prev0); QI.Add(B); QI.Add(B + 1); QI.Add(Prev0); QI.Add(B + 1); QI.Add(Prev1); ++GPDDebug.Boxes; }
 				Prev0 = B; Prev1 = B + 1;
 			}
+			// 날카롭게 꺾여 끊긴 곳은 바깥쪽에 둥근 이음 부채를 채운다 (D-299): 띠 가운데(V 가운데) → 가장자리(V 끝)로 번지게
+			auto Join = [&](const FVector2f& Pt, const FVector2f& DIn, const FVector2f& DOut)
+			{
+				const float Cr = DIn.X * DOut.Y - DIn.Y * DOut.X;
+				const float Side = Cr > 0.f ? -1.f : 1.f; // 왼쪽으로 꺾이면 바깥은 오른쪽
+				const FVector2f NA = FVector2f(-DIn.Y, DIn.X) * Side, NB = FVector2f(-DOut.Y, DOut.X) * Side;
+				float A0 = FMath::Atan2(NA.Y, NA.X), A1 = FMath::Atan2(NB.Y, NB.X), Da = A1 - A0;
+				while (Da > PI) Da -= 2.f * PI;
+				while (Da < -PI) Da += 2.f * PI;
+				const float VE = Side > 0.f ? UV.Max.Y : UV.Min.Y, VM = 0.5f * (UV.Min.Y + UV.Max.Y);
+				const SlateIndex Cn = (SlateIndex)QV.Num();
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, Pt, FVector2f(UMid, VM), Col32));
+				const int32 Steps = 5;
+				for (int32 S = 0; S <= Steps; ++S)
+				{
+					const float A = A0 + Da * S / Steps;
+					QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, Pt + FVector2f(FMath::Cos(A), FMath::Sin(A)) * H, FVector2f(UMid, VE), Col32));
+					if (S > 0) { QI.Add(Cn); QI.Add(Cn + S); QI.Add(Cn + S + 1); }
+				}
+			};
+			if (End < N - 1) Join(P[End], Dir(End - 1), Dir(End));
+			else if (bClosed && !bLoop) Join(P[N - 1], Dir(N - 2), Dir(0));
 			Start = End;
 		}
 	}
