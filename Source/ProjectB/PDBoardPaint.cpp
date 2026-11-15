@@ -2108,7 +2108,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		}
 		if (PowerList.empty()) C.Text(TEXT("타워를 놓으면 위력이 보인다"), SX + 12.f, SY + 96.f, MonoA(0.55f), 10.f, 0, false, SW - 24.f);
 		static const TCHAR* SuitSym[] = // ♦ 는 글꼴에 없어 빨간 그림 글자로 나와 흑백 화면을 깬다 → ◆ (D-279)
-			 {TEXT("♠"), TEXT("♥"), TEXT("◆"), TEXT("♣"), TEXT("★")};
+			 {TEXT("♠"), TEXT("♡"), TEXT("◆"), TEXT("♣"), TEXT("★")};
 		for (int32 I = 0; I < 6 && I < (int32)PowerList.size(); ++I) // 순위: 이름 · 블록 칸 막대(몫) · 초당 피해
 		{
 			auto It = G.Towers.find(PowerList[I].first);

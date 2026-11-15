@@ -891,41 +891,59 @@ struct SPDBoardWidget::FCanvas
 		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick * ThickK);
 		++GPDDebug.Lines; GPDDebug.Points += P.Num();
 	}
-	// 띠 찍기 (D-146/147): 마디마다 띠를 늘이고 돌려 한 장. 한 줄로 곧게 이어지는 마디는 한 장으로 합친다 (격자·테두리의 칸 마디)
+	// 띠 찍기 (D-146/147 → D-295): 꺾은선 하나를 이어진 띠 한 줄로 (꼭짓점마다 두 마디가 같은 점을 나눠 쓰는 맞춤 이음).
+	// 예전처럼 마디마다 따로 찍으면 모서리에 틈이 나고, 곡선은 번짐 띠가 마디마다 겹쳐 구슬처럼 끊겨 보였다.
+	// 띠 끝(U 끝)은 꺾은선의 처음과 끝에만 쓰고 가운데는 U 가운데. 닫힌 선(처음 = 끝)은 끝도 이어 붙인다. 120° 넘게 꺾이면 거기서 끊고 새로 시작
 	FSlateRenderTransform RT;
-	void Stamp(const TArray<FVector2f>& P, const FLinearColor& T, const FSlateBrush* Band, float Th)
+	void Stamp(const TArray<FVector2f>& P0, const FLinearColor& T, const FSlateBrush* Band, float Th)
 	{
+		// 겹친 점 빼기
+		TArray<FVector2f, TInlineAllocator<64>> P;
+		for (const FVector2f& V : P0) if (P.Num() == 0 || FVector2f::DistSquared(P.Last(), V) > 1e-4f) P.Add(V);
 		const int32 N = P.Num();
+		if (N < 2) return;
 		const FColor Col32 = T.ToFColor(true); // Slate 꼭짓점 색과 같게 sRGB
-		int32 I = 0;
-		while (I + 1 < N)
+		const float H = Th * 0.5f;
+		const bool bClosed = N > 2 && FVector2f::DistSquared(P[0], P[N - 1]) < 1e-3f;
+		auto Dir = [&](int32 K) { const FVector2f D = P[K + 1] - P[K]; return D / FMath::Max(1e-4f, D.Size()); }; // 마디 K (P[K] → P[K+1])
+		auto Nrm = [&](int32 K) { const FVector2f D = Dir(K); return FVector2f(-D.Y, D.X); };
+		if (QV.Num() && (QLayer != *Layer || QV.Num() > 60000)) FlushQuads();
+		if (QV.Num() == 0) { QLayer = *Layer; QBrush = Band; RT = Geo.GetAccumulatedRenderTransform(); }
+		const FBox2f UV = Band->GetUVRegion();
+		const float UMid = 0.5f * (UV.Min.X + UV.Max.X);
+		int32 Start = 0;
+		while (Start < N - 1)
 		{
-			int32 J = I + 1;
-			FVector2f D = P[J] - P[I];
-			float L = D.Size();
-			if (L < 0.01f) { I = J; continue; }
-			while (J + 1 < N)
+			// 이번 띠의 끝: 너무 날카롭게 꺾이는 곳 앞까지
+			int32 End = Start + 1;
+			while (End < N - 1 && FVector2f::DotProduct(Dir(End - 1), Dir(End)) > -0.5f) ++End;
+			const bool bLoop = bClosed && Start == 0 && End == N - 1;
+			SlateIndex Prev0 = 0, Prev1 = 0;
+			for (int32 I = Start; I <= End; ++I)
 			{
-				const FVector2f E = P[J + 1] - P[J];
-				const float LE = E.Size();
-				if (LE < 0.01f) { ++J; continue; }
-				if (FVector2f::DotProduct(D, E) <= 0.f || FMath::Abs(FVector2f::CrossProduct(D, E)) > 0.004f * L * LE) break;
-				++J;
+				FVector2f Off;
+				const bool bFirst = I == Start, bLast = I == End;
+				int32 KIn = I - 1, KOut = I;
+				if (bLoop && bFirst) KIn = N - 2;
+				if (bLoop && bLast) KOut = 0;
+				if ((bFirst && !bLoop) || KIn < 0) Off = Nrm(KOut) * H;
+				else if ((bLast && !bLoop) || KOut > N - 2) Off = Nrm(KIn) * H;
+				else
+				{
+					const FVector2f NI = Nrm(KIn), NO = Nrm(KOut);
+					FVector2f M = NI + NO;
+					const float ML = M.Size();
+					if (ML < 1e-3f) Off = NO * H;
+					else { M /= ML; Off = M * FMath::Min(H / FMath::Max(0.35f, FVector2f::DotProduct(M, NO)), H * 2.5f); }
+				}
+				const float U = bLoop ? UMid : bFirst ? UV.Min.X : bLast ? UV.Max.X : UMid;
+				const SlateIndex B = (SlateIndex)QV.Num();
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] - Off, FVector2f(U, UV.Min.Y), Col32));
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] + Off, FVector2f(U, UV.Max.Y), Col32));
+				if (!bFirst) { QI.Add(Prev0); QI.Add(B); QI.Add(B + 1); QI.Add(Prev0); QI.Add(B + 1); QI.Add(Prev1); ++GPDDebug.Boxes; }
+				Prev0 = B; Prev1 = B + 1;
 			}
-			D = P[J] - P[I];
-			L = D.Size();
-			const FVector2f Dir = D / L, Nrm = FVector2f(-Dir.Y, Dir.X) * (Th * 0.5f);
-			if (QV.Num() && (QLayer != *Layer || QV.Num() > 60000)) FlushQuads();
-			if (QV.Num() == 0) { QLayer = *Layer; QBrush = Band; RT = Geo.GetAccumulatedRenderTransform(); }
-			const FBox2f UV = Band->GetUVRegion();
-			const SlateIndex B = (SlateIndex)QV.Num();
-			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] - Nrm, FVector2f(UV.Min.X, UV.Min.Y), Col32));
-			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[J] - Nrm, FVector2f(UV.Max.X, UV.Min.Y), Col32));
-			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[J] + Nrm, FVector2f(UV.Max.X, UV.Max.Y), Col32));
-			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, P[I] + Nrm, FVector2f(UV.Min.X, UV.Max.Y), Col32));
-			QI.Add(B); QI.Add(B + 1); QI.Add(B + 2); QI.Add(B); QI.Add(B + 2); QI.Add(B + 3);
-			++GPDDebug.Boxes; // 띠 수
-			I = J;
+			Start = End;
 		}
 	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
@@ -1000,9 +1018,9 @@ struct SPDBoardWidget::FCanvas
 		const FVector2f Centers[4] = {{X + W - R, Y + R}, {X + W - R, Y + H - R}, {X + R, Y + H - R}, {X + R, Y + R}};
 		const float Start[4] = {-0.25f, 0.f, 0.25f, 0.5f};
 		for (int32 K = 0; K < 4; ++K)
-			for (int32 S = 0; S <= 5; ++S)
+			for (int32 S = 0; S <= 8; ++S) // 모서리마다 8마디 (D-295: 5마디는 곡선이 각져 보였다)
 			{
-				const float A = (Start[K] + S / 5.f * 0.25f) * TwoPi;
+				const float A = (Start[K] + S / 8.f * 0.25f) * TwoPi;
 				P.Add(Centers[K] + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R);
 			}
 		const FVector2f First = P[0]; // 같은 배열 원소를 Add 하면 재할당 중 잘못된 참조가 된다
