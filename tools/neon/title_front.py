@@ -72,6 +72,15 @@ def front_A():
     return M.draw()
 
 
+def sign_btn(M, x, y, w, h, c, on):
+    """네온 간판 테두리 버튼 (D-254): 바깥 튜브 + 안쪽 가는 튜브, 양 끝 회색 고정 볼트"""
+    b = 1.0 if on else 0.3
+    M.rr(x, y, w, h, h / 2, c, 2.2 if on else 1.2, b)
+    M.rr(x + 6, y + 6, w - 12, h - 12, (h - 12) / 2, c, 1.0, 0.75 * b if on else 0.2)
+    for bx in (x + 3 + h / 4, x + w - 3 - h / 4):
+        M.ln(circle(bx, y + h / 2, 2.2, 10), (120, 125, 140), 1.0, 0.6)
+
+
 # ---------------------------------------------------------------- B 벽 간판 + 바닥 반사
 def front_B():
     M = Sign()
@@ -88,10 +97,10 @@ def front_B():
     chip(M, 1080, 24, '칩 1,240')
     for i, n in enumerate(MENU):
         y = 120 + i * 58
-        x0 = 860
+        x0 = 860  # 버튼 = 간판 테두리 (D-254)
         on = i == SEL
         c = PINK if on else CYAN
-        M.rr(x0, y, 300, 44, 22, c, 2.2 if on else 1.2, 1.0 if on else 0.3)
+        sign_btn(M, x0, y, 300, 44, c, on)
         M.word(x0 + 150, y + 30, n, WHITE if on else c, 18, [1.0 if on else 0.5] * len(n), font=KO)
         if on:
             for p in suit('heart')(x0 - 22, y + 22, 8): M.ln(p, PINK, 1.4)

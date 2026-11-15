@@ -2747,6 +2747,10 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			}
 			if (bSel) C.Box(P.X + 10.f, P.Y + 4.f, TitleBtnW - 20.f, TitleBtnH - 8.f, WithAlpha(Pink, 0.06f + 0.04f * Pulse));
 			C.Glow(Rr, bSel ? Col : WithAlpha(Col, 0.55f), bSel ? 2.4f : 1.3f, bSel ? 1.1f + 0.4f * Pulse : 0.25f);
+			// 네온 간판 테두리 (D-254): 안쪽 가는 튜브 + 양 끝 회색 고정 볼트
+			C.Glow(FCanvas::RoundRectPoints(P.X + 6.f, P.Y + 6.f, TitleBtnW - 12.f, TitleBtnH - 12.f, (TitleBtnH - 12.f) / 2.f), WithAlpha(Col, bSel ? 0.75f : 0.3f), 1.f, bSel ? 0.6f : 0.f);
+			for (const float Bx : {P.X + 3.f + TitleBtnH / 4.f, P.X + TitleBtnW - 3.f - TitleBtnH / 4.f})
+				C.Lines(FCanvas::CirclePoints(FVector2f(Bx, P.Y + TitleBtnH / 2.f), 2.2f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
 			C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : WithAlpha(Cyan, 0.7f), 18.f, true);
 			if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Pink, 1.4f, 0.8f);
 		}
