@@ -982,9 +982,9 @@ struct SPDBoardWidget::FCanvas
 			if (End < N - 1) Join(P[End], Dir(End - 1), Dir(End));
 			else if (bClosed && !bLoop) Join(P[N - 1], Dir(N - 2), Dir(0));
 			// 진짜 끝은 반원으로 둥글게 닫는다 (D-301): 띠가 끝점에서 평평하게 잘려 넓은 번짐이 어두운 네모 자국처럼 보였다
-			auto Cap = [&](const FVector2f& Pt, const FVector2f& Out)
+			auto Cap = [&](const FVector2f& Pt, const FVector2f& OutDir)
 			{
-				const FVector2f Nn(-Out.Y, Out.X);
+				const FVector2f Nn(-OutDir.Y, OutDir.X);
 				const float A0 = FMath::Atan2(Nn.Y, Nn.X);
 				const SlateIndex Cn = (SlateIndex)QV.Num();
 				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, Pt, FVector2f(UMid, 0.5f * (UV.Min.Y + UV.Max.Y)), Col32));
