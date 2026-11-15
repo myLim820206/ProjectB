@@ -2869,8 +2869,16 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	const float LgX = 400.f, LY = 110.f, LK = 1.55f;
 	const float NX0 = LgX - (3.f * PDLogo::NeonAdv + 44.f * 0.8f) * LK / 2.f;
 	const FVector2f PO(LgX - 140.f * LK, LY + 170.f * LK);
+	bool bSpill = false; // 벽빛 먼저 한 바퀴 (D-302): 켜진 튜브 뒤 벽돌에 은은하게 비치는 빛. 깜빡여 꺼지면 같이 꺼진다
 	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, bool bRefl)
 	{
+		if (bSpill)
+		{
+			if (bRefl || B <= 0.25f) return;
+			C.Spill(Pts, Col, Th * 16.f, 0.22f * B);
+			C.Spill(Pts, Col, Th * 44.f, 0.13f * B);
+			return;
+		}
 		if (bRefl) { if (B > 0.25f) C.Glow(Pts, WithAlpha(Col, 0.18f * B), Th, 0.35f * B); return; }
 		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
 		C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B);
@@ -2903,6 +2911,9 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		for (int32 K = 0; K < 8; ++K) Cr.Add(Map(FVector2f(CX + CrX[K] * R, CY + CrY[K] * R)));
 		Tube(Cr, Gold, 2.f, CB, bRefl);
 	};
+	bSpill = true;
+	Logo(false);
+	bSpill = false;
 	Logo(true);
 	Logo(false);
 	// 빠직: 작은 섬광 + 짧은 번개, 불티가 튀어 떨어지며 꺼진다

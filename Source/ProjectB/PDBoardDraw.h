@@ -1003,6 +1003,42 @@ struct SPDBoardWidget::FCanvas
 	}
 	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
+	// 벽에 비치는 은은한 빛 (D-302): 번짐 띠를 아주 넓게(설계 좌표 Width) 늘여 옅게 찍는다. Peak = 가운데 불투명도
+	void Spill(const TArray<FVector2f>& P, const FLinearColor& Col, float Width, float Peak)
+	{
+		// 넓은 띠를 꺾은선에 늘이면 각진 모서리(NEON 의 O·N)에서 별처럼 뻗는다 → 선을 따라 둥근 빛을 촘촘히 찍는다 (겹침 ≈ 4장)
+		if (!LineAA || Peak <= 0.f || P.Num() < 2) return;
+		constexpr float BandPeak = 1.f - (1.f - 0.09f) * (1.f - 0.14f); // 번짐 띠 가운데 알파 (굽기 값)
+		const float R = Width * 0.5f, Step = R * 0.5f;
+		const FSlateBrush* Band = LineAA + LineBands + HaloBands - 1;
+		const FColor Col32 = PM(WithAlpha(Col, FMath::Min(1.f, Peak * 0.3f / (BandPeak * HaloGain)))).ToFColor(true);
+		if (QV.Num() && (QLayer != *Layer || QV.Num() > 60000)) FlushQuads();
+		if (QV.Num() == 0) { QLayer = *Layer; QBrush = Band; RT = Geo.GetAccumulatedRenderTransform(); }
+		const FBox2f UV = Band->GetUVRegion();
+		const FVector2f UVc(0.5f * (UV.Min.X + UV.Max.X), 0.5f * (UV.Min.Y + UV.Max.Y));
+		auto Dot = [&](const FVector2f& O)
+		{
+			const SlateIndex Cn = (SlateIndex)QV.Num();
+			QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, O, UVc, Col32));
+			constexpr int32 Steps = 16;
+			for (int32 S = 0; S <= Steps; ++S)
+			{
+				const float A = TwoPi * S / Steps;
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, O + FVector2f(FMath::Cos(A), FMath::Sin(A)) * R, FVector2f(UVc.X, UV.Max.Y), Col32));
+				if (S > 0) { QI.Add(Cn); QI.Add(Cn + S); QI.Add(Cn + S + 1); }
+			}
+		};
+		float Carry = 0.f; // 다음 점까지 남은 길이 (선이 꺾여도 간격이 고르게)
+		Dot(P[0]);
+		for (int32 K = 0; K + 1 < P.Num(); ++K)
+		{
+			const FVector2f A = P[K], D = P[K + 1] - P[K];
+			const float L = D.Size();
+			float T = Step - Carry;
+			while (T <= L) { Dot(A + D * (T / FMath::Max(L, 1e-4f))); T += Step; }
+			Carry = L - (T - Step);
+		}
+	}
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
 		if (Strength > 0.f && HaloK > 0.f && LineAA) // 번짐 두 겹을 합성한 띠 한 장 (D-147). 띠는 선 띠 다음에 이어 둔다
