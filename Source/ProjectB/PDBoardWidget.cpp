@@ -398,6 +398,9 @@ void SPDBoardWidget::ApplyFrameSettings() const
 		UGameUserSettings* U = GEngine->GetGameUserSettings();
 		U->SetFrameRateLimit(Caps[Settings.FrameCap]);
 		U->SetVSyncEnabled(Settings.bVSync);
+		// 그래픽 품질 고정 (D-307): 엔진이 컴퓨터마다 다르게 정하면 블룸·후처리가 맥과 윈도우에서 달라 보인다.
+		// 모든 품질 묶음을 최고(3)로, 해상도 배율 100% (가벼운 게임이라 낮출 필요가 없다)
+		U->SetOverallScalabilityLevel(3);
 		U->ApplyNonResolutionSettings();
 		U->SaveSettings();
 	}
