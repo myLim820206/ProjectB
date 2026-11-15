@@ -2074,11 +2074,15 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 	{
 		const FLinearColor Mono = Hex(TEXT("dee8f5"));
 		auto MonoA = [&](float A) { return FLinearColor(Mono.R, Mono.G, Mono.B, A); };
+		// TV 빛 (D-303): 켜진 브라운관이 둘레 벽에 푸르스름한 빛을 흘리고, 화면 가운데가 은은하게 밝다. 화면 밝기처럼 살짝 일렁인다
+		const float TvFl = 0.9f + 0.06f * FMath::Sin(Clock * 7.3f) + 0.04f * FMath::Sin(Clock * 23.1f);
+		C.Spill(FCanvas::RoundRectPoints(RX + 10.f, FY + 10.f, PW - 20.f, PowCardH - 20.f, 18.f), Mono, 80.f, 0.32f * TvFl);
 		// 틀
 		C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.85f));
 		Frame2(RX, FY, PW, PowCardH, 16.f, LavP, 0.8f);
 		const float SX = RX + 12.f, SY = FY + 12.f, SW = PW - 52.f, SH = PowCardH - 24.f;
 		C.Box(SX + 4.f, SY + 4.f, SW - 8.f, SH - 8.f, Hex(TEXT("0b0d14"), 1.f));
+		C.Spill({FVector2f(SX + SW * 0.5f, SY + SH * 0.3f), FVector2f(SX + SW * 0.5f, SY + SH * 0.7f)}, Mono, SW * 0.92f, 0.22f * TvFl); // 화면 가운데 형광 빛
 		C.Glow(FCanvas::RoundRectPoints(SX, SY, SW, SH, 22.f), WithAlpha(LavP, 0.85f), 1.5f, 0.5f);
 		{ // 토끼 귀 안테나
 			const float BX = RX + PW - 54.f, BY = FY;
@@ -3253,25 +3257,35 @@ void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) cons
 {
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e"));
 	const float NX0 = CX - (3.f * PDLogo::NeonAdv + 44.f * 0.8f) * K / 2.f;
-	PDLogo::FPoly Ps[2];
-	for (int32 I = 0; I < 4; ++I)
+	// 벽빛 먼저 (D-303, 시작 화면 D-302 와 같게): 튜브 뒤에 은은하게 비치는 빛. 너비는 로고 크기(K)에 맞춘다
+	for (int32 Pass = 0; Pass < 2; ++Pass)
 	{
-		const int32 N = PDLogo::NeonPolys(I, Ps);
-		for (int32 J = 0; J < N; ++J)
+		const bool bSpill = Pass == 0;
+		auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float Wk)
 		{
-			TArray<FVector2f> Pts;
-			for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(FVector2f(NX0 + (I * PDLogo::NeonAdv + Ps[J].P[Q * 2] * 0.8f) * K, Y + (60.f + Ps[J].P[Q * 2 + 1]) * K));
-			C.Glow(Pts, WithAlpha(Cyan, 0.85f), 1.2f, 0.4f);
+			if (bSpill) { C.Spill(Pts, Col, Wk * K, 0.3f); C.Spill(Pts, Col, Wk * 2.75f * K, 0.18f); }
+			else C.Glow(Pts, WithAlpha(Col, 0.85f), Th, 0.4f);
+		};
+		PDLogo::FPoly Ps[2];
+		for (int32 I = 0; I < 4; ++I)
+		{
+			const int32 N = PDLogo::NeonPolys(I, Ps);
+			for (int32 J = 0; J < N; ++J)
+			{
+				TArray<FVector2f> Pts;
+				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(FVector2f(NX0 + (I * PDLogo::NeonAdv + Ps[J].P[Q * 2] * 0.8f) * K, Y + (60.f + Ps[J].P[Q * 2 + 1]) * K));
+				Tube(Pts, Cyan, 1.2f, 25.f);
+			}
 		}
+		const FVector2f PO(CX - 140.f * K, Y + 170.f * K);
+		for (const PDLogo::FRun& Rn : PDLogo::PallasRuns(nullptr)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, K, 0.f, 5), Pink, 1.5f, 40.f); // 이어지는 글자는 한 줄로 (D-299)
+		const float SX = CX + 170.f * K, SY = Y + 135.f * K, R = 20.f * K;
+		Tube(FCanvas::HeartPoints(SX, SY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f), Gold, 1.f, 14.f);
+		const float CrX[] = {-0.8f, -0.8f, -0.4f, 0.f, 0.4f, 0.8f, 0.8f, -0.8f}, CrY[] = {-0.55f, -1.05f, -0.78f, -1.25f, -0.78f, -1.05f, -0.55f, -0.55f};
+		TArray<FVector2f> Cr;
+		for (int32 I = 0; I < 8; ++I) Cr.Add(FVector2f(SX + CrX[I] * R, SY + CrY[I] * R));
+		Tube(Cr, Gold, 1.f, 14.f);
 	}
-	const FVector2f PO(CX - 140.f * K, Y + 170.f * K);
-	for (const PDLogo::FRun& Rn : PDLogo::PallasRuns(nullptr)) C.Glow(PDLogo::CatmullPts(Rn.Pts, PO, K, 0.f, 5), WithAlpha(Pink, 0.85f), 1.5f, 0.4f); // 이어지는 글자는 한 줄로 (D-299)
-	const float SX = CX + 170.f * K, SY = Y + 135.f * K, R = 20.f * K;
-	C.Glow(FCanvas::HeartPoints(SX, SY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f), WithAlpha(Gold, 0.85f), 1.f, 0.3f);
-	const float CrX[] = {-0.8f, -0.8f, -0.4f, 0.f, 0.4f, 0.8f, 0.8f, -0.8f}, CrY[] = {-0.55f, -1.05f, -0.78f, -1.25f, -0.78f, -1.05f, -0.55f, -0.55f};
-	TArray<FVector2f> Cr;
-	for (int32 I = 0; I < 8; ++I) Cr.Add(FVector2f(SX + CrX[I] * R, SY + CrY[I] * R));
-	C.Glow(Cr, WithAlpha(Gold, 0.85f), 1.f, 0.3f);
 }
 
 // 레벨업 이펙트 (D-273, 시안 A1 마키 간판): 0~0.3초 경험치 막대 번쩍 → 0.3초 화면 가운데에 전구 두른 금색 간판이 떨어져 튕기고
