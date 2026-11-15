@@ -166,6 +166,33 @@ def crt_C():
     return scanlines(img, scr, 0.28)
 
 
+def crt_D():
+    """D 흑백 TV: 푸르스름한 흰 형광 한 색, 회색 단계로만, 굴러가는 밝은 띠 · 잡음 점, 토끼 귀 안테나 + 채널 다이얼"""
+    M = Sign(0.8); M.small_glow = 0.0
+    BW = (222, 232, 245)
+    scr = (X0 + 12, Y0 + 12, W - 52, H - 24)
+    cabinet(M, scr)
+    screen_text(M, scr, BW)
+    # 채널 다이얼 숫자 (오른쪽)
+    M.word(X0 + W - 22, Y0 + 92, 'CH', LAV, 7, [0.8, 0.8], font=BLOCK)
+    M.word(X0 + W - 22, Y0 + 104, '03', BW, 9, None, font=BLOCK)
+    img = M.draw()
+    img = scanlines(img, scr, 0.32)
+    # 굴러가는 밝은 띠 + 잡음 점 (흑백 TV 느낌)
+    sx, sy, sw, sh = scr
+    d = ImageDraw.Draw(img, 'RGBA')
+    by = sy + sh * 0.62
+    for k in range(14):
+        a = int(10 * (1 - abs(k - 7) / 7))
+        d.line([(sx + 6, by + k), (sx + sw - 6, by + k)], fill=(220, 230, 245, a))
+    rnd = random.Random(9)
+    for _ in range(140):
+        x, y = rnd.uniform(sx + 8, sx + sw - 8), rnd.uniform(sy + 8, sy + sh - 8)
+        g = rnd.randint(40, 110)
+        d.point((x, y), fill=(g, g, g + 8, 160))
+    return img
+
+
 def context(img):
     """오른쪽 열 + 위 간판 일부를 잘라 1.6배"""
     return img.crop((960, 40, 1280, 420)).resize((512, 608), Image.LANCZOS)
@@ -173,7 +200,7 @@ def context(img):
 
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    for name, fn in (('crt_A_amber', crt_A), ('crt_B_scope', crt_B), ('crt_C_color', crt_C)):
+    for name, fn in (('crt_A_amber', crt_A), ('crt_B_scope', crt_B), ('crt_C_color', crt_C), ('crt_D_mono', crt_D)):
         context(fn()).save(os.path.join(outdir, name + '.png'))
         print(name)
 
