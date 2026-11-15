@@ -447,10 +447,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("자리바꿈 ×%d"), TEXT("Swap ×%d"), TEXT("入れ替え ×%d"), TEXT("换位 ×%d"), TEXT("換位 ×%d")},
 	{TEXT("끄기 X"), TEXT("Off X"), TEXT("やめる X"), TEXT("关闭 X"), TEXT("關閉 X")},
 	{TEXT("판 위력"), TEXT("Board Power"), TEXT("盤の威力"), TEXT("场上威力"), TEXT("場上威力")},
-	{TEXT("초당 피해 어림"), TEXT("Est. damage/s"), TEXT("秒間ダメージ目安"), TEXT("每秒伤害估计"), TEXT("每秒傷害估計")},
-	{TEXT("족보 덤 ×%.1f"), TEXT("Hand bonus ×%.1f"), TEXT("役ボーナス ×%.1f"), TEXT("牌型加成 ×%.1f"), TEXT("牌型加成 ×%.1f")},
-	{TEXT("족보 %d · 조커 %d"), TEXT("Hands %d · Jokers %d"), TEXT("役 %d · ジョーカー %d"), TEXT("牌型 %d · 小丑 %d"), TEXT("牌型 %d · 小丑 %d")},
+	{TEXT("족보 덤 ×%.1f · 족보 %d · 조커 %d"), TEXT("Hand bonus ×%.1f · Hands %d · Jokers %d"), TEXT("役ボーナス ×%.1f · 役 %d · ジョーカー %d"), TEXT("牌型加成 ×%.1f · 牌型 %d · 小丑 %d"), TEXT("牌型加成 ×%.1f · 牌型 %d · 小丑 %d")},
 	{TEXT("타워를 놓으면 위력이 보인다"), TEXT("Place towers to see power"), TEXT("タワーを置くと威力が見える"), TEXT("放置塔后显示威力"), TEXT("放置塔後顯示威力")},
+	{TEXT("초당 피해 어림"), TEXT("Est. damage/s"), TEXT("秒間ダメージ目安"), TEXT("每秒伤害估计"), TEXT("每秒傷害估計")},
 	{TEXT("웨이브 %d 시작"), TEXT("Start wave %d"), TEXT("ウェーブ %d 開始"), TEXT("开始第%d波"), TEXT("開始第%d波")},
 	{TEXT("웨이브 %d 진행 중"), TEXT("Wave %d in progress"), TEXT("ウェーブ %d 進行中"), TEXT("第%d波 进行中"), TEXT("第%d波 進行中")},
 	{TEXT("웨이브 시작"), TEXT("Start Wave"), TEXT("ウェーブ開始"), TEXT("开始波次"), TEXT("開始波次")},
@@ -671,6 +670,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("족보 덤 ×%.1f"), TEXT("Hand bonus ×%.1f"), TEXT("役ボーナス ×%.1f"), TEXT("牌型加成 ×%.1f"), TEXT("牌型加成 ×%.1f")},
+	{TEXT("족보 %d · 조커 %d"), TEXT("Hands %d · Jokers %d"), TEXT("役 %d · ジョーカー %d"), TEXT("牌型 %d · 小丑 %d"), TEXT("牌型 %d · 小丑 %d")},
 	{TEXT("족 보"), TEXT("H A N D S"), TEXT("役"), TEXT("牌 型"), TEXT("牌 型")},
 	{TEXT("무늬 = 공격 방식"), TEXT("Suit = attack type"), TEXT("スート = 攻撃方式"), TEXT("花色 = 攻击方式"), TEXT("花色 = 攻擊方式")},
 	{TEXT("남은 적 %d / %d"), TEXT("Enemies left %d / %d"), TEXT("残りの敵 %d / %d"), TEXT("剩余敌人 %d / %d"), TEXT("剩餘敵人 %d / %d")},
@@ -853,4 +854,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("조커 공방"), TEXT("Joker Workshop"), TEXT("ジョーカー工房"), TEXT("小丑工坊"), TEXT("小丑工坊")},
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 };
-static const int32 PDLangRowCount = 852;
+static const int32 PDLangRowCount = 853;

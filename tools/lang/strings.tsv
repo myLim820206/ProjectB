@@ -446,10 +446,9 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
 끄기 X	Off X	やめる X	关闭 X	關閉 X	PDBoardPaint.cpp
 판 위력	Board Power	盤の威力	场上威力	場上威力	PDBoardPaint.cpp
-초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDBoardPaint.cpp
-족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDBoardPaint.cpp
-족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDBoardPaint.cpp
+족보 덤 ×%.1f · 족보 %d · 조커 %d	Hand bonus ×%.1f · Hands %d · Jokers %d	役ボーナス ×%.1f · 役 %d · ジョーカー %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	PDBoardPaint.cpp
 타워를 놓으면 위력이 보인다	Place towers to see power	タワーを置くと威力が見える	放置塔后显示威力	放置塔後顯示威力	PDBoardPaint.cpp
+초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDBoardPaint.cpp
 웨이브 %d 시작	Start wave %d	ウェーブ %d 開始	开始第%d波	開始第%d波	PDBoardPaint.cpp
 웨이브 %d 진행 중	Wave %d in progress	ウェーブ %d 進行中	第%d波 进行中	第%d波 進行中	PDBoardPaint.cpp
 웨이브 시작	Start Wave	ウェーブ開始	开始波次	開始波次	PDBoardPaint.cpp
@@ -670,6 +669,8 @@ S로 넘기세요. 묘약 칸은 5개예요	or press S to skip. You have 5 potio
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+족보 덤 ×%.1f	Hand bonus ×%.1f	役ボーナス ×%.1f	牌型加成 ×%.1f	牌型加成 ×%.1f	PDLangTable.inl
+족보 %d · 조커 %d	Hands %d · Jokers %d	役 %d · ジョーカー %d	牌型 %d · 小丑 %d	牌型 %d · 小丑 %d	PDLangTable.inl
 족 보	H A N D S	役	牌 型	牌 型	PDLangTable.inl
 무늬 = 공격 방식	Suit = attack type	スート = 攻撃方式	花色 = 攻击方式	花色 = 攻擊方式	PDLangTable.inl
 남은 적 %d / %d	Enemies left %d / %d	残りの敵 %d / %d	剩余敌人 %d / %d	剩餘敵人 %d / %d	PDLangTable.inl

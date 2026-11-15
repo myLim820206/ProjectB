@@ -2033,38 +2033,76 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.3f * B), 0.6f); // 흰 심 (D-275)
 		C.Glow(Ri, FLinearColor(Col.R * B * 0.8f, Col.G * B * 0.8f, Col.B * B * 0.8f, 1.f), 1.1f, 0.45f * B);
 	};
-	C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.6f));
-	Frame2(RX, FY, PW, PowCardH, 12.f, LavP, 0.7f);
-	C.Text(TEXT("판 위력"), RX + 14.f, FY + 22.f, UiTitle, 13.f, 0, true);
-	if (PowerRef > 0.f && PowerSum > 0.f) // 이번 웨이브 시작 때보다 몇 % (위쪽 띠에서 옮김, D-163)
+	// ---- 판 위력 = 흑백 TV (D-279, CRT 시안 D): 연보라 TV 틀 + 토끼 귀 안테나 + 손잡이, 화면은 푸르스름한 흰 형광 한 색
+	//      큰 숫자(속 빈 네온) · 족보 덤 · 순위(이름 + 블록 칸 막대 + 초당 피해), 주사선 · 가장자리 어둡게 · 굴러가는 밝은 띠 · 잡음 점
 	{
-		const float Pct = (PowerSum / PowerRef - 1.f) * 100.f;
-		if (FMath::Abs(Pct) >= 1.f) C.Text(FString::Printf(TEXT("%s%.0f%%"), Pct > 0.f ? TEXT("+") : TEXT(""), Pct), RX + 14.f, FY + 76.f, Pct > 0.f ? Green : Hex(TEXT("ff6a6a")), 10.f, 0, true);
-	}
-	C.Text(TEXT("초당 피해 어림"), RX + PW - 14.f, FY + 22.f, Dim, 9.f, 2);
-	C.Text(CommaNum(FMath::RoundToInt(PowerSum)), RX + 14.f, FY + 58.f, UiValue, 28.f, 0, true, 112.f);
-	{
-		int32 Jokers = 0;
-		for (const auto& KV : G.Towers) Jokers += KV.second.IsJoker();
-		C.Text(TrF(TEXT("족보 덤 ×%.1f"), PowerGain), RX + PW - 14.f, FY + 44.f, Fg, 10.f, 2, false, 90.f);
-		C.Text(TrF(TEXT("족보 %d · 조커 %d"), (int32)G.Synergies.size(), Jokers), RX + PW - 14.f, FY + 60.f, Grey, 10.f, 2, false, 90.f);
-	}
-	if (PowerList.empty()) C.Text(TEXT("타워를 놓으면 위력이 보인다"), RX + 14.f, FY + 100.f, Dim, 10.f, 0, false, PW - 28.f);
-	static const TCHAR* SuitSym[] = {TEXT("♠"), TEXT("♥"), TEXT("♦"), TEXT("♣"), TEXT("★")};
-	for (int32 I = 0; I < PowTopN && I < (int32)PowerList.size(); ++I) // 딜러 순위 (D-164): 이름 · 몫 막대 · 초당 피해 · 몫
-	{
-		auto It = G.Towers.find(PowerList[I].first);
-		if (It == G.Towers.end()) continue;
-		const FPDTower& T = It->second;
-		const float Y = FY + 88.f + I * 20.f;
-		const FLinearColor Col = T.IsJoker() ? JokerPink : SuitColor(T.Card.Suit);
-		const FString Name = T.IsJoker() ? FString::Printf(TEXT("%s Lv%d"), JokerName(T.Joker), T.JLevel)
-			: FString::Printf(TEXT("%s%s Lv%d"), T.Card.IsWild() ? TEXT("") : *RankText(T.Card.Rank), SuitSym[(int)T.Card.Suit], T.Level);
-		const float Share = PowerSum > 0.f ? PowerList[I].second / PowerSum : 0.f;
-		C.Text(Name, RX + 14.f, Y + 4.f, Col, 10.f, 0, true, 84.f);
-		C.Box(RX + 100.f, Y - 4.f, 44.f * Share, 8.f, WithAlpha(Col, 0.4f));
-		C.Lines(FCanvas::RectPoints(RX + 100.f, Y - 4.f, 44.f, 8.f), WithAlpha(Col, 0.5f), 1.f);
-		C.Text(FString::Printf(TEXT("%s · %d%%"), *ShortNum(PowerList[I].second), FMath::RoundToInt(Share * 100.f)), RX + PW - 14.f, Y + 4.f, UiValue, 10.f, 2, false, PW - 160.f);
+		const FLinearColor Mono = Hex(TEXT("dee8f5"));
+		auto MonoA = [&](float A) { return FLinearColor(Mono.R, Mono.G, Mono.B, A); };
+		// 틀
+		C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.85f));
+		Frame2(RX, FY, PW, PowCardH, 16.f, LavP, 0.8f);
+		const float SX = RX + 12.f, SY = FY + 12.f, SW = PW - 52.f, SH = PowCardH - 24.f;
+		C.Box(SX + 4.f, SY + 4.f, SW - 8.f, SH - 8.f, Hex(TEXT("0b0d14"), 1.f));
+		C.Glow(FCanvas::RoundRectPoints(SX, SY, SW, SH, 22.f), WithAlpha(LavP, 0.85f), 1.5f, 0.5f);
+		{ // 토끼 귀 안테나
+			const float BX = RX + PW - 54.f, BY = FY;
+			C.Glow({FVector2f(BX - 10.f, BY), FVector2f(BX + 10.f, BY), FVector2f(BX + 6.f, BY - 6.f), FVector2f(BX - 6.f, BY - 6.f), FVector2f(BX - 10.f, BY)}, LavP, 1.3f, 0.5f);
+			C.Glow({FVector2f(BX - 3.f, BY - 6.f), FVector2f(BX - 18.f, BY - 22.f)}, LavP, 1.1f, 0.5f);
+			C.Glow({FVector2f(BX + 3.f, BY - 6.f), FVector2f(BX + 20.f, BY - 21.f)}, LavP, 1.1f, 0.5f);
+		}
+		for (int32 K = 0; K < 4; ++K) C.Lines({FVector2f(RX + PW - 30.f + K * 5.f, FY + 30.f), FVector2f(RX + PW - 30.f + K * 5.f, FY + 70.f)}, WithAlpha(LavP, 0.4f), 1.f); // 스피커
+		C.TextCentered(TEXT("CH"), RX + PW - 22.f, FY + 88.f, WithAlpha(LavP, 0.8f), 7.f, true);
+		C.TextCentered(TEXT("03"), RX + PW - 22.f, FY + 100.f, Mono, 9.f, true);
+		for (int32 K = 0; K < 2; ++K) // 손잡이 둘
+		{
+			const FVector2f Kc(RX + PW - 22.f, FY + PowCardH - 50.f + K * 26.f);
+			C.Glow(FCanvas::CirclePoints(Kc, 8.f, 20), LavP, 1.2f, 0.4f);
+			const float A = FMath::DegreesToRadians(-60.f + K * 110.f);
+			C.Lines({Kc, Kc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 6.f}, LavP, 1.2f);
+		}
+		// 화면 내용
+		C.Text(TEXT("판 위력"), SX + 12.f, SY + 20.f, Mono, 11.f, 0, true);
+		if (PowerRef > 0.f && PowerSum > 0.f) // 이번 웨이브 시작 때보다 몇 % (D-163)
+		{
+			const float Pct = (PowerSum / PowerRef - 1.f) * 100.f;
+			if (FMath::Abs(Pct) >= 1.f) C.Text(FString::Printf(TEXT("%s %s%.0f%%"), Pct > 0.f ? TEXT("▲") : TEXT("▼"), Pct > 0.f ? TEXT("+") : TEXT(""), Pct), SX + SW - 12.f, SY + 20.f, MonoA(0.85f), 9.f, 2, true);
+		}
+		NeonText(C, CommaNum(FMath::RoundToInt(PowerSum)), SX + 12.f, SY + 52.f, Mono, 28.f, 0, 1.f);
+		{
+			int32 Jokers = 0;
+			for (const auto& KV : G.Towers) Jokers += KV.second.IsJoker();
+			C.Text(TrF(TEXT("족보 덤 ×%.1f · 족보 %d · 조커 %d"), PowerGain, (int32)G.Synergies.size(), Jokers), SX + 12.f, SY + 68.f, MonoA(0.6f), 9.f, 0, false, SW - 24.f);
+		}
+		if (PowerList.empty()) C.Text(TEXT("타워를 놓으면 위력이 보인다"), SX + 12.f, SY + 96.f, MonoA(0.55f), 10.f, 0, false, SW - 24.f);
+		static const TCHAR* SuitSym[] = // ♦ 는 글꼴에 없어 빨간 그림 글자로 나와 흑백 화면을 깬다 → ◆ (D-279)
+			 {TEXT("♠"), TEXT("♥"), TEXT("◆"), TEXT("♣"), TEXT("★")};
+		for (int32 I = 0; I < 6 && I < (int32)PowerList.size(); ++I) // 순위: 이름 · 블록 칸 막대(몫) · 초당 피해
+		{
+			auto It = G.Towers.find(PowerList[I].first);
+			if (It == G.Towers.end()) continue;
+			const FPDTower& T = It->second;
+			const float Y = SY + 90.f + I * 17.f;
+			const FString Name = T.IsJoker() ? FString::Printf(TEXT("%s Lv%d"), JokerName(T.Joker), T.JLevel)
+				: FString::Printf(TEXT("%s%s Lv%d"), T.Card.IsWild() ? TEXT("") : *RankText(T.Card.Rank), SuitSym[(int)T.Card.Suit], T.Level);
+			const float Share = PowerSum > 0.f ? PowerList[I].second / PowerSum : 0.f;
+			C.Text(Name, SX + 12.f, Y, MonoA(I == 0 ? 1.f : 0.88f), 10.f, 0, true, 60.f);
+			const int32 Cells = 7, On = FMath::Clamp(FMath::RoundToInt(Share * 25.f), Share > 0.f ? 1 : 0, Cells);
+			for (int32 Cc = 0; Cc < Cells; ++Cc)
+			{
+				const float CX = SX + 76.f + Cc * 7.f;
+				if (Cc < On) C.Box(CX, Y - 8.f, 5.f, 7.f, MonoA(0.85f));
+				else C.Lines(FCanvas::RectPoints(CX, Y - 8.f, 5.f, 7.f), MonoA(0.22f), 1.f);
+			}
+			C.Text(ShortNum(PowerList[I].second), SX + SW - 12.f, Y, MonoA(0.9f), 10.f, 2, true);
+		}
+		C.Text(TEXT("초당 피해 어림"), SX + 12.f, SY + SH - 10.f, MonoA(0.45f), 8.f, 0, false);
+		// 흑백 TV 결: 주사선 → 굴러가는 밝은 띠 → 잡음 점 → 가장자리 어둡게
+		for (float Ly = SY + 6.f; Ly < SY + SH - 6.f; Ly += 3.f) C.Box(SX + 6.f, Ly, SW - 12.f, 1.f, FLinearColor(0.f, 0.f, 0.f, 0.32f));
+		const float BandY = SY + FMath::Fmod(Clock * 22.f, SH - 20.f) + 6.f;
+		for (int32 K = 0; K < 12; ++K) C.Box(SX + 6.f, BandY + K, SW - 12.f, 1.f, MonoA(0.035f * (1.f - FMath::Abs(K - 6) / 6.f)));
+		FRandomStream Ns(FMath::FloorToInt(Clock * 14.f));
+		for (int32 K = 0; K < 36; ++K) C.Box(Ns.FRandRange(SX + 8.f, SX + SW - 8.f), Ns.FRandRange(SY + 8.f, SY + SH - 8.f), 1.f, 1.f, MonoA(Ns.FRandRange(0.12f, 0.35f)));
+		for (int32 K = 0; K < 6; ++K) C.Lines(FCanvas::RoundRectPoints(SX + 2.f + K, SY + 2.f + K, SW - 4.f - 2.f * K, SH - 4.f - 2.f * K, 20.f), FLinearColor(0.f, 0.f, 0.f, 0.12f * (6 - K) / 6.f), 1.f);
 	}
 
 	// ---- 웨이브 시작 (Space)
