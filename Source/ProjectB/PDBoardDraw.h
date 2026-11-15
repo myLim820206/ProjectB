@@ -937,10 +937,25 @@ struct SPDBoardWidget::FCanvas
 					if (ML < 1e-3f) Off = NO * H;
 					else { M /= ML; Off = M * FMath::Min(H / FMath::Max(0.5f, FVector2f::DotProduct(M, NO)), H * 1.6f); }
 				}
-				const float U = bLoop ? UMid : bFirst ? (bCapStart ? UV.Min.X : UMid) : bLast ? (bCapEnd ? UV.Max.X : UMid) : UMid;
+				// 꺾이는 안쪽은 굽은 반지름보다 넓게 내밀지 않는다 (D-301): 넓은 번짐 띠가 급한 곡선(a 꼭대기·l 밑)에서 안쪽 가장자리가 뒤집혀 접히며
+				// 반대편 밖으로 빛이 별처럼 삐져나갔다. 줄인 쪽은 V 도 같은 비율로 → 번짐 모양은 그대로 잘린다
+				float FA = 1.f, FB = 1.f;
+				if (I > 0 && I < N - 1)
+				{
+					const FVector2f DI = Dir(I - 1), DO = Dir(I);
+					const float Turn = FMath::Acos(FMath::Clamp(FVector2f::DotProduct(DI, DO), -1.f, 1.f));
+					if (Turn > 1e-4f)
+					{
+						const float Rad = 0.5f * (FVector2f::Distance(P[I], P[I - 1]) + FVector2f::Distance(P[I + 1], P[I])) / Turn;
+						const float F = FMath::Min(1.f, 0.8f * Rad / H);
+						if (FVector2f::DotProduct(Off, DO - DI) > 0.f) FB = F; else FA = F;
+					}
+				}
+				const float VMid = 0.5f * (UV.Min.Y + UV.Max.Y);
+				const float U = UMid; // 띠 끝은 반원 마개가 닫는다 (D-301)
 				const SlateIndex B = (SlateIndex)QV.Num();
-				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, At - Off, FVector2f(U, UV.Min.Y), Col32));
-				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, At + Off, FVector2f(U, UV.Max.Y), Col32));
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, At - Off * FA, FVector2f(U, FMath::Lerp(VMid, UV.Min.Y, FA)), Col32));
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, At + Off * FB, FVector2f(U, FMath::Lerp(VMid, UV.Max.Y, FB)), Col32));
 				if (!bFirst) { QI.Add(Prev0); QI.Add(B); QI.Add(B + 1); QI.Add(Prev0); QI.Add(B + 1); QI.Add(Prev1); ++GPDDebug.Boxes; }
 				Prev0 = B; Prev1 = B + 1;
 			}
@@ -966,6 +981,23 @@ struct SPDBoardWidget::FCanvas
 			};
 			if (End < N - 1) Join(P[End], Dir(End - 1), Dir(End));
 			else if (bClosed && !bLoop) Join(P[N - 1], Dir(N - 2), Dir(0));
+			// 진짜 끝은 반원으로 둥글게 닫는다 (D-301): 띠가 끝점에서 평평하게 잘려 넓은 번짐이 어두운 네모 자국처럼 보였다
+			auto Cap = [&](const FVector2f& Pt, const FVector2f& Out)
+			{
+				const FVector2f Nn(-Out.Y, Out.X);
+				const float A0 = FMath::Atan2(Nn.Y, Nn.X);
+				const SlateIndex Cn = (SlateIndex)QV.Num();
+				QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, Pt, FVector2f(UMid, 0.5f * (UV.Min.Y + UV.Max.Y)), Col32));
+				const int32 Steps = 8;
+				for (int32 S = 0; S <= Steps; ++S)
+				{
+					const float A = A0 - PI * S / Steps; // 옆 → 바깥 → 반대 옆
+					QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, Pt + FVector2f(FMath::Cos(A), FMath::Sin(A)) * H, FVector2f(UMid, UV.Max.Y), Col32));
+					if (S > 0) { QI.Add(Cn); QI.Add(Cn + S); QI.Add(Cn + S + 1); }
+				}
+			};
+			if (bCapStart) Cap(P[0], -Dir(0));
+			if (bCapEnd) Cap(P[N - 1], Dir(N - 2));
 			Start = End;
 		}
 	}
