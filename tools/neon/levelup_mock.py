@@ -75,15 +75,18 @@ def block_word(M, cx, y, s, c, px, bright):
 
 # ---------------------------------------------------------------- A 네온 간판 점등
 def frame_A(f):
-    t = f / FPS
-    M = Sign(0.85); M.small_glow = 0.0
+    return draw_A(f / FPS).draw().crop(CROP)
+
+
+def draw_A(t, M=None, sign=True):
+    M = M or Sign(0.85); M.small_glow = 0.0
     fill = min(1.0, 0.82 + t * 0.6) if t < 0.3 else 0.0 + max(0, (t - 0.3)) * 0.05
     flash = max(0.0, 1 - abs(t - 0.3) / 0.12) if t < 0.45 else 0
     lv = 7 if t < 0.55 else 8
     hud(M, lv, fill if t < 0.3 else min(0.08, (t - 0.3) * 0.05), flash, tree_pt=1 if t > 0.9 else 0)
     if 0.25 < t < 0.6: M.dots.append((1120, 47, 2.6 * flash + 0.5))
     # 간판: 레벨 글자 아래에 매달림 (줄 두 개)
-    if 0.35 < t < 2.0:
+    if sign and 0.35 < t < 2.0:
         u = t - 0.35
         fade = 1.0 if t < 1.6 else max(0.0, 1 - (t - 1.6) / 0.4)
         seq = [0.4, 0.08, 0.9, 0.2, 1.0]
@@ -109,7 +112,7 @@ def frame_A(f):
             pu = ease_out((t - 0.9) / 0.25)
             M.rr(840, 158 + (1 - pu) * 10, 120, 24, 12, PINK, 1.6, pu * fade)
             M.word(900, 175 + (1 - pu) * 10, '포인트 +1', WHITE, 13, [pu * fade] * 6, font=KO)
-    return M.draw().crop(CROP)
+    return M
 
 
 # ---------------------------------------------------------------- B 잭팟
@@ -187,6 +190,113 @@ def frame_C(f):
     return M.draw().crop(CROP)
 
 
+# ---------------------------------------------------------------- A + 화면 가운데 (D-272)
+SUITS = ['spade', 'heart', 'diamond', 'club']
+SUITC = {'spade': (127, 184, 255), 'heart': (255, 106, 138), 'diamond': (255, 217, 106), 'club': (138, 255, 196)}
+
+
+def board_bg(M):
+    """판 (흐리게): 길 + 카드 타워 몇 개 + 손패"""
+    from neon import suit
+    path = [(262, 122), (454, 122), (454, 410), (694, 410), (694, 170), (886, 170), (886, 458), (1034, 458)]
+    M.ln(path, LAV, 14.0, 0.12)
+    rnd = random.Random(5)
+    for (cx, cy) in ((382, 230), (382, 326), (526, 230), (574, 230), (622, 230), (766, 278), (814, 278), (862, 278), (574, 470)):
+        k = SUITS[rnd.randrange(4)]
+        M.rr(cx - 20, cy - 20, 40, 40, 6, SUITC[k], 1.3, 0.55)
+        for p in suit(k)(cx, cy + 6, 6): M.ln(p, SUITC[k], 1.1, 0.55)
+    for i in range(5):  # 손패
+        k = SUITS[i % 4]
+        M.rr(440 + i * 80, 600, 64, 90, 8, SUITC[k], 1.4, 0.6)
+
+
+def center_marquee(M, t):
+    """1 마키 간판: 가운데에 전구 두른 간판이 떨어져 튕기고 글자가 지직 켜짐 → 줄어들며 위 레벨 자리로 날아가 매달린 간판이 됨"""
+    if not (0.3 < t < 1.75): return
+    cx, cy = 648, 300
+    u = t - 0.3
+    if t < 1.35:
+        drop = ease_out(min(1, u / 0.25))
+        bounce = math.sin(min(1, u / 0.45) * math.pi * 2) * 10 * (1 - min(1, u / 0.45))
+        y = cy - 220 * (1 - drop) + bounce
+        k = 1.0
+    else:  # 위 레벨 간판 자리 (900, 121) 로 줄며 날아감
+        v = ease_out((t - 1.35) / 0.4)
+        y = cy + (121 - cy) * v
+        cx = 648 + (900 - 648) * v
+        k = 1.0 - 0.55 * v
+    w, h = 380 * k, 170 * k
+    M.rr(cx - w / 2, y - h / 2, w, h, 14 * k, GOLD, 2.4, 0.95)
+    M.rr(cx - w / 2 + 7 * k, y - h / 2 + 7 * k, w - 14 * k, h - 14 * k, 9 * k, GOLD, 1.0, 0.7)
+    if k > 0.8:
+        x0, y0, x1, y1 = cx - w / 2 + 16, y - h / 2 + 16, cx + w / 2 - 16, y + h / 2 - 16
+        bulbs(M, [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)], 18, int(t * 12) % 3)
+    seq = [0.4, 0.08, 0.9, 0.2, 1.0]
+    kf = int((u - 0.15) * FPS)
+    letters = 'LEVEL UP'
+    br = [1.0 if ch == ' ' else (0.08 if kf - i < 0 else (seq[kf - i] if kf - i < 5 else 1.0)) for i, ch in enumerate(letters)]
+    block_word(M, cx, y - 2 * k, letters, GOLD, 50 * k, br)
+    if t < 1.35:
+        g = ease_out((u - 0.5) / 0.2)
+        if g > 0: M.word(cx, y + 50, '레벨 7  →  8', WHITE, 22, [g] * 10, font=KO)
+        kk = kf - len(letters) - 1
+        if 0 <= kk < 12:
+            sparks(M, cx + 150, y - 55, kk, 21, n=10, spd=5.0)
+            sparks(M, cx - 150, y - 55, kk, 22, n=10, spd=5.0)
+
+
+def center_streak(M, t):
+    """2 빛줄기 + 큰 숫자: 가운데에서 가로 빛줄기가 양쪽으로 뻗고, 뒤에 큰 속 빈 '8', 앞에 LEVEL UP 이 지직 켜짐 → 흩어짐"""
+    if not (0.3 < t < 1.8): return
+    cx, cy = 648, 300
+    u = t - 0.3
+    fade = 1.0 if t < 1.4 else max(0.0, 1 - (t - 1.4) / 0.4)
+    # 빛줄기
+    sw = ease_out(min(1, u / 0.3))
+    for dy, col, b in ((-46, GOLD, 0.9), (46, GOLD, 0.9), (-56, PINK, 0.5), (56, PINK, 0.5)):
+        M.ln([(cx - 360 * sw, cy + dy), (cx + 360 * sw, cy + dy)], col, 1.6, b * fade)
+    # 큰 숫자 (속 빈 튜브, 흐리게) — 커지며 나타남
+    g = ease_out(min(1, u / 0.35))
+    M.word(cx, cy + 90 * (0.7 + 0.3 * g), '8', GOLD, 240 * (0.7 + 0.3 * g), [0.18 * g * fade], font=BLOCK)
+    seq = [0.4, 0.08, 0.9, 0.2, 1.0]
+    kf = int((u - 0.1) * FPS)
+    letters = 'LEVEL UP'
+    br = [fade if ch == ' ' else fade * (0.08 if kf - i < 0 else (seq[kf - i] if kf - i < 5 else 1.0)) for i, ch in enumerate(letters)]
+    block_word(M, cx, cy + 18, letters, GOLD, 54, br)
+    if u > 0.5:
+        pu = ease_out((u - 0.5) / 0.2)
+        M.word(cx, cy + 82, '트리 포인트 +1', WHITE, 18, [pu * fade] * 9, font=KO)
+    # 흩어지는 불티 (빛줄기 끝)
+    kk = int((u - 0.3) * FPS)
+    if 0 <= kk < 12:
+        sparks(M, cx + 360, cy - 46, kk, 31, n=8)
+        sparks(M, cx - 360, cy + 46, kk, 32, n=8)
+
+
+def frame_full(f, center):
+    t = f / FPS
+    M = Sign(0.85); M.small_glow = 0.0
+    board_bg(M)
+    # 1 마키는 가운데 간판이 날아가 위 간판이 되므로, 위 간판은 날아온 뒤(1.75초~)에만
+    draw_A(t if center is center_streak else max(0.0, t), M, sign=center is center_streak)
+    center(M, t)
+    if center is center_marquee and 1.75 <= t < 2.4:  # 날아와 매달린 뒤 잠깐 + 포인트 꼬리표
+        fade = 1.0 if t < 2.0 else max(0.0, 1 - (t - 2.0) / 0.4)
+        for x in (850, 950): M.ln([(x, 62), (x, 92)], DIM, 1.0, 0.5 * fade)
+        M.rr(796, 92, 208, 58, 10, GOLD, 2.0, 0.9 * fade)
+        block_word(M, 900, 134, 'LEVEL UP', GOLD, 30, [fade] * 8)
+        M.rr(840, 158, 120, 24, 12, PINK, 1.6, fade)
+        M.word(900, 175, '포인트 +1', WHITE, 13, [fade] * 6, font=KO)
+    return M.draw().resize((768, 432), Image.LANCZOS)
+
+
+def main_center(outdir):
+    for name, c in (('levelup_A1_center_marquee', center_marquee), ('levelup_A2_center_streak', center_streak)):
+        frames = [frame_full(f, c).convert('P', palette=Image.ADAPTIVE, colors=128) for f in range(62)]
+        frames[0].save(os.path.join(outdir, name + '.gif'), save_all=True, append_images=frames[1:], duration=1000 // FPS, loop=0)
+        print(name)
+
+
 def gif(fn, n, path):
     frames = [fn(f).convert('P', palette=Image.ADAPTIVE, colors=128) for f in range(n)]
     frames[0].save(path, save_all=True, append_images=frames[1:], duration=1000 // FPS, loop=0)
@@ -201,4 +311,5 @@ def main(outdir):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else '.')
+    if len(sys.argv) > 2 and sys.argv[2] == 'center': main_center(sys.argv[1])
+    else: main(sys.argv[1] if len(sys.argv) > 1 else '.')
