@@ -140,6 +140,7 @@ private:
 	void PaintHint(FCanvas& C) const;
 	void PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const; // 작은 네온 팔라스 로고 (D-274)
 	void PaintBarBack(FCanvas& C) const;   // 벽돌 벽 + 바닥선 (D-274)
+	static void NeonText(FCanvas& C, const FString& S, float X, float Y, const FLinearColor& Col, float Px, int32 Align, float B); // 속 빈 네온 글자 (D-275)
 	void PaintLevelUp(FCanvas& C) const;   // 레벨업 이펙트 (D-273): 가운데 마키 간판 → 위 레벨 자리로 날아가 매달림
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면
