@@ -356,6 +356,12 @@ private:
 	bool bUpg = false;                     // 골드 강화 화면 (U)
 	int32 TreeBuyId = -1;                  // 방금 찍은 노드 (연출)
 	float TreeBuyT = 0.f;
+	// 칵테일 따라 주기 (D-306): 고른 잔 위에서 셰이커가 흔들고(쉐킷) 기울여 따른 뒤(조로록) 보상을 받는다. 다시 누르면 바로 받기
+	int32 PourIdx = -1;                    // 고른 칵테일 (-1 = 없음)
+	float PourAt = 0.f;                    // 시작 시각 (Clock)
+	bool bPourSnd = false;                 // 따르는 소리를 냈나
+	static constexpr float PourShakeT = 0.25f, PourTiltT = 1.5f, PourFlowT = 1.8f, PourEndT = 3.0f; // 내려옴 → 흔들기 → 기울이기 → 따르기 → 받기
+	void StartPour(int32 I);
 	float LevelUpAt = -100.f;               // 레벨업 이펙트 시작 시각 (Clock, 배속과 상관없음, D-273)
 	int32 LevelUpFrom = 0, LevelUpTo = 0, LevelUpPts = 0;
 	FString PreviewKey;

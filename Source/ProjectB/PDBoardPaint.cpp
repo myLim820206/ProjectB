@@ -3,6 +3,7 @@
 #include "PDLogo.h"
 #include "Misc/ScopeExit.h"
 #include "Misc/CommandLine.h"
+#include "Algo/Reverse.h"
 
 #include "PDTreeText.inl" // 생성됨: 특급 노드 이름 (tools/tree/gen_tree.py)
 
@@ -2319,29 +2320,34 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		{
 			const FPDReward& R = G.Rewards[I];
 			const FVector2f P = RewardPos(I);
-			const bool bHov = InRect(Mouse, P.X, P.Y, RewardW, RewardH);
-			const float GX = P.X + RewardW / 2.f, BY = RewardShelfY - 2.f, B = bHov ? 1.f : 0.6f;
+			const bool bPour = PourIdx == I, bAnyPour = PourIdx >= 0; // 따라 주는 중 (D-306)
+			const bool bHov = bPour || (!bAnyPour && InRect(Mouse, P.X, P.Y, RewardW, RewardH));
+			const float GX = P.X + RewardW / 2.f, BY = RewardShelfY - 2.f, B = bHov ? 1.f : bAnyPour ? 0.35f : 0.6f;
+			const float Pt = bPour ? Clock - PourAt : 0.f;
+			const float Fill = bPour ? FMath::Clamp((Pt - PourFlowT) / (PourEndT - 0.15f - PourFlowT), 0.f, 1.f) : bHov ? 1.f : 0.f; // 잔이 아래부터 찬다
 			const FLinearColor Col = R.bCharm ? Hex(CockCol[R.Id % 5]) : Cyan;
 			const FLinearColor CB(Col.R * B, Col.G * B, Col.B * B, 1.f);
 			const int32 Kind = R.bCharm ? R.Id % 3 : 3; // 0 마티니 1 하이볼 2 온더록 3 칩 접시 (서비스)
 			auto L = [&](std::initializer_list<FVector2f> Pts, float Th) { C.Glow(TArray<FVector2f>(Pts), CB, Th, 0.5f * B); };
+			auto Shown = [&](int32 K, int32 N) { return K >= FMath::RoundToInt(N * (1.f - Fill)); }; // 줄 K (위 0 → 아래 N-1)
 			if (Kind == 0)
 			{
 				L({FVector2f(GX - 26.f, BY - 70.f), FVector2f(GX + 26.f, BY - 70.f), FVector2f(GX, BY - 36.f), FVector2f(GX - 26.f, BY - 70.f)}, 1.8f);
 				L({FVector2f(GX, BY - 36.f), FVector2f(GX, BY - 4.f)}, 1.6f);
 				L({FVector2f(GX - 16.f, BY - 2.f), FVector2f(GX + 16.f, BY - 2.f)}, 1.6f);
-				if (bHov) { for (int32 K = 0; K < 5; ++K) { const float Hw = 22.f * (1.f - K * 5.f / 30.f); C.Lines({FVector2f(GX - Hw, BY - 64.f + K * 5.f), FVector2f(GX + Hw, BY - 64.f + K * 5.f)}, WithAlpha(Col, 0.5f), 1.f); }
-					C.Lines(FCanvas::CirclePoints(FVector2f(GX + 9.f, BY - 66.f), 4.f, 12), Mint, 1.2f); }
+				for (int32 K = 0; K < 5; ++K) if (Shown(K, 5)) { const float Hw = 22.f * (1.f - K * 5.f / 30.f); C.Lines({FVector2f(GX - Hw, BY - 64.f + K * 5.f), FVector2f(GX + Hw, BY - 64.f + K * 5.f)}, WithAlpha(Col, 0.5f), 1.f); }
+				if (Fill >= 1.f) C.Lines(FCanvas::CirclePoints(FVector2f(GX + 9.f, BY - 66.f), 4.f, 12), Mint, 1.2f);
 			}
 			else if (Kind == 1)
 			{
 				L({FVector2f(GX - 18.f, BY - 78.f), FVector2f(GX - 16.f, BY - 2.f), FVector2f(GX + 16.f, BY - 2.f), FVector2f(GX + 18.f, BY - 78.f)}, 1.8f);
 				C.Lines({FVector2f(GX + 6.f, BY - 92.f), FVector2f(GX - 4.f, BY - 30.f)}, FLinearColor(1.f, 1.f, 1.f, 0.6f * B), 1.2f); // 빨대
-				if (bHov) for (int32 K = 0; K < 8; ++K) C.Lines({FVector2f(GX - 15.f, BY - 60.f + K * 7.f), FVector2f(GX + 15.f, BY - 60.f + K * 7.f)}, WithAlpha(Col, 0.45f), 1.f);
+				for (int32 K = 0; K < 8; ++K) if (Shown(K, 8)) C.Lines({FVector2f(GX - 15.f, BY - 60.f + K * 7.f), FVector2f(GX + 15.f, BY - 60.f + K * 7.f)}, WithAlpha(Col, 0.45f), 1.f);
 			}
 			else if (Kind == 2)
 			{
 				L({FVector2f(GX - 24.f, BY - 46.f), FVector2f(GX - 22.f, BY - 2.f), FVector2f(GX + 22.f, BY - 2.f), FVector2f(GX + 24.f, BY - 46.f)}, 1.8f);
+				for (int32 K = 0; K < 4; ++K) if (Shown(K, 4)) C.Lines({FVector2f(GX - 21.f, BY - 34.f + K * 8.f), FVector2f(GX + 21.f, BY - 34.f + K * 8.f)}, WithAlpha(Col, 0.45f), 1.f);
 				C.Lines({FVector2f(GX - 12.f, BY - 30.f), FVector2f(GX - 2.f, BY - 38.f), FVector2f(GX + 8.f, BY - 30.f), FVector2f(GX - 2.f, BY - 22.f), FVector2f(GX - 12.f, BY - 30.f)}, FLinearColor(1.f, 1.f, 1.f, 0.6f * B), 1.f); // 얼음
 			}
 			else
@@ -2349,14 +2355,68 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 				L({FVector2f(GX - 34.f, BY - 2.f), FVector2f(GX + 34.f, BY - 2.f)}, 1.6f);
 				for (int32 K = 0; K < 4; ++K) { const float Y = BY - 10.f - K * 9.f; L({FVector2f(GX - 18.f, Y), FVector2f(GX + 18.f, Y)}, 3.f); }
 			}
-			if (bHov && Kind < 3) // 위에서 병이 기울어 술을 따른다
+			// 코블러 셰이커 (D-306, 시안 tools/neon/shaker_mock.py): 둥근 뚜껑 · 거름망 어깨 · 아래로 좁아지는 몸통 · 이음 띠. 원점 = 바닥 가운데, 위 = 음수
+			const FLinearColor Steel = Hex(TEXT("c8d6eb"));
+			auto Shaker = [&](FVector2f O, float AngDeg, bool bCap, float S, float Br)
 			{
-				const float Tx = GX + 30.f, Ty = BY - 128.f;
-				C.Glow({FVector2f(Tx + 4.f, Ty - 6.f), FVector2f(Tx + 46.f, Ty - 34.f), FVector2f(Tx + 56.f, Ty - 20.f), FVector2f(Tx + 14.f, Ty + 8.f), FVector2f(Tx + 4.f, Ty - 6.f)}, Lav, 1.4f, 0.5f);
-				C.Glow({FVector2f(Tx + 4.f, Ty - 6.f), FVector2f(Tx - 10.f, Ty + 2.f), FVector2f(Tx - 4.f, Ty + 10.f), FVector2f(Tx + 14.f, Ty + 8.f)}, Lav, 1.2f, 0.4f); // 병 목
-				const float Wob = FMath::Sin(Clock * 18.f) * 1.2f;
-				C.Glow({FVector2f(Tx - 8.f, Ty + 8.f), FVector2f(GX + 2.f + Wob, Ty + 30.f), FVector2f(GX + Wob, BY - (Kind == 2 ? 40.f : 64.f))}, Col, 1.8f, 0.8f); // 술줄기
+				const float Ca = FMath::Cos(FMath::DegreesToRadians(AngDeg)), Sa = FMath::Sin(FMath::DegreesToRadians(AngDeg));
+				auto W = [&](float X, float Y) { X *= S; Y *= S; return O + FVector2f(X * Ca - Y * Sa, X * Sa + Y * Ca); };
+				const FLinearColor Sc(Steel.R * Br, Steel.G * Br, Steel.B * Br, 1.f);
+				TArray<FVector2f> Body = {W(-21.f, -62.f), W(-15.f, 0.f), W(15.f, 0.f), W(21.f, -62.f)};
+				TArray<FVector2f> ShL, ShR;
+				for (int32 K = 0; K <= 6; ++K) { const float A = FMath::DegreesToRadians(K * 15.f), X = 21.f - 9.f * (1.f - FMath::Cos(A)), Y = -62.f - 19.f * FMath::Sin(A); ShL.Add(W(-X, Y)); ShR.Add(W(X, Y)); }
+				Algo::Reverse(ShR);
+				TArray<FVector2f> Out = ShR; // 오른쪽 어깨 위 → 아래, 몸통, 왼쪽 어깨 아래 → 위 = 한 줄
+				Out.Add(W(15.f, 0.f)); Out.Add(W(-15.f, 0.f)); Out.Append(ShL);
+				Out.Add(W(-11.f, -87.f)); Out.Add(W(11.f, -87.f)); const FVector2f First = Out[0]; Out.Add(First); // 제 원소를 그대로 Add 하면 배열이 늘며 깨진다 (크래시)
+				C.Glow(Out, Sc, 1.6f * S, 0.5f * Br);
+				C.Lines({W(-21.f, -58.f), W(21.f, -58.f)}, WithAlpha(Sc, 0.8f), 1.f); // 이음 띠
+				if (bCap)
+				{
+					TArray<FVector2f> Cap;
+					for (int32 K = 0; K <= 10; ++K) { const float A = FMath::DegreesToRadians(180.f + K * 18.f); Cap.Add(W(10.f * FMath::Cos(A), -96.f + 10.f * FMath::Sin(A))); }
+					Cap.Insert(W(-10.f, -87.f), 0); Cap.Add(W(10.f, -87.f));
+					C.Glow(Cap, Sc, 1.4f * S, 0.45f * Br);
+				}
+				return W(0.f, -88.f); // 거름망 입구
+			};
+			if (bPour) // 내려옴 → 흔들기(쉐킷) → 기울이기 → 따르기(조로록) → 받기
+			{
+				const FVector2f Up(GX + 54.f, BY - 26.f), PourO(GX + 84.f, BY - 122.f); // 잔 옆에서 흔들고 (위 글자에 안 닿게), 잔 오른쪽 옆에서 기울여 입구만 가장자리 위로 (몸통이 잔을 덮지 않게)
+				constexpr float Ss = 0.75f;
+				if (Pt < PourShakeT)
+				{
+					const float U = 1.f - FMath::Square(1.f - Pt / PourShakeT);
+					Shaker(FMath::Lerp(Up - FVector2f(0.f, 60.f), Up, U), 0.f, true, Ss, U);
+				}
+				else if (Pt < PourTiltT)
+				{
+					const float Ph = (Pt - PourShakeT) * 6.45f * TwoPi; // 초당 6번 남짓 (소리와 같은 박자)
+					const FVector2f O = Up + FVector2f(FMath::Sin(Ph) * 4.f, -FMath::Abs(FMath::Sin(Ph)) * 10.f);
+					Shaker(O, FMath::Sin(Ph) * 14.f, true, Ss, 1.f);
+					const float Sd = FMath::Sin(Ph) > 0.f ? 1.f : -1.f; // 흔들림 선 (흔드는 쪽 반대편)
+					for (int32 K = 0; K < 2; ++K) C.Lines({O + FVector2f(-Sd * (26.f + K * 4.f), -54.f + K * 16.f), O + FVector2f(-Sd * (31.f + K * 4.f), -43.f + K * 16.f)}, WithAlpha(Steel, 0.55f), 1.f);
+				}
+				else
+				{
+					const float U = FMath::Clamp((Pt - PourTiltT) / (PourFlowT - PourTiltT), 0.f, 1.f), E = U * U * (3.f - 2.f * U);
+					const float Fade = Pt > PourEndT - 0.2f ? FMath::Max(0.f, (PourEndT - Pt) / 0.2f) : 1.f;
+					const FVector2f Lip = Shaker(FMath::Lerp(Up, PourO, E), -112.f * E, false, Ss, Fade);
+					// 뚜껑은 선반에 내려 둔다
+					TArray<FVector2f> Cap;
+					const FVector2f Cp(GX + 54.f, BY);
+					for (int32 K = 0; K <= 10; ++K) { const float A = FMath::DegreesToRadians(180.f + K * 18.f); Cap.Add(Cp + FVector2f(7.5f * FMath::Cos(A), -7.f + 7.5f * FMath::Sin(A))); }
+					Cap.Insert(Cp + FVector2f(-7.5f, 0.f), 0); Cap.Add(Cp + FVector2f(7.5f, 0.f));
+					C.Glow(Cap, Steel, 1.4f, 0.4f);
+					if (Pt >= PourFlowT && Pt < PourEndT - 0.15f) // 술줄기: 입구 → 잔 속 술 위
+					{
+						const float Top = Kind == 0 ? BY - 64.f : Kind == 1 ? BY - 60.f : BY - 34.f, Bot = Kind == 0 ? BY - 40.f : BY - 6.f;
+						const float Surf = FMath::Lerp(Bot, Top, Fill), Wob = FMath::Sin(Clock * 21.f) * 1.2f;
+						C.Glow({Lip, Lip + FVector2f(-5.f, 7.f), FVector2f(GX + 7.f + Wob, (Lip.Y + Surf) * 0.5f + 6.f), FVector2f(GX + 3.f + Wob, Surf)}, Col, 1.8f, 0.8f); // 입구에서 잔 가운데로 휘어 떨어진다
+					}
+				}
 			}
+			else if (bHov && !bAnyPour && Kind < 3) Shaker(FVector2f(GX + 54.f, BY), 0.f, true, 0.62f, 0.75f); // 마우스: 잔 옆 선반에 셰이커가 서 있다
 			// 가격표 꼬리표: 이름 · 효과
 			const float TX = P.X, TY = RewardShelfY + 32.f, TW = RewardW, TH = 48.f;
 			const FLinearColor TagC = bHov ? PinkR : R.bCharm ? Gold : Cyan;

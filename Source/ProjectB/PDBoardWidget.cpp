@@ -586,6 +586,17 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	const double TickT0 = FPlatformTime::Seconds();
 	const float Dt = FMath::Min(InDeltaTime, 0.05f);
 	Clock += Dt;
+	if (PourIdx >= 0) // 칵테일 따라 주기 (D-306)
+	{
+		const float Pt = Clock - PourAt;
+		if (Game.Phase != EPDPhase::Reward) PourIdx = -1;
+		else
+		{
+			if (Pt >= PourShakeT && Pt - Dt < PourShakeT) UiSound(EPDSound::Shake);
+			if (Pt >= PourFlowT && !bPourSnd) { bPourSnd = true; UiSound(EPDSound::Pour); }
+			if (Pt >= PourEndT) { const int32 J = PourIdx; PourIdx = -1; Game.TakeReward(J); }
+		}
+	}
 	TitleT = Game.Phase == EPDPhase::Title && LoadT <= 0.f ? TitleT + Dt : 0.f;
 	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
 	{
@@ -1251,7 +1262,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		for (int32 I = 0; I < (int32)Game.Rewards.size(); ++I)
 		{
 			const FVector2f R = RewardPos(I);
-			if (InRect(P, R.X, R.Y, RewardW, RewardH)) { Game.TakeReward(I); return; }
+			if (InRect(P, R.X, R.Y, RewardW, RewardH)) { StartPour(I); return; }
 		}
 		return;
 	}
@@ -1420,6 +1431,16 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (Game.Phase == EPDPhase::Build && InRect(P, RBtnX, StartBtnY, RBtnW, StartBtnH)) Game.StartWave();
+}
+
+void SPDBoardWidget::StartPour(int32 I)
+{
+	if (Game.Phase != EPDPhase::Reward || I < 0 || I >= (int32)Game.Rewards.size()) return;
+	if (PourIdx >= 0) { const int32 J = PourIdx; PourIdx = -1; Game.TakeReward(J); return; } // 따르는 중에 또 누르면 바로 받기
+	if (!Game.Rewards[I].bCharm) { Game.TakeReward(I); return; } // 서비스(경험치 · 칩)는 따를 술이 없다
+	PourIdx = I;
+	PourAt = Clock;
+	bPourSnd = false;
 }
 
 void SPDBoardWidget::UiSound(EPDSound S)
@@ -1822,8 +1843,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	}
 	if (Game.Phase == EPDPhase::Reward)
 	{
-		for (int32 I = 0; I < 3; ++I) if (K == Nums[I]) { Game.TakeReward(I); return FReply::Handled(); }
-		if (K == EKeys::S) { Game.TakeReward(-1); return FReply::Handled(); }
+		for (int32 I = 0; I < 3; ++I) if (K == Nums[I]) { StartPour(I); return FReply::Handled(); }
+		if (K == EKeys::S) { PourIdx = -1; Game.TakeReward(-1); return FReply::Handled(); }
 		if (K == EKeys::Escape) { OpenMenu(); return FReply::Handled(); }
 		return FReply::Unhandled();
 	}

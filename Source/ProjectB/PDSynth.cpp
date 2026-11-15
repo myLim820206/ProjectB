@@ -268,6 +268,72 @@ std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int Rate)
 		}
 		break;
 	}
+	case EPDSound::Shake: // 쉐킷쉐킷 (D-306): 초당 6번 오가며, 매번 쇠통 벽에 얼음이 쏟아지는 '샥' 잡음 + 얼음 부딪는 높은 쇳소리 몇 개
+	{
+		Gain = 1.4f;
+		const int Strokes = 8;
+		const float Per = 0.155f;
+		Buf.Ensure((size_t)((Strokes * Per + 0.25f) * Rate));
+		uint32_t X = 0x51ed270bu;
+		auto Rnd = [&X]() { X ^= X << 13; X ^= X >> 17; X ^= X << 5; return (float)(X & 0xFFFF) / 65535.f; };
+		for (int K = 0; K < Strokes; ++K)
+		{
+			const float T0 = K * Per, Amp = (K % 2 ? 0.75f : 1.f) * (K == Strokes - 1 ? 0.8f : 1.f);
+			// '샥': 밝은 잡음 (낮은 소리를 뺀 잡음), 빠른 어택 + 70ms 감쇠
+			const size_t I0 = (size_t)(T0 * Rate), N = (size_t)(0.085f * Rate);
+			float Lp = 0.f, Prev = 0.f;
+			for (size_t I = 0; I < N && I0 + I < Buf.S.size(); ++I)
+			{
+				const float R = Rnd() * 2.f - 1.f;
+				Lp += (R - Lp) * 0.55f;
+				const float Hp = Lp - Prev; Prev = Lp;
+				const float U = (float)I / N, Env = std::min(1.f, U * 14.f) * std::pow(1.f - U, 2.2f);
+				Buf.S[I0 + I] += Hp * 0.55f * Amp * Env;
+			}
+			// 얼음 쇳소리: 짧게 울리는 높은 음 둘 (쇠 울림 비 2.76)
+			const int Clinks = 3 + (int)(Rnd() * 3.f);
+			for (int Q = 0; Q < Clinks; ++Q)
+			{
+				const float Tc = T0 + 0.005f + Rnd() * 0.06f, F = 2600.f + Rnd() * 2600.f, Ca = (0.05f + Rnd() * 0.05f) * Amp;
+				Buf.Tone(Tc, 0.05f, F, F * 0.97f, EWave::Sine, Ca, 0.0005f, 9.f);
+				Buf.Tone(Tc, 0.03f, F * 2.76f, F * 2.7f, EWave::Sine, Ca * 0.4f, 0.0005f, 12.f);
+			}
+			Buf.Tone(T0, 0.04f, 240.f, 160.f, EWave::Sine, 0.08f * Amp, 0.001f, 8.f); // 손에 쥔 통의 둔한 '툭'
+		}
+		break;
+	}
+	case EPDSound::Pour: // 조로록 (D-306): 가늘게 떨어지는 물줄기 잡음 + 보글보글 올라가는 작은 방울 소리 (잔이 차며 방울 음이 조금씩 높아진다)
+	{
+		Gain = 2.2f;
+		const float Len = 1.15f;
+		const size_t N = (size_t)((Len + 0.1f) * Rate);
+		Buf.Ensure(N);
+		uint32_t X = 0x2545f491u;
+		auto Rnd = [&X]() { X ^= X << 13; X ^= X >> 17; X ^= X << 5; return (float)(X & 0xFFFF) / 65535.f; };
+		{ // 물줄기: 부드러운 잡음, 세기가 살짝 일렁임
+			float Lp = 0.f, Lp2 = 0.f;
+			for (size_t I = 0; I < (size_t)(Len * Rate); ++I)
+			{
+				const float T = (float)I / Rate;
+				const float R = Rnd() * 2.f - 1.f;
+				Lp += (R - Lp) * 0.18f; Lp2 += (Lp - Lp2) * 0.35f;
+				const float Env = std::min(1.f, T / 0.04f) * std::min(1.f, (Len - T) / 0.25f) * (0.8f + 0.2f * std::sin(T * 37.f) * std::sin(T * 11.f));
+				Buf.S[I] += Lp2 * 0.22f * Env;
+			}
+		}
+		// 방울: 짧게 위로 미끄러지는 사인 (방울 공명), 초당 약 55개
+		float T = 0.02f;
+		while (T < Len - 0.08f)
+		{
+			const float Fill = T / Len;
+			const float F = (520.f + Rnd() * 900.f) * (1.f + 0.45f * Fill), D = 0.018f + Rnd() * 0.03f;
+			const float Ba = (0.05f + Rnd() * 0.07f) * std::min(1.f, (Len - T) / 0.3f);
+			Buf.Tone(T, D, F, F * (1.35f + Rnd() * 0.3f), EWave::Sine, Ba, 0.002f, 5.f);
+			T += 0.006f + Rnd() * 0.03f;
+		}
+		Buf.Tone(Len - 0.06f, 0.08f, 900.f, 1400.f, EWave::Sine, 0.05f, 0.002f, 6.f); // 끝 방울 하나
+		break;
+	}
 	default:
 		break;
 	}
