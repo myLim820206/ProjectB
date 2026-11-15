@@ -32,6 +32,7 @@ class Sign:
     def __init__(self, glow_k=1.0):
         self.lines, self.texts, self.dots = [], [], []
         self.glow_k = glow_k  # 빛번짐 세기 (색감을 죽인 시안은 낮춘다)
+        self.small_glow = 1.0  # 작은 글자(26px 미만)의 빛번짐 배율. 글이 많은 화면은 낮춰 읽기 쉽게 (D-257)
 
     def ln(self, pts, c, wd=2.0, b=1.0): self.lines.append((pts, c, wd, b))
     def rr(self, x, y, w, h, r, c, wd=2.0, b=1.0):
@@ -84,7 +85,8 @@ class Sign:
         for (x, y, ch, c, px, b, font) in self.texts:
             f = ImageFont.truetype(font, int(px * S))
             tw = max(2, int(px * S * 0.055))
-            if b > 0.25: gd.text((x * S, y * S), ch, font=f, fill=dim(c, b), anchor='ls', stroke_width=tw * 3, stroke_fill=dim(c, b))
+            gb = b * (self.small_glow if px < 26 else 1.0)
+            if gb > 0.05: gd.text((x * S, y * S), ch, font=f, fill=dim(c, gb), anchor='ls', stroke_width=tw * 3, stroke_fill=dim(c, gb))
             # 튜브: 외곽선만 (속은 배경색으로 다시 칠함)
             cd.text((x * S, y * S), ch, font=f, fill=dim(c, max(0.16, b)), anchor='ls', stroke_width=tw, stroke_fill=dim(c, max(0.16, b)))
             if px < 26:  # 작은 글자는 속을 비우지 않는다 (읽기 쉽게)
