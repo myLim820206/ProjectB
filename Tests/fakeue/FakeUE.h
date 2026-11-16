@@ -1177,6 +1177,7 @@ struct FPaths
 	}
 };
 
+enum EFileWrite { FILEWRITE_None = 0x00, FILEWRITE_NoFail = 0x01, FILEWRITE_NoReplaceExisting = 0x02, FILEWRITE_EvenIfReadOnly = 0x04, FILEWRITE_Append = 0x08, FILEWRITE_AllowRead = 0x10, FILEWRITE_Silent = 0x20 };
 class IFileManager
 {
 public:

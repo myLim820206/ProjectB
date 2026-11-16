@@ -152,6 +152,7 @@ void SPDBoardWidget::DoCellAct(int32 Row)
 	if (Row < 0 || Row >= MenuActs.Num()) return;
 	const FCellAct A = MenuActs[Row];
 	const int32 Cell = MenuCell;
+	RuleLog(FString::Printf(TEXT("cell menu (%d,%d) act=%d arg=%d '%s'"), Cell % Cols, Cell / Cols, (int32)A.Kind, A.A, *A.Label)); // 룰 로그 (D-358)
 	CloseCellMenu();
 	switch (A.Kind)
 	{

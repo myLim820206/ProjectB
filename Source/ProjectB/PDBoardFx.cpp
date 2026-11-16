@@ -53,6 +53,20 @@ void SPDBoardWidget::HandleEvents()
 	{
 		HintEv |= 1u << ((int32)E.Kind & 31); // 도움말이 볼 사건 (D-217)
 		if (E.Kind == FPDEvent::EKind::Discard && E.A > 0) HintEv |= 1u << 31; // 31번 비트 = 타워 판매 (Discard 중 A = 값, D-243)
+		{ // 룰 로그 (D-358): 발사 · 맞음 · 처치 같은 많은 사건은 빼고 룰 사건만
+			static const TCHAR* KN[] = {TEXT("Shot"), TEXT("Splash"), TEXT("Kill"), TEXT("Leak"), TEXT("Place"), TEXT("Synergy"), TEXT("WaveStart"), TEXT("WaveClear"), TEXT("GameOver"), TEXT("Discard"), TEXT("Reward"), TEXT("Fuse"), TEXT("JokerFuse"), TEXT("Feed"), TEXT("Bell"), TEXT("Star"), TEXT("TreeBuy"), TEXT("Impact"), TEXT("BossSkill"), TEXT("JokerMerge"), TEXT("JokerXp"), TEXT("LevelUp"), TEXT("RunClear")};
+			const int32 Ki = (int32)E.Kind;
+			const bool bNoisy = E.Kind == FPDEvent::EKind::Shot || E.Kind == FPDEvent::EKind::Splash || E.Kind == FPDEvent::EKind::Kill || E.Kind == FPDEvent::EKind::Impact || E.Kind == FPDEvent::EKind::Bell || E.Kind == FPDEvent::EKind::Star || E.Kind == FPDEvent::EKind::JokerXp;
+			if (!bNoisy && Ki < (int32)UE_ARRAY_COUNT(KN))
+				RuleLog(FString::Printf(TEXT("ev %s A=%d B=%d at(%.0f,%.0f) hand=%s lv=%d r=%.1f towers=%d syn=%d"), KN[Ki], E.A, E.B, E.X, E.Y, HandName(E.Hand), E.Lv, E.R, (int32)Game.Towers.size(), (int32)Game.Synergies.size()));
+			if (E.Kind == FPDEvent::EKind::WaveStart) // 웨이브 시작마다 판의 족보 한 벌
+				for (const FPDSynergy& S : Game.Synergies)
+				{
+					FString Cs;
+					for (int K : S.Cells) Cs += FString::Printf(TEXT("(%d,%d) "), K % Cols, K / Cols);
+					RuleLog(FString::Printf(TEXT("  syn %s chain=%d fuse=%d : %s"), HandName(S.Kind), S.Chain, (int32)Game.CanFuse((int32)(&S - Game.Synergies.data())), *Cs));
+				}
+		}
 		QueueCine(E); // 완성 연출 (D-314, D-315): 합성 · 조커 · 상위 조커 · 조커 레벨 10 · 합치기
 		if (E.Kind == FPDEvent::EKind::Synergy) GoalStats.HandsEver |= 1u << (int32)E.Hand; // 도전 과제: 만들어 본 족보 (B8)
 		if (E.Kind == FPDEvent::EKind::Fuse) GoalStats.MaxFuseLevel = FMath::Max(GoalStats.MaxFuseLevel, E.A);

@@ -385,6 +385,12 @@ private:
 	FVector2f Mouse = FVector2f(0.f, 0.f);
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
+	// 룰 로그 (D-358): 쉬핑에서도 남는 파일 Saved/Logs/PDRules.log (지난 실행은 PDRules-prev.log). 버그 잡는 동안만
+	mutable TArray<FString> RuleBuf;
+	mutable bool bRuleLogOpen = false;
+	void RuleLog(const FString& S) const;  // 한 줄 쌓기 (틱 끝에 파일로)
+	void FlushRuleLog() const;
+	void RuleLogNodes(const TCHAR* Why) const; // 조커 재료 후보 · 고른 재료 · 만들 수 있는 조커를 통째로
 	bool bCodex = false;                   // 조커 도감 화면
 	// 도감 책자 (D-354, PDBoardCodex.cpp): 왼쪽 쪽 = 고른 항목 크게, 오른쪽 쪽 = 12줄 목록, 오른쪽 옆면 탭 넷(칵테일 · 조커 · 상위 조커 · 보스). 쪽 · 탭을 바꾸면 장이 휘며 넘어간다
 	struct FCdxView { int32 Tab = 0, Page = 0, Pick = 0; };

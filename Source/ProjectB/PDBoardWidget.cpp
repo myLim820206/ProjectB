@@ -719,6 +719,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
+	FlushRuleLog(); // 룰 로그 (D-358)
 	for (const FPDSynergy& S : Game.Synergies) GoalStats.HandsEver |= 1u << (int32)S.Kind; // 도전 과제: 판에 있는 족보 모두 (사건이 큰 족보 하나만 알려서)
 	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다
 	{
@@ -941,6 +942,7 @@ void SPDBoardWidget::CraftSelect(int32 Entry)
 	if (JokerList[Entry].Upper >= 0) { CraftUpper = JokerList[Entry].Upper; CraftJoker = -1; CraftPicks = JokerList[Entry].Best; UiSound(EPDSound::Move); return; } // 상위 조커 (D-237): 두 조커가 정해져 있다
 	CraftUpper = -1;
 	CraftJoker = JokerList[Entry].J;
+	RuleLog(FString::Printf(TEXT("craft select %s (J%d)"), JokerName(CraftJoker), CraftJoker));
 	CraftPicks.clear(); // 재료는 직접 고른다 (D-211): 게임이 고른 재료는 "추천" 표시만
 	UiSound(EPDSound::Move);
 }
@@ -986,6 +988,7 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 		return;
 	}
 	const std::vector<FPDJokerNode> Ns = Game.JokerNodes();
+	RuleLog(FString::Printf(TEXT("craft click (%d,%d) joker=%d picks=%d"), Cell % Cols, Cell / Cols, CraftJoker, (int32)CraftPicks.size()));
 	if (CraftJoker < 0) // 조커를 안 고르고 빛나는 재료 칸을 누름 = 그 칸을 쓰는 조커를 골라 바로 재료로 (사용자 2026-11-16: 활성화된 칸이 클릭이 안 된다)
 	{
 		auto InBest = [Cell](const FJokerEntry& E) { for (const std::vector<int>& Pk : E.Best) if (std::find(Pk.begin(), Pk.end(), Cell) != Pk.end()) return true; return false; };
@@ -1033,7 +1036,7 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 			PendingFuseCells.Reset();
 			for (const std::vector<int>& Q : CraftPicks) for (int K : Q) PendingFuseCells.Add(CellCenter(K));
 			if (Game.JokerCraft(Idx, Cell)) { CraftPicks.clear(); CraftJoker = -1; HandFilter = -1; }
-			else { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
+			else { PendingFuseCells.Reset(); RuleLogNodes(TEXT("craft FAILED")); UiSound(EPDSound::Denied); }
 			return;
 		}
 	// 후보: 레시피에 들어가면 더하고, 같은 족보 자리가 차 있으면 바꾼다
@@ -1057,20 +1060,13 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 			if (PDCraftFits(Ns, Try, CraftJoker)) { CraftPicks[P] = Ns[C].Cells; UiSound(EPDSound::Move); return; }
 		}
 	}
+	// 룰 로그 (D-358): 거절될 때 판의 재료 후보 · 고른 재료 · 만들 수 있는 조커를 통째로
+	FString Ids = TEXT("craft click rejected: idx=");
+	for (int I : Idx) Ids += FString::Printf(TEXT("%d "), I);
+	Ids += TEXT("cands=");
+	for (int I : Cands) Ids += FString::Printf(TEXT("%d "), I);
+	RuleLogNodes(*Ids);
 	UiSound(EPDSound::Denied);
-	// 조사용 (2026-11-16 사용자 판: 플러시 합성 타워를 재료로 못 고름): 거절될 때 판의 재료 후보 · 고른 재료를 로그에 (PDCRAFT 로 찾기)
-	FString Dump = FString::Printf(TEXT("PDCRAFT deny cell=%d joker=%d picks=%d idx="), Cell, CraftJoker, (int32)CraftPicks.size());
-	for (int I : Idx) Dump += FString::Printf(TEXT("%d "), I);
-	Dump += TEXT("cands=");
-	for (int I : Cands) Dump += FString::Printf(TEXT("%d "), I);
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *Dump);
-	for (int32 I = 0; I < (int32)Ns.size(); ++I)
-	{
-		FString Cs;
-		for (int K : Ns[I].Cells) Cs += FString::Printf(TEXT("%d(%d%c L%d) "), K, Game.Towers.count(K) ? Game.Towers.at(K).Card.Rank : -1, Game.Towers.count(K) ? TEXT("SHDCW")[FMath::Clamp((int32)Game.Towers.at(K).Card.Suit, 0, 4)] : TEXT('?'), Game.Towers.count(K) ? Game.Towers.at(K).Level : -1);
-		UE_LOG(LogTemp, Warning, TEXT("PDCRAFT node %d kind=%d syn=%d fused=%d cells=%s"), I, (int32)Ns[I].Kind, Ns[I].Syn, Ns[I].Fused, *Cs);
-	}
-	for (const std::vector<int>& Pk : CraftPicks) { FString Cs; for (int K : Pk) Cs += FString::Printf(TEXT("%d "), K); UE_LOG(LogTemp, Warning, TEXT("PDCRAFT pick %s"), *Cs); }
 }
 
 void SPDBoardWidget::CraftRightClick(int32 Cell)
@@ -1270,6 +1266,8 @@ void SPDBoardWidget::ToggleCraft()
 	CraftJoker = -1;
 	CraftUpper = -1;
 	CraftPicks.clear();
+	RefreshJokerList();
+	RuleLogNodes(TEXT("craft mode on")); // 룰 로그 (D-358)
 	JokerListSig = 0;
 	Sel = -1;
 	FeedJoker = -1;
@@ -1619,6 +1617,7 @@ void SPDBoardWidget::StartPour(int32 I)
 
 void SPDBoardWidget::UiSound(EPDSound S)
 {
+	if (S == EPDSound::Denied) RuleLog(TEXT("DENIED")); // 룰 로그 (D-358): 무엇이 막혔는지 앞뒤 줄로 본다
 	if (!Game.bMuted) Game.Sounds.push_back({S, 0, 0, 1.f});
 }
 
