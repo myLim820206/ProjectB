@@ -643,12 +643,10 @@ const int32 UpgSteps[4] = {1, 10, 100, UpgradeMaxCleared}; // 영구 강화 버�
 constexpr float BoxBtnW = 233.f, BoxBtnH = 44.f, BoxBtnY = UpgRowY + 8 * UpgRowH + 6.f;
 inline float BoxBtnX(int I) { return UpgRowX + I * (BoxBtnW + 16.f); }
 inline FVector2f UpgButtonPos(int Row, int K) { const FVector2f C0 = UpgCardPos(Row); return FVector2f(C0.X + 14.f + K * 63.f, C0.Y + 208.f); }
-// 웨이브 시작 버튼 아래 2×2 버튼 (D-119): 트리 K · 강화 U / 도감 J · 메뉴 Esc
+// 웨이브 시작 버튼 아래 버튼 한 줄 (D-119): 트리 K · 강화 U. 도감 · 메뉴 버튼은 뺐다 (D-349): 위 톱니바퀴 = 메뉴, 도감은 메뉴 안 (J 키는 그대로)
 constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 36.f;
 constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = TreeBtnH;
-constexpr float CodexBtnX = RBtnX, CodexBtnY = TreeBtnY + TreeBtnH + 8.f, CodexBtnW = TreeBtnW, CodexBtnH = TreeBtnH;
-constexpr float MenuBtnX = UpgOpenX, MenuBtnY = CodexBtnY, MenuBtnW = TreeBtnW, MenuBtnH = TreeBtnH;
-constexpr float CharmY = MenuBtnY + MenuBtnH + 12.f; // 부적 칸
+constexpr float CharmY = TreeBtnY + TreeBtnH + 12.f; // 부적 칸 (버튼 한 줄이 빠진 만큼 위로)
 // 위에 걸린 간판 (D-274, 인게임 시안 B)
 constexpr float SignEnX = 270.f, SignEnY = 20.f, SignEnW = 182.f, SignEnH = 68.f;   // 남은 적 (전구 줄)
 // 주크박스 간판 (D-319): 예전 남은 적 간판 자리 (SignEn). ◀ ▶ 곡 넘기기
@@ -691,9 +689,9 @@ inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * U
 constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
 inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
-enum class EMenuItem : uint8_t { Resume, NewGame, Title, Settings, Quit, Count }; // Title: 메인 메뉴로 (D-287) // 튜토리얼은 뺐다 (D-217, 도움말로)
+enum class EMenuItem : uint8_t { Resume, NewGame, Title, Settings, Codex, Quit, Count }; // Codex: 도감 (D-349, 판 위 도감 버튼 대신) // Title: 메인 메뉴로 (D-287) // 튜토리얼은 뺐다 (D-217, 도움말로)
 constexpr float MenuW = 300.f, MenuItemH = 44.f, MenuGap = 12.f;
-constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 280.f; // 버튼 5개 (D-287)
+constexpr float MenuX = DesignW / 2.f - MenuW / 2.f, MenuItemY0 = 260.f; // 버튼 6개 (D-287, D-349)
 inline FVector2f MenuItemPos(int I) { return FVector2f(MenuX, MenuItemY0 + I * (MenuItemH + MenuGap)); }
 // 시작 화면 (D-153): 게임 시작 · 환경 설정 · 게임 종료. 게임 시작 → 로딩 화면 → 인게임
 enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Settings, Quit, Count }; // 랭킹은 뺐다 (D-242) // Unlock: 잠금 해제 (D-239) // 영구 강화 (D-230) // 이어하기는 중단 저장이 있을 때만 (D-162)
@@ -716,7 +714,7 @@ constexpr float ClearBtnY = 600.f, ClearBtnX = DesignW / 2.f - 115.f;
 constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
-	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("메인 메뉴로"), TEXT("설정"), TEXT("게임 종료")};
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("메인 메뉴로"), TEXT("설정"), TEXT("도감"), TEXT("게임 종료")};
 	return Tr(N[I]);
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼

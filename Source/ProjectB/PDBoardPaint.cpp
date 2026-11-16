@@ -2159,7 +2159,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			C.Glow({FVector2f(Ax + K * 11.f, Ay - 9.f), FVector2f(Ax + K * 11.f + 10.f, Ay), FVector2f(Ax + K * 11.f, Ay + 9.f)}, WithAlpha(SC, A), 2.f, 0.8f);
 		C.Text(TEXT("F: 배속 바꾸기"), RXb, Yb + 18.f, WithAlpha(SC, 0.5f), 10.f, 2);
 	}
-	// ---- 2×2 버튼: 트리 K · 강화 U / 도감 J · 메뉴 Esc
+	// ---- 스킬 트리 버튼 (도감 · 메뉴 버튼은 뺐다, D-349: 톱니바퀴 = 메뉴, 도감은 메뉴 안)
 	{
 		auto Btn = [&](float X, float Y, float W, float H, const TCHAR* Name, const TCHAR* Key, const FLinearColor& Col, bool bHot) {
 			const bool bHov = InRect(Mouse, X, Y, W, H);
@@ -2180,8 +2180,6 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
 		Btn(TreeBtnX, TreeBtnY, RBtnW, TreeBtnH, TEXT("스킬 트리"), TEXT("K"), Purple, bPlay && G.PointsLeft() > 0); // 판 안 영구 강화 버튼은 뺐다 (D-240): 트리가 한 줄을 다 쓴다
-		Btn(CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH, TEXT("도감"), TEXT("J"), JokerPink, false); // 칵테일도 나오니 그냥 도감 (D-285)
-		Btn(MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH, TEXT("메뉴"), TEXT("Esc"), Grey, false);
 	}
 	// ---- 부적: 이름·설명
 	{

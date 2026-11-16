@@ -1487,13 +1487,11 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (!bRight && FVector2f::Distance(P, TvDialPos()) <= TvDialR + 3.f) { TvDial(); return; } // 채널 TV 다이얼 (D-316)
 	for (int32 Dir = -1; Dir <= 1; Dir += 2) if (!bRight && InRect(P, JukeBtnX(Dir), JukeBtnY, JukeBtnS, JukeBtnS)) { JukeStep(Dir); return; } // 주크박스 간판 ◀ ▶ (D-319)
-	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
-	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; UnlSetTab(1); Sel = -1; return; } // 도감은 조커 판부터 (D-265)
-	// 위쪽 띠 버튼 (D-119): 속도, 설정
+	// 위쪽 띠 버튼 (D-119): 속도, 일시정지, 톱니바퀴 = 메뉴 (D-349: 설정 · 도감은 메뉴 안에서)
 	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
 	if (!bRight && InRect(P, PauseBtnX, HudBtnY, HudBtnS, HudBtnS) && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { bPaused = !bPaused; UiSound(EPDSound::Move); return; } // 일시정지 (D-169)
-	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bSettings = true; SetSel = 0; Sel = -1; return; }
+	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bMenu = true; MenuSel = 0; Sel = -1; UiSound(EPDSound::Move); return; }
 	// 먹이기 목록 (D-213): 판 칸 클릭 = 먹이기 / 조커 고르기, 오른쪽 클릭 = 풀기 → 끄기
 	if (InFeed())
 	{
@@ -1879,6 +1877,7 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 		UiSound(EPDSound::Move);
 		break;
 	case EMenuItem::Settings: bSettings = true; SetSel = 0; break;
+	case EMenuItem::Codex: bMenu = false; bCodex = true; UnlSetTab(1); Sel = -1; UiSound(EPDSound::Move); break; // 도감은 조커 판부터 (D-265). 닫으면 판으로
 	case EMenuItem::Quit:
 		bMenu = false;
 		if (OnQuit) OnQuit();
