@@ -116,28 +116,50 @@ def subdiv(pts, n=8):
     return out
 
 
-def draw_sheet(img, u):
-    P = sheet_map(u)
+def solve8(A, b):
+    """8×8 가우스 소거 (PIL PERSPECTIVE 계수 구하기)"""
+    n = 8
+    M = [row[:] + [b[i]] for i, row in enumerate(A)]
+    for c in range(n):
+        p = max(range(c, n), key=lambda r: abs(M[r][c]))
+        M[c], M[p] = M[p], M[c]
+        for r in range(n):
+            if r != c and M[c][c] != 0:
+                f = M[r][c] / M[c][c]
+                M[r] = [a - f * bb for a, bb in zip(M[r], M[c])]
+    return [M[i][n] / M[i][i] for i in range(n)]
+
+
+def persp(dst, src):
+    """출력 점 dst[i] → 입력 점 src[i] 로 가는 PIL PERSPECTIVE 계수"""
+    A, b = [], []
+    for (x, y), (X, Y) in zip(dst, src):
+        A.append([x, y, 1, 0, 0, 0, -X * x, -X * y]); b.append(X)
+        A.append([0, 0, 0, x, y, 1, -Y * x, -Y * y]); b.append(Y)
+    return solve8(A, b)
+
+
+def content_img(fn):
+    """쪽 내용만 (책 없이) 그린 그림 — 넘어가는 장에 입힌다"""
     M = Sign(0.8); M.small_glow = 0.0
+    fn[0](M, *fn[1:])
+    im = M.draw()
+    return ImageChops.subtract(im, Image.new('RGB', im.size, (6, 6, 11)))
+
+
+def draw_sheet(img, u, front, back, ghost=None):
+    """front / back: content_img (앞면 = 넘어가는 오른쪽 쪽, 뒷면 = 새 왼쪽 쪽). 장을 띠 18개로 나눠 띠마다 원근으로 입힌다 (게임: 그림 굽고 격자 꼭짓점으로 찍기)"""
+    P = sheet_map(u)
     side = 'front' if u < 0.5 else 'back'
+    src = front if side == 'front' else back
     ca = abs(math.cos(math.pi * u))
-    face = 0.35 + 0.65 * ca  # 눕힌 정도로 면 밝기
-    for pts, c, wd, b in sheet_lines(side):
-        if side == 'back': pts = [(LW - x, y) for x, y in pts]
-        M.ln([P(x, y)[0] for x, y in subdiv(pts, 4)], c, wd, b * face)
-    # 테두리 (휜 모양) + 바깥 끝 흰 빛줄
-    qs = [LW * k / 16 for k in range(17)]
+    face = 0.35 + 0.65 * ca
+    s = math.sin(math.pi * u)
+    qs = [LW * k / 18 for k in range(19)]
     ys = [TOP + (BOT - TOP) * k / 16 for k in range(17)]
     outline = [P(q, TOP)[0] for q in qs] + [P(LW, y)[0] for y in ys] + [P(q, BOT)[0] for q in reversed(qs)] + [P(0, y)[0] for y in reversed(ys)]
-    M.ln(outline, LAV, 1.2, 0.5 + 0.4 * face)
-    M.ln([P(LW - 3, y)[0] for y in ys], WHITE, 1.0, 0.25 + 0.45 * math.sin(math.pi * u))
-    # 덮기 (장 면 색: 눕힌 정도로 조금 밝게) → 그림자 → 장 그림
-    d = ImageDraw.Draw(img)
-    shade = int(8 + 7 * face)
-    # 그림자: 장 아래 드러나는 쪽, 장 쪽으로 진해짐
-    s = math.sin(math.pi * u)
-    sh = Image.new('RGB', img.size, (0, 0, 0))
-    sd = ImageDraw.Draw(sh)
+    # 그림자 (장 아래 드러나는 쪽)
+    sh = Image.new('RGB', img.size, (0, 0, 0)); sd = ImageDraw.Draw(sh)
     edge_x = P(LW, (TOP + BOT) / 2)[0][0]
     for k in range(40):
         x = edge_x + (k if u < 0.5 else -k) * 2.5
@@ -145,27 +167,65 @@ def draw_sheet(img, u):
         v = int(26 * s * (1 - k / 40) ** 2)
         sd.line([(x, TOP), (x, BOT)], fill=(v, v, v), width=3)
     img = ImageChops.subtract(img, sh)
-    d = ImageDraw.Draw(img)
-    d.polygon(outline, fill=(shade, shade, shade + 6))
-    lay = M.draw()
-    return ImageChops.add(img, ImageChops.subtract(lay, Image.new('RGB', lay.size, (6, 6, 11))))
+    # 장 면 채움
+    shade = int(8 + 7 * face)
+    ImageDraw.Draw(img).polygon(outline, fill=(shade, shade, shade + 6))
+    # 쪽 내용 입히기 (띠마다 원근 변환, 면 밝기로 어둡게)
+    lay = Image.new('RGB', img.size, (0, 0, 0))
+    for q0, q1 in zip(qs, qs[1:]):
+        d4 = [P(q0, TOP)[0], P(q1, TOP)[0], P(q1, BOT)[0], P(q0, BOT)[0]]
+        if side == 'front': s4 = [(CB.SPX + q0, TOP), (CB.SPX + q1, TOP), (CB.SPX + q1, BOT), (CB.SPX + q0, BOT)]
+        else: s4 = [(CB.SPX - q0, TOP), (CB.SPX - q1, TOP), (CB.SPX - q1, BOT), (CB.SPX - q0, BOT)]
+        x0, y0 = int(min(p[0] for p in d4)) - 1, int(min(p[1] for p in d4)) - 1
+        x1, y1 = int(max(p[0] for p in d4)) + 2, int(max(p[1] for p in d4)) + 2
+        if x1 - x0 < 2: continue
+        co = persp([(x - x0, y - y0) for x, y in d4], s4)
+        part = src.transform((x1 - x0, y1 - y0), Image.PERSPECTIVE, co, Image.BILINEAR)
+        mask = Image.new('L', part.size, 0)
+        ImageDraw.Draw(mask).polygon([(x - x0, y - y0) for x, y in d4], fill=255)
+        lay.paste(part, (x0, y0), mask)
+    lay = lay.point(lambda v: int(v * face))
+    img = ImageChops.add(img, lay)
+    # 테두리 · 접힌 끝 빛줄 · 잔상
+    M = Sign(0.8); M.small_glow = 0.0
+    M.ln(outline, LAV, 1.2, 0.5 + 0.4 * face)
+    M.ln([P(LW - 3, y)[0] for y in ys], WHITE, 1.0, 0.25 + 0.45 * s)
+    if ghost is not None:  # 빠르게 넘길 때: 바로 앞 장면의 바깥 끝을 옅게 (잔상)
+        G = sheet_map(ghost)
+        M.ln([G(LW, y)[0] for y in ys], LAV, 1.0, 0.3)
+    l2 = M.draw()
+    return ImageChops.add(img, ImageChops.subtract(l2, Image.new('RGB', l2.size, (6, 6, 11))))
+
+
+def stack_edges(M, page, pages=3):
+    """쪽 두께: 책 바깥 테 안쪽에 얇은 선. 왼쪽은 넘긴 쪽 수만큼, 오른쪽은 남은 쪽만큼"""
+    nl, nr = 1 + page, 1 + (pages - 1 - page)
+    for k in range(nl): M.ln([(LX - 4 - k * 3, TOP + 6 + k), (LX - 4 - k * 3, BOT - 6 - k)], LAV, 0.8, 0.35)
+    for k in range(nr): M.ln([(RX + LW + 4 + k * 3, TOP + 6 + k), (RX + LW + 4 + k * 3, BOT - 6 - k)], LAV, 0.8, 0.35)
 
 
 # ---------------------------------------------------------------- 한 장면
-def render(tab, left, right, sheets=(), text=1.0, press=0.0, ext=None):
-    """text: 쪽 글자 보임 정도 (넘어가는 동안 0, 다 넘어가면 0 → 1)"""
-    def layer(with_text):
-        M = Sign(0.8); M.small_glow = 0.0
-        CB.book(M, active=tab, ext=ext)
-        if with_text:
-            left[0](M, *left[1:])
-            right[0](M, *right[1:])
-        CB.footer(M, press)
-        return M.draw()
-    img = layer(True) if text >= 1 else Image.blend(layer(False), layer(True), text) if text > 0 else layer(False)
-    for u in sheets:
-        if 0 < u < 1: img = draw_sheet(img, u)
+def render(tab, left, right, sheets=(), press=0.0, ext=None, page=0, spine=0.0, corner=0.0, cont=None):
+    """sheets: [(u, 앞면 그림, 뒷면 그림, 잔상 u)], spine: 책등 빛 (내려앉을 때 통), corner: › 위 마우스 = 모서리 살짝 들림"""
+    M = Sign(0.8); M.small_glow = 0.0
+    CB.book(M, active=tab, ext=ext)
+    stack_edges(M, page)
+    left[0](M, *left[1:])
+    right[0](M, *right[1:])
+    CB.footer(M, press)
+    if spine > 0: M.ln([(CB.SPX, TOP), (CB.SPX, BOT)], WHITE, 1.4, spine)
+    img = M.draw()
+    if corner > 0 and cont is not None: img = draw_sheet(img, corner, cont, cont)
+    for u, fr, bk, gh in sheets:
+        if 0 < u < 1: img = draw_sheet(img, u, fr, bk, gh)
     return img.resize((960, 540), Image.LANCZOS)
+
+
+def ease_land(u):
+    """끝에서 아주 조금 넘었다 돌아옴 (내려앉는 느낌)"""
+    u = min(1.0, max(0.0, u))
+    e = ease(u)
+    return e + 0.03 * math.sin(math.pi * min(1.0, u * 1.25)) * (u > 0.8)
 
 
 def main(out):
@@ -174,29 +234,35 @@ def main(out):
     L1, R1 = (detail_cocktail, 5), (list_cocktail, 0)
     L2, R2 = (detail_cocktail, 12), (list_cocktail, 1)
     LJ, RJ = (detail_joker, 1), (list_joker,)
-    F += [render(0, L1, R1)] * 8
-    F += [render(0, L1, R1, press=p) for p in (0.5, 1.0)]  # 1 › 눌림
+    cR1, cL2, cR2, cL1 = content_img(R1), content_img(L2), content_img(R2), content_img(L1)
+    F += [render(0, L1, R1)] * 6
+    F += [render(0, L1, R1, corner=c, cont=cR1) for c in (0.015, 0.03, 0.04, 0.04)]  # 마우스를 › 에: 모서리가 살짝 들림
+    F += [render(0, L1, R1, press=p, corner=0.04, cont=cR1) for p in (0.5, 1.0)]  # › 눌림
     n = int(0.5 * FPS)
-    for f in range(n):  # 2 ~ 5 한 장 넘어감 (아래로 다음 쪽이 드러남)
-        F.append(render(0, L1, R2, sheets=[ease((f + 1) / n)], press=max(0.0, 1 - f / 3)))
-    a, b = render(0, L1, R2), render(0, L2, R2)
-    F += [Image.blend(a, b, (k + 1) / 4) for k in range(4)]  # 6 왼쪽 상세가 겹쳐 바뀜
-    F += [b] * 12
-    # 탭 바꾸기: 조커 탭이 밀려 나오고 세 장이 겹쳐 넘어감
+    for f in range(n):  # 한 장이 휘며 넘어감 (앞면 = 1쪽 목록, 뒷면 = 새 왼쪽 상세)
+        u = 0.04 + 0.96 * ease((f + 1) / n)
+        F.append(render(0, L1, R2, sheets=[(min(u, 0.999), cR1, cL2, None)], press=max(0.0, 1 - f / 3), page=0))
+    F += [render(0, L2, R2, page=1, spine=s) for s in (0.7, 0.4, 0.15)]  # 내려앉음: 책등이 한 번 빛남
+    F += [render(0, L2, R2, page=1)] * 12
+    # 탭 바꾸기: 조커 탭이 밀려 나오고 세 장이 겹쳐 넘어감 (빠른 장엔 잔상)
     m = int(0.32 * FPS)
-    tot = m + 2 * int(0.1 * FPS) + 1
+    gap = int(0.1 * FPS)
+    tot = m + 2 * gap + 1
+    prev = [0.0, 0.0, 0.0]
     for f in range(tot):
         e = ease(min(1.0, (f + 1) / 5))
         ext = [10 * (1 - e), 10 * e, 0, 0]
-        us = [ease((f - k * int(0.1 * FPS) + 1) / m) for k in range(3)]
-        F.append(render(1, L2, RJ, sheets=us, ext=ext))
-    a, b = render(1, L2, RJ, ext=[0, 10, 0, 0]), render(1, LJ, RJ)
-    F += [Image.blend(a, b, (k + 1) / 4) for k in range(4)]
-    F += [b] * 18
-    pal = [f.convert('P', palette=Image.ADAPTIVE, colors=200) for f in F]
+        us = [ease((f - k * gap + 1) / m) for k in range(3)]
+        sh = [(us[k], cR2, cL2, prev[k] if 0 < prev[k] < 1 else None) for k in range(3)]
+        prev = us
+        F.append(render(1, L2, RJ, sheets=sh, ext=ext, page=1))
+    F += [render(1, LJ, RJ, page=0, spine=s) for s in (0.7, 0.4, 0.15)]
+    F += [render(1, LJ, RJ, page=0)] * 18
+    pal = [f.convert('P', palette=Image.ADAPTIVE, colors=220) for f in F]
     pal[0].save(os.path.join(out, 'codex_flip.gif'), save_all=True, append_images=pal[1:], duration=int(1000 / FPS), loop=0)
-    F[10 + n // 2].save(os.path.join(out, 'codex_flip_mid.png'))
-    F[10 + n // 4].save(os.path.join(out, 'codex_flip_early.png'))
+    F[12 + n // 2 - 1].save(os.path.join(out, 'codex_flip_mid.png'))
+    F[12 + n // 4].save(os.path.join(out, 'codex_flip_early.png'))
+    F[12 + n * 3 // 4].save(os.path.join(out, 'codex_flip_late.png'))
     print('ok', len(F))
 
 
