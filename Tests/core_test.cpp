@@ -1396,7 +1396,7 @@ static EPDMode GBotMode = EPDMode::Endless; // 봇 판의 모드 (D-229)
 static int GBotClears = 0;
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
-	double PointSum = 0, GoldSum = 0;
+	double PointSum = 0, GoldSum = 0, ChipSum = 0;
 	GKeysTaken.clear();
 	GUpgLv.clear();
 	std::map<int, int> Hist;
@@ -1553,6 +1553,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		WaveSum += G.Wave;
 		PointSum += G.Points;
 		GoldSum += G.XpEarned;
+		ChipSum += G.RunChips(); // 판당 칩 (D-320 해금 속도 계산)
 		for (int U = 0; U < (int)EPDUpgrade::Count; ++U) GUpgLv[U] += G.Upg[U];
 	}
 	std::printf("\n%s%s%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 부적 먼저", bFuse ? " · 합성" : "", bJoker ? " · 조커" : "", bTree ? " · 트리" : "", Runs);
@@ -1562,7 +1563,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	if (bJoker) std::printf("   조커 판당 %.1f개 (종류:", (double)JokersMade[0] / Runs);
 	if (bJoker) { for (auto& KV : KindsMade) std::printf(" %d=%d", KV.first + 1, KV.second); std::printf(")"); }
 	if (bJoker) std::printf("   먹이기 판당 %.1f번 · 최고 조커 레벨 평균 %.1f · 상위 조커 판당 %.1f개", (double)Feeds / Runs, (double)JLvSum / Runs, (double)UppersMade / Runs);
-	std::printf("   번 경험치 %.0f · 레벨 포인트 %.1f", GoldSum / Runs, PointSum / Runs);
+	std::printf("   번 경험치 %.0f · 레벨 포인트 %.1f · 칩 %.0f", GoldSum / Runs, PointSum / Runs, ChipSum / Runs);
 	if (bTree) { std::printf("   키스톤:"); for (auto& KV : GKeysTaken) std::printf(" %d=%d", KV.first, KV.second); }
 	std::printf("\n");
 }
