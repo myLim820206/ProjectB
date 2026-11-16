@@ -1405,8 +1405,8 @@ static void UnitTests()
 			FPDGoalStats St;
 			bool bNone = true;
 			for (int I = 0; I < (int)EPDGoal::Count; ++I) bNone &= !GoalMet((EPDGoal)I, St);
-			St.ModesCleared = 1u; St.TotalKills = 10000; St.RunsPlayed = 10;
-			const bool bSome = GoalMet(EPDGoal::Clear30, St) && !GoalMet(EPDGoal::Clear60, St) && GoalMet(EPDGoal::TotalKills10k, St) && GoalMet(EPDGoal::Runs10, St);
+			St.ModesCleared = 1u; St.BossKilled = 0x1FFu; St.RunsPlayed = 10;
+			const bool bSome = GoalMet(EPDGoal::Clear30, St) && !GoalMet(EPDGoal::Clear60, St) && GoalMet(EPDGoal::Bosses9, St) && GoalMet(EPDGoal::Runs10, St);
 			bool bUniq = true, bPriced = true;
 			for (int I = 0; I < (int)EPDGoal::Count; ++I) { bPriced &= (int)GoalDef(I).Reward >= CharmBaseCount; for (int K = 0; K < I; ++K) bUniq &= GoalDef(I).Reward != GoalDef(K).Reward; }
 			Expect(bNone && bSome && bUniq && bPriced && CharmGoal((int)EPDCharm::JokerFan) == (int)EPDGoal::FirstJoker && CharmGoal(0) < 0, "목표 해금 10종: 처음엔 없음, 조건 맞으면 열림, 보상 칵테일은 겹치지 않고 처음 열린 18종이 아님 (D-321)");

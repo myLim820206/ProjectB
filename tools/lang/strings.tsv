@@ -93,7 +93,7 @@ ko	en	ja	zh-Hans	zh-Hant	file
 조커 수집가	Joker Collector	ジョーカーコレクター	小丑收藏家	小丑收藏家	PDBoardDraw.h
 늦은 밤의 고수	Late Night Master	深夜の達人	深夜高手	深夜高手	PDBoardDraw.h
 천 명의 병정	A Thousand Soldiers	千人の兵士	一千名士兵	一千名士兵	PDBoardDraw.h
-만 명의 병정	Ten Thousand Soldiers	一万人の兵士	一万名士兵	一萬名士兵	PDBoardDraw.h
+아홉 손님 상대	Nine Guests Served	9人の客の相手	招待九位客人	招待九位客人	PDBoardDraw.h
 단골손님	Regular	常連客	常客	常客	PDBoardDraw.h
 끝나지 않는 밤	The Endless Night	終わらない夜	无尽之夜	無盡之夜	PDBoardDraw.h
 새벽이 올 때까지	Until Dawn	夜明けまで	直到黎明	直到黎明	PDBoardDraw.h
@@ -119,7 +119,7 @@ ko	en	ja	zh-Hans	zh-Hant	file
 기본 조커 10종 모두 만들기	Make all 10 basic jokers	基本ジョーカー10種をすべて作る	制作全部10种基础小丑	製作全部10種基礎小丑	PDBoardDraw.h
 한 판에 레벨 30	Reach level 30 in one run	1回のプレイでレベル30	单局达到30级	單局達到30級	PDBoardDraw.h
 한 판에 1,000마리 처치	Defeat 1,000 enemies in one run	1回のプレイで1,000体撃破	单局击败1,000个敌人	單局擊敗1,000個敵人	PDBoardDraw.h
-모든 판 합쳐 10,000마리 처치	Defeat 10,000 enemies in total	合計10,000体撃破	累计击败10,000个敌人	累計擊敗10,000個敵人	PDBoardDraw.h
+보스 9종 처치	Defeat 9 kinds of bosses	ボス9種を撃破	击败9种首领	擊敗9種首領	PDBoardDraw.h
 10판 끝내기	Finish 10 runs	10回プレイを終える	完成10局	完成10局	PDBoardDraw.h
 핑크 하트 사워	Pink Heart Sour	ピンクハート・サワー	粉心酸酒	粉心酸酒	PDBoardDraw.h
 블랙 스페이드 마티니	Black Spade Martini	ブラックスペード・マティーニ	黑桃马天尼	黑桃馬丁尼	PDBoardDraw.h
@@ -165,7 +165,7 @@ ko	en	ja	zh-Hans	zh-Hant	file
 잭 로즈	Jack Rose	ジャック・ローズ	杰克玫瑰	傑克玫瑰	PDBoardDraw.h
 듀스	Deuce	デュース	双二	雙二	PDBoardDraw.h
 레인보우 슈터	Rainbow Shooter	レインボー・シューター	彩虹一口杯	彩虹一口杯	PDBoardDraw.h
-하이 롤러	High Roller	ハイ・ローラー	豪赌客	豪賭客	PDBoardDraw.h
+골든 플러시	Golden Flush	ゴールデンフラッシュ	黄金同花	黃金同花	PDBoardDraw.h
 더블 더블	Double Double	ダブル・ダブル	双双	雙雙	PDBoardDraw.h
 트리플 샷	Triple Shot	トリプル・ショット	三倍一口杯	三倍一口杯	PDBoardDraw.h
 쿼드 슬링	Quad Sling	クアッド・スリング	四重司令	四重司令	PDBoardDraw.h
@@ -775,9 +775,13 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 다음 웨이브 %d	Next wave %d	次のウェーブ %d	下一波 %d	下一波 %d	PDBoardTv.cpp
 마지막 웨이브 · 최종 보스	Final wave · final boss	最終ウェーブ · 最終ボス	最后一波 · 最终首领	最後一波 · 最終首領	PDBoardTv.cpp
 도전 과제 달성	Achievement unlocked	実績解除	成就达成	成就達成	PDBoardTv.cpp
-아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
+아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+만 명의 병정	Ten Thousand Soldiers	一万人の兵士	一万名士兵	一萬名士兵	PDLangTable.inl
+모든 판 합쳐 10,000마리 처치	Defeat 10,000 enemies in total	合計10,000体撃破	累计击败10,000个敌人	累計擊敗10,000個敵人	PDLangTable.inl
+하이 롤러	High Roller	ハイ・ローラー	豪赌客	豪賭客	PDLangTable.inl
+아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDLangTable.inl
 서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 → 상위 조커	Place two different jokers side by side, both at joker level 10 → upper joker	異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 → 上位ジョーカー	将两个不同的小丑相邻放置，都达到小丑等级 10 → 上位小丑	將兩個不同的小丑相鄰放置，都達到小丑等級 10 → 上位小丑	PDLangTable.inl
 다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요	Two different adjacent jokers, both joker level 10, can merge	異なるジョーカー二つが隣接し、両方ジョーカーレベル10なら合体	两个不同的小丑相邻且小丑等级都达到10即可合成	兩個不同的小丑相鄰且小丑等級都達到10即可合成	PDLangTable.inl
 클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDLangTable.inl

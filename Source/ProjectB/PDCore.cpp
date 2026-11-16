@@ -168,7 +168,7 @@ bool GoalMet(EPDGoal G, const FPDGoalStats& S)
 	case EPDGoal::AllJokers: return (S.Discovered & 0x3FFu) == 0x3FFu;
 	case EPDGoal::Level30: return S.BestLevel >= 30;
 	case EPDGoal::Kills1000: return S.BestKills >= 1000;
-	case EPDGoal::TotalKills10k: return S.TotalKills >= 10000;
+	case EPDGoal::Bosses9: { int N = 0; for (uint32_t V = S.BossKilled; V; V >>= 1) N += V & 1u; return N >= 9; } // 보스 9종 처치 (D-340)
 	case EPDGoal::Runs10: return S.RunsPlayed >= 10;
 	default: return false;
 	}
@@ -204,7 +204,7 @@ bool AchMet(EPDAch A, const FPDAchStats& S)
 const char* AchApiName(EPDAch A)
 {
 	static const char* N[(int)EPDAch::Count] = {"ACH_CLEAR_30", "ACH_CLEAR_60", "ACH_CLEAR_100", "ACH_FIRST_JOKER", "ACH_FIRST_UPPER", "ACH_ALL_JOKERS", "ACH_LEVEL_30", "ACH_KILLS_1000",
-		"ACH_TOTAL_KILLS_10K", "ACH_RUNS_10", "ACH_ENDLESS_150", "ACH_ENDLESS_200", "ACH_ROYAL_FLUSH", "ACH_FIVE_CARD", "ACH_ALL_HANDS", "ACH_FUSE_MAX", "ACH_UPPERS_10", "ACH_ALL_UPPERS",
+		"ACH_BOSSES_9", "ACH_RUNS_10", "ACH_ENDLESS_150", "ACH_ENDLESS_200", "ACH_ROYAL_FLUSH", "ACH_FIVE_CARD", "ACH_ALL_HANDS", "ACH_FUSE_MAX", "ACH_UPPERS_10", "ACH_ALL_UPPERS",
 		"ACH_CHARMS_30", "ACH_ALL_CHARMS", "ACH_UPGRADE_MAX", "ACH_SECRET_CHANNEL", "ACH_RUNS_50", "ACH_TOTAL_KILLS_100K", "ACH_ALL_BOSSES", "ACH_ALL_FINAL_BOSSES", "ACH_MUTANT_BOSS"};
 	return N[std::clamp((int)A, 0, (int)EPDAch::Count - 1)];
 }

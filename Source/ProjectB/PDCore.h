@@ -512,22 +512,23 @@ struct FPDGoalStats
 	uint32_t ModesCleared = 0; // 1 << EPDMode
 	uint32_t Discovered = 0;   // 만들어 본 기본 조커 (1 << EPDJoker)
 	uint32_t UpperFound = 0;   // 만들어 본 상위 조커
+	uint32_t BossKilled = 0;   // 잡은 보스 (1 << BossBit, D-337)
 };
-enum class EPDGoal : uint8_t { Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, TotalKills10k, Runs10, Count };
+enum class EPDGoal : uint8_t { Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, Bosses9, Runs10, Count }; // Bosses9: 보스 9종 처치 (D-340, 예전 누적 10,000마리)
 struct FPDGoalDef { EPDGoal Goal; EPDCharm Reward; };
 inline const FPDGoalDef& GoalDef(int I)
 {
 	static const FPDGoalDef D[(int)EPDGoal::Count] = {
 		{EPDGoal::Clear30, EPDCharm::FullHouseFan}, {EPDGoal::Clear60, EPDCharm::RoyalGuard}, {EPDGoal::Clear100, EPDCharm::StraightFlushFan},
 		{EPDGoal::FirstJoker, EPDCharm::JokerFan}, {EPDGoal::FirstUpper, EPDCharm::BigJoker}, {EPDGoal::AllJokers, EPDCharm::Forge},
-		{EPDGoal::Level30, EPDCharm::Herald}, {EPDGoal::Kills1000, EPDCharm::Bounty}, {EPDGoal::TotalKills10k, EPDCharm::BossHunter}, {EPDGoal::Runs10, EPDCharm::Dexterity}};
+		{EPDGoal::Level30, EPDCharm::Herald}, {EPDGoal::Kills1000, EPDCharm::Bounty}, {EPDGoal::Bosses9, EPDCharm::BossHunter}, {EPDGoal::Runs10, EPDCharm::Dexterity}};
 	return D[I];
 }
 bool GoalMet(EPDGoal G, const FPDGoalStats& S);
 // 도전 과제 (B8, docs/17 4절): 목표 해금 10종(EPDGoal 과 같은 순서) + 14종. 스팀 도전 과제 API 이름은 AchApiName
 enum class EPDAch : uint8_t
 {
-	Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, TotalKills10k, Runs10, // 목표 해금과 같다
+	Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, Bosses9, Runs10, // 목표 해금과 같다
 	Endless150, Endless200, RoyalFlush, FiveCard, AllHands, FuseMax, Uppers10, AllUppers, Charms30, AllCharms, UpgradesAll, SecretChannel, Runs50, TotalKills100k,
 	AllBosses, AllFinals, Mut3Boss, // 보스 (D-337)
 	Count
@@ -540,7 +541,6 @@ struct FPDAchStats : FPDGoalStats
 	int EndlessBest = 0;      // 무한 모드 최고 웨이브
 	bool bUpgradesMax = false; // 영구 강화 8종 모두 20
 	bool bSecretChannel = false; // 채널 TV 숨은 채널 (D-316)
-	uint32_t BossKilled = 0;  // 잡은 보스 (1 << BossBit)
 	bool bMut3Kill = false;   // 변이 셋 붙은 보스를 잡음
 };
 bool AchMet(EPDAch A, const FPDAchStats& S);
