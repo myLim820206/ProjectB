@@ -5,7 +5,8 @@
 
 namespace
 {
-constexpr float CmW = 290.f, CmTopLines = 6.f, CmLineH = 17.f, CmRowH = 24.f;
+constexpr float CmW = 290.f, CmTopLines = 6.f, CmLineH = 17.f, CmRowH = 36.f; // 할 일 줄 = 알약 튜브 버튼 (D-350, 시안 A): 버튼 높이 CmBtnH + 사이 6
+constexpr float CmBtnH = 30.f;
 constexpr float CmTopH = 18.f + CmTopLines * CmLineH; // 위쪽 칸 높이 (줄에 마우스를 올려도 상자 크기가 안 변하게 고정)
 bool HasCell(const std::vector<int>& Cs, int K) { return std::find(Cs.begin(), Cs.end(), K) != Cs.end(); }
 FString Signed(float Pct) { return FString::Printf(TEXT("%s%.0f%%"), Pct >= 0.f ? TEXT("+") : TEXT(""), Pct); }
@@ -329,13 +330,13 @@ void SPDBoardWidget::PaintCellMenu(FCanvas& F) const
 		const FCellAct& A = MenuActs[R];
 		const float RY = Y + CmTopH + 8.f + R * CmRowH;
 		const bool bH = R == Hov;
-		if (bH)
-		{
-			F.Box(X + 6.f, RY + 1.f, CmW - 12.f, CmRowH - 2.f, WithAlpha(A.Col, 0.14f));
-			F.Glow(FCanvas::RoundRectPoints(X + 6.f, RY + 1.f, CmW - 12.f, CmRowH - 2.f, RadSmall), A.Col, 1.6f, 0.9f);
-		}
-		F.Text(A.Label, X + 18.f, RY + CmRowH / 2.f + 4.f, bH ? FLinearColor::White : A.Col, 12.f, 0, true, CmW - 110.f);
-		F.Text(A.Right, X + CmW - 16.f, RY + CmRowH / 2.f + 4.f, bH ? Fg : Dim, 10.f, 2, false);
+		// 알약 튜브 버튼 (D-350, 시안 A tools/neon/cellmenu_btn_mock.py): 처음부터 버튼 테 · 옅은 채움이라 누르는 줄 안다. 마우스 = 진한 채움 + 밝은 테 + 흰 글자
+		const float BX = X + 9.f, BY = RY + (CmRowH - CmBtnH) / 2.f, BW = CmW - 18.f, Rr = RadPill(CmBtnH);
+		F.BtnFill(BX, BY, BW, CmBtnH, Rr, A.Col, bH);
+		F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, CmBtnH, Rr), WithAlpha(A.Col, bH ? 1.f : 0.75f), bH ? 1.8f : 1.3f, bH ? 1.f : 0.45f);
+		F.Lines(FCanvas::RoundRectPoints(BX + 3.f, BY + 3.f, BW - 6.f, CmBtnH - 6.f, RadPill(CmBtnH - 6.f)), WithAlpha(A.Col, bH ? 0.6f : 0.3f), 0.7f); // 안쪽 둘째 겹
+		F.Text(A.Label, BX + 16.f, BY + CmBtnH / 2.f + 4.f, bH ? FLinearColor::White : A.Col, 12.f, 0, true, BW - 100.f);
+		F.Text(A.Right, BX + BW - 14.f, BY + CmBtnH / 2.f + 4.f, bH ? Fg : Hex(TEXT("8a94a6")), 10.f, 2, false);
 	}
 	if (MenuActs.Num() == 0) F.Text(Tr(TEXT("할 수 있는 일이 없다")), X + 18.f, Y + CmTopH + 22.f, Dim, 11.f);
 }
