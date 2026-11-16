@@ -770,7 +770,7 @@ constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1,
 // 선 스프라이트 (D-146): 가로 띠 (가운데 꽉, 위아래 가장자리만 부드럽게). 모든 선은 이걸 늘여 찍는다
 constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4;
 // 카드병정 적 (D-175): 모양 8 × 걷기 4프레임, 흰색으로 구워 그릴 때 적 색으로 물들인다. 칸 가운데가 몸 가운데, 발은 +SoldierFoot
-constexpr int32 SoldierShapes = 20, SoldierFrames = 12, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176)
+constexpr int32 SoldierShapes = 29, SoldierFrames = 8, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176) + 새 보스 6 · 최종 보스 3 (D-335). 칸이 모자라 걷기 12 → 8프레임
 constexpr int32 AtlasSnow = AtlasSoldier0 + SoldierShapes * SoldierFrames; // 둔화 눈송이 (D-178)
 constexpr int32 AtlasShield = AtlasSnow + 1, AtlasN = AtlasShield + 1; // 방어력 방패 (D-186)
 constexpr float ShieldBakeS = 30.f; // 방패 칸: 가운데 기준 반폭 0.8S, 위아래 ±1.05S
@@ -809,16 +809,16 @@ inline int32 SoldierShape(EPDEnemy T)
 	case EPDEnemy::Warden: return 17;
 	case EPDEnemy::Hexer: return 18;
 	case EPDEnemy::Breaker: return 19;
-	// 새 보스 · 최종 보스 (D-335): 그림(아틀라스 칸)을 만들기 전까지 비슷한 모양을 빌려 쓴다 (색은 EnemyColor 로 다름)
-	case EPDEnemy::Bluffer: case EPDEnemy::Decoy: return 12;
-	case EPDEnemy::BigBlind: return 11;
-	case EPDEnemy::Dealer: return 18;
-	case EPDEnemy::Counter: return 13;
-	case EPDEnemy::HouseRule: return 16;
-	case EPDEnemy::Twins: return 10;
-	case EPDEnemy::Bouncer: return 7;
-	case EPDEnemy::HighRoller: return 14;
-	case EPDEnemy::House: return 19;
+	// 새 보스 · 최종 보스 (D-335, tools/neon/soldiers.py newbosses). 블러퍼 분신은 진짜와 같은 그림
+	case EPDEnemy::Bluffer: case EPDEnemy::Decoy: return 20;
+	case EPDEnemy::BigBlind: return 21;
+	case EPDEnemy::Dealer: return 22;
+	case EPDEnemy::Counter: return 23;
+	case EPDEnemy::HouseRule: return 24;
+	case EPDEnemy::Twins: return 25;
+	case EPDEnemy::Bouncer: return 26;
+	case EPDEnemy::HighRoller: return 27;
+	case EPDEnemy::House: return 28;
 	default: return 0;
 	}
 }
@@ -831,8 +831,8 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 9; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186)
-constexpr int32 AtlasVersionPrev = 7; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+constexpr int32 AtlasVersion = 10; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335)
+constexpr int32 AtlasVersionPrev = 9; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
@@ -1361,13 +1361,14 @@ struct SPDBoardWidget::FCanvas
 	void CardSoldier(int32 Kd, FVector2f Foot, float R, float T, const FLinearColor& Col)
 	{
 		static const float WK[7] = {1.f, 0.85f, 1.2f, 1.f, 1.f, 1.f, 0.6f}, HK[7] = {1.f, 0.95f, 1.15f, 1.f, 1.f, 1.f, 0.6f};
-		static const EPDSuit SuitOf[20] = {EPDSuit::Spade, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart,
-			EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Spade, EPDSuit::Spade, EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart, EPDSuit::Spade, EPDSuit::Club};
+		static const EPDSuit SuitOf[29] = {EPDSuit::Spade, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart,
+			EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Spade, EPDSuit::Spade, EPDSuit::Heart, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Heart, EPDSuit::Spade, EPDSuit::Club,
+			EPDSuit::Spade, EPDSuit::Diamond, EPDSuit::Club, EPDSuit::Spade, EPDSuit::Heart, EPDSuit::Heart, EPDSuit::Club, EPDSuit::Diamond, EPDSuit::Spade}; // 20~28: 블러퍼 · 빅 블라인드 · 딜러 · 카드 카운터 · 하우스 룰 · 쌍둥이 · 바운서 · 하이롤러 · 더 하우스
 		const bool bBossK = Kd >= 7;
 		const float wk = bBossK ? 1.35f : WK[Kd], hk = bBossK ? 1.35f : HK[Kd];
 		// 보스 모양 (7~19): 방패 거인, 분열 군주, 재생 왕, 돌진 기사, 소환사, 유령, 군단장, 분노 거인, 공간 도약자, 흡수자, 수호자, 저주술사, 파괴자
-		const bool bGhost = Kd == 12, bHex = Kd == 18, bDevour = Kd == 16, bGrit = Kd == 1 || Kd == 10 || Kd == 14 || Kd == 19, bSmile = Kd == 5 || Kd == 9;
-		const bool bCrown = Kd == 9 || Kd == 13;
+		const bool bGhost = Kd == 12, bHex = Kd == 18, bDevour = Kd == 16, bGrit = Kd == 1 || Kd == 10 || Kd == 14 || Kd == 19 || Kd == 26, bSmile = Kd == 5 || Kd == 9 || Kd == 20 || Kd == 27;
+		const bool bCrown = Kd == 9 || Kd == 13 || Kd == 28;
 		const float Ph = T * TwoPi, Sw = FMath::Sin(Ph), Bob = FMath::Abs(FMath::Sin(Ph)) * 0.03f * R; // 부드럽게 (D-184)
 		const float Lean = Kd == 1 ? FMath::DegreesToRadians(8.f) : Kd == 10 ? FMath::DegreesToRadians(12.f) : 0.f;
 		const float BW = 0.76f * R * wk, BH = 1.18f * R * hk, LegL = 0.32f * R * hk;
@@ -1594,6 +1595,81 @@ struct SPDBoardWidget::FCanvas
 			Lines({RH + FVector2f(0.f, 0.25f * R), Hd}, Col, 1.7f);
 			Glow(RectPoints(Hd.X - 0.3f * R, Hd.Y - 0.16f * R, 0.6f * R, 0.28f * R), Col, 1.8f, 0.7f);
 			Lines(RtA({FVector2f(CX + 0.2f * BW, Top + 0.05f * BH), FVector2f(CX + 0.32f * BW, Top + 0.22f * BH), FVector2f(CX + 0.18f * BW, Top + 0.32f * BH), FVector2f(CX + 0.36f * BW, Top + 0.48f * BH)}), Col, 1.f);
+			break;
+		}
+		// 새 보스 · 최종 보스 (D-335, 미리보기 tools/neon/soldiers.py newbosses)
+		case 20: // 블러퍼: 반쪽 가면 + 손에 펼친 카드 셋
+		{
+			Lines({FVector2f(CX - 0.3f * R, Top + 0.18f * BH), FVector2f(CX + 0.3f * R, Top + 0.18f * BH), FVector2f(CX + 0.24f * R, Top + 0.3f * BH), FVector2f(CX - 0.24f * R, Top + 0.3f * BH), FVector2f(CX - 0.3f * R, Top + 0.18f * BH)}, Col, 1.3f);
+			for (int32 K = 0; K < 3; ++K)
+			{
+				const float A = FMath::DegreesToRadians(-30.f + K * 30.f);
+				const FVector2f O(RH.X + FMath::Sin(A) * 0.3f * R, RH.Y - 0.25f * R - FMath::Cos(A) * 0.1f * R);
+				TArray<FVector2f> Cd;
+				for (const FVector2f Q : {FVector2f(-0.1f, -0.15f), FVector2f(0.1f, -0.15f), FVector2f(0.1f, 0.15f), FVector2f(-0.1f, 0.15f), FVector2f(-0.1f, -0.15f)}) Cd.Add(O + Rot2(Q * R, A));
+				Lines(Cd, Col, 1.1f);
+			}
+			break;
+		}
+		case 21: // 빅 블라인드: 눈가리개 띠 + 머리 위 칩 더미 (판돈)
+			Lines({FVector2f(CX - BW / 2.f - 0.05f * R, Top + 0.2f * BH), FVector2f(CX + BW / 2.f + 0.05f * R, Top + 0.2f * BH)}, Col, 2.f);
+			Lines({FVector2f(CX + BW / 2.f + 0.05f * R, Top + 0.2f * BH), FVector2f(CX + BW / 2.f + 0.25f * R, Top + 0.32f * BH)}, Col, 1.3f);
+			for (int32 K = 0; K < 4; ++K) Lines(Arc(CX - 0.22f * R, Top - 0.18f * R - K * 0.1f * R, 0.44f * R, -0.04f * R, 8), Col, 1.2f);
+			break;
+		case 22: // 딜러: 차양 모자 + 손끝에서 날아가는 카드
+		{
+			Lines({FVector2f(CX - 0.36f * R, Top + 0.02f * R), FVector2f(CX + 0.36f * R, Top + 0.02f * R), FVector2f(CX + 0.22f * R, Top - 0.12f * R), FVector2f(CX - 0.22f * R, Top - 0.12f * R), FVector2f(CX - 0.36f * R, Top + 0.02f * R)}, Col, 1.4f);
+			const float U = FMath::Frac(T);
+			const FVector2f F2(RH.X + 0.3f * R + U * 0.7f * R, RH.Y - 0.3f * R - FMath::Sin(U * PI) * 0.4f * R);
+			TArray<FVector2f> Cd;
+			for (const FVector2f Q : {FVector2f(-0.09f, -0.13f), FVector2f(0.09f, -0.13f), FVector2f(0.09f, 0.13f), FVector2f(-0.09f, 0.13f), FVector2f(-0.09f, -0.13f)}) Cd.Add(F2 + Rot2(Q * R, U * 6.f));
+			Lines(Cd, Col, 1.1f);
+			break;
+		}
+		case 23: // 카드 카운터: 동그란 안경 + 머리 위 세는 막대
+			for (const float S : {-1.f, 1.f}) Lines(CirclePoints(FVector2f(CX + S * 0.14f * R, Top + 0.22f * BH), 0.1f * R, 14), Col, 1.2f);
+			for (int32 K = 0; K < 4; ++K) Lines({FVector2f(CX - 0.24f * R + K * 0.12f * R, Top - 0.42f * R), FVector2f(CX - 0.24f * R + K * 0.12f * R, Top - 0.18f * R)}, Col, 1.1f);
+			Lines({FVector2f(CX - 0.3f * R, Top - 0.22f * R), FVector2f(CX + 0.2f * R, Top - 0.38f * R)}, Col, 1.1f);
+			break;
+		case 24: // 하우스 룰: 규칙집 + 머리 위 '연쇄 금지' 표지
+		{
+			Glow(RectPoints(LH.X - 0.22f * R, LH.Y - 0.3f * R, 0.44f * R, 0.35f * R), Col, 1.5f, 0.6f);
+			const FVector2f Sc(CX, Top - 0.42f * R);
+			Lines(CirclePoints(Sc, 0.22f * R, 20), Col, 1.4f);
+			for (const float S : {-1.f, 1.f}) Lines(CirclePoints(Sc + FVector2f(S * 0.07f * R, 0.f), 0.07f * R, 10), Col, 1.f);
+			Lines({Sc + FVector2f(-0.15f * R, 0.15f * R), Sc + FVector2f(0.15f * R, -0.15f * R)}, Col, 1.5f);
+			break;
+		}
+		case 25: // 쌍둥이: 반쪽 하트 배지 + 옆으로 이어진 리본
+		{
+			const FVector2f H(BC.X, BC.Y - 0.05f * R);
+			Lines({H + FVector2f(0.f, 0.18f * R), H + FVector2f(-0.18f * R, 0.f), H + FVector2f(-0.12f * R, -0.12f * R), H + FVector2f(0.f, -0.05f * R), H + FVector2f(0.f, 0.18f * R)}, Col, 1.3f);
+			for (int32 K = 0; K < 6; ++K) Lines({FVector2f(CX + BW / 2.f + K * 0.14f * R, Top + 0.3f * BH + 0.04f * R * FMath::Sin(Ph + K)), FVector2f(CX + BW / 2.f + K * 0.14f * R + 0.07f * R, Top + 0.3f * BH + 0.04f * R * FMath::Sin(Ph + K + 0.5f))}, Col, 1.1f);
+			break;
+		}
+		case 26: // 바운서: 넓은 어깨 + 선글라스 띠 + 옆 줄 기둥
+		{
+			for (const float S : {-1.f, 1.f}) Lines({FVector2f(CX + S * BW / 2.f, Top + 0.12f * BH), FVector2f(CX + S * (BW / 2.f + 0.3f * R), Top + 0.2f * BH), FVector2f(CX + S * (BW / 2.f + 0.3f * R), Top + 0.45f * BH)}, Col, 2.f);
+			Lines({FVector2f(CX - 0.3f * R, Top + 0.2f * BH), FVector2f(CX + 0.3f * R, Top + 0.2f * BH)}, Col, 2.4f);
+			const float PX = CX + BW / 2.f + 0.75f * R;
+			Lines({FVector2f(PX, Top + BH + 0.6f * R), FVector2f(PX, Top + 0.2f * BH)}, Col, 1.5f);
+			Lines(CirclePoints(FVector2f(PX, Top + 0.2f * BH - 0.08f * R), 0.08f * R, 10), Col, 1.3f);
+			Lines({FVector2f(PX, Top + 0.35f * BH), FVector2f(PX + 0.35f * R, Top + 0.42f * BH), FVector2f(PX + 0.7f * R, Top + 0.35f * BH)}, Col, 1.2f);
+			break;
+		}
+		case 27: // 하이롤러: 실크해트 + 시가 + 손에 칩 탑
+			Lines({FVector2f(CX - 0.36f * R, Top), FVector2f(CX + 0.36f * R, Top)}, Col, 1.5f);
+			Lines({FVector2f(CX - 0.22f * R, Top), FVector2f(CX - 0.22f * R, Top - 0.5f * R), FVector2f(CX + 0.22f * R, Top - 0.5f * R), FVector2f(CX + 0.22f * R, Top)}, Col, 1.5f);
+			Lines({FVector2f(CX + 0.12f * R, Top + 0.32f * BH), FVector2f(CX + 0.42f * R, Top + 0.3f * BH)}, Col, 1.3f);
+			for (int32 K = 0; K < 5; ++K) Lines(Arc(RH.X - 0.14f * R, RH.Y - 0.1f * R - K * 0.09f * R, 0.28f * R, -0.035f * R, 8), Col, 1.2f);
+			break;
+		case 28: // 더 하우스: 왕관(bCrown) + 망토 + 등 뒤 룰렛 바퀴
+		{
+			const FVector2f Wc(CX, Top + 0.4f * BH);
+			const float Rr = 0.95f * R;
+			Lines(CirclePoints(Wc, Rr, 40), WithAlpha(Col, Col.A * 0.5f), 1.1f);
+			for (int32 K = 0; K < 8; ++K) { const float A = Ph * 0.5f + K * PI / 4.f; Lines({Wc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * Rr * 0.8f, Wc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * Rr}, WithAlpha(Col, Col.A * 0.5f), 1.f); }
+			for (const float S : {-1.f, 1.f}) Lines({FVector2f(CX + S * BW / 2.f, Top + 0.1f * BH), FVector2f(CX + S * (BW / 2.f + 0.25f * R), Top + BH + 0.3f * R)}, Col, 1.2f);
 			break;
 		}
 		default: break;

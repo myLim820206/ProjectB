@@ -413,6 +413,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
  경험치	 XP	 経験値	 经验	 經驗	PDBoardFx.cpp
 +%.0f 경험치	+%.0f XP	+%.0f 経験値	+%.0f 经验	+%.0f 經驗	PDBoardFx.cpp
 %s %d개 합침!	Merged %s ×%d!	%s %d体を合体!	%s %d个合体!	%s %d個合體!	PDBoardFx.cpp
+%s · %d단계	%s · phase %d	%s · 第%d段階	%s · 第%d阶段	%s · 第%d階段	PDBoardFx.cpp
 기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
 합성 레벨 %d!	Fusion Lv %d!	合成レベル %d!	合成等级 %d!	合成等級 %d!	PDBoardFx.cpp
 %d장	%d cards	%d枚	%d张	%d張	PDBoardMenu.cpp
@@ -485,6 +486,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 스프라이트	Sprites	スプライト	精灵图	精靈圖	PDBoardPaint.cpp
 진짜 선(F6)	Real lines (F6)	実線(F6)	真实线条(F6)	真實線條(F6)	PDBoardPaint.cpp
 합성 타워·조커 위에는 놓을 수 없다	Can't place on fused towers or Jokers	合成タワー・ジョーカーの上には置けない	不能放在合成塔或小丑上	不能放在合成塔或小丑上	PDBoardPaint.cpp
+판돈 %d	Pot %d	賭け金 %d	赌注 %d	賭注 %d	PDBoardPaint.cpp
 여기	Here	ここ	这里	這裡	PDBoardPaint.cpp
 조커 자리를 고르세요	Choose the Joker's spot	ジョーカーの場所を選んでください	请选择小丑的位置	請選擇小丑的位置	PDBoardPaint.cpp
 합성 타워 자리를 고르세요	Choose the fused tower's spot	合成タワーの場所を選んでください	请选择合成塔的位置	請選擇合成塔的位置	PDBoardPaint.cpp

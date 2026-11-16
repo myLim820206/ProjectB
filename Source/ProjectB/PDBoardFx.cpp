@@ -176,7 +176,7 @@ void SPDBoardWidget::HandleEvents()
 		case FPDEvent::EKind::WaveStart:
 			PowerRef = Game.Power(); // 위쪽 띠의 판 위력 ±% 기준 (D-119)
 			BannerText = E.B ? FString::Printf(TEXT("BOSS WAVE %d"), E.A) : FString::Printf(TEXT("WAVE %d"), E.A);
-			BannerSub = E.B ? TrF(TEXT("보스: %s · %s"), BossName(E.Enemy), BossSkillText(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(Tr(TEXT("최고 기록 갱신 중!"))) : TrF(TEXT("최고 %d웨이브"), Game.BestWave));
+			BannerSub = E.B ? TrF(TEXT("보스: %s · %s"), *BossWaveLabel(Game, E.A), BossSkillText(E.Enemy)) : (E.A > Game.BestWave && Game.BestWave > 0 ? FString(Tr(TEXT("최고 기록 갱신 중!"))) : TrF(TEXT("최고 %d웨이브"), Game.BestWave));
 			BannerCol = E.B ? Hex(TEXT("ff6a6a")) : Hex(TEXT("7fd6ff"));
 			BannerT = BannerMax = 1.6f;
 			if (E.B) { FlashT = 0.25f; FlashCol = BannerCol; }
@@ -299,6 +299,17 @@ void SPDBoardWidget::HandleEvents()
 		{
 			const FLinearColor Col = EnemyColor(E.Enemy);
 			const float Rnd = FMath::FRandRange(0.f, TwoPi);
+			if (E.A >= 100) // 최종 보스 단계가 바뀜 (D-335): 배너 + 번쩍 + 큰 고리
+			{
+				BannerText = FString::Printf(TEXT("PHASE %d"), E.A - 99);
+				BannerSub = TrF(TEXT("%s · %d단계"), BossName(E.Enemy), E.A - 99);
+				BannerCol = Col;
+				BannerT = BannerMax = 1.4f;
+				FlashT = 0.3f; FlashCol = Col;
+				Shake = FMath::Max(Shake, 0.25f);
+				Rings.Add({P, 10.f, 160.f, 0.f, 0.6f, 3.f, Col});
+				break;
+			}
 			switch (E.Enemy)
 			{
 			case EPDEnemy::Charger: Rings.Add({P, 8.f, 40.f, 0.f, 0.3f, 2.f, Col, EWave::Poly, 3, 0.f, 0.f}); Burst(P, 10, Col, 80.f, 220.f, 0.3f, 2.f, true); break;

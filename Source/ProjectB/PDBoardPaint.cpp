@@ -668,10 +668,32 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 	// 보스 오라 (D-112): 군단장(주변 적 강화)·저주술사(주변 타워 약화) 범위를 옅은 점선으로
 	for (const FPDEnemy& E : G.Enemies)
 	{
-		if (E.Type != EPDEnemy::Warlord && E.Type != EPDEnemy::Hexer) continue;
+		// 하우스 룰 (연쇄 끔) · 더 하우스 2단계(판 절반) · 이끄는 / 저주하는 변이도 같은 점선 (D-334)
+		float R = 0.f;
+		if (E.Type == EPDEnemy::Warlord || (E.Mut & MutLead)) R = PD::Boss::AuraRange;
+		if (E.Type == EPDEnemy::Hexer || (E.Mut & MutHex)) R = FMath::Max(R, PD::Boss::HexRange);
+		if (E.Type == EPDEnemy::HouseRule) R = PD::Boss::HouseRange;
+		if (E.Type == EPDEnemy::House && E.Phase >= 1) R = PD::Boss::HouseRangeBig;
+		if (R <= 0.f || E.bDead) continue;
 		const FPDPoint Pt = G.Path.At(E.D);
-		const float R = (E.Type == EPDEnemy::Warlord ? PD::Boss::AuraRange : PD::Boss::HexRange) * CS;
-		F.Dashed(FCanvas::CirclePoints(CellPx(Pt.X, Pt.Y), R, 48), WithAlpha(EnemyColor(E.Type), 0.35f), 1.2f, 5.f, 7.f);
+		F.Dashed(FCanvas::CirclePoints(CellPx(Pt.X, Pt.Y), R * CS, 48), WithAlpha(EnemyColor(E.Type), 0.35f), 1.2f, 5.f, 7.f);
+	}
+	// 딜러가 바꾼 타워 (D-334): 딜러 색 점선 고리 + 남은 시간 + 원래 무늬 작게
+	for (const FPDGame::FPDSuitSwap& Sw : G.SuitSwaps)
+	{
+		if (!G.Towers.count(Sw.Cell)) continue;
+		const FVector2f C0 = CellCenter(Sw.Cell);
+		const FLinearColor Dc = EnemyColor(EPDEnemy::Dealer);
+		F.Dashed(FCanvas::RoundRectPoints(C0.X - CS / 2.f + 2.f, C0.Y - CS / 2.f + 2.f, CS - 4.f, CS - 4.f, RadSmall), WithAlpha(Dc, 0.5f + 0.4f * FMath::Min(1.f, Sw.T)), 1.6f, 4.f, 4.f);
+		F.Shape(Sw.Orig, C0.X + CS / 2.f - 9.f, C0.Y - CS / 2.f + 9.f, 4.f, WithAlpha(Dc, 0.9f), 1.f, 0.3f);
+	}
+	// 하이롤러 칩 더미 (D-334): 길 위 작은 칩 탑, 지나가는 적이 빨라진다
+	for (const FPDGame::FPDChipPile& Pl : G.ChipPiles)
+	{
+		const FPDPoint Pt = G.Path.At(Pl.D);
+		const FVector2f C0 = CellPx(Pt.X, Pt.Y);
+		const FLinearColor Cc = WithAlpha(EnemyColor(EPDEnemy::HighRoller), FMath::Min(1.f, Pl.T));
+		for (int32 K = 0; K < 4; ++K) F.Lines(FCanvas::CirclePoints(C0 + FVector2f(0.f, 6.f - K * 4.f), 7.f, 14), Cc, 1.4f);
 	}
 	// 기절한 타워 (파괴자): 노란 X + 남은 시간만큼 옅어짐
 	for (const auto& KV : G.Towers)
@@ -701,7 +723,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		{
 			const int32 Sh = SoldierShape(E.Type);
 			const int32 Fr = (int32)(FMath::Fmod(E.D * 2.2f, 1.f) * SoldierFrames) % SoldierFrames;
-			const float Sc = bBoss ? 0.95f : Sh == 6 ? 0.42f : 0.48f;
+			const float Sc = Sh >= 26 ? 1.15f : bBoss || Sh == 20 ? 0.95f : Sh == 6 ? 0.42f : 0.48f; // 최종 보스는 더 크게, 블러퍼 분신은 보스 크기 (D-335)
 			const FLinearColor Ice = Hex(TEXT("b8f0ff"));
 			const float Fz = E.SlowT > 0.f ? FMath::Min(1.f, E.SlowT * 3.f) : 0.f; // 둔화 (D-178): 몸이 얼음빛으로 물든다
 			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Fz > 0.f ? FMath::Lerp(Col, WithAlpha(Ice, Col.A), 0.8f * Fz) : Col);
@@ -864,6 +886,28 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 		const float HpNow = FMath::Max(0.f, E.Hp / E.MaxHp), HpOld = FMath::Max(HpNow, HpShown.FindRef(E.Id));
 		if (HpOld > HpNow) F.Box(P.X - W / 2.f + W * HpNow, BY, W * (HpOld - HpNow), 3.f, Hex(TEXT("ffffff"), 0.85f)); // 방금 깎인 만큼
 		F.Box(P.X - W / 2.f, BY, W * HpNow, 3.f, EnemyColor(E.Type));
+		if (E.Type == EPDEnemy::BigBlind) // 판돈 (D-334): 남은 시간 막대 + 판돈, 올인이면 빨간 글자
+		{
+			if (E.Pot > 0.f)
+			{
+				const float Tf = FMath::Clamp(E.StateT / PD::Boss::BlindTime, 0.f, 1.f);
+				F.Box(P.X - W / 2.f, BY - 6.f, W * Tf, 2.f, Hex(TEXT("ffd96a")));
+				F.TextCentered(TrF(TEXT("판돈 %d"), FMath::RoundToInt(E.Pot)), P.X, BY - 14.f, Hex(TEXT("ffd96a")), 9.f, true);
+			}
+			else if (E.bRage) F.TextCentered(TEXT("ALL IN"), P.X, BY - 10.f, Hex(TEXT("ff6a6a")), 10.f, true);
+		}
+		if (E.Type == EPDEnemy::Counter) // 카드 카운터: 가장 큰 내성 무늬와 %
+		{
+			int32 Bs = 0;
+			for (int32 K = 1; K < 4; ++K) if (E.Res[K] > E.Res[Bs]) Bs = K;
+			if (E.Res[Bs] >= 0.05f) { F.Shape((EPDSuit)Bs, P.X - 8.f, BY - 10.f, 4.f, SuitColor((EPDSuit)Bs), 1.f, 0.3f); F.Text(FString::Printf(TEXT("-%d%%"), FMath::RoundToInt(E.Res[Bs] * 100.f)), P.X - 2.f, BY - 6.f, FLinearColor::White, 9.f, 0, true); }
+		}
+		if (E.Mut) // 변이 (D-334): 체력 막대 위 작은 점들 (색 = 변이 종류)
+		{
+			static const TCHAR* MutCol[6] = {TEXT("cfd8e6"), TEXT("ffa86a"), TEXT("8affc4"), TEXT("a8f0ff"), TEXT("ffd96a"), TEXT("9a7aff")};
+			int32 N = 0;
+			for (int32 K = 0; K < 6; ++K) if (E.Mut & (1 << K)) { F.Glow(FCanvas::CirclePoints(FVector2f(P.X + W / 2.f + 5.f + N * 7.f, BY + 1.f), 2.4f, 8), Hex(MutCol[K]), 1.4f, 0.6f); ++N; }
+		}
 		if (E.Armor > 0.f && !G.Has(EPDCharm::Pierce)) // 방어력 (D-186): 체력 막대 왼쪽에 작은 방패 (아틀라스가 없으면 예전 막대)
 		{
 			if (UseAtlas())

@@ -414,6 +414,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT(" 경험치"), TEXT(" XP"), TEXT(" 経験値"), TEXT(" 经验"), TEXT(" 經驗")},
 	{TEXT("+%.0f 경험치"), TEXT("+%.0f XP"), TEXT("+%.0f 経験値"), TEXT("+%.0f 经验"), TEXT("+%.0f 經驗")},
 	{TEXT("%s %d개 합침!"), TEXT("Merged %s ×%d!"), TEXT("%s %d体を合体!"), TEXT("%s %d个合体!"), TEXT("%s %d個合體!")},
+	{TEXT("%s · %d단계"), TEXT("%s · phase %d"), TEXT("%s · 第%d段階"), TEXT("%s · 第%d阶段"), TEXT("%s · 第%d階段")},
 	{TEXT("기절!"), TEXT("Stunned!"), TEXT("気絶!"), TEXT("晕眩!"), TEXT("暈眩!")},
 	{TEXT("합성 레벨 %d!"), TEXT("Fusion Lv %d!"), TEXT("合成レベル %d!"), TEXT("合成等级 %d!"), TEXT("合成等級 %d!")},
 	{TEXT("%d장"), TEXT("%d cards"), TEXT("%d枚"), TEXT("%d张"), TEXT("%d張")},
@@ -486,6 +487,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("스프라이트"), TEXT("Sprites"), TEXT("スプライト"), TEXT("精灵图"), TEXT("精靈圖")},
 	{TEXT("진짜 선(F6)"), TEXT("Real lines (F6)"), TEXT("実線(F6)"), TEXT("真实线条(F6)"), TEXT("真實線條(F6)")},
 	{TEXT("합성 타워·조커 위에는 놓을 수 없다"), TEXT("Can't place on fused towers or Jokers"), TEXT("合成タワー・ジョーカーの上には置けない"), TEXT("不能放在合成塔或小丑上"), TEXT("不能放在合成塔或小丑上")},
+	{TEXT("판돈 %d"), TEXT("Pot %d"), TEXT("賭け金 %d"), TEXT("赌注 %d"), TEXT("賭注 %d")},
 	{TEXT("여기"), TEXT("Here"), TEXT("ここ"), TEXT("这里"), TEXT("這裡")},
 	{TEXT("조커 자리를 고르세요"), TEXT("Choose the Joker's spot"), TEXT("ジョーカーの場所を選んでください"), TEXT("请选择小丑的位置"), TEXT("請選擇小丑的位置")},
 	{TEXT("합성 타워 자리를 고르세요"), TEXT("Choose the fused tower's spot"), TEXT("合成タワーの場所を選んでください"), TEXT("请选择合成塔的位置"), TEXT("請選擇合成塔的位置")},
@@ -966,4 +968,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 };
-static const int32 PDLangRowCount = 965;
+static const int32 PDLangRowCount = 967;

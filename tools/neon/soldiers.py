@@ -3,6 +3,7 @@
     python tools/neon/soldiers.py sheet 출력.png   # 종류 8 × 걷기 4프레임
     python tools/neon/soldiers.py gif 출력.gif     # 길을 따라 걷는 움직이는 시안
     python tools/neon/soldiers.py bosses 출력.png  # 보스 13종 × 걷기 4프레임 (D-176)
+    python tools/neon/soldiers.py newbosses 출력.png  # 새 보스 6 + 최종 보스 3 (D-334, D-335)
 
 몸통 = 둥근 카드(가운데 무늬, 왼쪽 위 숫자), 머리 = 동그라미 + 모자, 팔다리 = 선, 무기는 종류마다.
 걷기: 다리가 번갈아 앞뒤로(±26도), 팔은 반대로, 몸이 한 걸음마다 살짝 튄다.
@@ -40,6 +41,18 @@ BOSSES = [
     ('수호자', 'heart', 'a8f0ff', 1.35, 1.35, 0.6, 'b_warden'),
     ('저주술사', 'spade', '9a7aff', 1.35, 1.35, 0.6, 'b_hex'),
     ('파괴자', 'club', 'ffcf5a', 1.35, 1.35, 0.6, 'b_break'),
+]
+# 새 보스 6종 + 최종 보스 3종 (D-334, D-335): 같은 카드병정 몸통, 머리 장식 · 소품으로 구분. 최종 보스는 1.6배
+NEW_BOSSES = [
+    ('블러퍼', 'spade', 'b8a6ff', 1.35, 1.35, 0.6, 'b_bluff'),
+    ('빅 블라인드', 'diamond', 'ffd96a', 1.35, 1.35, 0.6, 'b_blind'),
+    ('딜러', 'club', '6affc8', 1.35, 1.35, 0.6, 'b_dealer'),
+    ('카드 카운터', 'spade', '7fb8ff', 1.35, 1.35, 0.6, 'b_count'),
+    ('하우스 룰', 'heart', 'ff8a5a', 1.35, 1.35, 0.6, 'b_rule'),
+    ('쌍둥이', 'heart', 'ff9ad5', 1.35, 1.35, 0.6, 'b_twins'),
+    ('바운서 (30 최종)', 'club', 'ff6a6a', 1.6, 1.6, 0.5, 'b_bouncer'),
+    ('하이롤러 (60 최종)', 'diamond', 'ffd26e', 1.6, 1.6, 0.5, 'b_roller'),
+    ('더 하우스 (100 최종)', 'spade', 'ff4fd8', 1.6, 1.6, 0.5, 'b_house'),
 ]
 
 
@@ -254,6 +267,59 @@ def boss_extra(L, w, c, cx, top, bw, bh, bc, hip, lean, rh, lh, R, t, sw, ph):
         ln([(cx - bw / 2, top + 0.1 * R), (cx, top - 0.5 * R), (cx + bw / 2, top + 0.1 * R)], 1.5)
         tip = (rh[0], rh[1] - 0.95 * R); ln([(rh[0], rh[1] + 0.2 * R), tip])
         for s in neon.suit('star')(tip[0], tip[1] - 0.1 * R, 0.14 * R): ln(s, 1.2)
+    elif w == 'b_bluff':  # 반쪽 가면 + 손에 펼친 카드 셋 + 양옆 흐린 분신 윤곽
+        ln([(cx - 0.3 * R, top + 0.18 * bh), (cx + 0.3 * R, top + 0.18 * bh), (cx + 0.24 * R, top + 0.3 * bh), (cx - 0.24 * R, top + 0.3 * bh), (cx - 0.3 * R, top + 0.18 * bh)], 1.3)
+        for k in range(3):
+            a = math.radians(-30 + k * 30); ox, oy = rh[0] + math.sin(a) * 0.3 * R, rh[1] - 0.25 * R - math.cos(a) * 0.1 * R
+            ln([rot(q, (ox, oy), a) for q in [(ox - 0.1 * R, oy - 0.15 * R), (ox + 0.1 * R, oy - 0.15 * R), (ox + 0.1 * R, oy + 0.15 * R), (ox - 0.1 * R, oy + 0.15 * R), (ox - 0.1 * R, oy - 0.15 * R)]], 1.1)
+        for sx in (-1, 1):
+            cc = tuple(int(v * 0.3) for v in c); ox = sx * 0.9 * R
+            L.append(([(cx - bw / 2 + ox, top), (cx + bw / 2 + ox, top), (cx + bw / 2 + ox, top + bh), (cx - bw / 2 + ox, top + bh), (cx - bw / 2 + ox, top)], cc, 1.0))
+    elif w == 'b_blind':  # 눈가리개 띠 + 머리 위 칩 더미 (판돈)
+        ln(rt([(cx - bw / 2 - 0.05 * R, top + 0.2 * bh), (cx + bw / 2 + 0.05 * R, top + 0.2 * bh)]), 2.2)
+        ln(rt([(cx + bw / 2 + 0.05 * R, top + 0.2 * bh), (cx + bw / 2 + 0.25 * R, top + 0.32 * bh)]), 1.4)
+        for k in range(4):
+            yy = top - 0.18 * R - k * 0.1 * R
+            L.append(([(cx - 0.22 * R + 0.44 * R * j / 12 + 0, yy + math.sin(math.pi * j / 12) * 0.04 * R) for j in range(13)], c, 1.3))
+    elif w == 'b_dealer':  # 초록 차양 모자 + 손끝에서 날아가는 카드
+        ln([(cx - 0.36 * R, top + 0.02 * R), (cx + 0.36 * R, top + 0.02 * R), (cx + 0.22 * R, top - 0.12 * R), (cx - 0.22 * R, top - 0.12 * R), (cx - 0.36 * R, top + 0.02 * R)], 1.5)
+        u = t % 1.0; fx, fy = rh[0] + 0.3 * R + u * 0.7 * R, rh[1] - 0.3 * R - math.sin(u * math.pi) * 0.4 * R
+        ln([rot(q, (fx, fy), u * 6) for q in [(fx - 0.09 * R, fy - 0.13 * R), (fx + 0.09 * R, fy - 0.13 * R), (fx + 0.09 * R, fy + 0.13 * R), (fx - 0.09 * R, fy + 0.13 * R), (fx - 0.09 * R, fy - 0.13 * R)]], 1.2)
+    elif w == 'b_count':  # 동그란 안경 + 머리 위 세는 막대 (正 자 셈)
+        for sx in (-1, 1): L.append((neon.circle(cx + sx * 0.14 * R, top + 0.22 * bh, 0.1 * R, 14), c, 1.3))
+        ln([(cx - 0.04 * R, top + 0.22 * bh), (cx + 0.04 * R, top + 0.22 * bh)], 1.1)
+        for k in range(4): ln([(cx - 0.24 * R + k * 0.12 * R, top - 0.42 * R), (cx - 0.24 * R + k * 0.12 * R, top - 0.18 * R)], 1.2)
+        ln([(cx - 0.3 * R, top - 0.22 * R), (cx + 0.2 * R, top - 0.38 * R)], 1.2)
+    elif w == 'b_rule':  # 손에 규칙집 + 머리 위 '연쇄 금지' 표지 (고리 + 사선 + 사슬 고리 둘)
+        ln([(lh[0] - 0.22 * R, lh[1] - 0.3 * R), (lh[0] + 0.22 * R, lh[1] - 0.3 * R), (lh[0] + 0.22 * R, lh[1] + 0.05 * R), (lh[0] - 0.22 * R, lh[1] + 0.05 * R), (lh[0] - 0.22 * R, lh[1] - 0.3 * R)], 1.6)
+        ln([(lh[0], lh[1] - 0.3 * R), (lh[0], lh[1] + 0.05 * R)], 1.0)
+        sc = (cx, top - 0.42 * R); L.append((neon.circle(sc[0], sc[1], 0.22 * R, 20), c, 1.5))
+        for sx in (-1, 1): L.append((neon.circle(sc[0] + sx * 0.07 * R, sc[1], 0.07 * R, 10), c, 1.1))
+        ln([(sc[0] - 0.15 * R, sc[1] + 0.15 * R), (sc[0] + 0.15 * R, sc[1] - 0.15 * R)], 1.6)
+    elif w == 'b_twins':  # 반쪽 하트 배지 + 옆으로 이어진 리본 (짝과 묶임)
+        hx, hy = bc[0], bc[1] - 0.05 * R
+        ln([(hx, hy + 0.18 * R), (hx - 0.18 * R, hy), (hx - 0.12 * R, hy - 0.12 * R), (hx, hy - 0.05 * R), (hx, hy + 0.18 * R)], 1.4)
+        for k in range(6): ln([(cx + bw / 2 + k * 0.14 * R, top + 0.3 * bh + 0.04 * R * math.sin(ph + k)), (cx + bw / 2 + k * 0.14 * R + 0.07 * R, top + 0.3 * bh + 0.04 * R * math.sin(ph + k + 0.5))], 1.2)
+    elif w == 'b_bouncer':  # 넓은 어깨 + 선글라스 띠 + 옆 줄 기둥
+        for sx in (-1, 1): ln(rt([(cx + sx * bw / 2, top + 0.12 * bh), (cx + sx * (bw / 2 + 0.3 * R), top + 0.2 * bh), (cx + sx * (bw / 2 + 0.3 * R), top + 0.45 * bh)]), 2.2)
+        ln(rt([(cx - 0.3 * R, top + 0.2 * bh), (cx + 0.3 * R, top + 0.2 * bh)]), 2.6)
+        px = cx + bw / 2 + 0.75 * R
+        ln([(px, top + bh + 0.6 * R), (px, top + 0.2 * bh)], 1.6); L.append((neon.circle(px, top + 0.2 * bh - 0.08 * R, 0.08 * R, 10), c, 1.4))
+        ln([(px, top + 0.35 * bh), (px + 0.35 * R, top + 0.42 * bh), (px + 0.7 * R, top + 0.35 * bh)], 1.3)
+    elif w == 'b_roller':  # 실크해트 + 시가 + 손에 칩 탑
+        ln([(cx - 0.36 * R, top), (cx + 0.36 * R, top)], 1.6); ln([(cx - 0.22 * R, top), (cx - 0.22 * R, top - 0.5 * R), (cx + 0.22 * R, top - 0.5 * R), (cx + 0.22 * R, top)], 1.6)
+        ln([(cx + 0.12 * R, top + 0.32 * bh), (cx + 0.42 * R, top + 0.3 * bh)], 1.4)
+        for k in range(5):
+            yy = rh[1] - 0.1 * R - k * 0.09 * R
+            L.append(([(rh[0] - 0.14 * R + 0.28 * R * j / 10, yy + math.sin(math.pi * j / 10) * 0.035 * R) for j in range(11)], c, 1.3))
+    elif w == 'b_house':  # 왕관 + 망토 + 등 뒤 룰렛 바퀴
+        ln([(cx - 0.3 * R, top), (cx - 0.3 * R, top - 0.3 * R), (cx - 0.15 * R, top - 0.16 * R), (cx, top - 0.38 * R), (cx + 0.15 * R, top - 0.16 * R), (cx + 0.3 * R, top - 0.3 * R), (cx + 0.3 * R, top)], 1.6)
+        wc = (cx, top + 0.4 * bh); rr = 0.95 * R
+        L.append((neon.circle(wc[0], wc[1], rr, 40), tuple(int(v * 0.5) for v in c), 1.2))
+        for k in range(8):
+            a = ph * 0.5 + k * math.pi / 4
+            L.append(([(wc[0] + math.cos(a) * rr * 0.8, wc[1] + math.sin(a) * rr * 0.8), (wc[0] + math.cos(a) * rr, wc[1] + math.sin(a) * rr)], tuple(int(v * 0.5) for v in c), 1.1))
+        for sx in (-1, 1): ln([(cx + sx * bw / 2, top + 0.1 * bh), (cx + sx * (bw / 2 + 0.25 * R), top + bh + 0.3 * R)], 1.3)
     elif w == 'b_break':  # 큰 망치 + 카드 금
         hd = (rh[0], rh[1] - 0.9 * R); ln([(rh[0], rh[1] + 0.25 * R), hd], 1.8)
         ln([(hd[0] - 0.3 * R, hd[1] - 0.16 * R), (hd[0] + 0.3 * R, hd[1] - 0.16 * R), (hd[0] + 0.3 * R, hd[1] + 0.12 * R), (hd[0] - 0.3 * R, hd[1] + 0.12 * R), (hd[0] - 0.3 * R, hd[1] - 0.16 * R)], 2.0)
@@ -271,6 +337,24 @@ def bosses(out):
         for f in range(4):
             x = colx + 200 + f * 110
             for pts, c, wd in soldier(k, x, y + 125, R, f / 4):
+                M.ln(pts, c, wd)
+    img = Image.new('RGB', (W * S, H * S), neon.BG)
+    M.draw(img).resize((W, H), Image.LANCZOS).save(out)
+
+
+def new_bosses(out):
+    """새 보스 6종 + 최종 보스 3종 (D-334, D-335) × 걷기 4프레임"""
+    W, H, S = 1280, 760, 2
+    M = neon._Mock(S, W, H)
+    for i, k in enumerate(NEW_BOSSES):
+        row, colx = i // 2, (i % 2) * 640
+        if i == 8: colx = 320
+        y = 30 + row * 150
+        R = 38
+        M.tx(colx + 24, y, k[0], HX(k[2]), 15, 'lm')
+        for f in range(4):
+            x = colx + 230 + f * 105
+            for pts, c, wd in soldier(k, x, y + 128, R, f / 4):
                 M.ln(pts, c, wd)
     img = Image.new('RGB', (W * S, H * S), neon.BG)
     M.draw(img).resize((W, H), Image.LANCZOS).save(out)
@@ -382,5 +466,5 @@ def gif(out):
 
 
 if __name__ == '__main__':
-    {'sheet': sheet, 'gif': gif, 'bosses': bosses, 'flop': flop_sheet, 'flopgif': flop_gif, 'softgif': soft_gif}[sys.argv[1]](sys.argv[2])
+    {'sheet': sheet, 'gif': gif, 'bosses': bosses, 'newbosses': new_bosses, 'flop': flop_sheet, 'flopgif': flop_gif, 'softgif': soft_gif}[sys.argv[1]](sys.argv[2])
     print('saved', sys.argv[2])
