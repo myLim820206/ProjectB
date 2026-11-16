@@ -1394,6 +1394,8 @@ static void BotSpend(FPDGame& G, bool bTree)
 
 static EPDMode GBotMode = EPDMode::Endless; // 봇 판의 모드 (D-229)
 static int GBotClears = 0;
+static int GBotUpgLv = 10;   // bUpg 일 때 영구 강화 레벨 (D-322 판당 칩 표)
+static int GBotContent = 0;  // 0 = 규칙 기본(기본 조커 전부 · 칵테일 기본 18), 1 = 처음 상태(조커 4종 · 상위 조커 맛보기 2종 · 칵테일 18), 2 = 전부 열림
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
 	double PointSum = 0, GoldSum = 0, ChipSum = 0;
@@ -1407,7 +1409,9 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	{
 		FPDGame G(1000 + Run);
 		G.Mode = GBotMode;
-		if (bUpg) for (int& U : G.Upg) U = 10; // 영구 강화 흉내: 8종 모두 10레벨 (D-228, 3단계에서 칩 값으로 바꿈)
+		if (bUpg) for (int& U : G.Upg) U = GBotUpgLv; // 영구 강화 흉내: 8종 모두 같은 레벨 (기본 10)
+		if (GBotContent == 1) { G.JokerUnlocked = JokerStarterMask; G.UpperUnlocked = (1u << 11) | (1u << 18); }
+		if (GBotContent == 2) G.CharmUnlocked = ~FPDCharmBits(0);
 		G.NewGame(true);
 		G.RebuildMods();
 		G.bMuted = true;
@@ -1587,6 +1591,13 @@ int main(int Argc, char** Argv)
 				std::printf("   → %s 모드%s 클리어 %d / %d판\n", Names[M], U ? " (영구 강화 10레벨)" : "", GBotClears, Runs);
 			}
 		GBotMode = EPDMode::Endless;
+	}
+	else if (Runs > 0 && Argc > 5 && std::string(Argv[2]) == "chips") // 판당 칩 표 (D-322): chips <모드 0=30 1=60 2=100 3=무한> <강화 레벨> <해금 0/1/2>
+	{
+		GBotMode = (EPDMode)std::atoi(Argv[3]); GBotUpgLv = std::atoi(Argv[4]); GBotContent = std::atoi(Argv[5]); GBotClears = 0;
+		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
+		std::printf("   → CHIPS mode=%s upg=%d content=%d clear=%d/%d\n", Argv[3], GBotUpgLv, GBotContent, GBotClears, Runs);
+		GBotMode = EPDMode::Endless; GBotUpgLv = 10; GBotContent = 0;
 	}
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
