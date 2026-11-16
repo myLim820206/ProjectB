@@ -6,7 +6,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 이름 | 바 앨리스: 카드 병정들의 반란 / Bar Alice: Rebellion of the Card Soldiers (D-309) |
+| 이름 | 바 앨리스: 늦은 밤의 포커 / Bar Alice: Late Night Poker (D-309, D-311) |
 | 플랫폼 | Steam (Windows, macOS) |
 | 출시 형태 | 미정 (앞서 해보기 또는 정식 출시) |
 | 가격 | 목표 8,500원 (D-226). 해외는 Steam 권장 지역 가격 (대략 $6.99~7.99 단계) |
