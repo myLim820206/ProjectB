@@ -2024,10 +2024,11 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		const float Fill = FMath::Clamp((float)G.Xp / FMath::Max(1, G.XpToNext()), 0.f, 1.f);
 		const float B = G.PointsLeft() > 0 ? 0.7f + 0.3f * Pulse : 1.f;
 		const FLinearColor Gc(Gold.R * B, Gold.G * B, Gold.B * B, 1.f);
-		const float TopY = HudPanY + 30.f;
-		C.Shape(EPDSuit::Diamond, HudDivLv + 18.f, TopY - 6.f, 7.f, Gc, 1.3f, 0.4f);
-		NeonText(C, FString::FromInt(G.Level), HudDivLv + 32.f, TopY + 4.f, Gc, 22.f, 0, 1.f);
-		C.Text(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), LvBarX + LvBarW, TopY + 2.f, Fg, 10.f, 2, true);
+		// 한 줄(마름모 · 숫자 · %)의 가운데 RowY 에 셋을 맞추고, 막대는 그 밑 (줄 + 막대 묶음이 칸 위아래 가운데)
+		const float RowY = HudPanY + 30.f;
+		C.Shape(EPDSuit::Diamond, LvBarX + 6.f, RowY, 7.f, Gc, 1.3f, 0.4f);
+		NeonText(C, FString::FromInt(G.Level), LvBarX + 20.f, RowY + 8.f, Gc, 22.f, 0, 1.f); // 22px 글자 기준선 = 가운데 + 8 (목숨 칸 26px 은 + 10)
+		C.Text(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), LvBarX + LvBarW, RowY + 4.f, Fg, 10.f, 2, true);
 		C.Box(LvBarX, LvBarY - 2.f, LvBarW, 4.f, WithAlpha(Gold, 0.15f));
 		C.Box(LvBarX, LvBarY - 2.f, LvBarW * Fill, 4.f, WithAlpha(Gold, 0.85f * B));
 	}

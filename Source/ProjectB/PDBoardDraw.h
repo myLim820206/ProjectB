@@ -659,7 +659,7 @@ inline float JukeBtnX(int Dir) { return JukeX0 + JukeW / 2.f + Dir * 30.f * Juke
 // 윗줄 한 장 계기판 (D-351, 시안 B tools/neon/topbar_mock.py): 주크박스 오른쪽 긴 판 하나 + 세로 구분선 둘 → WAVE | 목숨 | 레벨. 머리글 · 다음 보스 줄은 뺐다
 constexpr float HudPanX = 430.f, HudPanY = 16.f, HudPanW = 706.f, HudPanH = 68.f;
 constexpr float HudDivLf = 800.f, HudDivLv = 930.f; // 목숨 칸 · 레벨 칸 왼쪽 구분선
-constexpr float LvBarX = HudDivLv + 12.f, LvBarY = HudPanY + 52.f, LvBarW = HudPanX + HudPanW - 16.f - LvBarX; // 경험치 막대
+constexpr float LvBarX = HudDivLv + 12.f, LvBarY = HudPanY + 48.f, LvBarW = HudPanX + HudPanW - 16.f - LvBarX; // 경험치 막대
 constexpr float LvSignCX = (HudDivLv + HudPanX + HudPanW) / 2.f; // 레벨 칸 가운데 (레벨업 간판이 날아가 매달리는 자리)
 constexpr float FloorY = FY + Rows * CS + 8.f;                                      // 바닥선 (손패가 그 아래)
 // 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
