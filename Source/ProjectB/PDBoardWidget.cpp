@@ -985,14 +985,50 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 		UiSound(EPDSound::Denied);
 		return;
 	}
-	if (CraftJoker < 0) { UiSound(EPDSound::Denied); return; }
 	const std::vector<FPDJokerNode> Ns = Game.JokerNodes();
+	if (CraftJoker < 0) // 조커를 안 고르고 빛나는 재료 칸을 누름 = 그 칸을 쓰는 조커를 골라 바로 재료로 (사용자 2026-11-16: 활성화된 칸이 클릭이 안 된다)
+	{
+		auto InBest = [Cell](const FJokerEntry& E) { for (const std::vector<int>& Pk : E.Best) if (std::find(Pk.begin(), Pk.end(), Cell) != Pk.end()) return true; return false; };
+		int32 Pick = -1;
+		for (int32 R = 0; R < (int32)JokerList.size() && Pick < 0; ++R) if (JokerList[R].bMake && JokerList[R].Upper < 0 && InBest(JokerList[R])) Pick = R; // 추천 재료에 이 칸이 든 조커 먼저
+		for (int32 R = 0; R < (int32)JokerList.size() && Pick < 0; ++R) // 그 밖: 이 칸이 든 재료 하나가 레시피에 들어가는 조커
+		{
+			if (!JokerList[R].bMake || JokerList[R].Upper >= 0) continue;
+			for (int32 I = 0; I < (int32)Ns.size() && Pick < 0; ++I)
+				if (std::find(Ns[I].Cells.begin(), Ns[I].Cells.end(), Cell) != Ns[I].Cells.end() && PDCraftFits(Ns, {I}, JokerList[R].J)) Pick = R;
+		}
+		if (Pick >= 0) { CraftSelect(Pick); if (CraftJoker >= 0) CraftClick(Cell); return; }
+		for (int32 R = 0; R < (int32)JokerList.size(); ++R) if (JokerList[R].bMake && JokerList[R].Upper >= 0 && InBest(JokerList[R])) { CraftSelect(R); return; } // 상위 조커: 고르기만 (한 번 더 누르면 합침)
+		UiSound(EPDSound::Denied);
+		return;
+	}
 	const std::vector<int> Idx = CraftNodeIdx();
 	const bool bDone = Idx.size() == CraftPicks.size() && Game.JokerCraftResult(Idx) == (EPDJoker)CraftJoker;
 	// 고른 재료 칸: 레시피가 다 찼으면 그 칸에 조커, 덜 찼으면 빼기
 	for (size_t P = 0; P < CraftPicks.size(); ++P)
 		if (std::find(CraftPicks[P].begin(), CraftPicks[P].end(), Cell) != CraftPicks[P].end())
 		{
+			if (!bDone && P < Idx.size())
+			{
+				// 같은 칸을 쓰는 다른 족보가 있으면 (예: 2♠ 가 플러시 · 원 페어 둘 다): 더하기 → 그 족보로 바꾸기 → 없을 때만 빼기 (사용자 2026-11-16: 원 페어로 못 고름)
+				std::vector<int> Alt;
+				for (int32 I = 0; I < (int32)Ns.size(); ++I)
+					if (std::find(Ns[I].Cells.begin(), Ns[I].Cells.end(), Cell) != Ns[I].Cells.end() && std::find(Idx.begin(), Idx.end(), I) == Idx.end()) Alt.push_back(I);
+				for (int C : Alt)
+				{
+					if (Idx.size() >= 3) break;
+					std::vector<int> Try = Idx;
+					Try.push_back(C);
+					if (PDCraftFits(Ns, Try, CraftJoker)) { CraftPicks.push_back(Ns[C].Cells); UiSound(EPDSound::Move); return; }
+				}
+				for (int C : Alt)
+				{
+					if (Ns[C].Kind == Ns[Idx[P]].Kind) continue;
+					std::vector<int> Try = Idx;
+					Try[P] = C;
+					if (PDCraftFits(Ns, Try, CraftJoker)) { CraftPicks[P] = Ns[C].Cells; UiSound(EPDSound::Move); return; }
+				}
+			}
 			if (!bDone) { CraftPicks.erase(CraftPicks.begin() + P); UiSound(EPDSound::Move); return; }
 			PendingFuseCells.Reset();
 			for (const std::vector<int>& Q : CraftPicks) for (int K : Q) PendingFuseCells.Add(CellCenter(K));
