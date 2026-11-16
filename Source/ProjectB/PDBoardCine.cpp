@@ -62,6 +62,12 @@ void SPDBoardWidget::QueueCine(const FPDEvent& E)
 	Cines.Add(MoveTemp(Cn));
 }
 
+void SPDBoardWidget::UpdateCineTails(float Dt)
+{
+	for (FCine& Tl : CineTails) Tl.T += Dt;
+	CineTails.RemoveAll([](const FCine& Tl) { return Tl.T > Tl.Dur + 2.5f; });
+}
+
 void SPDBoardWidget::UpdateCine(float Dt)
 {
 	if (!Cines.Num()) return;
@@ -76,34 +82,51 @@ void SPDBoardWidget::UpdateCine(float Dt)
 	case ECine::Upper: if (At(Cn.Dur * 0.4f) || At(Cn.Dur * 0.62f)) UiSound(EPDSound::Win); break;
 	default: if (At(0.3f)) UiSound(EPDSound::Clear); break;
 	}
-	if (Cn.T >= Cn.Dur || !Game.Towers.count(Cn.Cell)) Cines.RemoveAt(0);
+	if (Cn.T >= Cn.Dur || !Game.Towers.count(Cn.Cell)) { if (Cn.T >= Cn.Dur && CineTails.Num() < 4) CineTails.Add(Cn); Cines.RemoveAt(0); } // 끝나면 꼬리로 (파티클만 마저)
 }
 
 void SPDBoardWidget::PaintCine(FCanvas& C) const
 {
-	if (!Cines.Num()) return;
-	const FCine& Cn = Cines[0];
+	for (const FCine& Tl : CineTails) PaintCineOne(C, Tl, true); // 끝난 연출의 꽃가루 · 폭죽 꼬리
+	if (Cines.Num()) PaintCineOne(C, Cines[0], false);
+}
+
+void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
+{
 	const float U = FMath::Clamp(Cn.T / Cn.Dur, 0.f, 1.f);
 	const FVector2f Cell = CellCenter(Cn.Cell), Ctr(FX + Cols * CS / 2.f, FY + Rows * CS / 2.f - 10.f);
 	const FLinearColor White = FLinearColor::White;
 	// 꽃가루 / 폭죽: Seed 로 정한 입자가 시간 S(초)만큼 날아간 자리. Gold = 금색만
+	// 꽃가루 · 금가루 (화면 전체 기준, 사용자 2026-11-16): 터진 자리에서 화면 끝까지 퍼지는 몫 + 화면 위 전체에서 쏟아져 내리는 몫. S = 터진 뒤 초
 	auto Confetti = [&](FVector2f O, float S, int32 N, float Speed, bool bGoldOnly, const FLinearColor& Col)
 	{
-		if (S <= 0.f || S > 1.4f) return;
+		const float Life = 2.2f;
+		if (S <= 0.f || S > Life) return;
 		static const FLinearColor Pal[5] = {FLinearColor(FColor::FromHex(TEXT("ff6aaa"))), FLinearColor(FColor::FromHex(TEXT("6edcff"))), FLinearColor(FColor::FromHex(TEXT("ffd96a"))), FLinearColor(FColor::FromHex(TEXT("8affc4"))), FLinearColor(FColor::FromHex(TEXT("b48cff")))};
-		for (int32 I = 0; I < N; ++I)
+		const float Fade = FMath::Min(1.f, (Life - S) / 0.6f);
+		const float Far = FMath::Max(DesignW, DesignH) * (0.55f + Speed / 1200.f); // 화면 끝까지 닿는 거리
+		auto Piece = [&](FVector2f P, int32 I)
 		{
-			const float A = CineRnd(Cn.Seed, I, 0) * TwoPi, V = Speed * (0.4f + 0.6f * CineRnd(Cn.Seed, I, 1)), Spin = CineRnd(Cn.Seed, I, 2) * 12.f;
-			const FVector2f P = O + FVector2f(FMath::Cos(A), FMath::Sin(A)) * V * S + FVector2f(0.f, 160.f * S * S); // 떨어지는 꽃가루
-			const float Fade = 1.f - S / 1.4f, L = 3.f + 3.f * CineRnd(Cn.Seed, I, 3), R = Spin * S;
+			const float L = 4.f + 4.f * CineRnd(Cn.Seed, I, 3), R = CineRnd(Cn.Seed, I, 2) * 12.f * S;
 			const FLinearColor Pc = bGoldOnly ? CGold : I % 3 == 0 ? Col : Pal[I % 5];
-			C.Glow({P - FVector2f(FMath::Cos(R), FMath::Sin(R)) * L, P + FVector2f(FMath::Cos(R), FMath::Sin(R)) * L}, WithAlpha(Pc, Fade), 1.6f, 0.8f * Fade);
+			C.Glow({P - FVector2f(FMath::Cos(R), FMath::Sin(R)) * L, P + FVector2f(FMath::Cos(R), FMath::Sin(R)) * L}, WithAlpha(Pc, Fade), 1.8f, 0.8f * Fade);
+		};
+		for (int32 I = 0; I < N; ++I) // 터지는 몫: 처음엔 빠르고 점점 느려지며 화면 끝까지, 그다음 떨어짐
+		{
+			const float A = CineRnd(Cn.Seed, I, 0) * TwoPi, D = Far * (0.3f + 0.7f * CineRnd(Cn.Seed, I, 1)) * (1.f - FMath::Exp(-S * 3.f));
+			Piece(O + FVector2f(FMath::Cos(A), FMath::Sin(A)) * D + FVector2f(0.f, 90.f * S * S), I);
+		}
+		for (int32 I = 0; I < N; ++I) // 쏟아지는 몫: 화면 위 전체 폭에서 흔들리며 내려온다
+		{
+			const float X0 = CineRnd(Cn.Seed, I + 500, 4) * DesignW, Y0 = -30.f - CineRnd(Cn.Seed, I + 500, 5) * 260.f;
+			const float V = 260.f + 220.f * CineRnd(Cn.Seed, I + 500, 6), Sway = 26.f * FMath::Sin(S * 4.f + I);
+			Piece(FVector2f(X0 + Sway, Y0 + V * S), I + 500);
 		}
 	};
 	auto Firework = [&](FVector2f O, float S, int32 Rays, float Rad, const FLinearColor& Col)
 	{
-		if (S <= 0.f || S > 0.9f) return;
-		const float E = CineEase(S / 0.9f), Fade = 1.f - S / 0.9f;
+		if (S <= 0.f || S > 1.1f) return;
+		const float E = CineEase(S / 1.1f), Fade = 1.f - S / 1.1f;
 		for (int32 K = 0; K < Rays; ++K)
 		{
 			const float A = TwoPi * K / Rays;
@@ -112,7 +135,7 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		}
 		if (S < 0.15f) C.SoftDisc(O, Rad * 0.5f, Rad * 0.5f, White, 0.6f * (1.f - S / 0.15f));
 	};
-	auto Darken = [&](float A) { if (A > 0.f) C.Box(0.f, 0.f, DesignW, DesignH, FLinearColor(0.008f, 0.008f, 0.03f, A)); };
+	auto Darken = [&](float A) { if (A > 0.f && !bTail) C.Box(0.f, 0.f, DesignW, DesignH, FLinearColor(0.008f, 0.008f, 0.03f, A)); };
 	auto Crown = [&](FVector2f O, float R, float A) // 금색 왕관
 	{
 		static const float X[] = {-1.f, -1.f, -0.5f, 0.f, 0.5f, 1.f, 1.f, -1.f}, Y[] = {0.f, -0.8f, -0.4f, -1.f, -0.4f, -0.8f, 0.f, 0.f};
@@ -120,6 +143,23 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		for (int32 K = 0; K < 8; ++K) P.Add(O + FVector2f(X[K], Y[K]) * R);
 		C.Glow(P, WithAlpha(CGold, A), 2.2f, 1.2f * A);
 	};
+	if (bTail) // 끝난 연출: 꽃가루 · 금가루 · 폭죽만 마저 (본 연출과 같은 씨앗 · 시간이라 끊김 없이 이어진다)
+	{
+		switch (Cn.Kind)
+		{
+		case ECine::Fuse: Confetti(Ctr, Cn.T - Cn.Dur * 0.6f, 30 + 15 * Cn.Level, 260.f + 60.f * Cn.Level, Cn.Level >= MaxLevel, SuitColor(Cn.Card.Suit)); break;
+		case ECine::Joker:
+			for (int32 K = 0; K < 5; ++K) Firework(FVector2f(120.f + CineRnd(Cn.Seed, K, 5) * (DesignW - 240.f), 90.f + CineRnd(Cn.Seed, K, 6) * (DesignH * 0.6f - 90.f)), Cn.T - Cn.Dur * (0.58f + 0.08f * K), 16, 130.f, K == 1 ? CGold : JokerPink);
+			break;
+		case ECine::Upper:
+			for (int32 K = 0; K < 8; ++K) Firework(FVector2f(100.f + CineRnd(Cn.Seed, K, 8) * (DesignW - 200.f), 70.f + CineRnd(Cn.Seed, K, 9) * (DesignH * 0.65f - 70.f)), Cn.T - Cn.Dur * (0.55f + 0.04f * K), 18, 160.f, CGold);
+			Confetti(Ctr, Cn.T - Cn.Dur * 0.62f, 90, 600.f, true, CGold);
+			break;
+		case ECine::JokerLv: case ECine::UpperLv: Confetti(Cell, Cn.T - 0.3f, 30, 200.f, true, CGold); break;
+		default: break;
+		}
+		return;
+	}
 	switch (Cn.Kind)
 	{
 	case ECine::Fuse:
@@ -139,7 +179,7 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		{
 			if (Pop < 0.18f) C.SoftDisc(Ctr, R * 2.2f, R * 2.2f, bGold ? CGold : White, 0.7f * (1.f - Pop / 0.18f));
 			C.Glow(FCanvas::CirclePoints(Ctr, R * (1.2f + Pop * 6.f), 40), WithAlpha(bGold ? CGold : SuitColor(Cd.Suit), FMath::Max(0.f, 1.f - Pop * 3.f)), 2.2f, 1.f);
-			Confetti(Ctr, Pop, 24 + 12 * Cn.Level, 260.f + 40.f * Cn.Level, bGold, SuitColor(Cd.Suit));
+			Confetti(Ctr, Pop, 30 + 15 * Cn.Level, 260.f + 60.f * Cn.Level, bGold, SuitColor(Cd.Suit));
 			if (Back < 0.5f) NeonText(C, FString::Printf(TEXT("Lv%d"), Cn.Level), Ctr.X, Ctr.Y + R + 26.f, bGold ? CGold : White, 22.f, 1, 1.f - Back * 2.f);
 		}
 		break;
@@ -170,13 +210,13 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		}
 		if (Cn.Kind == ECine::Joker) // 폭죽 셋
 		{
-			for (int32 K = 0; K < 3; ++K)
+			for (int32 K = 0; K < 5; ++K)
 			{
-				const FVector2f O = Ctr + FVector2f((CineRnd(Cn.Seed, K, 5) - 0.5f) * 360.f, (CineRnd(Cn.Seed, K, 6) - 0.7f) * 220.f);
-				Firework(O, Cn.T - Cn.Dur * (0.58f + 0.08f * K), 14, 70.f, K == 1 ? CGold : JokerPink);
+				const FVector2f O(120.f + CineRnd(Cn.Seed, K, 5) * (DesignW - 240.f), 90.f + CineRnd(Cn.Seed, K, 6) * (DesignH * 0.6f - 90.f)); // 화면 전체 어디서나
+				Firework(O, Cn.T - Cn.Dur * (0.58f + 0.08f * K), 16, 130.f, K == 1 ? CGold : JokerPink);
 			}
 		}
-		else Firework(Ctr, Fl, 10, 60.f, JokerPink);
+		else for (int32 K = 0; K < 2; ++K) Firework(FVector2f(200.f + CineRnd(Cn.Seed, K, 7) * (DesignW - 400.f), 100.f + CineRnd(Cn.Seed, K, 8) * 260.f), Fl - 0.1f * K, 12, 110.f, JokerPink);
 		break;
 	}
 	case ECine::Upper:
@@ -235,12 +275,12 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 				BulbSign(C, Ctr.X, Ctr.Y + 78.f, FMath::Max(260.f, Nm.Len() * 26.f + 60.f), 56.f, Nm, CGold, 24.f, Clock, &LB, false);
 				if (Cn.bNew) C.Badge(TEXT("NEW"), Ctr.X + 70.f, Ctr.Y - 70.f, CGold, 1.f);
 			}
-			for (int32 K = 0; K < 5; ++K) // 금색 폭죽 여러 발
+			for (int32 K = 0; K < 8; ++K) // 금색 폭죽 여러 발 (화면 전체)
 			{
-				const FVector2f O = Ctr + FVector2f((CineRnd(Cn.Seed, K, 8) - 0.5f) * 520.f, (CineRnd(Cn.Seed, K, 9) - 0.75f) * 300.f);
-				Firework(O, Cn.T - Cn.Dur * (0.6f + 0.05f * K), 16, 80.f, CGold);
+				const FVector2f O(100.f + CineRnd(Cn.Seed, K, 8) * (DesignW - 200.f), 70.f + CineRnd(Cn.Seed, K, 9) * (DesignH * 0.65f - 70.f)); // 화면 전체
+				Firework(O, Cn.T - Cn.Dur * (0.55f + 0.04f * K), 18, 160.f, CGold);
 			}
-			Confetti(Ctr, Cn.T - Cn.Dur * 0.62f, 50, 300.f, true, CGold); // 금가루
+			Confetti(Ctr, Cn.T - Cn.Dur * 0.62f, 90, 600.f, true, CGold); // 금가루 (화면 전체)
 		}
 		break;
 	}
@@ -260,7 +300,7 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 			if (U > 0.3f && Back < 0.5f) { NeonText(C, Tr(TEXT("강화!")), P.X, P.Y - R - 18.f, CGold, 20.f, 1, 1.f - Back * 2.f); C.TextCentered(JokerAbility(Cn.Joker), P.X, P.Y + R + 22.f, White, 11.f, true, 360.f); }
 		}
 		else if (U > 0.3f && Back < 0.5f) BulbSign(C, P.X, P.Y - R - 60.f, 140.f, 44.f, FString::Printf(TEXT("Lv%d"), Cn.Level), CGold, 20.f, Clock, nullptr, false, 1.f - Back * 2.f);
-		Confetti(P, Cn.T - 0.3f, 18, 160.f, true, CGold);
+		Confetti(P, Cn.T - 0.3f, 30, 200.f, true, CGold);
 		break;
 	}
 	}

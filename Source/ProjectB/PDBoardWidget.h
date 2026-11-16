@@ -369,11 +369,14 @@ private:
 	enum class ECine : uint8 { Fuse, Joker, Upper, JokerLv, Merge, UpperLv };
 	struct FCine { ECine Kind = ECine::Fuse; float T = 0.f, Dur = 1.f; int32 Cell = -1; PD::FPDCard Card; int32 Level = 1, Joker = -1; bool bNew = false, bSame = false; TArray<FVector2f> Mats; uint32 Seed = 0; }; // bSame: 같은 상위 조커끼리 합치기 (두 장 다 그 조커)
 	TArray<FCine> Cines;                     // 줄 서 있는 연출 (맨 앞이 지금)
+	TArray<FCine> CineTails;                 // 끝난 연출의 꽃가루 · 폭죽 꼬리 (게임은 다시 돌고, 파티클만 마저 떨어진다)
 	bool CineActive() const { return Cines.Num() > 0; }
 	void QueueCine(const PD::FPDEvent& E);
 	void UpdateCine(float Dt);
 	void SkipCine() { if (Cines.Num()) Cines.RemoveAt(0); }
 	void PaintCine(FCanvas& C) const;
+	void PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const;
+	void UpdateCineTails(float Dt);
 	int32 HoverX = -1, HoverY = -1;
 	FVector2f Mouse = FVector2f(0.f, 0.f);
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
