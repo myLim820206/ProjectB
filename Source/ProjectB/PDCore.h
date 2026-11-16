@@ -121,7 +121,7 @@ using FPDCharmBits = uint64_t; // 부적 비트 (D-233: 32개를 넘기려고 64
 constexpr FPDCharmBits CharmBaseMask = (FPDCharmBits(1) << CharmBaseCount) - 1u;
 // 부적 상자 3개 (D-233): 상자마다 열리는 부적 범위와 칩 값
 // 잠금 해제 (D-239): 칵테일·조커를 하나씩 칩으로 연다 (예전 칵테일 상자 D-233 은 없앴다)
-inline int CharmPrice(int J) { return J < 18 ? 0 : J < 23 ? 60 : J < 28 ? 120 : J < 32 ? 180 : J < 42 ? 250 : 320; }
+inline int CharmPrice(int J) { return J < 18 ? 0 : J < 23 ? 60 : J < 28 ? 120 : J < 32 ? 180 : J < 42 ? 250 : 200; } // 마지막 18종 320 → 200 (D-320)
 inline bool HasCharm(FPDCharmBits Mask, EPDCharm J) { return (Mask >> (int)J) & 1u; }
 // 보상 창은 CharmEvery 웨이브마다만 뜬다 (D-101). 그 사이 웨이브는 창 없이 AutoStartDelay 뒤 다음 웨이브
 constexpr int CharmEvery = 5;
@@ -255,6 +255,8 @@ struct FPDFeed
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
 // 조커 잠금 (D-239): 처음엔 희비극·웃는 가면·잭·지휘봉만. 나머지는 잠금 해제 메뉴에서 칩으로
 constexpr uint32_t JokerStarterMask = (1u << 3) | (1u << 2) | (1u << 6) | (1u << 5);
+constexpr int ChipMult = 2; // 판당 칩 배율 (D-323: 다 여는 데 약 60시간)
+constexpr uint32_t UpperStarterMask = (1u << 11) | (1u << 18); // 상위 조커 맛보기 2종: 험프티 덤프티 · 하얀 기사, 처음부터 열림 (D-320)
 inline int JokerPrice(int J) { static const int P[10] = {350, 350, 0, 0, 150, 0, 0, 250, 200, 500}; return J >= 0 && J < 10 ? P[J] : 0; }
 constexpr float JokerBonus = 1.2f; // 조커 합성: 재료 위력 합 × 1.2
 constexpr float JokerCardBonus = 0.1f; // 재료 카드 한 장마다 조커 위력 +10% (4장 ×1.4, 10장 ×2) (D-114, D-118)
@@ -275,7 +277,7 @@ constexpr float UpperBonus = 1.5f, UpperTipBonus = 0.25f;
 enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle };
 struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
-int UpperPrice(int U);                       // 잠금 해제 값 (D-241): 300 + 재료 둘 값의 평균, 50 단위. 재료 조커가 둘 다 열려 있어야 살 수 있다
+int UpperPrice(int U);                       // 잠금 해제 값 (D-241 → D-320): (300 + 재료 둘 값의 평균) / 2, 50 단위 → 150~400. 재료 조커가 둘 다 열려 있어야 살 수 있다
 int UpperOf(EPDJoker A, EPDJoker B);         // 레시피가 있으면 상위 조커 번호, 없으면 -1 (순서 무관)
 inline bool IsUpperJoker(int Joker) { return Joker >= UpperBase && Joker < UpperBase + UpperJokerCount; }
 bool JokerHas(int Joker, EPDJoker K);        // 그 조커이거나, 그 조커를 재료로 한 상위 조커
@@ -573,7 +575,7 @@ public:
 	EPDPhase Phase = EPDPhase::Title;
 	EPDMode Mode = EPDMode::Endless; // NewGame 전에 정한다 (D-229)
 	int Goal() const { return ModeGoal(Mode); }
-	int RunChips() const { return Wave + 2 * (Level - 1) + (Phase == EPDPhase::Clear ? Goal() : 0); } // 판이 끝나면 받는 칩 (D-230): 웨이브 + 2 × 오른 레벨 + 클리어 덤(목표 웨이브)
+	int RunChips() const { return ChipMult * (Wave + 2 * (Level - 1) + (Phase == EPDPhase::Clear ? Goal() : 0)); } // 판이 끝나면 받는 칩 (D-230 → D-323): 2 × (웨이브 + 2 × 오른 레벨 + 클리어 덤(목표 웨이브))
 	bool IsFinalWave(int W) const { return Goal() > 0 && W == Goal(); }
 	int Wave = 0, Lives = StartLives, Kills = 0, Leaks = 0, Discarded = 0, DeckRefills = 0;
 	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다

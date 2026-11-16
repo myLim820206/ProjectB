@@ -146,7 +146,7 @@ static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Bell, EPDJoker::Star, EPDUpperSpecial::None},           // 반짝반짝 작은 박쥐
 };
 const FPDUpperDef& UpperDef(int U) { return GPDUpper[std::clamp(U, 0, UpperJokerCount - 1)]; }
-int UpperPrice(int U) { const FPDUpperDef& D = UpperDef(U); const int Avg = (JokerPrice((int)D.A) + JokerPrice((int)D.B)) / 2; return 300 + (Avg + 25) / 50 * 50; }
+int UpperPrice(int U) { const FPDUpperDef& D = UpperDef(U); const int Avg = (JokerPrice((int)D.A) + JokerPrice((int)D.B)) / 2; return (300 + Avg + 50) / 100 * 50; } // 150~400 (D-320)
 int UpperOf(EPDJoker A, EPDJoker B)
 {
 	for (int U = 0; U < UpperJokerCount; ++U)

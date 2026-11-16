@@ -878,7 +878,7 @@ static void UnitTests()
 			G.UpperUnlocked = 0;
 			const bool bULocked = !HasUpper();
 			G.UpperUnlocked = KeepU;
-			Expect(bULocked && HasUpper() && UpperPrice(26) == 450 && UpperPrice(11) == 300, "잠긴 상위 조커는 못 합치고 열면 된다, 값 300 + 재료 평균 (재버워키 450, 험프티 덤프티 300)");
+			Expect(bULocked && HasUpper() && UpperPrice(26) == 200 && UpperPrice(11) == 150, "잠긴 상위 조커는 못 합치고 열면 된다, 값 (300 + 재료 평균) / 2 (재버워키 200, 험프티 덤프티 150, D-320)");
 		}
 		{ // 족보에 든 합성 타워도 기억한 족보로 재료 (D-220): 로열 A♠ Lv2 가 Lv2 A♦ 와 원 페어
 			G.Towers.clear();
@@ -1313,7 +1313,7 @@ static void UnitTests()
 		N.NewGame(true);
 		Expect(std::abs(N.Mods.UpgDmg - 0.15f) < 1e-4f, "새 판을 시작하면 영구 강화가 바로 걸린다");
 		N.Wave = 12; N.Level = 9;
-		Expect(N.RunChips() == 12 + 16, "칩 = 웨이브 + 2 × 오른 레벨");
+		Expect(N.RunChips() == 2 * (12 + 16), "칩 = 2 × (웨이브 + 2 × 오른 레벨) (D-323)");
 		long long Total = 0;
 		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);
 		Expect(UpgradeMax == 20 && Total == 1050, "20레벨까지 한 종류 칩 " + std::to_string(Total));

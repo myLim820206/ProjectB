@@ -330,7 +330,7 @@ void SPDBoardWidget::LoadUserData()
 	if (bHasRunSave) TitleSel = (int32)ETitleItem::Continue;
 	else TitleSel = (int32)ETitleItem::Start;
 	Game.JokerUnlocked = JokerStarterMask; // 처음엔 조커 4종 (D-239)
-	Game.UpperUnlocked = 0;                // 상위 조커는 하나씩 연다 (D-241)
+	Game.UpperUnlocked = UpperStarterMask; // 상위 조커는 하나씩 연다 (D-241), 맛보기 2종은 처음부터 (D-320)
 	if (FFileHelper::LoadFileToStringArray(Lines, *PDProgressPath()))
 		for (const FString& L : Lines)
 		{
@@ -344,7 +344,7 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("Uppers")) Game.UpperFound |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 상위 조커 도감 (D-231)
 			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 연 칵테일 (D-233, D-239)
 			else if (Key == TEXT("Jokers")) { Game.JokerUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10) | JokerStarterMask; } // 연 조커 (D-239)
-			else if (Key == TEXT("UpperOpen")) Game.UpperUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 연 상위 조커 (D-241)
+			else if (Key == TEXT("UpperOpen")) Game.UpperUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10) | UpperStarterMask; // 연 상위 조커 (D-241), 맛보기 2종 (D-320)
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
