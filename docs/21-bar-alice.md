@@ -36,10 +36,10 @@
 
 | 할 일 | 위치 | 상태 |
 |---|---|---|
-| 로고: NEON + Pallas → Bar Alice + 부제 (시안 먼저, `tools/neon/`) | `PDLogo.h`, 시작 화면, 왼쪽 위 배지 | 할 일 |
-| 클리어 글자 '팔라스의 축배' | `PDBoardPaint.cpp` | 할 일 |
-| 창 제목 · 프로젝트 표시 이름 | 설정 ini | 할 일 |
-| 언어팩 다시 뽑기 | `tools/lang/` | 할 일 |
+| 로고: NEON + Pallas → BAR(하늘 블록) + Alice(분홍 필기체) + 마티니 잔(금, 올리브 자리에 스페이드) + 부제 LATE NIGHT POKER. 시안 `tools/neon/logo_alice.py` (A = 적용, B = Alice 크게 + BAR 알약 간판), docs/images/review-1116 | `PDLogo.h`, 시작 화면, 왼쪽 위 배지 | 함 (빌드 확인 전) |
+| 클리어 글자 '팔라스의 축배' → '앨리스의 축배', 영수증 머리 'BAR ALICE · LATE NIGHT' | `PDBoardPaint.cpp` | 함 |
+| 창 제목 · 프로젝트 표시 이름 | DefaultGame.ini `ProjectDisplayedTitle`, uproject 설명 | 함 (내부 이름 ProjectB 는 그대로) |
+| 언어팩 다시 뽑기 | `tools/lang/` | 함 |
 
 ## 4. 정할 것
 

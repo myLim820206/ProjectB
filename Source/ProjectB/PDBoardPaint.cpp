@@ -363,7 +363,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		FRandomStream Rs(7);
 		const float Pop = 0.6f + 0.4f * FMath::Sin(Clock * 6.f);
 		for (int32 K = 0; K < 14; ++K) { const float A = Rs.FRandRange(-PI, 0.f), R1 = Rs.FRandRange(8.f, 14.f), R2 = Rs.FRandRange(24.f, 46.f) * Pop; C.Glow({FVector2f(DesignW / 2.f + FMath::Cos(A) * R1, 188.f + FMath::Sin(A) * R1), FVector2f(DesignW / 2.f + FMath::Cos(A) * R2, 188.f + FMath::Sin(A) * R2)}, GoldC, 1.3f, 0.6f); }
-		C.TextCentered(TrF(TEXT("%s 모드 클리어 · 팔라스의 축배"), Tr(ModeNames[(int32)G.Mode])), DesignW / 2.f, 290.f, FgC, 15.f, true);
+		C.TextCentered(TrF(TEXT("%s 모드 클리어 · 앨리스의 축배"), Tr(ModeNames[(int32)G.Mode])), DesignW / 2.f, 290.f, FgC, 15.f, true);
 		TArray<TPair<FString, FString>> RcRows = {{Tr(TEXT("처치")), CommaNum(G.Kills)}, {Tr(TEXT("레벨")), FString::FromInt(G.Level)},
 			{Tr(TEXT("개인 랭킹")), LastRankPos >= 0 ? TrF(TEXT("%d위"), LastRankPos + 1) : FString(Tr(TEXT("20위 밖")))}};
 		if (NewlyOpened >= 0) RcRows.Add({Tr(TEXT("새로 열림")), Tr(ModeNames[NewlyOpened])});
@@ -2889,7 +2889,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	}
 }
 
-// 시작 화면 (D-153 → D-253 대문 시안 B): 벽돌 벽에 네온 팔라스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
+// 시작 화면 (D-153 → D-253 대문 시안 B, D-309 바 앨리스): 벽돌 벽에 바 앨리스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
 // 로고는 손으로 그린 네온 선 (PDLogo.h). 켜질 때 글자마다 지직, 그 뒤 몇 초마다 한 글자 옆에서 '빠직' 불티 + 그 글자 깜빡
 void SPDBoardWidget::PaintTitle(FCanvas& C) const
 {
@@ -2912,11 +2912,11 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 
 	// ---- 로고 밝기: 켜짐 → 빠직
 	const float T = TitleT, Off = 0.08f;
-	float NB[4], PB[PDLogo::PallasLetters];
+	float NB[PDLogo::BlockLetters], PB[PDLogo::ScriptLetters];
 	static const float OnN[] = {0.5f, 0.08f, 0.9f, 0.3f, 1.f}, OnP[] = {0.4f, 0.08f, 0.08f, 0.8f, 0.5f, 1.f};
 	auto Seq = [](const float* S, int32 N, float U) { if (U < 0.f) return 0.08f; const int32 I = (int32)(U * 25.f); return I >= N ? 1.f : S[I]; };
-	for (int32 I = 0; I < 4; ++I) NB[I] = Seq(OnN, 5, T - 0.4f - I * 0.28f);
-	for (int32 I = 0; I < PDLogo::PallasLetters; ++I) PB[I] = Seq(OnP, 6, T - 1.6f);
+	for (int32 I = 0; I < PDLogo::BlockLetters; ++I) NB[I] = Seq(OnN, 5, T - 0.4f - I * 0.28f);
+	for (int32 I = 0; I < PDLogo::ScriptLetters; ++I) PB[I] = Seq(OnP, 6, T - 1.6f);
 	const float CB = FMath::Clamp((T - 1.9f) / 0.15f, 0.1f, 1.f);
 	static const float PatN[] = {0.1f, 1.f, 0.08f, 0.08f, 0.7f, 0.08f, 1.f, 1.f, 0.5f, 1.f, 1.f, 1.f};
 	static const float PatP[] = {0.1f, 1.f, 0.08f, 0.6f, 0.08f, 0.08f, 1.f, 0.4f, 1.f, 1.f, 1.f, 1.f};
@@ -2927,15 +2927,15 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		const int32 Cyc = (int32)(U0 / 6.f);
 		const float U = U0 - Cyc * 6.f;
 		const uint32 Hs = (uint32)(Cyc + 7) * 2654435761u;
-		if (U >= 1.2f && U < 1.2f + 12.f / 25.f) { SpWhich = 0; SpLetter = (int32)((Hs >> 8) % 4u); SpK = FMath::Min(11, (int32)((U - 1.2f) * 25.f)); NB[SpLetter] = PatN[SpK]; SpSeed = Cyc * 2 + 1; }
-		else if (U >= 3.8f && U < 3.8f + 12.f / 25.f) { SpWhich = 1; SpLetter = (int32)((Hs >> 12) % 6u); SpK = FMath::Min(11, (int32)((U - 3.8f) * 25.f)); PB[SpLetter] = PatP[SpK]; SpSeed = Cyc * 2 + 2; }
+		if (U >= 1.2f && U < 1.2f + 12.f / 25.f) { SpWhich = 0; SpLetter = (int32)((Hs >> 8) % (uint32)PDLogo::BlockLetters); SpK = FMath::Min(11, (int32)((U - 1.2f) * 25.f)); NB[SpLetter] = PatN[SpK]; SpSeed = Cyc * 2 + 1; }
+		else if (U >= 3.8f && U < 3.8f + 12.f / 25.f) { SpWhich = 1; SpLetter = (int32)((Hs >> 12) % (uint32)PDLogo::ScriptLetters); SpK = FMath::Min(11, (int32)((U - 3.8f) * 25.f)); PB[SpLetter] = PatP[SpK]; SpSeed = Cyc * 2 + 2; }
 	}
 	(void)Off;
 
 	// ---- 로고 (반사는 바닥선 기준으로 뒤집어 흐리게)
 	const float LgX = 400.f, LY = 110.f, LK = 1.55f;
-	const float NX0 = LgX - (3.f * PDLogo::NeonAdv + 44.f * 0.8f) * LK / 2.f;
-	const FVector2f PO(LgX - 140.f * LK, LY + 170.f * LK);
+	const float NX0 = LgX - PDLogo::BlockW * LK / 2.f;
+	const FVector2f PO(LgX - PDLogo::ScriptW / 2.f * LK, LY + 170.f * LK);
 	bool bSpill = false; // 벽빛 먼저 한 바퀴 (D-302): 켜진 튜브 뒤 벽돌에 은은하게 비치는 빛. 깜빡여 꺼지면 같이 꺼진다
 	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, bool bRefl)
 	{
@@ -2954,40 +2954,45 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	auto Logo = [&](bool bRefl)
 	{
 		auto Map = [&](FVector2f V) { if (bRefl) V.Y = 2.f * TitleFloorY - V.Y; return V; };
-		PDLogo::FPoly Ps[2];
-		for (int32 I = 0; I < 4; ++I)
+		PDLogo::FPoly Ps[3];
+		for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
 		{
-			const int32 N = PDLogo::NeonPolys(I, Ps);
+			const int32 N = PDLogo::BlockPolys(I, Ps);
 			for (int32 J = 0; J < N; ++J)
 			{
 				TArray<FVector2f> Pts;
-				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(Map(FVector2f(NX0 + (I * PDLogo::NeonAdv + Ps[J].P[Q * 2] * 0.8f) * LK, LY + (60.f + Ps[J].P[Q * 2 + 1]) * LK)));
+				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(Map(FVector2f(NX0 + (I * PDLogo::BlockAdv + Ps[J].P[Q * 2] * 0.8f) * LK, LY + (60.f + Ps[J].P[Q * 2 + 1]) * LK)));
 				Tube(Pts, Cyan, 2.4f, NB[I], bRefl);
 			}
 		}
-		// 이어지는 글자(a → l → l, a → s)는 밝기가 같으면 조절점부터 한 줄로 (D-299: 글자마다 끝이 따로 있으면 이음매에 자국이 남았다)
-		for (const PDLogo::FRun& Rn : PDLogo::PallasRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, LK, bRefl ? TitleFloorY : 0.f), Pink, 4.f, PB[Rn.Letter], bRefl);
-		// 왕관 스페이드
-		const float CX = LgX + 170.f * LK, CY = LY + 135.f * LK, R = 20.f * LK;
-		TArray<FVector2f> Sp = FCanvas::HeartPoints(CX, CY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f);
+		// 이어지는 글자(A → l → i, c → e)는 밝기가 같으면 조절점부터 한 줄로 (D-299: 글자마다 끝이 따로 있으면 이음매에 자국이 남았다)
+		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, LK, bRefl ? TitleFloorY : 0.f), Pink, 4.f, PB[Rn.Letter], bRefl);
+		// 마티니 잔 (D-309: 예전 왕관 스페이드 자리) — 역삼각 잔 + 다리 + 받침, 올리브 자리에 분홍 스페이드 + 꼬치
+		const float CX = LgX + 150.f * LK, CY = LY + 120.f * LK, R = 26.f * LK;
+		Tube({Map(FVector2f(CX - R, CY - R * 0.9f)), Map(FVector2f(CX + R, CY - R * 0.9f)), Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX - R, CY - R * 0.9f))}, Gold, 2.2f, CB, bRefl);
+		Tube({Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX, CY + R * 0.95f))}, Gold, 2.f, CB, bRefl);
+		Tube({Map(FVector2f(CX - R * 0.5f, CY + R * 0.95f)), Map(FVector2f(CX + R * 0.5f, CY + R * 0.95f))}, Gold, 2.f, CB, bRefl);
+		TArray<FVector2f> Sp = FCanvas::HeartPoints(CX + R * 0.1f, CY - R * 0.48f, R * 0.26f, -1.f, -R * 0.03f);
 		for (FVector2f& V : Sp) V = Map(V);
-		Tube(Sp, Gold, 2.2f, CB, bRefl);
-		Tube({Map(FVector2f(CX, CY + R * 0.6f)), Map(FVector2f(CX + R * 0.24f, CY + R * 1.05f)), Map(FVector2f(CX - R * 0.24f, CY + R * 1.05f)), Map(FVector2f(CX, CY + R * 0.6f))}, Gold, 2.f, CB, bRefl);
-		const float CrX[] = {-0.8f, -0.8f, -0.4f, 0.f, 0.4f, 0.8f, 0.8f, -0.8f}, CrY[] = {-0.55f, -1.05f, -0.78f, -1.25f, -0.78f, -1.05f, -0.55f, -0.55f};
-		TArray<FVector2f> Cr;
-		for (int32 K = 0; K < 8; ++K) Cr.Add(Map(FVector2f(CX + CrX[K] * R, CY + CrY[K] * R)));
-		Tube(Cr, Gold, 2.f, CB, bRefl);
+		Tube(Sp, Pink, 1.6f, CB, bRefl);
+		Tube({Map(FVector2f(CX + R * 0.1f, CY - R * 0.3f)), Map(FVector2f(CX + R * 0.62f, CY - R * 1.25f))}, Hex(TEXT("787d8c")), 1.2f, CB, bRefl);
 	};
 	bSpill = true;
 	Logo(false);
 	bSpill = false;
 	Logo(true);
 	Logo(false);
+	// 부제 (D-311): 금색 가는 선 + LATE NIGHT POKER (작은 글자는 Slate 글꼴, 마티니 잔과 같이 켜짐)
+	if (CB > 0.25f)
+	{
+		C.Lines({FVector2f(LgX - 120.f * LK, LY + 196.f * LK), FVector2f(LgX + 120.f * LK, LY + 196.f * LK)}, WithAlpha(Gold, 0.5f * CB), 1.f);
+		C.TextCentered(TEXT("LATE NIGHT POKER"), LgX, LY + 214.f * LK, WithAlpha(Gold, CB), 15.f * LK, true);
+	}
 	// 빠직: 작은 섬광 + 짧은 번개, 불티가 튀어 떨어지며 꺼진다
 	if (SpWhich >= 0)
 	{
-		const FVector2f O = SpWhich == 0 ? FVector2f(NX0 + (SpLetter * PDLogo::NeonAdv + 35.f) * LK, LY + 6.f * LK)
-			: PO + FVector2f(PDLogo::PallasSpark[SpLetter][0], PDLogo::PallasSpark[SpLetter][1]) * LK;
+		const FVector2f O = SpWhich == 0 ? FVector2f(NX0 + (SpLetter * PDLogo::BlockAdv + 35.f) * LK, LY + 6.f * LK)
+			: PO + FVector2f(PDLogo::ScriptSpark[SpLetter][0], PDLogo::ScriptSpark[SpLetter][1]) * LK;
 		FRandomStream Rs(SpSeed * 7919 + 13);
 		const FLinearColor Hot(1.f, 0.96f, 0.82f, 1.f), Warm(1.f, 0.88f, 0.59f, 1.f);
 		if (SpK == 0)
@@ -3262,7 +3267,7 @@ float SPDBoardWidget::Receipt(FCanvas& C, float CX, float Y, const TArray<TPair<
 	TArray<FVector2f> Pts = {FVector2f(X, Y + H), FVector2f(X, Y), FVector2f(X + W, Y), FVector2f(X + W, Y + H)};
 	for (int32 K = 0; K <= 25; ++K) Pts.Add(FVector2f(X + W - K * 12.f, Y + H - (K % 2 ? 6.f : 0.f))); // 톱니 끝
 	C.Glow(Pts, Lav, 1.5f, 0.45f);
-	C.TextCentered(TEXT("NEON PALLAS · BAR"), CX, Y + 26.f, Fg, 11.f, true);
+	C.TextCentered(TEXT("BAR ALICE · LATE NIGHT"), CX, Y + 26.f, Fg, 11.f, true);
 	C.Lines({FVector2f(X + 16.f, Y + 44.f), FVector2f(X + W - 16.f, Y + 44.f)}, WithAlpha(Dim, 0.8f), 1.f);
 	float YY = Y + 70.f;
 	const FSlateFontInfo Fn = FCanvas::Font(12.f, false), FnB = FCanvas::Font(12.f, true);
@@ -3315,11 +3320,11 @@ void SPDBoardWidget::PaintBarBack(FCanvas& C) const
 	C.Glow({FVector2f(0.f, FloorY), FVector2f(DesignW, FloorY)}, Hex(TEXT("786e8c"), 0.6f), 1.2f, 0.25f);
 }
 
-// 작은 네온 팔라스 로고 (D-274): 왼쪽 위 배지. 제목 화면과 같은 선 (PDLogo.h), 깜빡임 없이
+// 작은 바 앨리스 로고 (D-274, D-309): 왼쪽 위 배지. 제목 화면과 같은 선 (PDLogo.h), 깜빡임 없이
 void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const
 {
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e"));
-	const float NX0 = CX - (3.f * PDLogo::NeonAdv + 44.f * 0.8f) * K / 2.f;
+	const float NX0 = CX - PDLogo::BlockW * K / 2.f;
 	// 벽빛 먼저 (D-303, 시작 화면 D-302 와 같게): 튜브 뒤에 은은하게 비치는 빛. 너비는 로고 크기(K)에 맞춘다
 	for (int32 Pass = 0; Pass < 2; ++Pass)
 	{
@@ -3329,25 +3334,24 @@ void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) cons
 			if (bSpill) { C.Spill(Pts, Col, Wk * K, 0.45f); C.Spill(Pts, Col, Wk * 2.75f * K, 0.27f); }
 			else C.Glow(Pts, WithAlpha(Col, 0.85f), Th, 0.4f);
 		};
-		PDLogo::FPoly Ps[2];
-		for (int32 I = 0; I < 4; ++I)
+		PDLogo::FPoly Ps[3];
+		for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
 		{
-			const int32 N = PDLogo::NeonPolys(I, Ps);
+			const int32 N = PDLogo::BlockPolys(I, Ps);
 			for (int32 J = 0; J < N; ++J)
 			{
 				TArray<FVector2f> Pts;
-				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(FVector2f(NX0 + (I * PDLogo::NeonAdv + Ps[J].P[Q * 2] * 0.8f) * K, Y + (60.f + Ps[J].P[Q * 2 + 1]) * K));
+				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(FVector2f(NX0 + (I * PDLogo::BlockAdv + Ps[J].P[Q * 2] * 0.8f) * K, Y + (60.f + Ps[J].P[Q * 2 + 1]) * K));
 				Tube(Pts, Cyan, 1.2f, 25.f);
 			}
 		}
-		const FVector2f PO(CX - 140.f * K, Y + 170.f * K);
-		for (const PDLogo::FRun& Rn : PDLogo::PallasRuns(nullptr)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, K, 0.f, 5), Pink, 1.5f, 40.f); // 이어지는 글자는 한 줄로 (D-299)
-		const float SX = CX + 170.f * K, SY = Y + 135.f * K, R = 20.f * K;
-		Tube(FCanvas::HeartPoints(SX, SY + R * 0.25f, R * 0.8f, -1.f, -R * 0.1f), Gold, 1.f, 14.f);
-		const float CrX[] = {-0.8f, -0.8f, -0.4f, 0.f, 0.4f, 0.8f, 0.8f, -0.8f}, CrY[] = {-0.55f, -1.05f, -0.78f, -1.25f, -0.78f, -1.05f, -0.55f, -0.55f};
-		TArray<FVector2f> Cr;
-		for (int32 I = 0; I < 8; ++I) Cr.Add(FVector2f(SX + CrX[I] * R, SY + CrY[I] * R));
-		Tube(Cr, Gold, 1.f, 14.f);
+		const FVector2f PO(CX - PDLogo::ScriptW / 2.f * K, Y + 170.f * K);
+		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(nullptr)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, K, 0.f, 5), Pink, 1.5f, 40.f); // 이어지는 글자는 한 줄로 (D-299)
+		// 마티니 잔 (D-309)
+		const float SX = CX + 150.f * K, SY = Y + 120.f * K, R = 26.f * K;
+		Tube({FVector2f(SX - R, SY - R * 0.9f), FVector2f(SX + R, SY - R * 0.9f), FVector2f(SX, SY + R * 0.15f), FVector2f(SX - R, SY - R * 0.9f)}, Gold, 1.f, 14.f);
+		Tube({FVector2f(SX, SY + R * 0.15f), FVector2f(SX, SY + R * 0.95f)}, Gold, 1.f, 14.f);
+		Tube({FVector2f(SX - R * 0.5f, SY + R * 0.95f), FVector2f(SX + R * 0.5f, SY + R * 0.95f)}, Gold, 1.f, 14.f);
 	}
 }
 

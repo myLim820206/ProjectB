@@ -367,7 +367,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 60 웨이브	60 Waves	60ウェーブ	60 波	60 波	PDBoardPaint.cpp
 100 웨이브	100 Waves	100ウェーブ	100 波	100 波	PDBoardPaint.cpp
 무한	Endless	エンドレス	无尽	無盡	PDBoardPaint.cpp
-%s 모드 클리어 · 팔라스의 축배	%s mode clear · a toast to Pallas	%sモードクリア · パラスに乾杯	%s模式通关 · 为帕拉斯干杯	%s模式通關 · 為帕拉斯乾杯	PDBoardPaint.cpp
+%s 모드 클리어 · 앨리스의 축배	%s Mode Cleared · A Toast at Alice	%sモードクリア · アリスで乾杯	%s模式通关 · 在爱丽丝举杯	%s模式通關 · 在愛麗絲舉杯	PDBoardPaint.cpp
 처치	Kills	撃破	击杀	擊殺	PDBoardPaint.cpp
 레벨	Level	レベル	等级	等級	PDBoardPaint.cpp
 개인 랭킹	Personal	個人ランキング	个人排名	個人排名	PDBoardPaint.cpp
@@ -595,9 +595,9 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 판에서 합쳐질 칸을 클릭해 보세요	then click the tile to fuse into	盤でまとめるマスをクリックしてみましょう	再点击棋盘上要合成到的格子	再點擊棋盤上要合成到的格子	PDBoardPaint.cpp
 족보끼리 맞닿으면 연쇄 보너스로	When hands touch, the chain bonus	役同士が隣り合うと連鎖ボーナスで	牌型相邻时, 连锁加成让	牌型相鄰時, 連鎖加成讓	PDBoardPaint.cpp
 이어진 족보가 모두 더 강해져요	makes all linked hands stronger	つながった役がすべて強くなります	相连的牌型全部变强	相連的牌型全部變強	PDBoardPaint.cpp
-왼쪽 '조커' 줄을 눌러 만들 조커를 고르고	Click the 'Joker' row on the left and pick a joker	左の「ジョーカー」の行を押して作るジョーカーを選び	点击左侧"小丑"行，选择要制作的小丑	點擊左側「小丑」行，選擇要製作的小丑	PDBoardPaint.cpp
-'추천' 재료를 고르고, 그 재료를 다시 누르면 완성	pick 'Best' materials, then click one again to create it	「おすすめ」素材を選び、もう一度押すと完成	选择"推荐"材料，再点一次即可完成	選擇「推薦」材料，再點一次即可完成	PDBoardPaint.cpp
-'먹이기' 줄(또는 판의 조커)에서 조커를 고르고	Pick a joker from the 'Feed' row (or click a joker on the board)	「餌やり」の行（または盤のジョーカー）でジョーカーを選び	在"喂食"行（或点击场上的小丑）选择小丑	在「餵食」行（或點擊場上的小丑）選擇小丑	PDBoardPaint.cpp
+왼쪽 '조커' 줄을 눌러 만들 조커를 고르고	Click the 'Joker' row on the left and pick a joker	左の「ジョーカー」の行を押して作るジョーカーを選び	"点击左侧""小丑""行，选择要制作的小丑"	點擊左側「小丑」行，選擇要製作的小丑	PDBoardPaint.cpp
+'추천' 재료를 고르고, 그 재료를 다시 누르면 완성	pick 'Best' materials, then click one again to create it	「おすすめ」素材を選び、もう一度押すと完成	"选择""推荐""材料，再点一次即可完成"	選擇「推薦」材料，再點一次即可完成	PDBoardPaint.cpp
+'먹이기' 줄(또는 판의 조커)에서 조커를 고르고	Pick a joker from the 'Feed' row (or click a joker on the board)	「餌やり」の行（または盤のジョーカー）でジョーカーを選び	"在""喂食""行（或点击场上的小丑）选择小丑"	在「餵食」行（或點擊場上的小丑）選擇小丑	PDBoardPaint.cpp
 빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요	and click a glowing hand to feed it and raise its joker level	光る役のマスを押して食べさせるとジョーカーレベルが上がります	点击发光的牌型格子喂食，小丑等级就会提升	點擊發光的牌型格子餵食，小丑等級就會提升	PDBoardPaint.cpp
 카드를 오른쪽 클릭해 버리거나	Right-click a card to discard it, or	カードを右クリックで捨てるか	右键卡牌丢弃, 或	右鍵卡牌丟棄, 或	PDBoardPaint.cpp
 Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タワーの上に置いて入れ替えましょう	放到 Lv1 塔上替换	放到 Lv1 塔上替換	PDBoardPaint.cpp
@@ -610,7 +610,7 @@ Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タ
 칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나	Pick one: a cocktail (lasts the whole run) or an instant reward,	カクテル（ラン中ずっと効果）か即時報酬から一つ選ぶか	从鸡尾酒（整局有效）或即时奖励中选择一个，	從雞尾酒（整局有效）或即時獎勵中選擇一個，	PDBoardPaint.cpp
 S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 cocktail slots	Sでスキップ。カクテル枠は5つです	或按S跳过。鸡尾酒栏位共5个	或按S跳過。雞尾酒欄位共5個	PDBoardPaint.cpp
 맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요	You can combine two adjacent jokers into an Upper Joker	隣り合う2体のジョーカーを合わせて上位ジョーカーを作れます	可以把相邻的两个小丑合成为上位小丑	可以把相鄰的兩個小丑合成為上位小丑	PDBoardPaint.cpp
-두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요	Use the gold button between them or the 'Joker' list	二つの間の金色ボタンか「ジョーカー」リストで合体します	点击两者之间的金色按钮或在"小丑"列表中合成	點擊兩者之間的金色按鈕或在「小丑」列表中合成	PDBoardPaint.cpp
+두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요	Use the gold button between them or the 'Joker' list	二つの間の金色ボタンか「ジョーカー」リストで合体します	"点击两者之间的金色按钮或在""小丑""列表中合成"	點擊兩者之間的金色按鈕或在「小丑」列表中合成	PDBoardPaint.cpp
 필요 없는 타워는 오른쪽 클릭 → [판매] 버튼	Right-click a tower you don't need, then press [Sell]	不要なタワーは右クリック →［売却］ボタン	不需要的塔可右键点击 → [出售] 按钮	不需要的塔可右鍵點擊 → [出售] 按鈕	PDBoardPaint.cpp
 팔면 경험치를 받아요 (조커는 더 많이)	Selling gives XP (more for jokers)	売ると経験値がもらえます（ジョーカーはもっと）	出售可获得经验（小丑更多）	出售可獲得經驗（小丑更多）	PDBoardPaint.cpp
 다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요	Two different adjacent jokers, both joker level 10, can merge	異なるジョーカー二つが隣接し、両方ジョーカーレベル10なら合体	两个不同的小丑相邻且小丑等级都达到10即可合成	兩個不同的小丑相鄰且小丑等級都達到10即可合成	PDBoardPaint.cpp
@@ -673,6 +673,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+%s 모드 클리어 · 팔라스의 축배	%s mode clear · a toast to Pallas	%sモードクリア · パラスに乾杯	%s模式通关 · 为帕拉斯干杯	%s模式通關 · 為帕拉斯乾杯	PDLangTable.inl
 %s 모드 클리어 · 처치 %d · 레벨 %d	%s mode cleared · Kills %d · Level %d	%s モードクリア · 撃破 %d · レベル %d	%s 模式通关 · 击杀 %d · 等级 %d	%s 模式通關 · 擊殺 %d · 等級 %d	PDLangTable.inl
 개인 랭킹 %d위	Personal rank #%d	個人ランキング %d位	个人排名 第%d名	個人排名 第%d名	PDLangTable.inl
 개인 랭킹 20위 밖	Outside personal top 20	個人ランキング 20位圏外	未进入个人前20名	未進入個人前20名	PDLangTable.inl

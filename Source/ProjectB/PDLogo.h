@@ -1,58 +1,63 @@
-// NEON PALLAS 로고 선 (D-253). 글꼴 없이 손으로 그린 네온 튜브 — tools/neon/logo_strokes.py 와 같은 점
+// BAR ALICE 로고 선 (D-309, D-311, 예전 NEON PALLAS D-253 자리). 글꼴 없이 손으로 그린 네온 튜브 — tools/neon/logo_alice.py 와 같은 점
 // 좌표: 글자 기준선 y=0, 위가 음수. 글자마다 따로 (글자별 깜빡임)
 #pragma once
 #include "CoreMinimal.h"
 
 namespace PDLogo
 {
-	// NEON 블록 글자: 속이 빈 외곽선 (너비 44, 높이 60). 글자 간격 56, 가로는 0.8배로 그린다
-	constexpr float NeonAdv = 56.f;
+	// BAR 블록 글자: 속이 빈 외곽선 (너비 44, 높이 60). 글자 간격 56, 가로는 0.8배로 그린다
+	constexpr float BlockAdv = 56.f;
+	constexpr int32 BlockLetters = 3;
+	constexpr float BlockW = (BlockLetters - 1) * BlockAdv + 44.f * 0.8f; // 단어 폭 (배율 1)
 	struct FPoly { const float* P; int32 N; };
-	static const float NeonN[] = {0, 0, 0, -60, 12, -60, 32, -22, 32, -60, 44, -60, 44, 0, 32, 0, 12, -38, 12, 0, 0, 0};
-	static const float NeonE[] = {0, 0, 0, -60, 42, -60, 42, -49, 12, -49, 12, -36, 36, -36, 36, -25, 12, -25, 12, -11, 42, -11, 42, 0, 0, 0};
-	static const float NeonO1[] = {10, 0, 0, -10, 0, -50, 10, -60, 34, -60, 44, -50, 44, -10, 34, 0, 10, 0};
-	static const float NeonO2[] = {15, -12, 12, -15, 12, -45, 15, -48, 29, -48, 32, -45, 32, -15, 29, -12, 15, -12};
-	inline int32 NeonPolys(int32 Letter, FPoly Out[2]) // Letter 0..3 = N E O N
+	static const float BarB0[] = {0, 0, 0, -60, 31, -60, 41, -52, 41, -39, 35, -31, 44, -23, 44, -9, 35, 0, 0, 0};
+	static const float BarB1[] = {12, -49, 27, -49, 29, -46, 29, -40, 27, -37, 12, -37, 12, -49};
+	static const float BarB2[] = {12, -25, 30, -25, 32, -22, 32, -14, 30, -11, 12, -11, 12, -25};
+	static const float BarA0[] = {0, 0, 16, -60, 28, -60, 44, 0, 32, 0, 29, -12, 15, -12, 12, 0, 0, 0};
+	static const float BarA1[] = {18, -23, 26, -23, 22, -42, 18, -23};
+	static const float BarR0[] = {0, 0, 0, -60, 31, -60, 41, -51, 41, -35, 33, -27, 44, 0, 31, 0, 22, -24, 12, -24, 12, 0, 0, 0};
+	static const float BarR1[] = {12, -49, 27, -49, 29, -46, 29, -38, 27, -35, 12, -35, 12, -49};
+	inline int32 BlockPolys(int32 Letter, FPoly Out[3]) // Letter 0..2 = B A R
 	{
-		if (Letter == 1) { Out[0] = {NeonE, UE_ARRAY_COUNT(NeonE) / 2}; return 1; }
-		if (Letter == 2) { Out[0] = {NeonO1, UE_ARRAY_COUNT(NeonO1) / 2}; Out[1] = {NeonO2, UE_ARRAY_COUNT(NeonO2) / 2}; return 2; }
-		Out[0] = {NeonN, UE_ARRAY_COUNT(NeonN) / 2};
-		return 1;
+		if (Letter == 0) { Out[0] = {BarB0, UE_ARRAY_COUNT(BarB0) / 2}; Out[1] = {BarB1, UE_ARRAY_COUNT(BarB1) / 2}; Out[2] = {BarB2, UE_ARRAY_COUNT(BarB2) / 2}; return 3; }
+		if (Letter == 1) { Out[0] = {BarA0, UE_ARRAY_COUNT(BarA0) / 2}; Out[1] = {BarA1, UE_ARRAY_COUNT(BarA1) / 2}; return 2; }
+		Out[0] = {BarR0, UE_ARRAY_COUNT(BarR0) / 2}; Out[1] = {BarR1, UE_ARRAY_COUNT(BarR1) / 2};
+		return 2;
 	}
 
-	// Pallas 필기체 한 줄 튜브: 조절점 (Catmull-Rom 으로 잇는다)
-	static const float PalP1[] = {4, 8, 10, -14, 18, -46, 26, -78};
-	static const float PalP2[] = {16, -62, 30, -80, 56, -84, 72, -70, 68, -50, 46, -40, 24, -42};
-	static const float PalA1[] = {101, -41, 90, -45, 74, -40, 64, -20, 68, -2, 82, 0, 98, -16, 103, -33, 106, -38, 108, -31, 104, -15, 104, -4, 108, 0, 116, -4}; // 위 오른쪽 꺾임을 둥글게 (D-300: 되짚는 꺾임에서 빛이 뾰족하게 튀었다)
-	static const float PalL1[] = {116, -4, 128, -26, 140, -62, 142, -84, 132, -88, 124, -68, 122, -30, 126, -4, 136, 0, 148, -6};
-	static const float PalL2[] = {148, -6, 160, -28, 172, -64, 174, -84, 164, -88, 156, -68, 154, -30, 158, -4, 166, -1}; // 꼬리는 다음 a 동그라미 앞에서 끝 (D-300: 꼬리 끝이 a 에 닿아 빛이 튀었다)
-	static const float PalA2[] = {209, -41, 198, -45, 182, -40, 172, -20, 176, -2, 190, 0, 206, -16, 211, -33, 214, -38, 216, -31, 212, -15, 212, -4, 216, 0, 226, -4}; // 위 오른쪽 꺾임을 둥글게 (D-300)
-	static const float PalS[] = {226, -4, 236, -18, 242, -35, 247, -41, 252, -33, 258, -15, 252, -2, 236, 2, 224, -6}; // 위 꺾임을 둥글게 (D-300)
-	constexpr int32 PallasLetters = 6;
-	inline int32 PallasStrokes(int32 Letter, FPoly Out[2])
+	// Alice 필기체 한 줄 튜브: 조절점 (Catmull-Rom 으로 잇는다). 폭 ScriptW, 대문자 ~86 · 소문자 ~40
+	constexpr float ScriptW = 210.f;
+	static const float AliA1[] = {0, 4, 12, -24, 27, -58, 40, -82, 46, -82, 50, -60, 53, -30, 57, -8, 64, 0, 74, -6};
+	static const float AliA2[] = {8, -30, 26, -38, 48, -38, 62, -32}; // 가로 획 (살짝 휘게)
+	static const float AliL[] = {74, -6, 88, -34, 99, -68, 101, -86, 92, -90, 84, -70, 81, -32, 85, -5, 95, 0, 106, -8};
+	static const float AliI1[] = {106, -8, 112, -24, 117, -40, 118, -24, 118, -7, 124, 0, 132, -5};
+	static const float AliI2[] = {116, -55, 119, -58, 122, -55, 119, -52, 116, -55}; // i 점
+	static const float AliC[] = {164, -33, 160, -40, 149, -42, 139, -29, 139, -9, 149, 0, 165, -8};
+	static const float AliE[] = {165, -8, 180, -19, 192, -31, 190, -41, 180, -42, 172, -30, 172, -10, 182, 0, 198, -3, 210, -12};
+	constexpr int32 ScriptLetters = 5;
+	inline int32 ScriptStrokes(int32 Letter, FPoly Out[2])
 	{
 		switch (Letter)
 		{
-		case 0: Out[0] = {PalP1, UE_ARRAY_COUNT(PalP1) / 2}; Out[1] = {PalP2, UE_ARRAY_COUNT(PalP2) / 2}; return 2;
-		case 1: Out[0] = {PalA1, UE_ARRAY_COUNT(PalA1) / 2}; return 1;
-		case 2: Out[0] = {PalL1, UE_ARRAY_COUNT(PalL1) / 2}; return 1;
-		case 3: Out[0] = {PalL2, UE_ARRAY_COUNT(PalL2) / 2}; return 1;
-		case 4: Out[0] = {PalA2, UE_ARRAY_COUNT(PalA2) / 2}; return 1;
-		default: Out[0] = {PalS, UE_ARRAY_COUNT(PalS) / 2}; return 1;
+		case 0: Out[0] = {AliA1, UE_ARRAY_COUNT(AliA1) / 2}; Out[1] = {AliA2, UE_ARRAY_COUNT(AliA2) / 2}; return 2;
+		case 1: Out[0] = {AliL, UE_ARRAY_COUNT(AliL) / 2}; return 1;
+		case 2: Out[0] = {AliI1, UE_ARRAY_COUNT(AliI1) / 2}; Out[1] = {AliI2, UE_ARRAY_COUNT(AliI2) / 2}; return 2;
+		case 3: Out[0] = {AliC, UE_ARRAY_COUNT(AliC) / 2}; return 1;
+		default: Out[0] = {AliE, UE_ARRAY_COUNT(AliE) / 2}; return 1;
 		}
 	}
 	// 글자마다 '빠직' 불티가 튀는 자리 (오른쪽 위)
-	static const float PallasSpark[PallasLetters][2] = {{70, -72}, {104, -38}, {142, -84}, {174, -84}, {212, -38}, {248, -38}};
+	static const float ScriptSpark[ScriptLetters][2] = {{44, -82}, {100, -86}, {119, -56}, {162, -38}, {191, -38}};
 
 	// 이어지는 글자 획을 조절점 단계에서 합친 줄 (D-299): 글자 끝과 다음 글자 시작이 같은 점이고 밝기가 같으면 한 줄로 → 이음매에서도 곡선이 매끈
 	struct FRun { TArray<FVector2f> Pts; int32 Letter; };
-	inline TArray<FRun> PallasRuns(const float* LetterB)
+	inline TArray<FRun> ScriptRuns(const float* LetterB)
 	{
 		TArray<FRun> Out;
 		FPoly Ps[2];
-		for (int32 I = 0; I < PallasLetters; ++I)
+		for (int32 I = 0; I < ScriptLetters; ++I)
 		{
-			const int32 N = PallasStrokes(I, Ps);
+			const int32 N = ScriptStrokes(I, Ps);
 			for (int32 J = 0; J < N; ++J)
 			{
 				TArray<FVector2f> C;
