@@ -68,6 +68,19 @@ def juke_square(M, x, y, w, h, small=False):
         M.rr(cx - 3, by - 3, 6, 6, 1.5, GOLD if k == 2 else DIM, 1.0, 0.9 if k == 2 else 0.5)
 
 
+TX = []  # 아치 주크박스 글자 (jukebox_mock 이 모은다)
+
+
+def juke_arch(M, cx, oy):
+    """아치 주크박스 2c (사용자 고름): 폭 150 · 높이 0.9배(85) · 위 끝 y 2 · 바닥 y 87"""
+    import jukebox_mock as J
+    J.KO = FONT_KO
+    k, w = 0.9, 150.0
+    J.JW = w / k
+    J.jukebox(M, TX, cx - w / 2, oy + 87 - J.JH * k, k, 0.3, 3, -10, 1)
+    J.JW = 128
+
+
 def wave_val(M, cx, y, big=34):
     t = M.word(cx - 18, y, 'WAVE 19', CYAN, big, font=FONT_EN, track=2)
     M.word(cx - 18 + t / 2 + 26, y, '/30', CYAN, big * 0.45, font=FONT_EN)
@@ -106,7 +119,7 @@ def variant_A(M, oy):
     """같은 카드 줄: 높이 64, y 18"""
     y, h = oy + 18, 64
     logo(M, oy)
-    juke_square(M, 268, y, 150, h)
+    juke_arch(M, 346, oy)
     card(M, 430, y, 380, h)
     label(M, 444, y + 16, 'WAVE')
     wave_val(M, 620, y + 44, 30)
@@ -129,11 +142,11 @@ def variant_B(M, oy):
     """한 장 계기판"""
     y, h = oy + 16, 68
     logo(M, oy)
-    card(M, 266, y, 870, h, FRAME, 0.6, 12)
-    xs = [420, 800, 930]
+    juke_arch(M, 346, oy)
+    card(M, 430, y, 706, h, FRAME, 0.6, 12)
+    xs = [800, 930]
     for xx in xs: M.ln([(xx, y + 10), (xx, y + h - 10)], FRAME, 1.0, 0.35)
-    juke_square(M, 274, y + 6, 138, h - 12, small=True)
-    label(M, 434, y + 16, 'WAVE')
+    label(M, 444, y + 16, 'WAVE')
     wave_val(M, 610, y + 46, 30)
     M.word(610, y + 60, '다음 보스 20웨이브 · 분열 군주 + 호위', ORANGE, 10, font=FONT_KO)
     label(M, 812, y + 16, 'LIFE')
@@ -152,7 +165,7 @@ def variant_C(M, oy):
     """가운데 WAVE 강조, 양옆 같은 크기 카드"""
     logo(M, oy)
     sy, sh = oy + 24, 56
-    juke_square(M, 300, sy, 150, sh, small=True)
+    juke_arch(M, 375, oy)
     card(M, 470, oy + 10, 340, 78, CYAN, 0.8, 14)
     wave_val(M, 640, oy + 52, 36)
     M.word(640, oy + 74, '다음 보스 20웨이브 · 분열 군주 + 호위', ORANGE, 10, font=FONT_KO)
@@ -180,7 +193,20 @@ def main(outdir):
         oy = 18 + k * 236
         M.word(1262, oy + 6, cap, WHITE, 12, font=FONT_KO, anchor_center=False) if False else M.word(640, oy + 4, cap, WHITE, 13, font=FONT_KO)
         fn(M, oy + 8)
-    M.draw().save(os.path.join(outdir, 'topbar_mock.png'))
+    from PIL import Image, ImageChops, ImageDraw, ImageFont
+    img = M.draw()
+    d = ImageDraw.Draw(img)
+    for t in TX:
+        (x, y, s, c, px_, a), clip = t[:6], (t[6] if len(t) > 6 else None)
+        f = ImageFont.truetype(FONT_KO, max(6, px_))
+        if clip is None:
+            d.text((x, y), s, fill=c, font=f, anchor=a)
+            continue
+        lay = Image.new('RGB', img.size, (0, 0, 0))
+        ImageDraw.Draw(lay).text((x, y), s, fill=c, font=f, anchor=a)
+        box = tuple(int(v) for v in clip)
+        img.paste(ImageChops.lighter(img.crop(box), lay.crop(box)), box[:2])
+    img.save(os.path.join(outdir, 'topbar_mock.png'))
     print('ok')
 
 
