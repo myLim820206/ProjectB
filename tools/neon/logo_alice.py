@@ -1,6 +1,6 @@
 """BAR ALICE 로고 선 정의 (D-309, D-311) — 글꼴 없이 손으로 그린 네온 튜브. 언리얼 PDLogo.h 와 같은 점
 
-    python tools/neon/logo_alice.py 출력폴더   → logo_alice_A.png · logo_alice_B.png · logo_alice_badge.png
+    python tools/neon/logo_alice.py 출력폴더   → logo_alice_A.png · logo_alice_B.png · logo_alice_C.png (적용) · logo_alice_badge(_C).png
 
 - BAR: 블록 글자를 속이 빈 외곽선으로 (점 목록 = 꺾은선), 예전 NEON 과 같은 크기 (너비 44, 높이 60)
 - Alice: 필기체 한 줄 튜브. 점은 Catmull-Rom 으로 이어 부드럽게 (예전 Pallas 와 같은 방식)
@@ -93,12 +93,22 @@ def logo_B(M, cx, y, k=1.0):
     M.word(cx, y + 203 * k, 'LATE NIGHT POKER', CYAN, 15 * k, None, track=7 * k, font=FONT)
 
 
+def logo_C(M, cx, y, k=1.0):
+    """C (확정 안): B 배치(Alice 크게, BAR 는 왼쪽 위 작게, 알약 없음) + A 의 마티니 잔 · 부제(금색 가는 선 + 금색 글자)"""
+    draw_alice(M, cx - ALICE_W * 1.25 * k / 2, y + 150 * k, 1.25 * k)
+    kb = 0.55 * k
+    draw_bar(M, cx - 190 * k, y - 6 * k, kb, col=CYAN)
+    martini(M, cx + 168 * k, y + 96 * k, 26 * k, GOLD)
+    M.ln([(cx - 120 * k, y + 178 * k), (cx + 120 * k, y + 178 * k)], GOLD, 1.0, 0.5)
+    M.word(cx, y + 204 * k, 'LATE NIGHT POKER', GOLD, 15 * k, None, track=6 * k, font=FONT)
+
+
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 
 
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    for name, fn in (('A', logo_A), ('B', logo_B)):
+    for name, fn in (('A', logo_A), ('B', logo_B), ('C', logo_C)):
         M = Sign()
         fn(M, 640, 160, 1.5)
         M.draw().save(os.path.join(outdir, 'logo_alice_%s.png' % name))
@@ -106,6 +116,9 @@ def main(outdir):
     M = Sign()
     logo_A(M, 640, 300, 0.5)
     M.draw().crop((440, 260, 840, 460)).resize((800, 400)).save(os.path.join(outdir, 'logo_alice_badge.png'))
+    M = Sign()
+    logo_C(M, 640, 300, 0.5)
+    M.draw().crop((440, 260, 840, 460)).resize((800, 400)).save(os.path.join(outdir, 'logo_alice_badge_C.png'))
     print('ok')
 
 
