@@ -1,6 +1,34 @@
 ko	en	ja	zh-Hans	zh-Hant	file
 강화!	Empowered!	強化!	强化!	強化!	PDBoardCine.cpp
 클릭: 건너뛰기	Click: skip	クリック: スキップ	点击: 跳过	點擊: 跳過	PDBoardCine.cpp
+칵테일	Cocktail	カクテル	鸡尾酒	雞尾酒	PDBoardCodex.cpp
+조커	Joker	ジョーカー	小丑	小丑	PDBoardCodex.cpp
+상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardCodex.cpp
+보스	Bosses	ボス	首领	首領	PDBoardCodex.cpp
+목표: %s	Goal: %s	目標: %s	目标: %s	目標: %s	PDBoardCodex.cpp
+연 칵테일만 5웨이브 보상에 나온다	Only unlocked cocktails appear in wave-5 rewards	解放したカクテルだけが5ウェーブ報酬に出る	只有已解锁的鸡尾酒会出现在每5波奖励中	只有已解鎖的雞尾酒會出現在每5波獎勵中	PDBoardCodex.cpp
+잠금 해제에서 %d칩	%d chips in Unlocks	解放メニューで %d チップ	在解锁中 %d 筹码	在解鎖中 %d 籌碼	PDBoardCodex.cpp
+가진 칵테일	Owned	所持中	已拥有	已擁有	PDBoardCodex.cpp
+열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardCodex.cpp
+잠김	Locked	ロック中	未解锁	未解鎖	PDBoardCodex.cpp
+만들어 보면 열린다	Make it once to unlock	作ってみると解放される	制作一次即可解锁	製作一次即可解鎖	PDBoardCodex.cpp
+만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardCodex.cpp
+발견	Found	発見	已发现	已發現	PDBoardCodex.cpp
+아직 만나지 못한 보스	A boss you haven't met yet	まだ出会っていないボス	尚未遇见的首领	尚未遇見的首領	PDBoardCodex.cpp
+모드 최종 보스	Mode final boss	モード最終ボス	模式最终首领	模式最終首領	PDBoardCodex.cpp
+처치	Kills	撃破	击杀	擊殺	PDBoardCodex.cpp
+만남	Met	遭遇	已遇见	已遇見	PDBoardCodex.cpp
+칵테일 %d / %d 열림	Cocktails %d / %d unlocked	カクテル %d / %d 解放	鸡尾酒 %d / %d 已解锁	雞尾酒 %d / %d 已解鎖	PDBoardCodex.cpp
+%d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardCodex.cpp
+상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardCodex.cpp
+보스 %d / %d 처치	Bosses %d / %d defeated	ボス %d / %d 撃破	首领 %d / %d 击败	首領 %d / %d 擊敗	PDBoardCodex.cpp
+%s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardCodex.cpp
+3개	3 hands	3つ	3个	3個	PDBoardCodex.cpp
+2개	2 hands	2つ	2个	2個	PDBoardCodex.cpp
+족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)	Pick 3 (or 2) hands that match a recipe to make a joker (anywhere on the board)	役を3つ(または2つ)選びレシピと合えばジョーカー(盤のどこでも)	选 3 个(或 2 个)牌型，符合配方即成小丑(场上任意位置)	選 3 個(或 2 個)牌型，符合配方即成小丑(場上任意位置)	PDBoardCodex.cpp
+서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)	Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)	異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)	两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)	兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)	PDBoardCodex.cpp
+30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다	30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100	30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる	30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同	30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同	PDBoardCodex.cpp
+Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · J / Esc · Right-click: close	Tab: 次のボード · ←→: ページ · J / Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · J / Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · J / Esc · 右鍵: 關閉	PDBoardCodex.cpp
 저격	Snipe	狙撃	狙击	狙擊	PDBoardDraw.h
 폭발	Blast	爆発	爆炸	爆炸	PDBoardDraw.h
 연사	Rapid	連射	连射	連射	PDBoardDraw.h
@@ -408,6 +436,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 새 게임	New Game	ニューゲーム	新游戏	新遊戲	PDBoardDraw.h
 메인 메뉴로	Main Menu	メインメニューへ	返回主菜单	返回主選單	PDBoardDraw.h
 설정	Settings	設定	设置	設定	PDBoardDraw.h
+도감	Codex	図鑑	图鉴	圖鑑	PDBoardDraw.h
 게임 종료	Quit Game	ゲーム終了	退出游戏	退出遊戲	PDBoardDraw.h
 파이브	Five	ファイブ	五条	五條	PDBoardDraw.h
 풀하	F.House	フルハウス	葫芦	葫蘆	PDBoardDraw.h
@@ -483,7 +512,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 100 웨이브	100 Waves	100ウェーブ	100 波	100 波	PDBoardPaint.cpp
 무한	Endless	エンドレス	无尽	無盡	PDBoardPaint.cpp
 %s 모드 클리어 · 앨리스의 축배	%s Mode Cleared · A Toast at Alice	%sモードクリア · アリスで乾杯	%s模式通关 · 在爱丽丝举杯	%s模式通關 · 在愛麗絲舉杯	PDBoardPaint.cpp
-처치	Kills	撃破	击杀	擊殺	PDBoardPaint.cpp
 레벨	Level	レベル	等级	等級	PDBoardPaint.cpp
 개인 랭킹	Personal	個人ランキング	个人排名	個人排名	PDBoardPaint.cpp
 %d위	#%d	%d位	第%d名	第%d名	PDBoardPaint.cpp
@@ -543,9 +571,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
 클릭: 메뉴 (합성 %d · 판매 +%d 경험치)	Click: menu (fuse %d · sell +%d XP)	クリック: メニュー (合成 %d · 売却 +%d 経験値)	点击: 菜单 (合成 %d · 出售 +%d 经验)	點擊: 選單 (合成 %d · 出售 +%d 經驗)	PDBoardPaint.cpp
-보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDBoardPaint.cpp
-다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDBoardPaint.cpp
-레벨 %d	Level %d	レベル %d	等级 %d	等級 %d	PDBoardPaint.cpp
 손패 %d/%d	Hand %d/%d	手札 %d/%d	手牌 %d/%d	手牌 %d/%d	PDBoardPaint.cpp
 덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
 자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
@@ -559,8 +584,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍速	PDBoardPaint.cpp
 포인트 %d	Points %d	ポイント %d	点数 %d	點數 %d	PDBoardPaint.cpp
 스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDBoardPaint.cpp
-도감	Codex	図鑑	图鉴	圖鑑	PDBoardPaint.cpp
-메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
 칵테일 %d/%d	Cocktails %d/%d	カクテル %d/%d	鸡尾酒 %d/%d	雞尾酒 %d/%d	PDBoardPaint.cpp
 다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
 %d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
@@ -572,36 +595,12 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
 K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Codex · Esc Menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單	PDBoardPaint.cpp
 웨이브 %d 칵테일 — 하나를 고른다	Wave %d cocktail — pick one	ウェーブ %d カクテル — 1つ選ぶ	第%d波 鸡尾酒 — 选择一个	第%d波 雞尾酒 — 選擇一個	PDBoardPaint.cpp
-칵테일	Cocktail	カクテル	鸡尾酒	雞尾酒	PDBoardPaint.cpp
 서비스	On the house	サービス	店家招待	店家招待	PDBoardPaint.cpp
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
 칵테일 칸이 가득 찼다 (5/5)	Cocktail slots are full (5/5)	カクテル枠がいっぱい (5/5)	鸡尾酒栏已满 (5/5)	雞尾酒欄已滿 (5/5)	PDBoardPaint.cpp
-조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
-상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardPaint.cpp
-보스	Bosses	ボス	首领	首領	PDBoardPaint.cpp
 눌러서 보기	Click to view	クリックで表示	点击查看	點擊查看	PDBoardPaint.cpp
-칵테일 %d / %d 열림	Cocktails %d / %d unlocked	カクテル %d / %d 解放	鸡尾酒 %d / %d 已解锁	雞尾酒 %d / %d 已解鎖	PDBoardPaint.cpp
-%d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardPaint.cpp
-상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardPaint.cpp
-보스 %d / %d 처치	Bosses %d / %d defeated	ボス %d / %d 撃破	首领 %d / %d 击败	首領 %d / %d 擊敗	PDBoardPaint.cpp
-연 칵테일만 5웨이브 보상에 나온다	Only unlocked cocktails appear in wave-5 rewards	解放したカクテルだけが5ウェーブ報酬に出る	只有已解锁的鸡尾酒会出现在每5波奖励中	只有已解鎖的雞尾酒會出現在每5波獎勵中	PDBoardPaint.cpp
-목표: %s	Goal: %s	目標: %s	目标: %s	目標: %s	PDBoardPaint.cpp
-아직 만나지 못한 보스	A boss you haven't met yet	まだ出会っていないボス	尚未遇见的首领	尚未遇見的首領	PDBoardPaint.cpp
-모드 최종 보스	Mode final boss	モード最終ボス	模式最终首领	模式最終首領	PDBoardPaint.cpp
-만남	Met	遭遇	已遇见	已遇見	PDBoardPaint.cpp
-가진 칵테일	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
-열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
-잠김	Locked	ロック中	未解锁	未解鎖	PDBoardPaint.cpp
-잠금 해제에서 %d칩	%d chips in Unlocks	解放メニューで %d チップ	在解锁中 %d 筹码	在解鎖中 %d 籌碼	PDBoardPaint.cpp
-만들어 보면 열린다	Make it once to unlock	作ってみると解放される	制作一次即可解锁	製作一次即可解鎖	PDBoardPaint.cpp
-%s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardPaint.cpp
-발견	Found	発見	已发现	已發現	PDBoardPaint.cpp
-만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardPaint.cpp
 목표	Goal	目標	目标	目標	PDBoardPaint.cpp
 재료 먼저	Needs parts	素材が先	先解锁材料	先解鎖材料	PDBoardPaint.cpp
-30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다	30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100	30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる	30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同	30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同	PDBoardPaint.cpp
-서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)	Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)	異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)	两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)	兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)	PDBoardPaint.cpp
-족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)	Pick 3 (or 2) hands that match a recipe to make a joker (anywhere on the board)	役を3つ(または2つ)選びレシピと合えばジョーカー(盤のどこでも)	选 3 个(或 2 个)牌型，符合配方即成小丑(场上任意位置)	選 3 個(或 2 個)牌型，符合配方即成小丑(場上任意位置)	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명	Hover a row for details	行にカーソルで説明	悬停查看说明	懸停查看說明	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다	Hover a row for details · Click to unlock with chips	行にカーソルで説明 · クリックでチップを使って解放	悬停查看说明 · 点击用筹码解锁	懸停查看說明 · 點擊用籌碼解鎖	PDBoardPaint.cpp
 %d / %d 쪽  ·  휠: 넘기기	Page %d / %d  ·  Wheel: flip	%d / %d ページ  ·  ホイール: めくる	第 %d / %d 页  ·  滚轮: 翻页	第 %d / %d 頁  ·  滾輪: 翻頁	PDBoardPaint.cpp
@@ -610,7 +609,6 @@ K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U U
 %d칩	%d chips	%d チップ	%d 筹码	%d 籌碼	PDBoardPaint.cpp
 클릭해서 열기	Click to unlock	クリックで解放	点击解锁	點擊解鎖	PDBoardPaint.cpp
 칩이 모자란다	Not enough chips	チップが足りない	筹码不足	籌碼不足	PDBoardPaint.cpp
-Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · J / Esc · Right-click: close	Tab: 次のボード · ←→: ページ · J / Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · J / Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · J / Esc · 右鍵: 關閉	PDBoardPaint.cpp
 Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · Esc · Right-click: close	Tab: 次のボード · ←→: ページ · Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · Esc · 右鍵: 關閉	PDBoardPaint.cpp
 영구 강화	Permanent Upgrades	永久強化	永久强化	永久強化	PDBoardPaint.cpp
 판이 끝나면 칩을 받는다  ·  웨이브 + 2 × 오른 레벨 + 클리어 덤	Chips after each run  ·  waves + 2 × levels gained + clear bonus	プレイ終了でチップ獲得  ·  ウェーブ + 2 × 上がったレベル + クリアボーナス	每局结束获得筹码  ·  波次 + 2 × 提升等级 + 通关奖励	每局結束獲得籌碼  ·  波次 + 2 × 提升等級 + 通關獎勵	PDBoardPaint.cpp
@@ -620,6 +618,7 @@ Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기	Tab: next boar
 최대	Max	最大	最大	最大	PDBoardPaint.cpp
 버튼 클릭: 칩으로 강화   U 또는 Esc · 오른쪽 클릭: 닫기	Click a button: upgrade with chips   U or Esc · right-click: close	ボタンをクリック: チップで強化   U または Esc · 右クリック: 閉じる	点击按钮: 用筹码强化   U 或 Esc · 右键: 关闭	點擊按鈕: 用籌碼強化   U 或 Esc · 右鍵: 關閉	PDBoardPaint.cpp
 U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U or Esc · right-click: close   (the game pauses while open)	U または Esc · 右クリック: 閉じる   (開いている間はゲームが止まる)	U 或 Esc · 右键: 关闭   (打开时游戏暂停)	U 或 Esc · 右鍵: 關閉   (打開時遊戲暫停)	PDBoardPaint.cpp
+레벨 %d	Level %d	レベル %d	等级 %d	等級 %d	PDBoardPaint.cpp
 남은 포인트 %d	Points left %d	残りポイント %d	剩余点数 %d	剩餘點數 %d	PDBoardPaint.cpp
 키스톤 %d / %d	Keystones %d / %d	キーストーン %d / %d	基石 %d / %d	基石 %d / %d	PDBoardPaint.cpp
 찍은 노드 %d	Nodes taken %d	取得ノード %d	已点亮节点 %d	已點亮節點 %d	PDBoardPaint.cpp
@@ -690,6 +689,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 보상 고르기	Pick a reward	報酬を選ぶ	选择奖励	選擇獎勵	PDBoardPaint.cpp
 타워 판매	Selling Towers	タワー売却	出售塔	出售塔	PDBoardPaint.cpp
 상위 조커 조건	Upper Joker Rules	上位ジョーカーの条件	上位小丑条件	上位小丑條件	PDBoardPaint.cpp
+메뉴	Menu	メニュー	菜单	選單	PDBoardPaint.cpp
+타워 메뉴	Tower Menu	タワーメニュー	塔菜单	塔選單	PDBoardPaint.cpp
 손패 카드를 누르고 판의 빈 칸을 클릭하면	Pick a card in your hand and click an empty tile	手札のカードを押して盤の空きマスをクリックすると	选中手牌, 再点击棋盘空格	選中手牌, 再點擊棋盤空格	PDBoardPaint.cpp
 그 카드가 타워가 돼요	and it becomes a tower	そのカードがタワーになります	这张卡就会变成塔	這張卡就會變成塔	PDBoardPaint.cpp
 카드를 붙여 놓아 포커 족보(원 페어·스트레이트…)를	Place cards next to each other to form poker hands (pair, straight…)	カードを隣に置いてポーカーの役(ワンペア・ストレート…)を	把卡牌相邻放置组成扑克牌型 (对子·顺子…)	把卡牌相鄰放置組成撲克牌型 (對子·順子…)	PDBoardPaint.cpp
@@ -711,17 +712,23 @@ Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タ
 자리바꿈 버튼(X)을 누르고 타워 둘을 고르면	Press the Swap button (X) and pick two towers	入れ替えボタン(X)を押してタワーを2つ選ぶと	按换位按钮 (X) 并选两座塔	按換位按鈕 (X) 並選兩座塔	PDBoardPaint.cpp
 자리를 바꿀 수 있어요	to swap their places	場所を入れ替えられます	即可交换位置	即可交換位置	PDBoardPaint.cpp
 다음 웨이브에 보스가 나와요	A boss comes next wave	次のウェーブにボスが出ます	下一波会出现首领	下一波會出現首領	PDBoardPaint.cpp
-위쪽에 보스 이름이 보여요	Its name is shown at the top	上にボスの名前が表示されます	顶部会显示首领名字	頂部會顯示首領名字	PDBoardPaint.cpp
+채널 TV 다음 화 예고에 보스 이름이 나와요	The boss name appears in the TV channel's next-episode preview	チャンネルTVの次回予告にボスの名前が出ます	频道电视的下集预告里会出现首领名字	頻道電視的下集預告裡會出現首領名字	PDBoardPaint.cpp
 레벨이 올라 포인트가 생겼어요	You leveled up and got a point	レベルが上がってポイントを得た	升级了，获得了点数	升級了，獲得了點數	PDBoardPaint.cpp
 스킬 트리(K)에서 노드를 찍어 보세요	Spend it on a node in the Skill Tree (K)	スキルツリー(K)でノードを取ろう	在技能树(K)中点亮节点吧	在技能樹(K)中點亮節點吧	PDBoardPaint.cpp
 칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나	Pick one: a cocktail (lasts the whole run) or an instant reward,	カクテル（ラン中ずっと効果）か即時報酬から一つ選ぶか	从鸡尾酒（整局有效）或即时奖励中选择一个，	從雞尾酒（整局有效）或即時獎勵中選擇一個，	PDBoardPaint.cpp
 S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 cocktail slots	Sでスキップ。カクテル枠は5つです	或按S跳过。鸡尾酒栏位共5个	或按S跳過。雞尾酒欄位共5個	PDBoardPaint.cpp
 맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요	You can combine two adjacent jokers into an Upper Joker	隣り合う2体のジョーカーを合わせて上位ジョーカーを作れます	可以把相邻的两个小丑合成为上位小丑	可以把相鄰的兩個小丑合成為上位小丑	PDBoardPaint.cpp
 두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요	Use the gold button between them or the 'Joker' list	二つの間の金色ボタンか「ジョーカー」リストで合体します	"点击两者之间的金色按钮或在""小丑""列表中合成"	點擊兩者之間的金色按鈕或在「小丑」列表中合成	PDBoardPaint.cpp
-필요 없는 타워는 오른쪽 클릭 → [판매] 버튼	Right-click a tower you don't need, then press [Sell]	不要なタワーは右クリック →［売却］ボタン	不需要的塔可右键点击 → [出售] 按钮	不需要的塔可右鍵點擊 → [出售] 按鈕	PDBoardPaint.cpp
+필요 없는 타워는 클릭 → [판매] 버튼	Click a tower you don't need → [Sell] button	不要なタワーはクリック → [売却] ボタン	不需要的塔点击 → [出售] 按钮	不需要的塔點擊 → [出售] 按鈕	PDBoardPaint.cpp
 팔면 경험치를 받아요 (조커는 더 많이)	Selling gives XP (more for jokers)	売ると経験値がもらえます（ジョーカーはもっと）	出售可获得经验（小丑更多）	出售可獲得經驗（小丑更多）	PDBoardPaint.cpp
 다른 조커 둘이 맞닿으면 합쳐요 (★ 대표는 둘 다 레벨 10)	Two different jokers touching can merge (★ signatures need both at level 10)	異なるジョーカー2枚が隣り合うと合体 (★代表は両方レベル10)	两张不同小丑相邻即可合并 (★代表需都到10级)	兩張不同小丑相鄰即可合併 (★代表需都到10級)	PDBoardPaint.cpp
 상위 조커는 시작 화면 [잠금 해제]에서 열어요	Unlock upper jokers first in [Unlocks] on the title screen	上位ジョーカーはタイトル画面の［解放］で開放します	上位小丑需在标题画面的 [解锁] 中解锁	上位小丑需在標題畫面的 [解鎖] 中解鎖	PDBoardPaint.cpp
+오른쪽 위 톱니바퀴를 누르면 메뉴가 열려요	The gear at the top right opens the menu	右上の歯車でメニューが開きます	点击右上角齿轮打开菜单	點擊右上角齒輪打開選單	PDBoardPaint.cpp
+설정과 도감도 메뉴 안에 있어요 (Esc)	Settings and the Codex are in the menu too (Esc)	設定と図鑑もメニューの中にあります (Esc)	设置和图鉴也在菜单里 (Esc)	設定和圖鑑也在選單裡 (Esc)	PDBoardPaint.cpp
+판의 타워를 누르면 할 일 버튼이 떠요	Click a tower on the board to show action buttons	盤のタワーをクリックすると操作ボタンが出ます	点击场上的塔会出现操作按钮	點擊場上的塔會出現操作按鈕	PDBoardPaint.cpp
+합성 · 조커 · 먹이기 · 판매를 여기서 바로 할 수 있어요	Fuse · Joker · Feed · Sell right from there	合成 · ジョーカー · 食べさせる · 売却がそこからすぐできます	可以直接在这里合成 · 小丑 · 喂食 · 出售	可以直接在這裡合成 · 小丑 · 餵食 · 出售	PDBoardPaint.cpp
+도감이 열렸어요: 메뉴 → 도감 (J)	The Codex is open: Menu → Codex (J)	図鑑が開きました: メニュー → 図鑑 (J)	图鉴已开启: 菜单 → 图鉴 (J)	圖鑑已開啟: 選單 → 圖鑑 (J)	PDBoardPaint.cpp
+칵테일 · 조커 · 상위 조커 · 보스를 책처럼 넘겨 봐요	Flip through cocktails · jokers · upper jokers · bosses like a book	カクテル · ジョーカー · 上位ジョーカー · ボスを本のようにめくれます	像翻书一样浏览鸡尾酒 · 小丑 · 上位小丑 · 首领	像翻書一樣瀏覽雞尾酒 · 小丑 · 上位小丑 · 首領	PDBoardPaint.cpp
 도움말	Hints	ヒント	提示	提示	PDBoardPaint.cpp
 알겠어	Got it	わかった	知道了	知道了	PDBoardPaint.cpp
 도움말 끄기	Turn off hints	ヒントを切る	关闭提示	關閉提示	PDBoardPaint.cpp
@@ -794,6 +801,10 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDLangTable.inl
+다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDLangTable.inl
+위쪽에 보스 이름이 보여요	Its name is shown at the top	上にボスの名前が表示されます	顶部会显示首领名字	頂部會顯示首領名字	PDLangTable.inl
+필요 없는 타워는 오른쪽 클릭 → [판매] 버튼	Right-click a tower you don't need, then press [Sell]	不要なタワーは右クリック →［売却］ボタン	不需要的塔可右键点击 → [出售] 按钮	不需要的塔可右鍵點擊 → [出售] 按鈕	PDLangTable.inl
 지금 웨이브 %d	Current wave %d	現在のウェーブ %d	当前波次 %d	當前波次 %d	PDLangTable.inl
 다음 웨이브 %d	Next wave %d	次のウェーブ %d	下一波 %d	下一波 %d	PDLangTable.inl
 마지막 웨이브 · 최종 보스	Final wave · final boss	最終ウェーブ · 最終ボス	最后一波 · 最终首领	最後一波 · 最終首領	PDLangTable.inl
@@ -840,8 +851,6 @@ R 키 또는 화면을 눌러 다시	Press R or click to try again	R キーか�
 Tab: 기본 조커 ↔ 상위 조커 · J / Esc: 닫기	Tab: Basic ↔ Upper Jokers · J / Esc: close	Tab: 基本 ↔ 上位ジョーカー · J / Esc: 閉じる	Tab: 基本 ↔ 上位小丑 · J / Esc: 关闭	Tab: 基本 ↔ 上位小丑 · J / Esc: 關閉	PDLangTable.inl
 족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도). 3개 쪽이 카드가 많아 세다	Pick 3 (or 2) hands that match a recipe to make a Joker (anywhere on the board). 3 hands use more cards, so it's stronger	役を3つ(または2つ)選んでレシピに合えばジョーカー (盤のどこでも)。3つの方がカードが多くて強い	选 3 个(或 2 个)牌型, 符合配方即成小丑 (棋盘任何位置)。3 个的卡更多, 更强	選 3 個(或 2 個)牌型, 符合配方即成小丑 (棋盤任何位置)。3 個的卡更多, 更強	PDLangTable.inl
 위력 %s	Power %s	威力 %s	威力 %s	威力 %s	PDLangTable.inl
-3개	3 hands	3つ	3个	3個	PDLangTable.inl
-2개	2 hands	2つ	2个	2個	PDLangTable.inl
 능력	Ability	能力	能力	能力	PDLangTable.inl
 3개 레시피	3-hand recipe	3つのレシピ	3个的配方	3個的配方	PDLangTable.inl
 2개 레시피	2-hand recipe	2つのレシピ	2个的配方	2個的配方	PDLangTable.inl

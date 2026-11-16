@@ -2415,7 +2415,7 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("칵테일 칸이 가득 찼다 (5/5)"), CXb, FY + Rows * CS - 12.f, Dim, 11.f, false);
 	}
 
-	if (bCodex) PaintUnlock(C); // 조커 도감 (J): 잠금 해제와 같은 걸린 메뉴판 (D-265)
+	if (bCodex) PaintCodexBook(C); // 도감 (J): 책자 메뉴판 (D-354, PDBoardCodex.cpp)
 	if (bUpg && G.Phase != EPDPhase::Title) PaintUpgrades(C); // 영구 강화 (U): 판 안에서는 보기만 (D-228)
 }
 
@@ -3469,7 +3469,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 {
 	HintOkRect = HintOffRect = HintCardRect = FBox2f(FVector2f(-1.f, -1.f), FVector2f(-1.f, -1.f));
 	if (HintNow < 0 || bMenu || bSettings || bTree || bUpg || bCodex || bRanking || Game.Phase == EPDPhase::Title) return;
-	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("레벨 업"), TEXT("보상 고르기"), TEXT("상위 조커"), TEXT("타워 판매"), TEXT("상위 조커 조건")};
+	static const TCHAR* Title[(int32)EHint::Count] = {TEXT("카드 놓기"), TEXT("족보 만들기"), TEXT("족보 완성!"), TEXT("웨이브 시작"), TEXT("합성"), TEXT("연쇄"), TEXT("조커 만들기"), TEXT("먹이기"), TEXT("손패가 가득"), TEXT("자리바꿈"), TEXT("보스 웨이브"), TEXT("레벨 업"), TEXT("보상 고르기"), TEXT("상위 조커"), TEXT("타워 판매"), TEXT("상위 조커 조건"), TEXT("메뉴"), TEXT("타워 메뉴"), TEXT("도감")};
 	static const TCHAR* Body[(int32)EHint::Count][2] = {
 		{TEXT("손패 카드를 누르고 판의 빈 칸을 클릭하면"), TEXT("그 카드가 타워가 돼요")},
 		{TEXT("카드를 붙여 놓아 포커 족보(원 페어·스트레이트…)를"), TEXT("만들면 타워가 강해져요")},
@@ -3481,12 +3481,15 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("'먹이기' 줄(또는 판의 조커)에서 조커를 고르고"), TEXT("빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요")},
 		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
 		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
-		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("위쪽에 보스 이름이 보여요")},
+		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("채널 TV 다음 화 예고에 보스 이름이 나와요")},
 		{TEXT("레벨이 올라 포인트가 생겼어요"), TEXT("스킬 트리(K)에서 노드를 찍어 보세요")},
 		{TEXT("칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나"), TEXT("S로 넘기세요. 칵테일 칸은 5개예요")},
 		{TEXT("맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요"), TEXT("두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요")},
-		{TEXT("필요 없는 타워는 오른쪽 클릭 → [판매] 버튼"), TEXT("팔면 경험치를 받아요 (조커는 더 많이)")},
-		{TEXT("다른 조커 둘이 맞닿으면 합쳐요 (★ 대표는 둘 다 레벨 10)"), TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요")}};
+		{TEXT("필요 없는 타워는 클릭 → [판매] 버튼"), TEXT("팔면 경험치를 받아요 (조커는 더 많이)")},
+		{TEXT("다른 조커 둘이 맞닿으면 합쳐요 (★ 대표는 둘 다 레벨 10)"), TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요")},
+		{TEXT("오른쪽 위 톱니바퀴를 누르면 메뉴가 열려요"), TEXT("설정과 도감도 메뉴 안에 있어요 (Esc)")},
+		{TEXT("판의 타워를 누르면 할 일 버튼이 떠요"), TEXT("합성 · 조커 · 먹이기 · 판매를 여기서 바로 할 수 있어요")},
+		{TEXT("도감이 열렸어요: 메뉴 → 도감 (J)"), TEXT("칵테일 · 조커 · 상위 조커 · 보스를 책처럼 넘겨 봐요")}};
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const FLinearColor Edge = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("8a94a6"));
 	constexpr float TW = 330.f, TH = 104.f;

@@ -29,11 +29,19 @@ public:
 	float GetScale() const { return Scale; }
 	UE::Slate::FDeprecateVector2DResult GetTranslation() const { return Translation; }
 };
-class FSlateRenderTransform
+// Math/Matrix2x2.h: TMatrix2x2<float> (m00, m01, m10, m11)
+class FMatrix2x2f
+{
+public:
+	FMatrix2x2f() = default;
+	FMatrix2x2f(float m00, float m01, float m10, float m11) { (void)m00; (void)m01; (void)m10; (void)m11; }
+};
+class FSlateRenderTransform // = TTransform2<float>
 {
 public:
 	FSlateRenderTransform() = default;
 	explicit FSlateRenderTransform(float InScale) { (void)InScale; }
+	explicit FSlateRenderTransform(const FMatrix2x2f& InM, const FVector2f& InTrans = FVector2f(0.f, 0.f)) { (void)InM; (void)InTrans; }
 	FVector2f TransformPoint(const FVector2f& P) const { return P; }
 };
 struct FSlateRect
@@ -51,6 +59,7 @@ class FGeometry
 public:
 	FGeometry() = default;
 	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& LayoutTransform) const { (void)InLocalSize; (void)LayoutTransform; return *this; }
+	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform, const UE::Slate::FDeprecateVector2DParameter& RenderTransformPivot) const { (void)InLocalSize; (void)LayoutTransform; (void)RenderTransform; (void)RenderTransformPivot; return *this; }
 	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& ChildOffset, const UE::Slate::FDeprecateVector2DParameter& InLocalSize, float ChildScale = 1.f) const { (void)ChildOffset; (void)InLocalSize; (void)ChildScale; return *this; }
 	FPaintGeometry ToPaintGeometry() const { return FPaintGeometry(); }
 	FPaintGeometry ToPaintGeometry(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& InLayoutTransform) const { (void)InLocalSize; (void)InLayoutTransform; return FPaintGeometry(); }

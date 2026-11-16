@@ -146,7 +146,7 @@ private:
 	void PaintRanking(FCanvas& C) const;
 	bool bPaused = false;                  // 일시정지 (D-169): 위쪽 띠 버튼 또는 P. 멈춘 동안에도 카드 놓기·합성은 된다
 	// 도움말 (D-217): 게임하면서 상황에 맞춰 뜨는 작은 카드. 한 번 본 것은 진행 파일에 남아 다시 안 뜬다. 설정에서 끄기·처음부터
-	enum class EHint : uint8 { Place, Synergy, FirstHand, StartWave, Fuse, Chain, Joker, Feed, HandFull, Swap, Boss, Shop, Reward, Upper, Sell, UpperHow, Count }; // Upper: 상위 조커 (D-231). Sell·UpperHow: 판매·상위 조커 조건 (D-243). 순서 = 저장된 비트, 새 것은 Count 앞에
+	enum class EHint : uint8 { Place, Synergy, FirstHand, StartWave, Fuse, Chain, Joker, Feed, HandFull, Swap, Boss, Shop, Reward, Upper, Sell, UpperHow, Menu, CellMenu, Codex, Count }; // Upper: 상위 조커 (D-231). Sell·UpperHow: 판매·상위 조커 조건 (D-243). Menu·CellMenu·Codex: 톱니바퀴 메뉴 · 타워 메뉴 버튼 · 도감 책자 (D-355). 순서 = 저장된 비트, 새 것은 Count 앞에
 	uint32 HintSeen = 0;                   // 본 도움말 (1 << EHint)
 	int32 HintNow = -1;                    // 지금 뜬 도움말 (-1 = 없음)
 	float HintAge = 0.f;
@@ -386,6 +386,25 @@ private:
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
 	std::vector<PD::FPDJokerGroup> JGroups; // 조커 합성 가능한 묶음 (매 프레임 갱신)
 	bool bCodex = false;                   // 조커 도감 화면
+	// 도감 책자 (D-354, PDBoardCodex.cpp): 왼쪽 쪽 = 고른 항목 크게, 오른쪽 쪽 = 12줄 목록, 오른쪽 옆면 탭 넷(칵테일 · 조커 · 상위 조커 · 보스). 쪽 · 탭을 바꾸면 장이 휘며 넘어간다
+	struct FCdxView { int32 Tab = 0, Page = 0, Pick = 0; };
+	struct FCdxItem { FString Name, Desc, Note, Right; bool bKnown = true, bHave = false, bOpen = false; };
+	FCdxView CdxOld, CdxNew;               // 넘기기 전 · 뒤 (넘기는 동안 양쪽 쪽과 넘어가는 장의 두 면이 이걸로 그려진다)
+	int32 CdxPick = -1;                    // 클릭으로 고른 항목 (왼쪽 상세), -1 = 쪽 첫 항목
+	float CdxFlipT0 = -10.f, CdxTabT0 = -10.f, CdxLandT = -10.f;
+	int32 CdxFlipDir = 1, CdxFlipN = 1, CdxTabFrom = 0;
+	int32 CdxPages(int32 Tab) const;
+	int32 CdxRowAt(FVector2f P) const;     // 오른쪽 쪽 줄 = 항목 번호, 없으면 -1
+	FCdxItem CdxItem(int32 Tab, int32 K) const;
+	FCdxView CdxNow() const;               // 지금 쪽 + 왼쪽에 보일 항목 (마우스 > 클릭 > 쪽 첫 항목)
+	float CdxFlipLen() const;
+	bool CdxFlipping() const;
+	void CdxGo(int32 Tab, int32 Page);     // 탭 · 쪽 바꾸기 + 넘김 시작
+	void CdxOpen(int32 Tab) { bCodex = true; UnlockTab = Tab; UnlockPage = 0; CdxPick = -1; CdxFlipT0 = CdxTabT0 = CdxLandT = -10.f; CdxTabFrom = Tab; }
+	void CdxClick(FVector2f P, bool bRight);
+	void PaintCodexBook(FCanvas& C) const;
+	void PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) const;
+	void PaintCdxSheet(FCanvas& C, float U, const FCdxView& Front, const FCdxView& Back) const;
 	// 스프라이트 아틀라스 (D-140): 타워 카드·조커를 게임 시작 때 지금 네온 코드로 텍스처 한 장에 구워 두고, 판에선 사각형으로 찍는다
 	TSharedPtr<FPDAtlas> Atlas;
 	void BakeAtlas();

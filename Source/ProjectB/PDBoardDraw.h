@@ -1,4 +1,4 @@
-﻿// 포커 디펜스 화면의 그리기 도우미 (PDBoardWidget·PDBoardFx·PDBoardPaint 가 같이 쓴다)
+// 포커 디펜스 화면의 그리기 도우미 (PDBoardWidget·PDBoardFx·PDBoardPaint 가 같이 쓴다)
 // - PDDraw: 1280 x 720 설계 좌표의 배치 상수, 색, 글자 표, 버튼 위치
 // - SPDBoardWidget::FCanvas: Slate 그리기 요소를 만드는 붓 (네온 선, 글자, 무늬·카드·조커 그림)
 // 화풍은 docs/15-art-style.md (거의 검은 바탕, 채우지 않은 한 색 가는 선, 넓고 부드러운 번짐)
@@ -693,6 +693,16 @@ inline float UnlPgX(int Dir) { return Dir < 0 ? UnlBX + 30.f : UnlBX + UnlBW - 3
 // 상위 조커 쪽: 6 × 5 카드
 constexpr float UpCardW = 192.f, UpCardH = 112.f, UpCardGap = 8.f, UpCardY0 = 80.f;
 inline FVector2f UpperCardPos(int U) { return FVector2f(DesignW / 2.f - (6.f * UpCardW + 5.f * UpCardGap) / 2.f + (U % 6) * (UpCardW + UpCardGap), UpCardY0 + (U / 6) * (UpCardH + UpCardGap)); }
+// 도감 책자 (D-354, 시안 B tools/neon/codex_book_mock.py · 넘기기 tools/neon/codex_flip_mock.py)
+constexpr float CdxBX = 40.f, CdxBY = 60.f, CdxBW = 1140.f, CdxBH = 610.f, CdxSpX = CdxBX + CdxBW / 2.f; // 책 바깥 · 책등
+constexpr float CdxPgW = CdxBW / 2.f - 28.f, CdxLX = CdxBX + 22.f, CdxRX = CdxSpX + 6.f, CdxTop = CdxBY + 22.f, CdxBot = CdxBY + CdxBH - 22.f; // 쪽
+constexpr int32 CdxPerPage = 12;
+constexpr float CdxRowY0 = CdxBY + 100.f, CdxRowH = 36.f; // 오른쪽 쪽 목록 줄
+constexpr float CdxIdxX = CdxBX + CdxBW, CdxIdxW = 64.f, CdxIdxH = 82.f; // 오른쪽 옆면 색인 탭 (고른 탭은 10 더 나옴)
+inline float CdxIdxY(int I) { return CdxBY + 30.f + I * 92.f; }
+constexpr float CdxNavW = 44.f, CdxNavH = 26.f, CdxNavY = CdxBot - 53.f; // 쪽 넘기기 ‹ › (바깥 아래 귀퉁이)
+inline float CdxNavX(int Dir) { return Dir < 0 ? CdxLX + 18.f : CdxRX + CdxPgW - 18.f - CdxNavW; }
+constexpr float CdxFlipDur = 0.5f, CdxFlipFast = 0.32f, CdxFlipGap = 0.1f; // 한 장 넘김 · 탭 바꿀 때 장마다 · 장 사이
 constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
 inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
@@ -1006,6 +1016,35 @@ struct SPDBoardWidget::FCanvas
 	// 휘기 (D-184): 카드병정을 구울 때 몸 전체를 휜다. 위로 갈수록 Bend 만큼 옆으로 밀고(아래 끝은 그대로), 엉덩이를 축으로 Ang 만큼 돌린다
 	struct FWarp { bool bOn = false; FVector2f Hip = FVector2f(0.f, 0.f); float Top = 0.f, BH = 1.f, Bend = 0.f, Ang = 0.f; };
 	FWarp Warp;
+	// 쪽 넘김 휘기 (D-354): PW 가 있으면 모든 점을 PW 로 옮긴다. 선은 잘게 나눠 휘고, 상자 · 글자 · 스프라이트는 그 자리의 기울기(야코비안)로 비틀어 찍는다.
+	// FadeK: 그리는 모든 것의 알파 배율 (넘어가는 장 면 밝기)
+	TFunction<FVector2f(FVector2f)> PW;
+	float FadeK = 1.f;
+	FLinearColor FadeC(const FLinearColor& C) const { return FadeK >= 1.f ? C : FLinearColor(C.R, C.G, C.B, C.A * FadeK); }
+	TArray<FVector2f> PWPts(const TArray<FVector2f>& P) const
+	{
+		TArray<FVector2f> Q;
+		for (int32 I = 0; I < P.Num(); ++I)
+		{
+			if (I > 0)
+			{
+				const int32 N = FMath::Clamp((int32)(FVector2f::Distance(P[I - 1], P[I]) / 6.f), 1, 64);
+				for (int32 K = 1; K < N; ++K) Q.Add(PW(FMath::Lerp(P[I - 1], P[I], K / (float)N)));
+			}
+			Q.Add(PW(P[I]));
+		}
+		return Q;
+	}
+	// 왼쪽 위 (X, Y), 크기 W × H 의 그리기 자리. PW 가 있으면 가운데의 기울기로 비튼 자리 (작은 상자 · 글자는 이 근사로 충분)
+	FPaintGeometry PG(float X, float Y, float W, float H) const
+	{
+		if (!PW) return Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y)));
+		const FVector2f C(X + W / 2.f, Y + H / 2.f), Wc = PW(C);
+		constexpr float E = 2.f;
+		const FVector2f Jx = (PW(C + FVector2f(E, 0.f)) - PW(C - FVector2f(E, 0.f))) / (2.f * E), Jy = (PW(C + FVector2f(0.f, E)) - PW(C - FVector2f(0.f, E))) / (2.f * E);
+		const FVector2f TL = Wc - Jx * (W / 2.f) - Jy * (H / 2.f);
+		return Geo.MakeChild(FVector2f(W, H), FSlateLayoutTransform(TL), FSlateRenderTransform(FMatrix2x2f(Jx.X, Jx.Y, Jy.X, Jy.Y), FVector2f(0.f, 0.f)), FVector2f(0.f, 0.f)).ToPaintGeometry();
+	}
 	FVector2f WarpP(FVector2f Q) const
 	{
 		const float V = FMath::Clamp((Q.Y - Warp.Top) / FMath::Max(1.f, Warp.BH), 0.f, 1.f);
@@ -1014,6 +1053,15 @@ struct SPDBoardWidget::FCanvas
 	}
 	void Lines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
+		if (PW) // 쪽 넘김 휘기 (D-354)
+		{
+			const TArray<FVector2f> Q = PWPts(P);
+			TFunction<FVector2f(FVector2f)> Keep = MoveTemp(PW);
+			PW = nullptr;
+			Lines(Q, Col, Thick);
+			PW = MoveTemp(Keep);
+			return;
+		}
 		if (Warp.bOn) // 곧은 선도 휘어 보이게 잘게 나눠서 옮긴다
 		{
 			TArray<FVector2f> Q;
@@ -1038,11 +1086,11 @@ struct SPDBoardWidget::FCanvas
 			const float Tpx = FMath::Max(0.75f, Thick * ThickK);
 			int32 Bi = 0;
 			while (Bi + 1 < LineBands && Tpx > FMath::Sqrt(LineBandT[Bi] * LineBandT[Bi + 1])) ++Bi;
-			Stamp(P, PM(Col), LineAA + Bi, (Tpx + 2.f) * PxToDesign); // 화면 px → 설계 좌표 (DPI 포함 화면 배율로 나눔)
+			Stamp(P, PM(FadeC(Col)), LineAA + Bi, (Tpx + 2.f) * PxToDesign); // 화면 px → 설계 좌표 (DPI 포함 화면 배율로 나눔)
 			++GPDDebug.Lines; GPDDebug.Points += P.Num();
 			return;
 		}
-		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, Col, true, Thick * ThickK);
+		FSlateDrawElement::MakeLines(Out, *Layer, Geo.ToPaintGeometry(), P, ESlateDrawEffect::None, FadeC(Col), true, Thick * ThickK);
 		++GPDDebug.Lines; GPDDebug.Points += P.Num();
 	}
 	// 띠 찍기 (D-146/147 → D-295): 꺾은선 하나를 이어진 띠 한 줄로 (꼭짓점마다 두 마디가 같은 점을 나눠 쓰는 맞춤 이음).
@@ -1211,12 +1259,21 @@ struct SPDBoardWidget::FCanvas
 	}
 	void Glow(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick, float Strength = 1.f)
 	{
+		if (PW) // 쪽 넘김 휘기 (D-354): 번짐 띠도 같이 휜다
+		{
+			const TArray<FVector2f> Q = PWPts(P);
+			TFunction<FVector2f(FVector2f)> Keep = MoveTemp(PW);
+			PW = nullptr;
+			Glow(Q, Col, Thick, Strength);
+			PW = MoveTemp(Keep);
+			return;
+		}
 		if (Strength > 0.f && HaloK > 0.f && LineAA) // 번짐 두 겹을 합성한 띠 한 장 (D-147). 띠는 선 띠 다음에 이어 둔다
 		{
 			const float Tpx = FMath::Max(0.25f, Thick * ThickK);
 			int32 Bi = 0;
 			while (Bi + 1 < HaloBands && Tpx > FMath::Sqrt(HaloBandT[Bi] * HaloBandT[Bi + 1])) ++Bi;
-			Stamp(P, PM(WithAlpha(Col, FMath::Min(1.f, Strength / HaloGain))), LineAA + LineBands + Bi, (Tpx * 6.5f + 2.f) * PxToDesign);
+			Stamp(P, PM(WithAlpha(Col, FMath::Min(1.f, Strength / HaloGain) * FadeK)), LineAA + LineBands + Bi, (Tpx * 6.5f + 2.f) * PxToDesign);
 			++GPDDebug.Lines; GPDDebug.Points += P.Num();
 		}
 		else if (Strength > 0.f && HaloK > 0.f) // 번짐 두 겹 (D-135: 가장 넓은 10배 겹은 거의 안 보이면서 그리기 부담이 커서 빼고 6배 겹을 조금 진하게)
@@ -1275,7 +1332,7 @@ struct SPDBoardWidget::FCanvas
 	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
 	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
 	{
-		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))), White, ESlateDrawEffect::None, Col);
+		FSlateDrawElement::MakeBox(Out, L, PG(X, Y, W, H), White, ESlateDrawEffect::None, FadeC(Col));
 	}
 	static TArray<FVector2f> RectPoints(float X, float Y, float W, float H) { return {{X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}, {X, Y}}; }
 	static TArray<FVector2f> CirclePoints(FVector2f C, float R, int32 Seg = 32)
@@ -1337,7 +1394,7 @@ struct SPDBoardWidget::FCanvas
 		FitText(S, F, Sz, Px, bBold, MaxW);
 		const float Left = Align == 1 ? X - Sz.X / 2.f : Align == 2 ? X - Sz.X : X;
 		const float Top = Y - Sz.Y * 0.8f;
-		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(Left, Top))), S, F, ESlateDrawEffect::None, Col);
+		FSlateDrawElement::MakeText(Out, NextLayer(), PG(Left, Top, Sz.X, Sz.Y), S, F, ESlateDrawEffect::None, FadeC(Col));
 		NextLayer();
 	}
 	void TextCentered(const FString& InS, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float MaxW = 0.f)
@@ -1346,8 +1403,8 @@ struct SPDBoardWidget::FCanvas
 		FSlateFontInfo F = Font(Px, bBold);
 		FVector2f Sz = Measure(S, F);
 		FitText(S, F, Sz, Px, bBold, MaxW);
-		FSlateDrawElement::MakeText(Out, NextLayer(), Geo.ToPaintGeometry(Sz, FSlateLayoutTransform(FVector2f(CX - Sz.X / 2.f, CY - Sz.Y / 2.f))), S, F,
-			ESlateDrawEffect::None, Col);
+		FSlateDrawElement::MakeText(Out, NextLayer(), PG(CX - Sz.X / 2.f, CY - Sz.Y / 2.f, Sz.X, Sz.Y), S, F,
+			ESlateDrawEffect::None, FadeC(Col));
 		NextLayer();
 	}
 	// 사각 클리핑: PushClip ~ PopClip 사이에 그린 것은 이 사각 밖으로 나가지 않는다 (흐르는 글자 등)
@@ -1961,12 +2018,12 @@ struct SPDBoardWidget::FCanvas
 	void Sprite(int32 L, const FSlateBrush* B, float CX, float CY, float S, const FLinearColor& Tint)
 	{
 		const float H = AtlasCell * S * 0.5f;
-		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(H * 2.f, H * 2.f), FSlateLayoutTransform(FVector2f(CX - H, CY - H))), B, ESlateDrawEffect::PreMultipliedAlpha, PM(Tint));
+		FSlateDrawElement::MakeBox(Out, L, PG(CX - H, CY - H, H * 2.f, H * 2.f), B, ESlateDrawEffect::PreMultipliedAlpha, PM(FadeC(Tint)));
 	}
 	// 붓 찍기 (D-143): 왼쪽 위 (X, Y), 크기 W × H
 	void Image(int32 L, const FSlateBrush* B, float X, float Y, float W, float H, const FLinearColor& Tint)
 	{
-		FSlateDrawElement::MakeBox(Out, L, Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))), B, ESlateDrawEffect::PreMultipliedAlpha, PM(Tint));
+		FSlateDrawElement::MakeBox(Out, L, PG(X, Y, W, H), B, ESlateDrawEffect::PreMultipliedAlpha, PM(FadeC(Tint)));
 	}
 	// 가운데 (CX, CY), 크기 W × H, 회전 Angle 라디안
 	void ImageRot(int32 L, const FSlateBrush* B, float CX, float CY, float W, float H, float Angle, const FLinearColor& Tint)

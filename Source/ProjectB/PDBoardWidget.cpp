@@ -1086,6 +1086,9 @@ void SPDBoardWidget::UpdateHints(float Dt)
 		case EHint::Upper: bDone = Has(FPDEvent::EKind::JokerMerge); bGone = !bDone && !AnyUpper(); break;
 		case EHint::Sell: bDone = bSold || SellCell >= 0; bGone = !bDone && Game.Towers.empty(); break; // 판매 버튼을 열었거나 팔았다
 		case EHint::UpperHow: bDone = Has(FPDEvent::EKind::JokerMerge) || HintAge > 15.f; break;
+		case EHint::Menu: bDone = bMenu || HintAge > 12.f; break; // D-355
+		case EHint::CellMenu: bDone = MenuCell >= 0; bGone = !bDone && Game.Towers.empty(); break;
+		case EHint::Codex: bDone = bCodex || HintAge > 15.f; break;
 		default: bGone = true; break;
 		}
 		if (bDone) FinishHint();
@@ -1115,6 +1118,9 @@ void SPDBoardWidget::UpdateHints(float Dt)
 		case EHint::Upper: bOn = (bBuild || bWave) && AnyUpper(); break;
 		case EHint::Sell: bOn = bBuild && Game.Wave >= 3 && Game.Towers.size() >= 4; break;
 		case EHint::UpperHow: bOn = bBuild && BaseJokers() >= 2 && !AnyUpper(); break;
+		case EHint::Menu: bOn = bBuild && Game.Wave >= 2; break; // 톱니바퀴 = 메뉴, 설정 · 도감은 메뉴 안 (D-349, D-355)
+		case EHint::CellMenu: bOn = bBuild && Game.Wave >= 1 && Game.Towers.size() >= 2 && ((HintSeen >> (int32)EHint::Place) & 1u); break; // 타워 클릭 = 할 일 버튼 (D-350)
+		case EHint::Codex: bOn = bBuild && Game.Discovered != 0; break; // 첫 조커를 만들면 도감 책자 안내 (D-354)
 		default: break;
 		}
 		if (!bOn) continue;
@@ -1148,6 +1154,8 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + RBtnW, TreeBtnY + TreeBtnH)); return true;
 	case EHint::Sell: for (const auto& KV : Game.Towers) if (!KV.second.IsJoker()) return Cells({KV.first}); return false;
 	case EHint::UpperHow: return Row(JokerFilterId);
+	case EHint::Menu: case EHint::Codex: Out = FBox2f(FVector2f(SetOpenX, HudBtnY), FVector2f(SetOpenX + HudBtnS, HudBtnY + HudBtnS)); return true; // 톱니바퀴 (D-355)
+	case EHint::CellMenu: for (const auto& KV : Game.Towers) return Cells({KV.first}); return false;
 	case EHint::Upper: for (const FPDJokerMerge& M : Game.JokerMerges()) if (M.Upper >= 0) { const FVector2f B = MergeButtonCenter(M.Cells); Out = FBox2f(B - FVector2f(MergeW / 2.f, MergeH / 2.f), B + FVector2f(MergeW / 2.f, MergeH / 2.f)); return true; } return false;
 	default: return false;
 	}
@@ -1383,10 +1391,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (bCodex) // 도감 (D-265): 잠금 해제와 같은 걸린 메뉴판. 옆 판 = 탭, ‹ › = 쪽, 닫기 버튼 · 오른쪽 클릭 = 닫기
 	{
-		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bCodex = false; return; }
-		for (int32 Sd = 0; Sd < 2; ++Sd) if (InRect(P, UnlSideX(Sd), UnlSideY, UnlSideW, UnlSideH)) { UnlSetTab(UnlSideTab(Sd)); UiSound(EPDSound::Move); return; }
-		for (int32 Dir = -1; Dir <= 1; Dir += 2)
-			if (UnlPages() > 1 && InRect(P, UnlPgX(Dir), UnlPgY, UnlPgW, UnlPgH)) { UnlFlip(Dir); UiSound(EPDSound::Move); return; }
+		CdxClick(P, bRight); // 도감 책자 (D-354): 옆면 탭 · ‹ › · 줄 고르기 · 닫기
 		return;
 	}
 	if (bUpg)
@@ -1641,7 +1646,8 @@ int32 SPDBoardWidget::UnlRowAt(FVector2f P) const
 
 FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (((Game.Phase == EPDPhase::Title && bUnlock) || bCodex) && UnlPages() > 1) { UnlFlip(MouseEvent.GetWheelDelta() > 0.f ? -1 : 1); return FReply::Handled(); } // 잠금 해제 · 도감 (D-265)
+	if (bCodex) { CdxGo(UnlockTab, UnlockPage + (MouseEvent.GetWheelDelta() > 0.f ? -1 : 1)); return FReply::Handled(); } // 도감 책자: 휠 = 쪽 넘기기 (D-354)
+	if (Game.Phase == EPDPhase::Title && bUnlock && UnlPages() > 1) { UnlFlip(MouseEvent.GetWheelDelta() > 0.f ? -1 : 1); return FReply::Handled(); } // 잠금 해제 (D-265)
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
@@ -1877,7 +1883,7 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 		UiSound(EPDSound::Move);
 		break;
 	case EMenuItem::Settings: bSettings = true; SetSel = 0; break;
-	case EMenuItem::Codex: bMenu = false; bCodex = true; UnlSetTab(1); Sel = -1; UiSound(EPDSound::Move); break; // 도감은 조커 판부터 (D-265). 닫으면 판으로
+	case EMenuItem::Codex: bMenu = false; CdxOpen(1); Sel = -1; UiSound(EPDSound::Move); break; // 도감은 조커 판부터 (D-265). 닫으면 판으로
 	case EMenuItem::Quit:
 		bMenu = false;
 		if (OnQuit) OnQuit();
@@ -2012,8 +2018,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bCodex)
 	{
 		if (K == EKeys::J || K == EKeys::Escape) bCodex = false;
-		else if (K == EKeys::Tab) UnlSetTab((UnlockTab + 1) % UnlTabs()); // 다음 판 (D-265), 도감은 보스 판까지 넷
-		else if (K == EKeys::Left || K == EKeys::A || K == EKeys::Right || K == EKeys::D) UnlFlip(K == EKeys::Left || K == EKeys::A ? -1 : 1);
+		else if (K == EKeys::Tab) CdxGo(UnlockTab + 1, 0); // 다음 탭 (D-354: 장이 겹쳐 넘어감)
+		else if (K == EKeys::Left || K == EKeys::A || K == EKeys::Right || K == EKeys::D) CdxGo(UnlockTab, UnlockPage + (K == EKeys::Left || K == EKeys::A ? -1 : 1));
 		return FReply::Handled();
 	}
 	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
@@ -2045,7 +2051,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
 	else if (K == EKeys::Escape) { if (MenuCell >= 0) CloseCellMenu(); else if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
-	else if (K == EKeys::J) { bCodex = !bCodex; if (bCodex) UnlSetTab(1); }
+	else if (K == EKeys::J) { if (bCodex) bCodex = false; else CdxOpen(1); }
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = NextSpeed(Game.Speed);
 	else if (K == EKeys::P || K == EKeys::Pause) bPaused = !bPaused; // 일시정지 (D-169)
