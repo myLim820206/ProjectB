@@ -157,51 +157,104 @@ void SPDBoardWidget::PaintTv(FCanvas& C) const
 void SPDBoardWidget::JukeStep(int32 Dir)
 {
 	JukeTrack = ((JukeTrack + Dir) % JazzTrackCount + JazzTrackCount) % JazzTrackCount;
+	JukeSwitchAt = Clock; // 레코드 바꾸는 움직임
+	JukeSwitchDir = Dir;
 	UiSound(EPDSound::Move);
 	SaveSettings();
 }
 
-// 주크박스 간판 (D-319): 천장 줄에 매단 두 겹 튜브 간판(예전 남은 적 간판 자리). 'NOW PLAYING' + 흐르는 곡 이름 + ◀ ▶ + 박자에 맞춰 깜빡이는 전구 줄
+// 주크박스 (D-319 → 실제 주크박스, 사용자 2026-11-16): 본체 하나 안에 다 있다.
+// 위 아치: 무지개 네온 튜브 셋 + 둘레를 도는 전구 / 유리창: 도는 레코드 + NOW PLAYING + 흐르는 곡 이름 / 선곡 버튼: ◀ 번호 ▶ (누름)
+// 양옆 거품 튜브(올라가는 방울), 스피커 그릴(박자에 맞춰 떨림), 받침. 곡을 바꾸면 0.7초 동안 레코드가 옆으로 빠졌다 새 레코드가 들어오고 집게 팔이 움직인다
 void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 {
-	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Lav = Hex(TEXT("a896e1")), Fg = Hex(TEXT("dce4f0")), Wire = Hex(TEXT("5f6878"), 0.5f);
-	const float X = SignEnX, Y = SignEnY, W = SignEnW, H = SignEnH;
-	for (const float Wx : {X + 16.f, X + W - 16.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, Y)}, Wire, 1.f);
-	C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.85f));
-	const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, W, H, RadSmall + 2.f), Ri = FCanvas::RoundRectPoints(X + 5.f, Y + 5.f, W - 10.f, H - 10.f, RadSmall - 3.f);
-	C.Glow(Ro, WithAlpha(Lav, 0.85f), 2.2f, 0.95f);
-	C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
-	C.Glow(Ri, WithAlpha(Lav, 0.6f), 1.1f, 0.4f);
+	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Cyan = Hex(TEXT("6edcff")), Lav = Hex(TEXT("a896e1")), Fg = Hex(TEXT("dce4f0")), Bulbc = Hex(TEXT("ffe196")), Bg = Hex(TEXT("06060b"), 0.92f);
 	const bool bBoss = WantBossMusic();
-	C.TextCentered(bBoss ? TEXT("BOSS THEME") : TEXT("NOW PLAYING"), X + W / 2.f, Y + 15.f, bBoss ? Hex(TEXT("ff6a6a")) : Gold, 9.f, true);
-	// 곡 이름: 칸보다 길면 흐른다 (가운데 칸 안만 보이게 양쪽 끝을 간판 바탕색으로 덮음)
-	const FString Nm = bBoss ? FString(Tr(TEXT("보스 웨이브"))) : FString::Printf(TEXT("%d. %s"), JukeTrack + 1, UTF8_TO_TCHAR(JazzTrackName(JukeTrack)));
-	const float NX0 = X + 10.f + JukeBtnS, NW = W - 20.f - 2.f * JukeBtnS, TW = FCanvas::Measure(Nm, FCanvas::Font(11.f, true)).X;
-	if (TW <= NW - 6.f) C.TextCentered(Nm, X + W / 2.f, JukeBtnY + JukeBtnS / 2.f, Fg, 11.f, true);
-	else
+	const float Bpm = bBoss ? 132.f : JazzTrackBpm(JukeTrack), BeatN = Clock * Bpm / 60.f, Beat = FMath::Max(0.f, FMath::Cos(BeatN * TwoPi));
+	const float X0 = JukeX0, W = JukeW, Y0 = JukeY0, CX = X0 + W / 2.f, Bot = Y0 + JukeH;
+	const float ArchH = 26.f, ArchY = Y0 + ArchH; // 위 아치(타원) 밑선
+	auto Arch = [&](float In, float Down) { TArray<FVector2f> P; const float Rx = W / 2.f - In, Ry = ArchH - In; P.Add(FVector2f(CX - Rx, ArchY + Down)); for (int32 A = 0; A <= 24; ++A) { const float T = PI + A * PI / 24.f; P.Add(FVector2f(CX + FMath::Cos(T) * Rx, ArchY + FMath::Sin(T) * Ry)); } P.Add(FVector2f(CX + Rx, ArchY + Down)); return P; };
+	// 몸통 (속 어둡게) + 테두리 + 받침
+	C.Box(X0, ArchY, W, Bot - 6.f - ArchY, Bg);
+	for (float Yy = 0.f; Yy < ArchH; Yy += 2.f) { const float Rx = W / 2.f * FMath::Sqrt(FMath::Max(0.f, 1.f - FMath::Square((ArchH - Yy) / ArchH))); C.Box(CX - Rx, Y0 + Yy, Rx * 2.f, 2.f, Bg); }
+	TArray<FVector2f> Body = Arch(0.f, Bot - 6.f - ArchY);
+	Body.Add(Body[0]);
+	C.Glow(Body, Lav, 1.6f, 0.8f);
+	C.Glow({FVector2f(X0 - 3.f, Bot - 6.f), FVector2f(X0 + W + 3.f, Bot - 6.f), FVector2f(X0 + W + 1.f, Bot), FVector2f(X0 - 1.f, Bot), FVector2f(X0 - 3.f, Bot - 6.f)}, Lav, 1.3f, 0.6f);
+	// 무지개 튜브 셋 (박자에 맞춰 차례로 밝아짐) — 양옆으로 내려와 몸통 옆 기둥이 된다
+	const FLinearColor Tube[3] = {Pink, Gold, Cyan};
+	for (int32 I = 0; I < 3; ++I)
 	{
-		const float Loop = TW + 40.f, Off = FMath::Fmod(Clock * 28.f, Loop);
-		for (int32 K = 0; K < 2; ++K) C.Text(Nm, NX0 + 4.f - Off + K * Loop, JukeBtnY + JukeBtnS / 2.f + 4.f, Fg, 11.f, 0, true);
-		C.Box(X + 6.f, JukeBtnY - 2.f, NX0 - X - 6.f, JukeBtnS + 4.f, Hex(TEXT("06060b"), 1.f));
-		C.Box(NX0 + NW, JukeBtnY - 2.f, X + W - 6.f - NX0 - NW, JukeBtnS + 4.f, Hex(TEXT("06060b"), 1.f));
+		const float Br = 0.7f + 0.3f * FMath::Max(0.f, FMath::Cos((BeatN - I * 0.33f) * TwoPi));
+		C.Glow(Arch(4.f + I * 3.5f, Bot - 14.f - ArchY), WithAlpha(Tube[I], Br), 1.3f, 0.85f * Br);
 	}
-	for (int32 Dir = -1; Dir <= 1; Dir += 2) // ◀ ▶ (눌리는 버튼, D-328 ②)
+	// 아치 둘레를 도는 전구 (보스 웨이브는 빨갛게)
+	for (int32 I = 0; I < 11; ++I)
 	{
-		const float BX = JukeBtnX(Dir);
-		const bool bHov = InRect(Mouse, BX, JukeBtnY, JukeBtnS, JukeBtnS);
-		C.BtnFill(BX, JukeBtnY, JukeBtnS, JukeBtnS, RadPill(JukeBtnS), Pink, bHov);
-		C.Glow(FCanvas::RoundRectPoints(BX, JukeBtnY, JukeBtnS, JukeBtnS, RadPill(JukeBtnS)), bHov ? Pink : Lav, bHov ? 1.5f : 1.1f, bHov ? 0.9f : 0.4f);
-		const FVector2f Cc(BX + JukeBtnS / 2.f, JukeBtnY + JukeBtnS / 2.f);
-		C.Glow({Cc + FVector2f(Dir * 4.f, 0.f), Cc + FVector2f(-Dir * 3.f, -5.f), Cc + FVector2f(-Dir * 3.f, 5.f), Cc + FVector2f(Dir * 4.f, 0.f)}, bHov ? FLinearColor::White : Fg, 1.2f, 0.4f);
+		const float T = PI + (I + 0.5f) * PI / 11.f;
+		const bool bOn = (I + FMath::FloorToInt(BeatN * 2.f)) % 4 == 0;
+		Bulb(C, FVector2f(CX + FMath::Cos(T) * (W / 2.f + 3.f), ArchY + FMath::Sin(T) * (ArchH + 3.f)), 1.7f, bOn, bBoss ? Hex(TEXT("ff6a6a")) : Bulbc);
 	}
-	// 박자 전구: 4분 박마다 하나씩 옮겨 가며 켜짐 (보스 웨이브는 빨간 빠른 깜빡임)
-	const float Bpm = bBoss ? 132.f : JazzTrackBpm(JukeTrack), BeatN = Clock * Bpm / 60.f;
-	const int32 NB = 12, Cur = FMath::FloorToInt(BeatN) % 4;
-	const float Pulse = 1.f - FMath::Frac(BeatN);
-	for (int32 K = 0; K < NB; ++K)
+	// 양옆 거품 튜브: 방울이 올라간다
+	for (const float S : {-1.f, 1.f})
 	{
-		const bool bOn = K % 4 == Cur && Pulse > 0.35f;
-		Bulb(C, FVector2f(X + 18.f + K * (W - 36.f) / (NB - 1), Y + H - 9.f), 2.6f, bOn, bBoss ? Hex(TEXT("ff6a6a")) : Hex(TEXT("ffe196")));
+		const float TX = CX + S * (W / 2.f - 17.f);
+		for (int32 K = 0; K < 4; ++K)
+		{
+			const float U = FMath::Frac(Clock * 0.6f + K * 0.25f + (S > 0.f ? 0.12f : 0.f));
+			C.Lines(FCanvas::CirclePoints(FVector2f(TX, Bot - 16.f - U * 44.f), 1.3f + 0.6f * U, 8), WithAlpha(S < 0.f ? Pink : Cyan, 0.9f * (1.f - U)), 1.f);
+		}
+	}
+	// 유리창: 도는 레코드 + 곡 정보 (곡을 바꾸면 레코드가 옆으로 빠졌다 새 레코드가 들어온다)
+	const float GX = X0 + 24.f, GY = ArchY + 2.f, GW = W - 48.f, GH = 30.f;
+	C.Box(GX, GY, GW, GH, Hex(TEXT("0b0d14"), 1.f));
+	C.Glow(FCanvas::RoundRectPoints(GX, GY, GW, GH, 6.f), Fg, 1.1f, 0.45f);
+	const float Sw = Clock - JukeSwitchAt, SwU = FMath::Clamp(Sw / 0.7f, 0.f, 1.f);
+	const float RecK = Sw < 0.7f ? (SwU < 0.5f ? SwU * 2.f : (1.f - SwU) * 2.f) : 0.f; // 0 → 1 → 0: 레코드가 밑으로 내려가며 흐려졌다 새 레코드가 올라옴
+	const FVector2f RC(GX + 12.f, GY + GH / 2.f + RecK * 8.f);
+	const float RecA = 1.f - RecK;
+	C.Lines(FCanvas::CirclePoints(RC, 9.f, 20), WithAlpha(Fg, RecA), 1.f);
+	C.Lines(FCanvas::CirclePoints(RC, 3.f, 10), WithAlpha(Pink, RecA), 1.f);
+	const float RA = Clock * (Bpm / 60.f) * PI * 0.5f;
+	C.Lines({RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 4.f, RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 8.f}, WithAlpha(Fg, 0.7f * RecA), 1.f);
+	const float ArmA = FMath::DegreesToRadians(Sw < 0.7f ? 70.f - 50.f * (1.f - FMath::Abs(SwU * 2.f - 1.f)) : 40.f); // 집게 팔: 바꿀 때 들렸다 내려옴
+	const FVector2f Pv(GX + 26.f, GY + 4.f);
+	C.Lines({Pv, Pv + FVector2f(-FMath::Cos(ArmA), FMath::Sin(ArmA)) * 12.f}, Gold, 1.1f);
+	const float TxX = GX + 30.f, TxW = GW - 34.f;
+	C.Text(bBoss ? TEXT("BOSS THEME") : TEXT("NOW PLAYING"), TxX, GY + 9.f, bBoss ? Hex(TEXT("ff6a6a")) : Gold, 7.f, 0, true, TxW);
+	const FString Nm = bBoss ? FString(Tr(TEXT("보스 웨이브"))) : FString(UTF8_TO_TCHAR(JazzTrackName(JukeTrack)));
+	const float NmW = FCanvas::Measure(Nm, FCanvas::Font(9.f, true)).X, NmY = GY + 22.f;
+	if (Sw < 0.35f) {} // 레코드가 빠지는 동안 이름은 비움
+	else if (NmW <= TxW) C.Text(Nm, TxX, NmY, Fg, 9.f, 0, true);
+	else // 길면 흐른다 (유리창 밖은 덮개로 가림)
+	{
+		const float Loop = NmW + 24.f, Off = FMath::Fmod(FMath::Max(0.f, Sw - 1.2f) * 22.f, Loop); // 곡을 바꾸면 처음부터, 1초쯤 멈췄다 흐름
+		for (int32 K = 0; K < 2; ++K) C.Text(Nm, TxX - Off + K * Loop, NmY, Fg, 9.f, 0, true);
+		C.Box(GX + 22.f, NmY - 10.f, 8.f, 13.f, Hex(TEXT("0b0d14"), 1.f));
+		C.Box(GX + GW - 2.f, NmY - 10.f, 26.f, 13.f, Bg);
+		C.Box(GX - 26.f, NmY - 10.f, 26.f, 13.f, Bg);
+	}
+	// 선곡 버튼 줄: ◀ 번호 ▶ (누르는 버튼은 눌린 듯 살짝 내려감)
+	for (int32 Dir = -1; Dir <= 1; Dir += 2)
+	{
+		const float BtX = JukeBtnX(Dir);
+		const bool bHov = InRect(Mouse, BtX, JukeBtnY, JukeBtnS, JukeBtnS), bPress = Sw < 0.15f && JukeSwitchDir == Dir;
+		const float Dy = bPress ? 1.5f : 0.f;
+		C.BtnFill(BtX, JukeBtnY + 2.f + Dy, JukeBtnS, JukeBtnS - 4.f, RadPill(JukeBtnS - 4.f), Pink, bHov || bPress);
+		C.Glow(FCanvas::RoundRectPoints(BtX, JukeBtnY + 2.f + Dy, JukeBtnS, JukeBtnS - 4.f, RadPill(JukeBtnS - 4.f)), bHov ? Pink : WithAlpha(Pink, 0.7f), bHov ? 1.4f : 1.1f, bHov ? 0.9f : 0.4f);
+		const FVector2f Cc(BtX + JukeBtnS / 2.f, JukeBtnY + JukeBtnS / 2.f + Dy);
+		C.Lines({Cc + FVector2f(Dir * 3.f, 0.f), Cc + FVector2f(-Dir * 2.f, -3.5f), Cc + FVector2f(-Dir * 2.f, 3.5f), Cc + FVector2f(Dir * 3.f, 0.f)}, bHov ? FLinearColor::White : Fg, 1.1f);
+	}
+	for (int32 I = 0; I < JazzTrackCount; ++I) // 곡 번호 칸 (지금 곡이 금색으로 켜짐)
+	{
+		const float KX = CX - (JazzTrackCount - 1) * 4.5f + I * 9.f;
+		C.Glow(FCanvas::RoundRectPoints(KX - 3.f, JukeBtnY + 5.f, 6.f, 6.f, 1.5f), I == JukeTrack ? Gold : WithAlpha(Lav, 0.5f), 1.f, I == JukeTrack ? 0.9f : 0.2f);
+	}
+	// 스피커 그릴: 박자에 맞춰 살짝 떨림
+	for (int32 I = 0; I < 9; ++I)
+	{
+		const float SX = CX - 32.f + I * 8.f, Lh = 8.f + 3.f * Beat * (I % 2 ? 1.f : 0.6f);
+		C.Lines({FVector2f(SX, Bot - 11.f - Lh), FVector2f(SX, Bot - 11.f)}, WithAlpha(Lav, 0.5f + 0.3f * Beat), 1.f);
 	}
 }
 

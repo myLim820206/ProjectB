@@ -62,7 +62,9 @@ public:
 	float GetVolume() const { return Settings.bSound ? Settings.Volume : 0.f; }
 	float GetMusicVolume() const { return Settings.bSound ? Settings.MusicVolume : 0.f; } // 배경 음악 (D-117)
 	int32 JukeTrack = 0;                   // 주크박스 곡 (D-319, 설정에 저장). 인게임 음악 = 재즈 JukeTrack 번
-	void JukeStep(int32 Dir);              // 곡 넘기기 (간판 ◀ ▶ · 설정)
+	void JukeStep(int32 Dir);              // 곡 넘기기 (주크박스 ◀ ▶ · 설정)
+	float JukeSwitchAt = -10.f;            // 곡을 바꾼 때 (레코드가 빠졌다 들어가는 0.7초)
+	int32 JukeSwitchDir = 1;
 	bool WantMenuMusic() const { return Game.Phase == PD::EPDPhase::Title || Game.Phase == PD::EPDPhase::Clear; } // 시작 · 클리어 화면은 메뉴 음악 (D-264)
 	bool WantBossMusic() const { return Game.Phase == PD::EPDPhase::Wave && Game.NextBossWave() == Game.Wave; } // 보스 웨이브 동안은 보스 음악 (D-188)
 

@@ -612,8 +612,10 @@ constexpr float CharmY = MenuBtnY + MenuBtnH + 12.f; // 부적 칸
 // 위에 걸린 간판 (D-274, 인게임 시안 B)
 constexpr float SignEnX = 270.f, SignEnY = 20.f, SignEnW = 182.f, SignEnH = 68.f;   // 남은 적 (전구 줄)
 // 주크박스 간판 (D-319): 예전 남은 적 간판 자리 (SignEn). ◀ ▶ 곡 넘기기
-constexpr float JukeBtnS = 22.f, JukeBtnY = SignEnY + 26.f;
-inline float JukeBtnX(int Dir) { return Dir < 0 ? SignEnX + 8.f : SignEnX + SignEnW - 8.f - JukeBtnS; }
+// 실제 주크박스 (사용자 2026-11-16): 본체 하나(128 × 94, x 297 ~ 425, y 2 ~ 96). 위 아치 무지개 튜브 → 유리창 안 곡 정보 · 도는 레코드 → 선곡 버튼(◀ 번호 ▶) → 스피커 → 받침, 양옆 거품 튜브. 시안 tools/neon/jukebox_mock.py
+constexpr float JukeW = 128.f, JukeX0 = SignEnX + (SignEnW - JukeW) / 2.f, JukeY0 = 2.f, JukeH = 94.f;
+constexpr float JukeBtnS = 16.f, JukeBtnY = JukeY0 + 62.f;
+inline float JukeBtnX(int Dir) { return JukeX0 + JukeW / 2.f + Dir * 30.f - JukeBtnS / 2.f; }
 constexpr float SignWvX = 470.f, SignWvY = 14.f, SignWvW = 340.f, SignWvH = 74.f;   // WAVE
 constexpr float SignLfX = 826.f, SignLfY = 22.f, SignLfW = 108.f, SignLfH = 60.f;   // 목숨
 constexpr float SignLvX = 948.f, SignLvY = 38.f, SignLvW = 172.f, SignLvH = 34.f;   // 레벨 알약
