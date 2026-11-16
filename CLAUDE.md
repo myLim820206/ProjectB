@@ -8,7 +8,7 @@
 - 현재 게임: 포커 디펜스 (docs/14-poker-defense.md). 엔진은 언리얼 5.8 C++ (docs/12-unreal-port.md).
 - **웹 프로토타입 작업은 하지 않는다** (토큰 낭비, D-062). 새 기능은 언리얼(Source/ProjectB)에만.
 - 규칙 코어 `PDCore` 는 언리얼 의존성 없는 C++ 로 유지하고 `./Tests/run.sh` 로 시험한다. 화면은 `PDBoardWidget` (Slate).
-- 사용자가 빌드를 나중에 한꺼번에 돌린다. 여기서는 g++ 시험과 가짜 헤더 문법 검사까지 하고, 빌드 확인 전이라고 분명히 말한다.
+- 작업이 끝나면 따로 말이 없는 한 **언리얼을 직접 빌드하고 에디터를 자동 재시작**한다. 빌드에 필요하면(DLL 잠김 등) 에디터를 끄고 빌드한다. 빌드 전에 g++/cl 시험과 가짜 헤더 문법 검사를 한다.
 - 결정은 docs/05-decision-log.md 에 기록한다.
 - **화면 글자는 언어팩을 거친다** (D-159): 한국어 원문으로 쓰고, 새 글자를 넣으면 `tools/lang/extract.py --tsv tools/lang/strings.tsv` → 영어·일본어·중국어 간체·번체 번역을 채우고 → `tools/lang/gen_lang.py`. printf 형식 글자는 `TrF`, 형식 인자로 넘기는 한국어는 `Tr(...)`.
 
