@@ -186,7 +186,8 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 	C.Box(X0, ArchY, W, Bot - 6.f - ArchY, Bg);
 	for (float Yy = 0.f; Yy < ArchH; Yy += 2.f) { const float Rx = W / 2.f * FMath::Sqrt(FMath::Max(0.f, 1.f - FMath::Square((ArchH - Yy) / ArchH))); C.Box(CX - Rx, Y0 + Yy, Rx * 2.f, 2.f, Bg); }
 	TArray<FVector2f> Body = Arch(0.f, Bot - 6.f - ArchY);
-	Body.Add(Body[0]);
+	const FVector2f BodyStart = Body[0]; // 자기 원소를 그대로 Add 하면 TArray 검사에 걸려 크래시
+	Body.Add(BodyStart);
 	C.Glow(Body, Lav, 1.6f, 0.8f);
 	C.Glow({FVector2f(X0 - 3.f, Bot - 6.f), FVector2f(X0 + W + 3.f, Bot - 6.f), FVector2f(X0 + W + 1.f, Bot), FVector2f(X0 - 1.f, Bot), FVector2f(X0 - 3.f, Bot - 6.f)}, Lav, 1.3f, 0.6f);
 	// 무지개 튜브 셋 (박자에 맞춰 차례로 밝아짐) — 양옆으로 내려와 몸통 옆 기둥이 된다
