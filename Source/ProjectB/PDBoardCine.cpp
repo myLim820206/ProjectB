@@ -135,7 +135,8 @@ void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
 		}
 		if (S < 0.15f) C.SoftDisc(O, Rad * 0.5f, Rad * 0.5f, White, 0.6f * (1.f - S / 0.15f));
 	};
-	auto Darken = [&](float A) { if (A > 0.f && !bTail) C.Box(0.f, 0.f, DesignW, DesignH, FLinearColor(0.008f, 0.008f, 0.03f, A)); };
+	// 연출 중 판 덮개 (D-348): 다른 비활성 덮개처럼 짙게 깔아 튀어나온 카드가 판 위 카드들에 묻히지 않게. 처음 0.12초 동안 스며들듯 짙어진다
+	auto Darken = [&](float A) { A *= FMath::Min(1.f, Cn.T / 0.12f); if (A > 0.f && !bTail) C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), A)); };
 	auto Crown = [&](FVector2f O, float R, float A) // 금색 왕관
 	{
 		static const float X[] = {-1.f, -1.f, -0.5f, 0.f, 0.5f, 1.f, 1.f, -1.f}, Y[] = {0.f, -0.8f, -0.4f, -1.f, -0.4f, -0.8f, 0.f, 0.f};
@@ -166,7 +167,7 @@ void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
 	{
 		const bool bGold = Cn.Level >= MaxLevel;
 		const float Big = 2.6f + 0.4f * FMath::Clamp(Cn.Level - 2, 0, 2), Out = CineSeg(U, 0.f, 0.25f), Back = CineSeg(U, 0.78f, 1.f);
-		Darken(0.28f * (1.f - Back));
+		Darken(0.82f * (1.f - Back));
 		const FVector2f Mid = FMath::Lerp(Cell, Ctr, CineEase(Out));
 		const FVector2f P = FMath::Lerp(Mid, Cell, CineEase(Back));
 		const float R = CS * 0.42f * FMath::Lerp(FMath::Lerp(1.f, Big, CineEase(Out)), 1.f, CineEase(Back));
@@ -189,7 +190,7 @@ void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
 	{
 		// 재료 카드들이 화면 앞으로 나와(둘레에 펼쳐짐) 가운데로 모여 하얀 빛과 함께 조커, 폭죽 (D-314 ②)
 		const float Gather = CineSeg(U, 0.12f, 0.5f), Back = CineSeg(U, 0.85f, 1.f), Show = CineSeg(U, 0.55f, 0.65f);
-		Darken(0.42f * (1.f - Back));
+		Darken(0.82f * (1.f - Back));
 		const int32 N = FMath::Max(2, Cn.Mats.Num());
 		for (int32 I = 0; I < Cn.Mats.Num() && U < 0.55f; ++I)
 		{
@@ -223,7 +224,7 @@ void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
 	{
 		// 상위 조커 (D-314 ③): 판이 어두워짐 → 재료 조커 두 장이 돌며 빨라짐 → 부딪혀 금빛 + 왕관이 내려와 앉음 → 네온 간판에 이름이 전구 하나씩 → 금색 폭죽 · 금가루 → 칸으로
 		const float Orbit = CineSeg(U, 0.08f, 0.4f), Crash = U - 0.4f, Back = CineSeg(U, 0.9f, 1.f);
-		Darken(0.65f * (1.f - Back));
+		Darken(0.85f * (1.f - Back));
 		const int32 Ui = Cn.Joker - UpperBase;
 		if (U < 0.4f)
 		{
@@ -289,7 +290,7 @@ void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
 	{
 		// 조커 레벨 10 (기본: 금색 고리 한 바퀴 + '강화!' + 열린 능력 한 줄) · 상위 조커 10레벨마다 (간판에 'LvN') (D-315)
 		const float Up = CineEase(CineSeg(U, 0.f, 0.2f)), Back = CineSeg(U, 0.85f, 1.f);
-		Darken(0.3f * (1.f - Back));
+		Darken(0.82f * (1.f - Back));
 		const FVector2f P = Cell + FVector2f(0.f, -26.f * Up * (1.f - Back));
 		const float R = CS * 0.42f * (1.f + 0.9f * Up * (1.f - Back));
 		C.JokerTower(Cn.Joker, P.X, P.Y, R, 1.f, 0.8f);
