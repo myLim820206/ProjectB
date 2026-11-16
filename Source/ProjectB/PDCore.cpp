@@ -146,6 +146,24 @@ static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Bell, EPDJoker::Star, EPDUpperSpecial::None},           // 반짝반짝 작은 박쥐
 };
 const FPDUpperDef& UpperDef(int U) { return GPDUpper[std::clamp(U, 0, UpperJokerCount - 1)]; }
+bool GoalMet(EPDGoal G, const FPDGoalStats& S)
+{
+	switch (G)
+	{
+	case EPDGoal::Clear30: return (S.ModesCleared >> (int)EPDMode::W30) & 1u;
+	case EPDGoal::Clear60: return (S.ModesCleared >> (int)EPDMode::W60) & 1u;
+	case EPDGoal::Clear100: return (S.ModesCleared >> (int)EPDMode::W100) & 1u;
+	case EPDGoal::FirstJoker: return S.Discovered != 0;
+	case EPDGoal::FirstUpper: return S.UpperFound != 0;
+	case EPDGoal::AllJokers: return (S.Discovered & 0x3FFu) == 0x3FFu;
+	case EPDGoal::Level30: return S.BestLevel >= 30;
+	case EPDGoal::Kills1000: return S.BestKills >= 1000;
+	case EPDGoal::TotalKills10k: return S.TotalKills >= 10000;
+	case EPDGoal::Runs10: return S.RunsPlayed >= 10;
+	default: return false;
+	}
+}
+
 int UpperPrice(int U) { const FPDUpperDef& D = UpperDef(U); const int Avg = (JokerPrice((int)D.A) + JokerPrice((int)D.B)) / 2; return (300 + Avg + 50) / 100 * 50; } // 150~400 (D-320)
 int UpperOf(EPDJoker A, EPDJoker B)
 {

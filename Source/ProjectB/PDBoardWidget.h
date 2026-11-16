@@ -101,6 +101,14 @@ private:
 	// 영구 강화 (D-230): 판이 끝나면 칩, 시작 화면 '영구 강화'에서 8종을 칩으로 올린다 (진행 파일에 저장)
 	int32 MetaChips = 0;
 	int32 LastChips = 0;                   // 방금 끝난 판에서 받은 칩
+	int32 LastBonus = 0;                   // 그중 모드 첫 클리어 덤 (D-321)
+	PD::FPDGoalStats GoalStats;            // 목표 해금 (D-321 ④) 진행: 판 수 · 누적 처치 · 최고 레벨 · 최고 처치 (진행 파일), 모드 · 조커 도감은 따로 있는 값으로 채운다
+	TArray<int32> NewGoals;                // 방금 이룬 목표 (영수증 줄)
+	TArray<FString> NowAffordable;         // 이번 판으로 새로 살 수 있게 된 것 (영수증 아래, 3개까지)
+	void SyncGoalStats();                  // 도감 · 모드 값을 GoalStats 로
+	int32 ApplyGoals();                    // 이룬 목표의 칵테일을 연다 (새로 이룬 목표 수)
+	TArray<FString> AffordableNames() const; // 지금 칩으로 살 수 있는 잠긴 것 이름 (칵테일 · 조커 · 상위 조커)
+	void PaintRunUnlocks(FCanvas& C, float Y) const; // 판 끝 영수증 아래: 이룬 목표 · 이제 살 수 있어요
 	bool MetaBuy(int32 U, int32 N);        // N레벨까지 살 수 있는 만큼 (산 레벨이 있으면 true)
 	// 잠금 해제 (D-239): 시작 화면 메뉴. 칵테일·조커를 하나씩 칩으로
 	bool bUnlock = false;

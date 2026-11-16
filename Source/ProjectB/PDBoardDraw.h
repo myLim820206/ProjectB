@@ -195,6 +195,13 @@ inline const TCHAR* BossSkillText(EPDEnemy T)
 	default: return Tr(TEXT(""));
 	}
 }
+// 목표로 여는 칵테일의 목표 글 (D-321 ④, EPDGoal 순서)
+inline const TCHAR* GoalText(int I)
+{
+	static const TCHAR* N[] = {TEXT("30 모드 클리어"), TEXT("60 모드 클리어"), TEXT("100 모드 클리어"), TEXT("조커 처음 만들기"), TEXT("상위 조커 처음 만들기"),
+		TEXT("기본 조커 10종 모두 만들기"), TEXT("한 판에 레벨 30"), TEXT("한 판에 1,000마리 처치"), TEXT("모든 판 합쳐 10,000마리 처치"), TEXT("10판 끝내기")};
+	return I >= 0 && I < (int)UE_ARRAY_COUNT(N) ? Tr(N[I]) : TEXT("");
+}
 inline const TCHAR* CharmName(int J)
 {
 	static const TCHAR* N[] = { // 칵테일 이름 (D-281): 효과가 떠오르게

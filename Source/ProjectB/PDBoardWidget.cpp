@@ -345,6 +345,10 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("Charms")) Game.CharmUnlocked |= (FPDCharmBits)FCString::Strtoui64(*Val, nullptr, 10); // 연 칵테일 (D-233, D-239)
 			else if (Key == TEXT("Jokers")) { Game.JokerUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10) | JokerStarterMask; } // 연 조커 (D-239)
 			else if (Key == TEXT("UpperOpen")) Game.UpperUnlocked = (uint32)FCString::Strtoui64(*Val, nullptr, 10) | UpperStarterMask; // 연 상위 조커 (D-241), 맛보기 2종 (D-320)
+			else if (Key == TEXT("Runs")) GoalStats.RunsPlayed = FMath::Max(0, FCString::Atoi(*Val)); // 목표 해금 진행 (D-321)
+			else if (Key == TEXT("TotalKills")) GoalStats.TotalKills = FMath::Max(0ll, (long long)FCString::Strtoi64(*Val, nullptr, 10));
+			else if (Key == TEXT("BestLevel")) GoalStats.BestLevel = FMath::Max(0, FCString::Atoi(*Val));
+			else if (Key == TEXT("BestKills")) GoalStats.BestKills = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
@@ -355,6 +359,8 @@ void SPDBoardWidget::LoadUserData()
 	SavedDiscovered = Game.Discovered;
 	SavedUpper = Game.UpperFound;
 	SavedBest = Game.BestWave;
+	SyncGoalStats();
+	ApplyGoals(); // 예전 저장에서 이미 이룬 목표도 연다
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("pdunlock"))) ModesCleared = 0xF; // 시험용: 모드 모두 열기
 #endif
@@ -384,7 +390,8 @@ void SPDBoardWidget::SaveProgress()
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
+		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -528,15 +535,29 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		bRankRecorded = true;
 		RecordRun();
 		NewlyOpened = -1;
+		const TArray<FString> CouldBuy = AffordableNames(); // 판 전에 살 수 있던 것 (D-321 ③)
 		LastChips = Game.RunChips(); // 영구 강화용 칩 (D-230)
-		MetaChips += LastChips;
+		if (GoalStats.RunsPlayed == 0) LastChips = FMath::Max(LastChips, FirstRunMinChips); // 첫 판은 최소 50 (D-321)
+		LastBonus = 0;
 		if (Game.Phase == EPDPhase::Clear) // 클리어 (D-229): 다음 모드를 연다
 		{
+			if (!((ModesCleared >> (int32)Game.Mode) & 1u)) LastBonus = FirstClearBonus(Game.Mode); // 모드 첫 클리어 덤 (D-321)
 			TArray<int32> Before;
 			for (int32 M = 0; M < (int32)EPDMode::Count; ++M) if (ModeOpen(M)) Before.Add(M);
 			ModesCleared |= 1u << (int32)Game.Mode;
 			for (int32 M = 0; M < (int32)EPDMode::Count; ++M) if (ModeOpen(M) && !Before.Contains(M) && NewlyOpened < 0) NewlyOpened = M;
 		}
+		LastChips += LastBonus;
+		MetaChips += LastChips;
+		// 목표 해금 (D-321 ④): 판 수 · 처치 · 레벨을 쌓고 이룬 목표의 칵테일을 연다
+		GoalStats.RunsPlayed++;
+		GoalStats.TotalKills += Game.Kills;
+		GoalStats.BestLevel = FMath::Max(GoalStats.BestLevel, Game.Level);
+		GoalStats.BestKills = FMath::Max(GoalStats.BestKills, Game.Kills);
+		SyncGoalStats();
+		ApplyGoals();
+		NowAffordable.Reset();
+		for (const FString& S : AffordableNames()) if (!CouldBuy.Contains(S) && NowAffordable.Num() < 3) NowAffordable.Add(S);
 		SaveProgress();
 	}
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
@@ -1519,9 +1540,45 @@ FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerE
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
+void SPDBoardWidget::SyncGoalStats()
+{
+	GoalStats.ModesCleared = ModesCleared;
+	GoalStats.Discovered = Game.Discovered;
+	GoalStats.UpperFound = Game.UpperFound;
+}
+
+int32 SPDBoardWidget::ApplyGoals()
+{
+	NewGoals.Reset();
+	for (int32 I = 0; I < (int32)EPDGoal::Count; ++I)
+	{
+		const int32 J = (int32)GoalDef(I).Reward;
+		if (((Game.CharmUnlocked >> J) & 1u) || !GoalMet((EPDGoal)I, GoalStats)) continue;
+		Game.CharmUnlocked |= FPDCharmBits(1) << J;
+		NewGoals.Add(I);
+	}
+	return NewGoals.Num();
+}
+
+TArray<FString> SPDBoardWidget::AffordableNames() const
+{
+	TArray<FString> Out;
+	for (int32 J = 0; J < (int32)EPDCharm::Count; ++J)
+		if (!((Game.CharmUnlocked >> J) & 1u) && CharmGoal(J) < 0 && CharmPrice(J) <= MetaChips) Out.Add(CharmName(J));
+	for (int32 J = 0; J < (int32)EPDJoker::Count; ++J)
+		if (!Game.JokerOpen(J) && JokerPrice(J) <= MetaChips) Out.Add(JokerName(J));
+	for (int32 U = 0; U < UpperJokerCount; ++U)
+	{
+		const FPDUpperDef& D = UpperDef(U);
+		if (!Game.UpperOpen(U) && Game.JokerOpen((int32)D.A) && Game.JokerOpen((int32)D.B) && UpperPrice(U) <= MetaChips) Out.Add(UpperName(U));
+	}
+	return Out;
+}
+
 bool SPDBoardWidget::BuyCharm(int32 J)
 {
 	if (Game.Phase != EPDPhase::Title || J < 0 || J >= (int32)EPDCharm::Count || ((Game.CharmUnlocked >> J) & 1u)) return false;
+	if (CharmGoal(J) >= 0) return false; // 목표로 여는 칵테일은 칩으로 못 산다 (D-321)
 	const int32 Price = CharmPrice(J);
 	if (MetaChips < Price) return false;
 	MetaChips -= Price;

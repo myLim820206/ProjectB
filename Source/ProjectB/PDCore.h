@@ -466,6 +466,32 @@ enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Clear }; // Re
 // 모드 (D-225, D-229): 30 · 60 · 100웨이브를 버티면 클리어, 무한은 끝없음. 15웨이브 뒤 적 체력 성장 배율이 모드마다 다르다
 enum class EPDMode : uint8_t { W30, W60, W100, Endless, Count };
 inline int ModeGoal(EPDMode M) { return M == EPDMode::W30 ? 30 : M == EPDMode::W60 ? 60 : M == EPDMode::W100 ? 100 : 0; } // 0 = 끝없음
+inline int FirstClearBonus(EPDMode M) { return ChipMult * (M == EPDMode::W30 ? 200 : M == EPDMode::W60 ? 400 : M == EPDMode::W100 ? 800 : 0); } // 모드 첫 클리어 덤 (D-321, D-323)
+constexpr int FirstRunMinChips = 50; // 첫 판은 칩 최소 50: 끝나자마자 하나는 살 수 있게 (D-321)
+
+// 목표로 여는 것 (D-321 ④): 칩 대신 목표를 이루면 열리는 칵테일 10종. 스팀 도전 과제(B8)와 같이 쓴다
+struct FPDGoalStats
+{
+	int RunsPlayed = 0;        // 끝낸 판 수
+	long long TotalKills = 0;  // 모든 판 처치 합
+	int BestLevel = 0;         // 한 판 최고 레벨
+	int BestKills = 0;         // 한 판 최고 처치
+	uint32_t ModesCleared = 0; // 1 << EPDMode
+	uint32_t Discovered = 0;   // 만들어 본 기본 조커 (1 << EPDJoker)
+	uint32_t UpperFound = 0;   // 만들어 본 상위 조커
+};
+enum class EPDGoal : uint8_t { Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, TotalKills10k, Runs10, Count };
+struct FPDGoalDef { EPDGoal Goal; EPDCharm Reward; };
+inline const FPDGoalDef& GoalDef(int I)
+{
+	static const FPDGoalDef D[(int)EPDGoal::Count] = {
+		{EPDGoal::Clear30, EPDCharm::FullHouseFan}, {EPDGoal::Clear60, EPDCharm::RoyalGuard}, {EPDGoal::Clear100, EPDCharm::StraightFlushFan},
+		{EPDGoal::FirstJoker, EPDCharm::JokerFan}, {EPDGoal::FirstUpper, EPDCharm::BigJoker}, {EPDGoal::AllJokers, EPDCharm::Forge},
+		{EPDGoal::Level30, EPDCharm::Herald}, {EPDGoal::Kills1000, EPDCharm::Bounty}, {EPDGoal::TotalKills10k, EPDCharm::BossHunter}, {EPDGoal::Runs10, EPDCharm::Dexterity}};
+	return D[I];
+}
+bool GoalMet(EPDGoal G, const FPDGoalStats& S);
+inline int CharmGoal(int J) { for (int I = 0; I < (int)EPDGoal::Count; ++I) if ((int)GoalDef(I).Reward == J) return I; return -1; } // 목표로 여는 칵테일이면 목표 번호, 아니면 -1 (칩으로 못 산다)
 inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.9f : M == EPDMode::W60 ? 1.37f : M == EPDMode::W100 ? 1.2f : 1.3f; } // D-235: 봇이 너무 쉽게 깨서 올림 (예전 1.6 · 1.32 · 1.18)
 constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)
 

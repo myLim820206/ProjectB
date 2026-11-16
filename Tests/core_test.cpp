@@ -1314,6 +1314,17 @@ static void UnitTests()
 		Expect(std::abs(N.Mods.UpgDmg - 0.15f) < 1e-4f, "새 판을 시작하면 영구 강화가 바로 걸린다");
 		N.Wave = 12; N.Level = 9;
 		Expect(N.RunChips() == 2 * (12 + 16), "칩 = 2 × (웨이브 + 2 × 오른 레벨) (D-323)");
+		Expect(FirstClearBonus(EPDMode::W30) == 400 && FirstClearBonus(EPDMode::W100) == 1600 && FirstClearBonus(EPDMode::Endless) == 0, "첫 클리어 덤 2 × 200/400/800, 무한은 없음 (D-321, D-323)");
+		{
+			FPDGoalStats St;
+			bool bNone = true;
+			for (int I = 0; I < (int)EPDGoal::Count; ++I) bNone &= !GoalMet((EPDGoal)I, St);
+			St.ModesCleared = 1u; St.TotalKills = 10000; St.RunsPlayed = 10;
+			const bool bSome = GoalMet(EPDGoal::Clear30, St) && !GoalMet(EPDGoal::Clear60, St) && GoalMet(EPDGoal::TotalKills10k, St) && GoalMet(EPDGoal::Runs10, St);
+			bool bUniq = true, bPriced = true;
+			for (int I = 0; I < (int)EPDGoal::Count; ++I) { bPriced &= (int)GoalDef(I).Reward >= CharmBaseCount; for (int K = 0; K < I; ++K) bUniq &= GoalDef(I).Reward != GoalDef(K).Reward; }
+			Expect(bNone && bSome && bUniq && bPriced && CharmGoal((int)EPDCharm::JokerFan) == (int)EPDGoal::FirstJoker && CharmGoal(0) < 0, "목표 해금 10종: 처음엔 없음, 조건 맞으면 열림, 보상 칵테일은 겹치지 않고 처음 열린 18종이 아님 (D-321)");
+		}
 		long long Total = 0;
 		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);
 		Expect(UpgradeMax == 20 && Total == 1050, "20레벨까지 한 종류 칩 " + std::to_string(Total));

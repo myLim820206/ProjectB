@@ -363,11 +363,13 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		FRandomStream Rs(7);
 		const float Pop = 0.6f + 0.4f * FMath::Sin(Clock * 6.f);
 		for (int32 K = 0; K < 14; ++K) { const float A = Rs.FRandRange(-PI, 0.f), R1 = Rs.FRandRange(8.f, 14.f), R2 = Rs.FRandRange(24.f, 46.f) * Pop; C.Glow({FVector2f(DesignW / 2.f + FMath::Cos(A) * R1, 188.f + FMath::Sin(A) * R1), FVector2f(DesignW / 2.f + FMath::Cos(A) * R2, 188.f + FMath::Sin(A) * R2)}, GoldC, 1.3f, 0.6f); }
-		C.TextCentered(TrF(TEXT("%s 모드 클리어 · 앨리스의 축배"), Tr(ModeNames[(int32)G.Mode])), DesignW / 2.f, 290.f, FgC, 15.f, true);
+		C.TextCentered(TrF(TEXT("%s 모드 클리어 · 앨리스의 축배"), Tr(ModeNames[(int32)G.Mode])), DesignW / 2.f, 282.f, FgC, 15.f, true);
 		TArray<TPair<FString, FString>> RcRows = {{Tr(TEXT("처치")), CommaNum(G.Kills)}, {Tr(TEXT("레벨")), FString::FromInt(G.Level)},
 			{Tr(TEXT("개인 랭킹")), LastRankPos >= 0 ? TrF(TEXT("%d위"), LastRankPos + 1) : FString(Tr(TEXT("20위 밖")))}};
 		if (NewlyOpened >= 0) RcRows.Add({Tr(TEXT("새로 열림")), Tr(ModeNames[NewlyOpened])});
-		Receipt(C, DesignW / 2.f, 310.f, RcRows, FString::Printf(TEXT("+ %d"), LastChips), TrF(TEXT("모은 칩 %s"), *CommaNum(MetaChips)));
+		if (LastBonus > 0) RcRows.Add({Tr(TEXT("첫 클리어 덤")), FString::Printf(TEXT("+%d"), LastBonus)}); // D-321
+		const float RcB = Receipt(C, DesignW / 2.f, 300.f, RcRows, FString::Printf(TEXT("+ %d"), LastChips), TrF(TEXT("모은 칩 %s"), *CommaNum(MetaChips)));
+		PaintRunUnlocks(C, RcB + 16.f);
 		TubeBtn(C, ClearBtnX, ClearBtnY, 230.f, 44.f, Tr(TEXT("시작 화면으로")), true, CyanC, 0.5f + 0.5f * FMath::Sin(Clock * 4.f));
 	}
 	else if (G.Phase == EPDPhase::Over) // 게임 오버 (D-293): 꺼져 가는 'LAST CALL' 간판 + 영수증 + [다시 한 판] [메인 메뉴로]
@@ -386,7 +388,8 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		TArray<TPair<FString, FString>> RcRows = {{Tr(TEXT("웨이브")), FString::FromInt(G.Wave)}, {Tr(TEXT("처치")), CommaNum(G.Kills)}, {Tr(TEXT("레벨")), FString::FromInt(G.Level)},
 			{Tr(TEXT("최고 기록")), G.Wave >= G.BestWave ? TrF(TEXT("%d (갱신!)"), G.BestWave) : FString::FromInt(G.BestWave)},
 			{Tr(TEXT("개인 랭킹")), LastRankPos >= 0 ? TrF(TEXT("%d위"), LastRankPos + 1) : FString(Tr(TEXT("20위 밖")))}};
-		Receipt(C, DesignW / 2.f, 196.f, RcRows, FString::Printf(TEXT("+ %d"), LastChips), TrF(TEXT("모은 칩 %s"), *CommaNum(MetaChips)));
+		const float RcB = Receipt(C, DesignW / 2.f, 196.f, RcRows, FString::Printf(TEXT("+ %d"), LastChips), TrF(TEXT("모은 칩 %s"), *CommaNum(MetaChips)));
+		PaintRunUnlocks(C, RcB + 14.f);
 		const float Pul = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 		TubeBtn(C, OverRestartX, OverBtnY, OverBtnW, OverBtnH, Tr(TEXT("다시 한 판 (R)")), !InRect(Mouse, OverMenuX, OverBtnY, OverBtnW, OverBtnH), Hex(TEXT("6edcff")), Pul);
 		TubeBtn(C, OverMenuX, OverBtnY, OverBtnW, OverBtnH, Tr(TEXT("메인 메뉴로")), InRect(Mouse, OverMenuX, OverBtnY, OverBtnW, OverBtnH), LavO, Pul);
@@ -2497,11 +2500,15 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		C.Shape(EPDSuit::Spade, HCX + S * 205.f, 104.f, 6.f, Pink, 1.2f, 0.4f * NK);
 	}
 	// 항목 상태
-	struct FItem { FString Name, Desc, Note, Note2, Right; int32 Price = 0; bool bOpen = false, bMat = true, bKnown = true, bHave = false; };
+	struct FItem { FString Name, Desc, Note, Note2, Right; int32 Price = 0; bool bOpen = false, bMat = true, bKnown = true, bHave = false, bGoal = false; };
 	auto Item = [&](int32 K)
 	{
 		FItem It;
-		if (UnlockTab == 0) { It.Name = CharmName(K); It.Desc = CharmDesc(K); It.Note = Tr(TEXT("연 칵테일만 5웨이브 보상에 나온다")); It.Price = CharmPrice(K); It.bOpen = (G.CharmUnlocked >> K) & 1u; }
+		if (UnlockTab == 0)
+		{
+			It.Name = CharmName(K); It.Desc = CharmDesc(K); It.Note = Tr(TEXT("연 칵테일만 5웨이브 보상에 나온다")); It.Price = CharmPrice(K); It.bOpen = (G.CharmUnlocked >> K) & 1u;
+			if (CharmGoal(K) >= 0) { It.bGoal = true; It.bMat = false; It.Note = TrF(TEXT("목표: %s"), GoalText(CharmGoal(K))); } // 칩 대신 목표로 열림 (D-321)
+		}
 		else if (UnlockTab == 1)
 		{
 			It.Name = JokerName(K); It.Desc = BaseJokerAbility(K); It.Price = JokerPrice(K); It.bOpen = G.JokerOpen(K);
@@ -2566,7 +2573,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		const FLinearColor NameCol = bH ? FLinearColor::White : bCdx ? (It.bHave ? Gold : It.bKnown ? Cyan : Dim) : It.bOpen ? Cyan : bCan ? Gold : Dim;
 		C.Text(It.Name, R.X + 30.f, Base, NameCol, 13.f, 0, true, 200.f);
 		const float NameW = FMath::Min(200.f, FCanvas::Measure(TrS(It.Name), FCanvas::Font(13.f, true)).X);
-		const FString Pt = bCdx ? It.Right : It.bOpen ? FString(Tr(TEXT("열림"))) : !It.bMat ? FString(Tr(TEXT("재료 먼저"))) : FString::Printf(TEXT("%d"), It.Price);
+		const FString Pt = bCdx ? It.Right : It.bOpen ? FString(Tr(TEXT("열림"))) : It.bGoal ? FString(Tr(TEXT("목표"))) : !It.bMat ? FString(Tr(TEXT("재료 먼저"))) : FString::Printf(TEXT("%d"), It.Price);
 		const FLinearColor PtCol = bCdx ? (It.bHave ? Gold : It.bKnown ? Mint : Dim) : It.bOpen ? Mint : bCan ? Gold : Dim;
 		C.Text(Pt, R.X + UnlRowW, Base, PtCol, 13.f, 2, true);
 		const float PtW = FCanvas::Measure(TrS(Pt), FCanvas::Font(13.f, true)).X;
@@ -3032,6 +3039,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 
 	// ---- 튜브 버튼 (고른 것만 분홍으로 켜짐, 왼쪽 하트) + 바닥 반사
 	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
+	const bool bCanBuy = AffordableNames().Num() > 0;
 	for (int32 Pass = 0; Pass < 2; ++Pass)
 		for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
 		{
@@ -3056,6 +3064,12 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 				C.Lines(FCanvas::CirclePoints(FVector2f(Bx, P.Y + TitleBtnH / 2.f), 2.2f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
 			C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Hex(TEXT("d8f4ff")), 18.f, true);
 			if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Pink, 1.4f, 0.8f);
+			if (I == (int32)ETitleItem::Unlock && bCanBuy) // 살 게 있으면 반짝이는 점 (D-321 ③)
+			{
+				const FVector2f Dp(P.X + TitleBtnW - 10.f, P.Y + 4.f);
+				C.SoftDisc(Dp, 9.f, 9.f, Gold, 0.35f + 0.25f * Pulse);
+				C.Glow(FCanvas::CirclePoints(Dp, 3.5f, 12), Gold, 1.6f, 0.8f + 0.4f * Pulse);
+			}
 		}
 	if (Game.BestWave > 0) C.Text(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), TitleBtnX, TitleFloorY - 14.f, Grey, 12.f, 0, false);
 	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), DesignW / 2.f, DesignH - 20.f, Dim, 11.f, false);
@@ -3284,6 +3298,25 @@ float SPDBoardWidget::Receipt(FCanvas& C, float CX, float Y, const TArray<TPair<
 	C.Text(Total, X + W - 20.f, YY + 16.f, Gold, 17.f, 2, true);
 	C.Text(Sub, X + W - 20.f, YY + 36.f, Dim, 10.f, 2, false);
 	return Y + H;
+}
+
+// 판 끝 영수증 아래 (D-321 ③ ④): 이번 판으로 이룬 목표(열린 칵테일)와 새로 살 수 있게 된 것 (3개까지). 한 줄씩, 없으면 안 그림
+void SPDBoardWidget::PaintRunUnlocks(FCanvas& C, float Y) const
+{
+	const FLinearColor Mint = Hex(TEXT("8affc4")), Gold = Hex(TEXT("ffd26e"));
+	if (NewGoals.Num())
+	{
+		FString Names;
+		for (const int32 I : NewGoals) { if (!Names.IsEmpty()) Names += TEXT(" · "); Names += Tr(CharmName((int32)GoalDef(I).Reward)); }
+		C.TextCentered(TrF(TEXT("목표 달성! 칵테일 열림: %s"), *Names), DesignW / 2.f, Y, Mint, 12.f, true, 560.f);
+		Y += 18.f;
+	}
+	if (NowAffordable.Num())
+	{
+		FString Names;
+		for (const FString& S : NowAffordable) { if (!Names.IsEmpty()) Names += TEXT(" · "); Names += Tr(*S); }
+		C.TextCentered(TrF(TEXT("이제 살 수 있어요: %s"), *Names), DesignW / 2.f, Y, Gold, 12.f, true, 560.f);
+	}
 }
 
 // 속 빈 네온 글자 (D-275): 둘레 번짐(옅게 8방향) → 글자색 테두리(8방향 1.3px) → 속은 어두운 색 → 가는 흰 심. Align 0 왼쪽, 1 가운데, 2 오른쪽
