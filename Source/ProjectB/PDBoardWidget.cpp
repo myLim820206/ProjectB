@@ -1334,16 +1334,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (Game.Phase == EPDPhase::Title && bUnlock) // 잠금 해제 (D-239): 탭, 카드 클릭 = 사기, 닫기
 	{
-		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bUnlock = false; return; }
-		for (int32 Sd = 0; Sd < 2; ++Sd) if (InRect(P, UnlSideX(Sd), UnlSideY, UnlSideW, UnlSideH)) { UnlSetTab(UnlSideTab(Sd)); UiSound(EPDSound::Move); return; } // 옆 판 = 탭 바꾸기 (D-261)
-		for (int32 Dir = -1; Dir <= 1; Dir += 2)
-			if (UnlPages() > 1 && InRect(P, UnlPgX(Dir), UnlPgY, UnlPgW, UnlPgH)) { UnlFlip(Dir); UiSound(EPDSound::Move); return; }
-		const int32 K = UnlRowAt(P); // 줄 클릭 = 칩으로 열기
-		if (K >= 0)
-		{
-			const bool bOk = UnlockTab == 0 ? BuyCharm(K) : UnlockTab == 1 ? BuyJoker(K) : BuyUpper(K);
-			if (!bOk) UiSound(EPDSound::Denied);
-		}
+		CdxClick(P, bRight); // 잠금 해제도 책자 (D-356): 줄 = 고르기, 왼쪽 [열기] = 칩으로 열기
 		return;
 	}
 	if (Game.Phase == EPDPhase::Title && bUpg) // 영구 강화 (D-230): 시작 화면에서 칩으로 산다
@@ -1647,7 +1638,7 @@ int32 SPDBoardWidget::UnlRowAt(FVector2f P) const
 FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if (bCodex) { CdxGo(UnlockTab, UnlockPage + (MouseEvent.GetWheelDelta() > 0.f ? -1 : 1)); return FReply::Handled(); } // 도감 책자: 휠 = 쪽 넘기기 (D-354)
-	if (Game.Phase == EPDPhase::Title && bUnlock && UnlPages() > 1) { UnlFlip(MouseEvent.GetWheelDelta() > 0.f ? -1 : 1); return FReply::Handled(); } // 잠금 해제 (D-265)
+	if (Game.Phase == EPDPhase::Title && bUnlock) { CdxGo(UnlockTab, UnlockPage + (MouseEvent.GetWheelDelta() > 0.f ? -1 : 1)); return FReply::Handled(); } // 잠금 해제 책자 (D-356)
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
@@ -1858,7 +1849,7 @@ void SPDBoardWidget::TitleSelect(int32 Item)
 	case ETitleItem::Continue: if (!bHasRunSave) return; bLoadContinue = true; LoadT = LoadDur; LoadTip = FMath::RandRange(0, 5); UiSound(EPDSound::Start); break;
 	case ETitleItem::Start: bModeSel = true; ModeSel = ModeOpen((int32)Game.Mode) ? (int32)Game.Mode : 0; UiSound(EPDSound::Move); break; // 모드 고르기 창 (D-229)
 	case ETitleItem::Upgrades: bUpg = true; UiSound(EPDSound::Move); break;
-	case ETitleItem::Unlock: bUnlock = true; UnlSetTab(0); UiSound(EPDSound::Move); break;
+	case ETitleItem::Unlock: CdxOpen(0, true); UiSound(EPDSound::Move); break;
 	case ETitleItem::Settings: bSettings = true; SetSel = 0; UiSound(EPDSound::Move); break;
 	case ETitleItem::Quit:
 		if (OnQuit) OnQuit();
@@ -1990,8 +1981,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bUnlock) // 시작 화면 키보다 먼저 받는다 (D-261). 잠금 해제 (D-239, D-261): Tab = 다음 탭, 왼쪽·오른쪽 = 쪽 넘기기
 	{
 		if (K == EKeys::Escape) bUnlock = false;
-		else if (K == EKeys::Tab) UnlSetTab((UnlockTab + 1) % 3);
-		else if (K == EKeys::Left || K == EKeys::Right) UnlFlip(K == EKeys::Left ? -1 : 1);
+		else if (K == EKeys::Tab) CdxGo(UnlockTab + 1, 0);
+		else if (K == EKeys::Left || K == EKeys::Right) CdxGo(UnlockTab, UnlockPage + (K == EKeys::Left ? -1 : 1));
 		return FReply::Handled();
 	}
 	if (Game.Phase == EPDPhase::Title)

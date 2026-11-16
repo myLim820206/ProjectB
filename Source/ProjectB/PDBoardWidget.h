@@ -388,7 +388,7 @@ private:
 	bool bCodex = false;                   // 조커 도감 화면
 	// 도감 책자 (D-354, PDBoardCodex.cpp): 왼쪽 쪽 = 고른 항목 크게, 오른쪽 쪽 = 12줄 목록, 오른쪽 옆면 탭 넷(칵테일 · 조커 · 상위 조커 · 보스). 쪽 · 탭을 바꾸면 장이 휘며 넘어간다
 	struct FCdxView { int32 Tab = 0, Page = 0, Pick = 0; };
-	struct FCdxItem { FString Name, Desc, Note, Right; bool bKnown = true, bHave = false, bOpen = false; };
+	struct FCdxItem { FString Name, Desc, Note, Right; int32 Price = 0; bool bKnown = true, bHave = false, bOpen = false, bMat = true, bGoal = false; };
 	FCdxView CdxOld, CdxNew;               // 넘기기 전 · 뒤 (넘기는 동안 양쪽 쪽과 넘어가는 장의 두 면이 이걸로 그려진다)
 	int32 CdxPick = -1;                    // 클릭으로 고른 항목 (왼쪽 상세), -1 = 쪽 첫 항목
 	float CdxFlipT0 = -10.f, CdxTabT0 = -10.f, CdxLandT = -10.f;
@@ -400,7 +400,11 @@ private:
 	float CdxFlipLen() const;
 	bool CdxFlipping() const;
 	void CdxGo(int32 Tab, int32 Page);     // 탭 · 쪽 바꾸기 + 넘김 시작
-	void CdxOpen(int32 Tab) { bCodex = true; UnlockTab = Tab; UnlockPage = 0; CdxPick = -1; CdxFlipT0 = CdxTabT0 = CdxLandT = -10.f; CdxTabFrom = Tab; }
+	// 잠금 해제(시작 화면)도 같은 책자 (D-356): bShop = 잠금 해제 (탭 셋, 가격 · [열기] 버튼), 아니면 도감 (탭 넷, 발견 · 가진 것)
+	void CdxOpen(int32 Tab, bool bShop = false) { if (bShop) bUnlock = true; else bCodex = true; UnlockTab = Tab; UnlockPage = 0; CdxPick = -1; CdxFlipT0 = CdxTabT0 = CdxLandT = -10.f; CdxTabFrom = Tab; }
+	bool CdxShop() const { return !bCodex; }
+	int32 CdxTabs() const { return CdxShop() ? 3 : 4; }
+	bool CdxCanBuy(const FCdxItem& It) const;
 	void CdxClick(FVector2f P, bool bRight);
 	void PaintCodexBook(FCanvas& C) const;
 	void PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) const;

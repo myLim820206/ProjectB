@@ -11,7 +11,10 @@ const TCHAR* CdxTabName[4] = {TEXT("칵테일"), TEXT("조커"), TEXT("상위 �
 const TCHAR* CdxTabEn[4] = {TEXT("COCKTAILS"), TEXT("JOKERS"), TEXT("UPPER JOKERS"), TEXT("BOSSES")};
 const TCHAR* CdxCockCol[5] = {TEXT("ff6aaa"), TEXT("e8eeff"), TEXT("ffd26e"), TEXT("8fe9ff"), TEXT("b48cff")}; // 칵테일 고르기 · 칵테일 칸과 같은 색표
 float CdxEase(float U) { U = FMath::Clamp(U, 0.f, 1.f); return U * U * (3.f - 2.f * U); }
+constexpr float CdxBuyW = 210.f, CdxBuyH = 40.f, CdxBuyX = PDDraw::CdxLX + PDDraw::CdxPgW / 2.f - CdxBuyW / 2.f, CdxBuyY = PDDraw::CdxBot - 50.f; // 잠금 해제 [열기] 버튼 (왼쪽 쪽 아래 가운데, D-356)
 }
+
+bool SPDBoardWidget::CdxCanBuy(const FCdxItem& It) const { return !It.bOpen && It.bMat && !It.bGoal && MetaChips >= It.Price; }
 
 float SPDBoardWidget::CdxFlipLen() const { return CdxFlipN > 1 ? CdxFlipFast + (CdxFlipN - 1) * CdxFlipGap : CdxFlipDur; }
 bool SPDBoardWidget::CdxFlipping() const { return Clock - CdxFlipT0 < CdxFlipLen(); }
@@ -29,14 +32,14 @@ SPDBoardWidget::FCdxView SPDBoardWidget::CdxNow() const
 	FCdxView V;
 	V.Tab = UnlockTab; V.Page = UnlockPage;
 	const int32 First = UnlockPage * CdxPerPage, Last = FMath::Min(UnlCount(UnlockTab), First + CdxPerPage) - 1;
-	const int32 Hov = CdxRowAt(Mouse);
+	const int32 Hov = CdxShop() ? -1 : CdxRowAt(Mouse); // 잠금 해제는 마우스로 바뀌지 않게 (고른 줄의 [열기] 버튼을 누르러 가는 동안)
 	V.Pick = Hov >= 0 ? Hov : CdxPick >= First && CdxPick <= Last ? CdxPick : First;
 	return V;
 }
 
 void SPDBoardWidget::CdxGo(int32 Tab, int32 Page)
 {
-	Tab = (Tab % 4 + 4) % 4;
+	Tab = (Tab % CdxTabs() + CdxTabs()) % CdxTabs();
 	Page = FMath::Clamp(Page, 0, CdxPages(Tab) - 1);
 	if (Tab == UnlockTab && Page == UnlockPage) return;
 	CdxOld = CdxNow();
@@ -53,8 +56,17 @@ void SPDBoardWidget::CdxGo(int32 Tab, int32 Page)
 
 void SPDBoardWidget::CdxClick(FVector2f P, bool bRight)
 {
-	if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bCodex = false; return; }
-	for (int32 I = 0; I < 4; ++I) if (InRect(P, CdxIdxX - 4.f, CdxIdxY(I), CdxIdxW + 14.f, CdxIdxH)) { CdxGo(I, 0); return; } // 옆면 탭
+	if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { if (CdxShop()) bUnlock = false; else bCodex = false; return; }
+	if (CdxShop() && !CdxFlipping() && InRect(P, CdxBuyX, CdxBuyY, CdxBuyW, CdxBuyH)) // 잠금 해제 [열기] (D-356)
+	{
+		const int32 K = CdxNow().Pick;
+		const FCdxItem It = CdxItem(UnlockTab, K);
+		if (It.bOpen) return;
+		const bool bOk = UnlockTab == 0 ? BuyCharm(K) : UnlockTab == 1 ? BuyJoker(K) : BuyUpper(K);
+		if (!bOk) UiSound(EPDSound::Denied);
+		return;
+	}
+	for (int32 I = 0; I < CdxTabs(); ++I) if (InRect(P, CdxIdxX - 4.f, CdxIdxY(I), CdxIdxW + 14.f, CdxIdxH)) { CdxGo(I, 0); return; } // 옆면 탭
 	for (int32 Dir = -1; Dir <= 1; Dir += 2) if (InRect(P, CdxNavX(Dir), CdxNavY, CdxNavW, CdxNavH)) { CdxGo(UnlockTab, UnlockPage + Dir); return; } // ‹ ›
 	const int32 K = CdxRowAt(P);
 	if (K >= 0) { CdxPick = K; UiSound(EPDSound::Move); } // 줄 클릭 = 왼쪽에 고정
@@ -64,34 +76,41 @@ void SPDBoardWidget::CdxClick(FVector2f P, bool bRight)
 SPDBoardWidget::FCdxItem SPDBoardWidget::CdxItem(int32 Tab, int32 K) const
 {
 	const FPDGame& G = Game;
+	const bool bShop = CdxShop(); // 잠금 해제: 이름 · 효과는 다 보이고, 오른쪽 = 열림 · 목표 · 재료 먼저 · 가격 (D-356)
 	FCdxItem It;
 	if (Tab == 0)
 	{
 		It.Name = CharmName(K); It.Desc = CharmDesc(K);
 		It.bOpen = It.bKnown = (G.CharmUnlocked >> K) & 1u;
 		It.bHave = G.Has((EPDCharm)K);
-		It.Note = CharmGoal(K) >= 0 ? TrF(TEXT("목표: %s"), GoalText(CharmGoal(K))) : FString(Tr(TEXT("연 칵테일만 5웨이브 보상에 나온다")));
-		if (!It.bOpen) It.Note = TrF(TEXT("잠금 해제에서 %d칩"), CharmPrice(K)); // 잠긴 것도 효과는 보여 준다 (D-283)
+		It.Price = CharmPrice(K); It.bGoal = CharmGoal(K) >= 0; It.bMat = !It.bGoal;
+		It.Note = It.bGoal ? TrF(TEXT("목표: %s"), GoalText(CharmGoal(K))) : FString(Tr(TEXT("연 칵테일만 5웨이브 보상에 나온다")));
+		if (!It.bOpen && !bShop) It.Note = TrF(TEXT("잠금 해제에서 %d칩"), CharmPrice(K)); // 잠긴 것도 효과는 보여 준다 (D-283)
 		It.Right = It.bHave ? FString(Tr(TEXT("가진 칵테일"))) : It.bOpen ? FString(Tr(TEXT("열림"))) : FString(Tr(TEXT("잠김")));
+		if (bShop) { It.bKnown = true; It.bHave = false; It.Right = It.bOpen ? FString(Tr(TEXT("열림"))) : It.bGoal ? FString(Tr(TEXT("목표"))) : FString::FromInt(It.Price); }
 	}
 	else if (Tab == 1)
 	{
-		It.bKnown = (G.Discovered >> K) & 1u;
+		It.bKnown = bShop || ((G.Discovered >> K) & 1u);
+		It.bOpen = G.JokerOpen(K); It.Price = JokerPrice(K);
 		const float Tier = JokerTier((EPDJoker)K);
 		const FString TierS = FMath::IsNearlyEqual(Tier, FMath::RoundToFloat(Tier)) ? FString::Printf(TEXT("×%.0f"), Tier) : FString::Printf(TEXT("×%.1f"), Tier);
 		It.Name = It.bKnown ? FString(JokerName(K)) : FString(TEXT("???"));
 		It.Desc = It.bKnown ? FString(BaseJokerAbility(K)) : FString(Tr(TEXT("만들어 보면 열린다")));
 		It.Note = HandName(CaptainHand((EPDJoker)K)); // 줄 아래 작은 글: 대장 족보 (레시피는 몰라도 보인다)
 		It.Right = It.bKnown ? TierS : FString(TEXT("?"));
+		if (bShop) It.Right = It.bOpen ? FString(Tr(TEXT("열림"))) : FString::FromInt(It.Price);
 	}
 	else if (Tab == 2)
 	{
 		const FPDUpperDef& D = UpperDef(K);
-		It.bKnown = (G.UpperFound >> K) & 1u;
+		It.bKnown = bShop || ((G.UpperFound >> K) & 1u);
+		It.bOpen = G.UpperOpen(K); It.Price = UpperPrice(K); It.bMat = G.JokerOpen((int32)D.A) && G.JokerOpen((int32)D.B);
 		It.Name = It.bKnown ? FString(UpperName(K)) : FString(TEXT("???"));
 		It.Desc = It.bKnown ? FString(JokerAbility(UpperBase + K)) : FString(Tr(TEXT("만들면 열림")));
 		It.Note = It.bKnown ? FString::Printf(TEXT("%s + %s"), JokerName((int32)D.A), JokerName((int32)D.B)) : TrF(TEXT("%s + ?"), JokerName((int32)D.A));
 		It.Right = It.bKnown ? FString(Tr(TEXT("발견"))) : FString(TEXT("?"));
+		if (bShop) It.Right = It.bOpen ? FString(Tr(TEXT("열림"))) : !It.bMat ? FString(Tr(TEXT("재료 먼저"))) : FString::FromInt(It.Price);
 	}
 	else
 	{
@@ -145,7 +164,7 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 		int32 NOpen = 0;
 		if (V.Tab == 0) for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) NOpen += (G.CharmUnlocked >> J) & 1u;
 		const FString Sub = V.Tab == 0 ? TrF(TEXT("칵테일 %d / %d 열림"), NOpen, (int32)EPDCharm::Count) : V.Tab == 1 ? TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)) : V.Tab == 2 ? TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound)) : TrF(TEXT("보스 %d / %d 처치"), FMath::CountBits(G.BossKilled), BossKinds);
-		C.TextCentered(FString::Printf(TEXT("%s  ·  %s"), CdxTabEn[V.Tab], *Sub), CX, CdxBY + 88.f, WithAlpha(Pink, 0.8f), 11.f, true);
+		C.TextCentered(CdxShop() ? FString::Printf(TEXT("%s  ·  %d"), CdxTabEn[V.Tab], UnlCount(V.Tab)) : FString::Printf(TEXT("%s  ·  %s"), CdxTabEn[V.Tab], *Sub), CX, CdxBY + 88.f, WithAlpha(Pink, 0.8f), 11.f, true);
 		for (const float S : {-1.f, 1.f}) C.Glow({FVector2f(CX + S * 70.f, CdxBY + 56.f), FVector2f(CX + S * 150.f, CdxBY + 56.f)}, WithAlpha(Pink, 0.8f), 1.1f, 0.4f);
 		const bool bLive = !C.PW; // 넘어가는 장 위에는 마우스 줄 표시를 하지 않는다
 		const int32 Hov = bLive && !CdxFlipping() ? CdxRowAt(Mouse) : -1;
@@ -156,17 +175,18 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 			if (K >= UnlCount(V.Tab)) break;
 			const FCdxItem It = CdxItem(V.Tab, K);
 			const float Y = CdxRowY0 + Slot * CdxRowH, Base = Y + 20.f;
-			const bool bH = K == Hov, bSel = bLive && K == V.Pick && Hov < 0;
+			const bool bH = K == Hov, bSel = bLive && K == V.Pick && (CdxShop() || Hov < 0);
 			const float IA = It.bKnown ? 1.f : 0.35f;
 			if (V.Tab == 0) Glass(K % 3, X0 + 12.f, Y + 30.f, 0.3f, Hex(CdxCockCol[K % 5]), IA);
 			else if (V.Tab == 3) Boss(K, X0 + 12.f, Y + 6.f, 8.f, IA);
 			else C.JokerTower(V.Tab == 1 ? K : UpperBase + K, X0 + 12.f, Y + 18.f, 11.f, It.bKnown ? 0.95f : 0.35f, 0.f);
-			const FLinearColor NameCol = bH ? FLinearColor::White : It.bHave ? Gold : It.bKnown ? Cyan : Dim;
+			const bool bCan = CdxShop() && CdxCanBuy(It);
+			const FLinearColor NameCol = bH ? FLinearColor::White : CdxShop() ? (It.bOpen ? Cyan : bCan ? Gold : Dim) : It.bHave ? Gold : It.bKnown ? Cyan : Dim;
 			const bool bSub = V.Tab != 0; // 조커 · 상위 조커 · 보스는 이름 밑에 작은 글 (대장 족보 · 재료 · 보스 종류)
 			const float NY = bSub ? Base - 4.f : Base;
 			C.Text(It.Name, X0 + 34.f, NY, NameCol, 14.f, 0, true, 230.f);
 			if (bSub) C.Text(It.Note, X0 + 34.f, NY + 14.f, Dim, 10.f, 0, false, 260.f);
-			const FLinearColor RC = It.bHave ? Gold : It.bKnown ? Mint : Dim;
+			const FLinearColor RC = CdxShop() ? (It.bOpen ? Mint : bCan ? Gold : Dim) : It.bHave ? Gold : It.bKnown ? Mint : Dim;
 			C.Text(It.Right, X1, NY, RC, 13.f, 2, true);
 			const float NameW = FMath::Min(230.f, FCanvas::Measure(TrS(It.Name), FCanvas::Font(14.f, true)).X), RW = FCanvas::Measure(TrS(It.Right), FCanvas::Font(13.f, true)).X;
 			for (float Dx = X0 + 40.f + NameW; Dx < X1 - RW - 8.f; Dx += 6.f) C.Box(Dx, NY - 4.f, 1.2f, 1.2f, WithAlpha(Dim, 0.6f)); // 점선 리더
@@ -180,6 +200,17 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 	const FCdxItem It = CdxItem(V.Tab, V.Pick);
 	const float CX = CdxLX + CdxPgW / 2.f;
 	const FLinearColor Big = It.bKnown ? FLinearColor::White : Dim;
+	// 잠금 해제 [열기] 버튼 (D-356): 왼쪽 쪽 아래 가운데. 열린 것 = '열림', 목표로 여는 칵테일 = '목표', 재료가 안 열린 상위 조커 = '재료 조커 먼저'
+	auto BuyBtn = [&]()
+	{
+		const bool bCan = CdxCanBuy(It), bH = bCan && !C.PW && InRect(Mouse, CdxBuyX, CdxBuyY, CdxBuyW, CdxBuyH);
+		const FLinearColor Bc = It.bOpen ? Mint : bCan ? Gold : Dim;
+		if (bCan) C.BtnFill(CdxBuyX, CdxBuyY, CdxBuyW, CdxBuyH, RadPill(CdxBuyH), Gold, bH);
+		C.Glow(FCanvas::RoundRectPoints(CdxBuyX, CdxBuyY, CdxBuyW, CdxBuyH, CdxBuyH / 2.f), WithAlpha(Bc, 0.9f), bH ? 1.8f : 1.3f, bCan ? 0.6f : 0.25f);
+		const FString Top = It.bOpen ? FString(Tr(TEXT("열림"))) : It.bGoal ? FString(Tr(TEXT("목표"))) : !It.bMat ? FString(Tr(TEXT("재료 조커 먼저"))) : TrF(TEXT("%d칩"), It.Price);
+		C.TextCentered(Top, CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 15.f, bH ? FLinearColor::White : Bc, 15.f, true, CdxBuyW - 16.f);
+		if (!It.bOpen && It.bMat && !It.bGoal) C.TextCentered(bCan ? FString(Tr(TEXT("클릭해서 열기"))) : FString(Tr(TEXT("칩이 모자란다"))), CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 31.f, bCan ? Pink : Dim, 10.f, true);
+	};
 	float Y = CdxBY + 320.f; // 그림 아래 (이름 기준선)
 	if (V.Tab == 0) Glass(V.Pick % 3, CX, CdxBY + 270.f, 2.f, Hex(CdxCockCol[V.Pick % 5]), It.bKnown ? 1.f : 0.4f);
 	else if (V.Tab == 3) Boss(V.Pick, CX, CdxBY + 120.f, 48.f, It.bKnown ? 1.f : 0.25f);
@@ -226,10 +257,12 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 		Row(TEXT("2개"), {R2[0], R2[1]}, Y + 34.f);
 		Y += 70.f;
 		C.TextCentered(TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)"), CX, Y, Dim, 11.f, false, CdxPgW - 60.f);
+		if (CdxShop()) BuyBtn();
 		return;
 	}
 	if (V.Tab == 2) { C.TextCentered(TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)"), CX, CdxBot - 90.f, Dim, 11.f, false, CdxPgW - 60.f); }
 	if (V.Tab == 3) { C.TextCentered(TEXT("30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다"), CX, CdxBot - 90.f, Dim, 11.f, false, CdxPgW - 60.f); }
+	if (CdxShop()) { BuyBtn(); return; }
 	// 상태 알약 (가진 칵테일 · 열림 · 잠김 / 발견 / 처치 · 만남)
 	const FLinearColor SC = It.bHave ? Gold : It.bKnown ? Mint : Dim;
 	const float PWd = FCanvas::Measure(TrS(It.Right), FCanvas::Font(14.f, true)).X + 40.f;
@@ -276,9 +309,11 @@ void SPDBoardWidget::PaintCdxSheet(FCanvas& C, float U, const FCdxView& Front, c
 	C.PW = FrontMap;
 	{
 		const int32 L = C.NextLayer();
-		const float Sh = (8.f + 7.f * Face) / 255.f;
+		// 쪽 바탕(06060b)과 같은 거의 검은색, 눕힌 정도로 아주 조금만 밝게. sRGB 로 만든다 (선형 값을 바로 넣으면 회색으로 크게 뜬다)
+		const uint8 Sh = (uint8)(6.f + 5.f * Face);
+		const FLinearColor Fill = FLinearColor::FromSRGBColor(FColor(Sh, Sh, (uint8)(Sh + 5), 255));
 		constexpr int32 NS = 18;
-		for (int32 I = 0; I < NS; ++I) C.BoxAt(L, CdxSpX + CdxPgW * I / NS, CdxTop, CdxPgW / NS + 1.2f, CdxBot - CdxTop, FLinearColor(Sh, Sh, Sh + 6.f / 255.f, 1.f));
+		for (int32 I = 0; I < NS; ++I) C.BoxAt(L, CdxSpX + CdxPgW * I / NS, CdxTop, CdxPgW / NS + 1.2f, CdxBot - CdxTop, Fill);
 		C.NextLayer();
 	}
 	// 그 면의 쪽 내용 (면 밝기로 흐리게)
@@ -307,7 +342,7 @@ void SPDBoardWidget::PaintCodexBook(FCanvas& C) const
 	for (int32 K = 0; K < NR; ++K) C.Lines({FVector2f(CdxRX + CdxPgW + 4.f + K * 3.f, CdxTop + 6.f + K), FVector2f(CdxRX + CdxPgW + 4.f + K * 3.f, CdxBot - 6.f - K)}, WithAlpha(Lav, 0.35f), 0.8f);
 	// 옆면 색인 탭 (고른 탭은 0.2초 동안 밀려 나옴)
 	const float TabE = CdxEase((Clock - CdxTabT0) / 0.2f);
-	for (int32 I = 0; I < 4; ++I)
+	for (int32 I = 0; I < CdxTabs(); ++I)
 	{
 		const bool bOn = I == UnlockTab, bWas = I == CdxTabFrom && I != UnlockTab;
 		const float W = CdxIdxW + (bOn ? 10.f * TabE : bWas ? 10.f * (1.f - TabE) : 0.f), Y0 = CdxIdxY(I), H = CdxIdxH, X = CdxIdxX;
@@ -355,6 +390,15 @@ void SPDBoardWidget::PaintCodexBook(FCanvas& C) const
 		C.Glow(FCanvas::RoundRectPoints(X, CdxNavY, CdxNavW, CdxNavH, CdxNavH / 2.f), WithAlpha(bH ? Pink : Cyan, bOk ? 0.85f : 0.2f), bH ? 1.6f : 1.2f, bOk ? 0.4f : 0.f);
 		C.TextCentered(Dir < 0 ? TEXT("‹") : TEXT("›"), X + CdxNavW / 2.f, CdxNavY + CdxNavH / 2.f, bOk ? Fg : Dim, 18.f, true);
 	}
-	C.Text(TEXT("Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기"), DesignW - 16.f, DesignH - 10.f, Dim, 10.f, 2);
-	PaintCloseButton(C, JokerPink);
+	C.Text(CdxShop() ? TEXT("Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기") : TEXT("Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기"), DesignW - 16.f, DesignH - 10.f, Dim, 10.f, 2);
+	if (CdxShop()) // 잠금 해제: 가진 칩 (닫기 왼쪽)
+	{
+		const FLinearColor Gold = Hex(TEXT("ffd26e"));
+		const FString S = TrF(TEXT("칩 %s"), *CommaNum(MetaChips));
+		const float PW2 = 46.f + FCanvas::Measure(S, FCanvas::Font(13.f, true)).X, PX = CdxCloseX - 14.f - PW2, PY = CdxCloseY;
+		C.Glow(FCanvas::RoundRectPoints(PX, PY, PW2, CdxCloseH, CdxCloseH / 2.f), Gold, 1.4f, 0.5f);
+		C.Shape(EPDSuit::Diamond, PX + 17.f, PY + CdxCloseH / 2.f, 6.f, Gold, 1.3f, 0.4f);
+		C.Text(S, PX + 30.f, PY + CdxCloseH / 2.f + 5.f, Gold, 13.f, 0, true);
+	}
+	PaintCloseButton(C, CdxShop() ? Cyan : JokerPink);
 }

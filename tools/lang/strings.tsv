@@ -11,9 +11,11 @@ ko	en	ja	zh-Hans	zh-Hant	file
 가진 칵테일	Owned	所持中	已拥有	已擁有	PDBoardCodex.cpp
 열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardCodex.cpp
 잠김	Locked	ロック中	未解锁	未解鎖	PDBoardCodex.cpp
+목표	Goal	目標	目标	目標	PDBoardCodex.cpp
 만들어 보면 열린다	Make it once to unlock	作ってみると解放される	制作一次即可解锁	製作一次即可解鎖	PDBoardCodex.cpp
 만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardCodex.cpp
 발견	Found	発見	已发现	已發現	PDBoardCodex.cpp
+재료 먼저	Needs parts	素材が先	先解锁材料	先解鎖材料	PDBoardCodex.cpp
 아직 만나지 못한 보스	A boss you haven't met yet	まだ出会っていないボス	尚未遇见的首领	尚未遇見的首領	PDBoardCodex.cpp
 모드 최종 보스	Mode final boss	モード最終ボス	模式最终首领	模式最終首領	PDBoardCodex.cpp
 처치	Kills	撃破	击杀	擊殺	PDBoardCodex.cpp
@@ -22,13 +24,19 @@ ko	en	ja	zh-Hans	zh-Hant	file
 %d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardCodex.cpp
 상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardCodex.cpp
 보스 %d / %d 처치	Bosses %d / %d defeated	ボス %d / %d 撃破	首领 %d / %d 击败	首領 %d / %d 擊敗	PDBoardCodex.cpp
+재료 조커 먼저	Unlock materials first	素材ジョーカーが先	先解锁素材小丑	先解鎖素材小丑	PDBoardCodex.cpp
+%d칩	%d chips	%d チップ	%d 筹码	%d 籌碼	PDBoardCodex.cpp
+클릭해서 열기	Click to unlock	クリックで解放	点击解锁	點擊解鎖	PDBoardCodex.cpp
+칩이 모자란다	Not enough chips	チップが足りない	筹码不足	籌碼不足	PDBoardCodex.cpp
 %s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardCodex.cpp
 3개	3 hands	3つ	3个	3個	PDBoardCodex.cpp
 2개	2 hands	2つ	2个	2個	PDBoardCodex.cpp
 족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)	Pick 3 (or 2) hands that match a recipe to make a joker (anywhere on the board)	役を3つ(または2つ)選びレシピと合えばジョーカー(盤のどこでも)	选 3 个(或 2 个)牌型，符合配方即成小丑(场上任意位置)	選 3 個(或 2 個)牌型，符合配方即成小丑(場上任意位置)	PDBoardCodex.cpp
 서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)	Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)	異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)	两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)	兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)	PDBoardCodex.cpp
 30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다	30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100	30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる	30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同	30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同	PDBoardCodex.cpp
+Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · Esc · Right-click: close	Tab: 次のボード · ←→: ページ · Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · Esc · 右鍵: 關閉	PDBoardCodex.cpp
 Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · J / Esc · Right-click: close	Tab: 次のボード · ←→: ページ · J / Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · J / Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · J / Esc · 右鍵: 關閉	PDBoardCodex.cpp
+칩 %s	Chips %s	チップ %s	筹码 %s	籌碼 %s	PDBoardCodex.cpp
 저격	Snipe	狙撃	狙击	狙擊	PDBoardDraw.h
 폭발	Blast	爆発	爆炸	爆炸	PDBoardDraw.h
 연사	Rapid	連射	连射	連射	PDBoardDraw.h
@@ -599,17 +607,9 @@ K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U U
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
 칵테일 칸이 가득 찼다 (5/5)	Cocktail slots are full (5/5)	カクテル枠がいっぱい (5/5)	鸡尾酒栏已满 (5/5)	雞尾酒欄已滿 (5/5)	PDBoardPaint.cpp
 눌러서 보기	Click to view	クリックで表示	点击查看	點擊查看	PDBoardPaint.cpp
-목표	Goal	目標	目标	目標	PDBoardPaint.cpp
-재료 먼저	Needs parts	素材が先	先解锁材料	先解鎖材料	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명	Hover a row for details	行にカーソルで説明	悬停查看说明	懸停查看說明	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다	Hover a row for details · Click to unlock with chips	行にカーソルで説明 · クリックでチップを使って解放	悬停查看说明 · 点击用筹码解锁	懸停查看說明 · 點擊用籌碼解鎖	PDBoardPaint.cpp
 %d / %d 쪽  ·  휠: 넘기기	Page %d / %d  ·  Wheel: flip	%d / %d ページ  ·  ホイール: めくる	第 %d / %d 页  ·  滚轮: 翻页	第 %d / %d 頁  ·  滾輪: 翻頁	PDBoardPaint.cpp
-칩 %s	Chips %s	チップ %s	筹码 %s	籌碼 %s	PDBoardPaint.cpp
-재료 조커 먼저	Unlock materials first	素材ジョーカーが先	先解锁素材小丑	先解鎖素材小丑	PDBoardPaint.cpp
-%d칩	%d chips	%d チップ	%d 筹码	%d 籌碼	PDBoardPaint.cpp
-클릭해서 열기	Click to unlock	クリックで解放	点击解锁	點擊解鎖	PDBoardPaint.cpp
-칩이 모자란다	Not enough chips	チップが足りない	筹码不足	籌碼不足	PDBoardPaint.cpp
-Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · Esc · Right-click: close	Tab: 次のボード · ←→: ページ · Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · Esc · 右鍵: 關閉	PDBoardPaint.cpp
 영구 강화	Permanent Upgrades	永久強化	永久强化	永久強化	PDBoardPaint.cpp
 판이 끝나면 칩을 받는다  ·  웨이브 + 2 × 오른 레벨 + 클리어 덤	Chips after each run  ·  waves + 2 × levels gained + clear bonus	プレイ終了でチップ獲得  ·  ウェーブ + 2 × 上がったレベル + クリアボーナス	每局结束获得筹码  ·  波次 + 2 × 提升等级 + 通关奖励	每局結束獲得籌碼  ·  波次 + 2 × 提升等級 + 通關獎勵	PDBoardPaint.cpp
 판이 끝나도 남는 강화. 시작 화면에서 칩으로 올린다	Upgrades that stay after a run. Raise them with chips on the title screen	ラン終了後も残る強化。タイトル画面でチップを使って上げる	一局结束后仍保留的强化。在标题画面用筹码提升	一局結束後仍保留的強化。在標題畫面用籌碼提升	PDBoardPaint.cpp
