@@ -2024,13 +2024,15 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		const float Fill = FMath::Clamp((float)G.Xp / FMath::Max(1, G.XpToNext()), 0.f, 1.f);
 		const float B = G.PointsLeft() > 0 ? 0.7f + 0.3f * Pulse : 1.f;
 		const FLinearColor Gc(Gold.R * B, Gold.G * B, Gold.B * B, 1.f);
-		// 한 줄(마름모 · 숫자 · %)의 가운데 RowY 에 셋을 맞추고, 막대는 그 밑 (줄 + 막대 묶음이 칸 위아래 가운데)
-		const float RowY = HudPanY + 30.f;
-		C.Shape(EPDSuit::Diamond, LvBarX + 6.f, RowY, 7.f, Gc, 1.3f, 0.4f);
-		NeonText(C, FString::FromInt(G.Level), LvBarX + 20.f, RowY + 8.f, Gc, 22.f, 0, 1.f); // 22px 글자 기준선 = 가운데 + 8 (목숨 칸 26px 은 + 10)
-		C.Text(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), LvBarX + LvBarW, RowY + 4.f, Fg, 10.f, 2, true);
-		C.Box(LvBarX, LvBarY - 2.f, LvBarW, 4.f, WithAlpha(Gold, 0.15f));
-		C.Box(LvBarX, LvBarY - 2.f, LvBarW * Fill, 4.f, WithAlpha(Gold, 0.85f * B));
+		// 목숨 칸과 같은 짜임 (사용자 2026-11-16): 아이콘은 구분선 + 26, 숫자는 같은 크기 규칙 · 같은 기준선, 경험치 막대는 숫자 오른쪽에 두껍게 + 막대 안 %
+		const float MidY = HudPanY + HudPanH / 2.f;
+		C.Shape(EPDSuit::Diamond, HudDivLv + 26.f, MidY, 9.f, Gc, 1.5f, 0.5f);
+		NeonText(C, FString::FromInt(G.Level), (HudDivLv + 40.f + LvBarX - 6.f) / 2.f, MidY + 10.f, Gc, G.Level >= 1000 ? 18.f : G.Level >= 100 ? 24.f : 26.f, 1, 1.f);
+		const float BY = LvBarY - LvBarH / 2.f, Rr = RadPill(LvBarH);
+		C.RoundFill(LvBarX, BY, LvBarW, LvBarH, Rr, WithAlpha(Gold, 0.12f));
+		if (Fill > 0.f) C.RoundFill(LvBarX, BY, FMath::Max(LvBarH, LvBarW * Fill), LvBarH, Rr, WithAlpha(Gold, 0.75f * B));
+		C.Glow(FCanvas::RoundRectPoints(LvBarX, BY, LvBarW, LvBarH, Rr), WithAlpha(Gold, 0.6f), 1.f, 0.3f);
+		C.TextCentered(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), LvBarX + LvBarW / 2.f, LvBarY, Fill > 0.45f ? Hex(TEXT("1a1408")) : Fg, 9.f, true);
 	}
 	{ // 일시정지 버튼 (D-169): 멈춘 동안은 재생 삼각형, 평소엔 두 막대
 		const bool bHov = InRect(Mouse, PauseBtnX, HudBtnY, HudBtnS, HudBtnS);
@@ -3373,7 +3375,7 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Wire = Hex(TEXT("5f6878"));
 	auto Ease = [](float U) { U = FMath::Clamp(U, 0.f, 1.f); return 1.f - (1.f - U) * (1.f - U) * (1.f - U); };
 	// 경험치 막대 번쩍 (위쪽 띠의 레벨 막대 자리)
-	if (T < 0.45f) { const float Fl = FMath::Max(0.f, 1.f - FMath::Abs(T - 0.25f) / 0.2f); C.Box(LvBarX, LvBarY - 3.f, LvBarW, 6.f, FLinearColor(1.f, 1.f, 1.f, 0.8f * Fl)); } // 계기판 레벨 칸 막대 (D-351)
+	if (T < 0.45f) { const float Fl = FMath::Max(0.f, 1.f - FMath::Abs(T - 0.25f) / 0.2f); C.RoundFill(LvBarX, LvBarY - LvBarH / 2.f, LvBarW, LvBarH, RadPill(LvBarH), FLinearColor(1.f, 1.f, 1.f, 0.8f * Fl)); } // 계기판 레벨 칸 막대 (D-351)
 	static const float Seq[5] = {0.4f, 0.08f, 0.9f, 0.2f, 1.f};
 	const FString Word = TEXT("LEVEL UP");
 	// 빠직 불티 (타이틀 로고와 같은 움직임)
