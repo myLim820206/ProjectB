@@ -550,7 +550,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("만들면 열림"), TEXT("Unlocks when made"), TEXT("作ると解放"), TEXT("制作后解锁"), TEXT("製作後解鎖")},
 	{TEXT("목표"), TEXT("Goal"), TEXT("目標"), TEXT("目标"), TEXT("目標")},
 	{TEXT("재료 먼저"), TEXT("Needs parts"), TEXT("素材が先"), TEXT("先解锁材料"), TEXT("先解鎖材料")},
-	{TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 → 상위 조커"), TEXT("Place two different jokers side by side, both at joker level 10 → upper joker"), TEXT("異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 → 上位ジョーカー"), TEXT("将两个不同的小丑相邻放置，都达到小丑等级 10 → 上位小丑"), TEXT("將兩個不同的小丑相鄰放置，都達到小丑等級 10 → 上位小丑")},
+	{TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)"), TEXT("Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)"), TEXT("異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)"), TEXT("两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)"), TEXT("兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)")},
 	{TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)"), TEXT("Pick 3 (or 2) hands that match a recipe to make a joker (anywhere on the board)"), TEXT("役を3つ(または2つ)選びレシピと合えばジョーカー(盤のどこでも)"), TEXT("选 3 个(或 2 个)牌型，符合配方即成小丑(场上任意位置)"), TEXT("選 3 個(或 2 個)牌型，符合配方即成小丑(場上任意位置)")},
 	{TEXT("줄에 마우스를 올리면 설명"), TEXT("Hover a row for details"), TEXT("行にカーソルで説明"), TEXT("悬停查看说明"), TEXT("懸停查看說明")},
 	{TEXT("줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다"), TEXT("Hover a row for details · Click to unlock with chips"), TEXT("行にカーソルで説明 · クリックでチップを使って解放"), TEXT("悬停查看说明 · 点击用筹码解锁"), TEXT("懸停查看說明 · 點擊用籌碼解鎖")},
@@ -670,7 +670,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요"), TEXT("Use the gold button between them or the 'Joker' list"), TEXT("二つの間の金色ボタンか「ジョーカー」リストで合体します"), TEXT("\"点击两者之间的金色按钮或在\"\"小丑\"\"列表中合成\""), TEXT("點擊兩者之間的金色按鈕或在「小丑」列表中合成")},
 	{TEXT("필요 없는 타워는 오른쪽 클릭 → [판매] 버튼"), TEXT("Right-click a tower you don't need, then press [Sell]"), TEXT("不要なタワーは右クリック →［売却］ボタン"), TEXT("不需要的塔可右键点击 → [出售] 按钮"), TEXT("不需要的塔可右鍵點擊 → [出售] 按鈕")},
 	{TEXT("팔면 경험치를 받아요 (조커는 더 많이)"), TEXT("Selling gives XP (more for jokers)"), TEXT("売ると経験値がもらえます（ジョーカーはもっと）"), TEXT("出售可获得经验（小丑更多）"), TEXT("出售可獲得經驗（小丑更多）")},
-	{TEXT("다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요"), TEXT("Two different adjacent jokers, both joker level 10, can merge"), TEXT("異なるジョーカー二つが隣接し、両方ジョーカーレベル10なら合体"), TEXT("两个不同的小丑相邻且小丑等级都达到10即可合成"), TEXT("兩個不同的小丑相鄰且小丑等級都達到10即可合成")},
+	{TEXT("다른 조커 둘이 맞닿으면 합쳐요 (★ 대표는 둘 다 레벨 10)"), TEXT("Two different jokers touching can merge (★ signatures need both at level 10)"), TEXT("異なるジョーカー2枚が隣り合うと合体 (★代表は両方レベル10)"), TEXT("两张不同小丑相邻即可合并 (★代表需都到10级)"), TEXT("兩張不同小丑相鄰即可合併 (★代表需都到10級)")},
 	{TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요"), TEXT("Unlock upper jokers first in [Unlocks] on the title screen"), TEXT("上位ジョーカーはタイトル画面の［解放］で開放します"), TEXT("上位小丑需在标题画面的 [解锁] 中解锁"), TEXT("上位小丑需在標題畫面的 [解鎖] 中解鎖")},
 	{TEXT("도움말"), TEXT("Hints"), TEXT("ヒント"), TEXT("提示"), TEXT("提示")},
 	{TEXT("알겠어"), TEXT("Got it"), TEXT("わかった"), TEXT("知道了"), TEXT("知道了")},
@@ -743,6 +743,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 → 상위 조커"), TEXT("Place two different jokers side by side, both at joker level 10 → upper joker"), TEXT("異なるジョーカー2体を隣接させ、両方ジョーカーレベル10 → 上位ジョーカー"), TEXT("将两个不同的小丑相邻放置，都达到小丑等级 10 → 上位小丑"), TEXT("將兩個不同的小丑相鄰放置，都達到小丑等級 10 → 上位小丑")},
+	{TEXT("다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요"), TEXT("Two different adjacent jokers, both joker level 10, can merge"), TEXT("異なるジョーカー二つが隣接し、両方ジョーカーレベル10なら合体"), TEXT("两个不同的小丑相邻且小丑等级都达到10即可合成"), TEXT("兩個不同的小丑相鄰且小丑等級都達到10即可合成")},
 	{TEXT("클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), TEXT("Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)"), TEXT("クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)"), TEXT("点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)"), TEXT("點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)")},
 	{TEXT("남은 적"), TEXT("Enemies left"), TEXT("残りの敵"), TEXT("剩余敌人"), TEXT("剩餘敵人")},
 	{TEXT("판 위력"), TEXT("Board Power"), TEXT("盤の威力"), TEXT("场上威力"), TEXT("場上威力")},
@@ -940,4 +942,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 939;
+static const int32 PDLangRowCount = 941;

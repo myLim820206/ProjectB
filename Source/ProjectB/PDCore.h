@@ -273,7 +273,7 @@ struct FPDJokerMerge
 // 능력 = 두 재료 조커의 능력 (강화된 상태) + 대표 조커 몇은 고유 능력. 위력 = 재료 합 × 1.5 (트리 끝자락 재료 하나마다 +25%)
 constexpr int UpperBase = 10, UpperJokerCount = 30;
 constexpr int UpperNeedLevel = 10, UpperNeedLevelTip = 5;
-constexpr float UpperBonus = 1.5f, UpperTipBonus = 0.25f;
+constexpr float UpperBonus = 1.5f, UpperBonusPlain = 1.3f, UpperTipBonus = 0.25f; // ★ 대표 11종 ×1.5, 일반 19종 ×1.3 (D-333)
 enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle };
 struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
@@ -587,7 +587,8 @@ public:
 	bool JokerOpen(int J) const { return J < 0 || J >= 32 || ((JokerUnlocked >> J) & 1u); }
 	uint32_t UpperUnlocked = 0x3FFFFFFFu;               // 만들 수 있는 상위 조커 (1 << 번호, D-241). 규칙·봇은 모두 열림, 게임은 진행 파일로
 	bool UpperOpen(int U) const { return U >= 0 && U < 30 && ((UpperUnlocked >> U) & 1u); }
-	int UpperNeed(const FPDTower& T) const;          // 이 조커가 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
+	int UpperNeed(const FPDTower& T) const;          // 이 조커가 ★ 상위 조커 재료가 되는 조커 레벨 (10, 트리 끝자락이면 5)
+	int UpperNeedFor(int U, const FPDTower& T) const; // 상위 조커 U 의 재료 레벨 조건: 일반 19종 0, ★ 11종 UpperNeed (D-333)
 	std::vector<FPDReward> RollRewards();
 	FPDCharmBits CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }

@@ -1314,6 +1314,30 @@ static void UnitTests()
 		Expect(std::abs(N.Mods.UpgDmg - 0.15f) < 1e-4f, "새 판을 시작하면 영구 강화가 바로 걸린다");
 		N.Wave = 12; N.Level = 9;
 		Expect(N.RunChips() == 2 * (12 + 16), "칩 = 2 × (웨이브 + 2 × 오른 레벨) (D-323)");
+		{
+			// D-333: 일반 상위 조커(험프티 덤프티 = 웃는 가면 + 희비극)는 레벨 조건 없이 맞닿기만 하면, 위력 합 × 1.3. ★ 는 레벨 10 그대로
+			FPDGame U;
+			U.NewGame(true);
+			U.Phase = EPDPhase::Build;
+			U.Towers.clear();
+			FPDTower Ma, Co;
+			Ma.Card = Co.Card = {0, EPDSuit::Wild};
+			Ma.X = 0; Ma.Y = 0; Ma.Joker = (int)EPDJoker::Mask; Ma.JLevel = 1; Ma.Mult = 1.f;
+			Co.X = 1; Co.Y = 0; Co.Joker = (int)EPDJoker::Comedy; Co.JLevel = 1; Co.Mult = 1.f;
+			U.Towers[CellKey(0, 0)] = Ma; U.Towers[CellKey(1, 0)] = Co;
+			U.Synergies = ApplyEffects(U.Towers, 0);
+			int Mi = -1;
+			const std::vector<FPDJokerMerge> Ms = U.JokerMerges();
+			for (int I = 0; I < (int)Ms.size(); ++I) if (Ms[I].Upper == 11) Mi = I;
+			const bool bMade = Mi >= 0 && U.MergeJokers(Mi, CellKey(0, 0)) && U.Towers.size() == 1;
+			const float Mult = bMade ? U.Towers.begin()->second.Mult : 0.f;
+			FPDTower Ha = Ma, Ch = Co; // ★ 미친 다과회 (모자 장수 + 체셔) 레벨 1 은 안 됨
+			Ha.Joker = (int)EPDJoker::Hatter; Ch.Joker = (int)EPDJoker::Cheshire;
+			U.Towers.clear(); U.Towers[CellKey(0, 0)] = Ha; U.Towers[CellKey(1, 0)] = Ch;
+			bool bStarLocked = true;
+			for (const FPDJokerMerge& M : U.JokerMerges()) bStarLocked &= M.Upper != 9;
+			Expect(bMade && std::abs(Mult - 2.f * UpperBonusPlain) < 1e-3f && bStarLocked, "일반 상위 조커는 레벨 1 이어도 맞닿으면 만들고 ×1.3, ★ 는 레벨 10 필요 (D-333)");
+		}
 		Expect(FirstClearBonus(EPDMode::W30) == 400 && FirstClearBonus(EPDMode::W100) == 1600 && FirstClearBonus(EPDMode::Endless) == 0, "첫 클리어 덤 2 × 200/400/800, 무한은 없음 (D-321, D-323)");
 		{
 			FPDGoalStats St;

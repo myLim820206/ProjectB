@@ -1773,15 +1773,16 @@ std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
 	for (const auto& KV : Towers)
 	{
 		const FPDTower& A = KV.second;
-		if (Mods.Key(EPDKeystone::Circus) || !A.IsJoker() || A.Joker < 0 || A.Joker >= (int)EPDJoker::Count || A.JLevel < UpperNeed(A)) continue;
+		if (Mods.Key(EPDKeystone::Circus) || !A.IsJoker() || A.Joker < 0 || A.Joker >= (int)EPDJoker::Count) continue;
 		PDForNeighbors(KV.first, [&](int NK) {
 			if (NK <= KV.first) return; // 쌍은 한 번만
 			auto It = Towers.find(NK);
 			if (It == Towers.end()) return;
 			const FPDTower& B = It->second;
-			if (!B.IsJoker() || B.Joker < 0 || B.Joker >= (int)EPDJoker::Count || B.Joker == A.Joker || B.JLevel < UpperNeed(B)) return;
+			if (!B.IsJoker() || B.Joker < 0 || B.Joker >= (int)EPDJoker::Count || B.Joker == A.Joker) return;
 			const int U = UpperOf((EPDJoker)A.Joker, (EPDJoker)B.Joker);
 			if (U < 0 || !UpperOpen(U)) return; // 잠긴 상위 조커는 못 만든다 (D-241)
+			if (A.JLevel < UpperNeedFor(U, A) || B.JLevel < UpperNeedFor(U, B)) return; // 레벨 조건은 대표 11종(★)만 (D-333)
 			FPDJokerMerge M;
 			M.Joker = UpperBase + U;
 			M.Cells = {KV.first, NK};
@@ -1792,6 +1793,7 @@ std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
 	return Out;
 }
 
+int FPDGame::UpperNeedFor(int U, const FPDTower& T) const { return UpperDef(U).Special == EPDUpperSpecial::None ? 0 : UpperNeed(T); } // 일반 19종은 맞닿기만 하면, ★ 11종은 레벨 조건 (D-333)
 int FPDGame::UpperNeed(const FPDTower& T) const { return T.Joker >= 0 && T.Joker < (int)EPDJoker::Count && Mods.Up(T.Joker) ? UpperNeedLevelTip : Mods.UpperPrep > 0.f ? 7 : UpperNeedLevel; } // 트리 끝자락 5, 다과회 초대장 7 (D-232)
 
 bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
@@ -1802,7 +1804,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 	const int Target = PDFuseTarget(M.Cells, TargetCell);
 	if (Target < 0) return false;
 	FPDTower J = Towers.at(Target);
-	if (M.Upper >= 0) // 상위 조커 (D-231): 위력 합 × 1.5, 트리 끝자락 재료 하나마다 +25%, 조커 레벨은 높은 쪽
+	if (M.Upper >= 0) // 상위 조커 (D-231, D-333): 위력 합 × 1.5 (★) / 1.3 (일반), 트리 끝자락 재료 하나마다 +25%, 조커 레벨은 높은 쪽
 	{
 		float Sum = 0.f;
 		int Tips = 0, Lv = 1;
@@ -1824,7 +1826,8 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 		J.JSuit = JS;
 		J.JLevel = Lv;
 		J.JXp = 0.f;
-		J.Mult = Sum * (Mods.Key(EPDKeystone::Crown) ? 2.2f : UpperBonus) * (1.f + UpperTipBonus * Tips + Mods.UpperPrep); // 왕관의 무게 ×2.2 (D-232)
+		const float Bonus = Mods.Key(EPDKeystone::Crown) ? 2.2f : UpperDef(M.Upper).Special == EPDUpperSpecial::None ? UpperBonusPlain : UpperBonus; // 왕관의 무게 ×2.2 (D-232), 일반 19종 ×1.3 · ★ ×1.5 (D-333)
+		J.Mult = Sum * Bonus * (1.f + UpperTipBonus * Tips + Mods.UpperPrep);
 		J.Cd = 0.f;
 		J.StunT = 0.f;
 		J.Timer = 0.f;

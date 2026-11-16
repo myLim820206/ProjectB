@@ -884,8 +884,8 @@ void SPDBoardWidget::RefreshJokerList()
 			FJokerEntry E;
 			E.J = -1;
 			E.Upper = U;
-			E.LvA = Game.Towers.at(KA).JLevel; E.NeedA = Game.UpperNeed(Game.Towers.at(KA));
-			E.LvB = Game.Towers.at(KB).JLevel; E.NeedB = Game.UpperNeed(Game.Towers.at(KB));
+			E.LvA = Game.Towers.at(KA).JLevel; E.NeedA = Game.UpperNeedFor(U, Game.Towers.at(KA));
+			E.LvB = Game.Towers.at(KB).JLevel; E.NeedB = Game.UpperNeedFor(U, Game.Towers.at(KB));
 			E.bApart = E.LvA >= E.NeedA && E.LvB >= E.NeedB;
 			UNear.push_back(E);
 		}

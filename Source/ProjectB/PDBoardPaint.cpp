@@ -2496,7 +2496,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 	}
 	// 아래: 안내 + 쪽 넘기기
 	C.Glow({FVector2f(UnlBX + 30.f, 640.f), FVector2f(UnlBX + UnlBW - 30.f, 640.f)}, WithAlpha(Pink, 0.5f), 1.f, 0.2f * NK);
-	C.TextCentered(bCdx ? (UnlockTab == 2 ? TEXT("서로 다른 조커 둘을 맞닿게 놓고 둘 다 조커 레벨 10 → 상위 조커") : UnlockTab == 1 ? TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)") : TEXT("줄에 마우스를 올리면 설명"))
+	C.TextCentered(bCdx ? (UnlockTab == 2 ? TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)") : UnlockTab == 1 ? TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)") : TEXT("줄에 마우스를 올리면 설명"))
 		: TEXT("줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다"), HCX, 668.f, Dim, 12.f, false, UnlBW - 120.f);
 	if (UnlPages() > 1)
 		for (int32 Dir = -1; Dir <= 1; Dir += 2)
@@ -3399,7 +3399,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나"), TEXT("S로 넘기세요. 칵테일 칸은 5개예요")},
 		{TEXT("맞닿은 두 조커를 합쳐 상위 조커를 만들 수 있어요"), TEXT("두 조커 사이의 금색 버튼이나 '조커' 목록에서 합쳐요")},
 		{TEXT("필요 없는 타워는 오른쪽 클릭 → [판매] 버튼"), TEXT("팔면 경험치를 받아요 (조커는 더 많이)")},
-		{TEXT("다른 조커 둘이 맞닿고 둘 다 조커 레벨 10이면 합쳐요"), TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요")}};
+		{TEXT("다른 조커 둘이 맞닿으면 합쳐요 (★ 대표는 둘 다 레벨 10)"), TEXT("상위 조커는 시작 화면 [잠금 해제]에서 열어요")}};
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	const FLinearColor Edge = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("8a94a6"));
 	constexpr float TW = 330.f, TH = 104.f;
