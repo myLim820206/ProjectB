@@ -57,11 +57,12 @@ def martini(M, cx, cy, r, c, b=1.0):
     M.ln([(cx + r * 0.1, cy - r * 0.3), (cx + r * 0.62, cy - r * 1.25)], GRY, 1.2, b)  # 꼬치
 
 
-def draw_bar(M, x0, y, k, nb=None, col=CYAN):
+def draw_bar(M, x0, y, k, nb=None, col=CYAN, wk=None):
+    """wk = 선 굵기 배율 (없으면 k). C 배치는 글자만 작게 하고 굵기 · 빛은 A 그대로 (사용자 2026-11-16)"""
     for i, ch in enumerate(BAR_WORD):
         b = 1.0 if nb is None else nb[i]
         for poly in BAR[ch]:
-            M.ln([(x0 + (i * BAR_ADV + px * 0.8) * k, y + (60 + py) * k) for px, py in poly], col, 1.8 * k, b)
+            M.ln([(x0 + (i * BAR_ADV + px * 0.8) * k, y + (60 + py) * k) for px, py in poly], col, 1.8 * (k if wk is None else wk), b)
 
 
 def draw_alice(M, px0, by, k, pb=None, col=PINK):
@@ -97,7 +98,7 @@ def logo_C(M, cx, y, k=1.0):
     """C (확정 안): B 배치(Alice 크게, BAR 는 왼쪽 위 작게, 알약 없음) + A 의 마티니 잔 · 부제(금색 가는 선 + 금색 글자)"""
     draw_alice(M, cx - ALICE_W * 1.25 * k / 2, y + 150 * k, 1.25 * k)
     kb = 0.55 * k
-    draw_bar(M, cx - 190 * k, y - 6 * k, kb, col=CYAN)
+    draw_bar(M, cx - 190 * k, y - 6 * k, kb, col=CYAN, wk=k)
     martini(M, cx + 168 * k, y + 96 * k, 26 * k, GOLD)
     M.ln([(cx - 120 * k, y + 178 * k), (cx + 120 * k, y + 178 * k)], GOLD, 1.0, 0.5)
     M.word(cx, y + 204 * k, 'LATE NIGHT POKER', GOLD, 15 * k, None, track=6 * k, font=FONT)
