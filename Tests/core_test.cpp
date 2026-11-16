@@ -1553,16 +1553,36 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				const auto Groups = G.JokerGroups();
 				int BestI = -1;
 				double BestGain = 0.0;
+				int BestCell = -1;
 				for (int I = 0; I < (int)Groups.size(); ++I)
 				{
 					FPDGame Copy = G;
 					Copy.JokerFuse(I);
 					FPDTowerMap After = Copy.Towers;
 					const double Gain = Power(Copy, After) - Before;
-					if (Gain > BestGain) { BestGain = Gain; BestI = I; }
+					if (Gain > BestGain) { BestGain = Gain; BestI = I; BestCell = -1; }
+					// 상위 조커 짝 옆 칸 (D-333: 일반 상위 조커는 맞닿기만 하면 된다): 짝 조커와 맞닿은 묶음 칸만 더 따져 본다 (싸게)
+					const int NewJ = (int)Groups[I].Result;
+					for (int K : Groups[I].Cells)
+					{
+						bool bNextToPartner = false;
+						for (const auto& OV : G.Towers)
+						{
+							const FPDTower& O = OV.second;
+							if (!O.IsJoker() || IsUpperJoker(O.Joker) || O.Joker == NewJ || std::abs(O.X - K % Cols) + std::abs(O.Y - K / Cols) != 1) continue;
+							const int U = UpperOf((EPDJoker)NewJ, (EPDJoker)O.Joker);
+							if (U >= 0 && G.UpperOpen(U) && UpperDef(U).Special == EPDUpperSpecial::None) bNextToPartner = true;
+						}
+						if (!bNextToPartner) continue;
+						FPDGame C2 = G;
+						if (!C2.JokerFuse(I, K)) continue;
+						FPDTowerMap A2 = C2.Towers;
+						const double G2 = Power(C2, A2) - Before + 0.05 * Before; // 다음에 상위 조커로 합칠 수 있어 덤
+						if (G2 > BestGain) { BestGain = G2; BestI = I; BestCell = K; }
+					}
 				}
 				if (BestI < 0) break;
-				G.JokerFuse(BestI);
+				G.JokerFuse(BestI, BestCell);
 				JokersMade[0]++;
 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f) KindsMade[KV2.second.Joker]++;
 			}
