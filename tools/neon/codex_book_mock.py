@@ -91,7 +91,15 @@ def rows(M, x0, y0, w, names, start, hover=None):
 
 
 def footer(M):
-    M.word(SPX, BY + BH - 34, '‹   1 / 3 쪽   ›', DIM, 13, font=FONT_KO)
+    """쪽 넘기기는 책등에서 떼어 바깥 아래 귀퉁이에 (‹ 왼쪽 쪽 왼쪽 아래, › 오른쪽 쪽 오른쪽 아래), 쪽 번호는 각 쪽 아래 가운데 (책처럼)"""
+    lw = BW / 2 - 28
+    lx, rx = BX + 22, SPX + 6
+    y = BY + BH - 44
+    for x, s in ((lx + 18, '‹'), (rx + lw - 18 - 44, '›')):
+        M.rr(x, y - 14, 44, 26, 13, CYAN, 1.2, 0.6)
+        M.word(x + 22, y + 6, s, FG, 18, font=FONT_KO)
+    M.word(lx + lw / 2, y + 5, '— 1 —', DIM, 12, font=FONT_KO)
+    M.word(rx + lw / 2, y + 5, '— 2 —', DIM, 12, font=FONT_KO)
 
 
 def variant_A(out):
