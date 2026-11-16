@@ -41,7 +41,7 @@ def glass(M, kind, cx, by, s, c, b=1.0):
         M.ln([P(-12, -30), P(-2, -38), P(8, -30), P(-2, -22), P(-12, -30)], WHITE, 1.0, 0.6 * b)
 
 
-def book(M, active=0):
+def book(M, active=0, ext=None):
     # 겉표지 (두 겹) + 쪽 (조금 안쪽) + 책등
     M.rr(BX, BY, BW, BH, 18, COVER, 2.2, 0.9)
     M.rr(BX + 6, BY + 6, BW - 12, BH - 12, 14, COVER, 0.8, 0.45)
@@ -55,7 +55,7 @@ def book(M, active=0):
     ex = BX + BW  # 책 오른쪽 옆면
     for i, (nm, on) in enumerate(tabs):
         y0, h = BY + 30 + i * 92, 82
-        w = 74 if on else 64
+        w = 64 + (ext[i] if ext else (10 if on else 0))  # ext: 탭마다 더 나온 길이 (움직임용)
         c = PINK if on else LAV
         M.ln([(ex, y0), (ex + w - 10, y0), (ex + w, y0 + 10), (ex + w, y0 + h - 10), (ex + w - 10, y0 + h), (ex, y0 + h)], c, 1.8 if on else 1.2, 1.0 if on else 0.55)
         if on: M.ln([(ex, y0 + 4), (ex, y0 + h - 4)], hx('06060b'), 3.0, 1.0)  # 고른 탭은 책 테와 이어진 듯 (경계선 지움)
@@ -90,13 +90,14 @@ def rows(M, x0, y0, w, names, start, hover=None):
         if hover == k: M.ln([(x0 + 34, y + 12), (x0 + w, y + 12)], PINK, 1.0, 0.8)
 
 
-def footer(M):
+def footer(M, press=0.0):
     """쪽 넘기기는 책등에서 떼어 바깥 아래 귀퉁이에 (‹ 왼쪽 쪽 왼쪽 아래, › 오른쪽 쪽 오른쪽 아래), 쪽 번호는 각 쪽 아래 가운데 (책처럼)"""
     lw = BW / 2 - 28
     lx, rx = BX + 22, SPX + 6
     y = BY + BH - 44
     for x, s in ((lx + 18, '‹'), (rx + lw - 18 - 44, '›')):
-        M.rr(x, y - 14, 44, 26, 13, CYAN, 1.2, 0.6)
+        pr = press if s == '›' else 0.0
+        M.rr(x, y - 14 + 2 * pr, 44, 26, 13, PINK if pr > 0 else CYAN, 1.2 + 0.8 * pr, 0.6 + 0.4 * pr)  # press: 눌림 (살짝 내려가며 분홍)
         M.word(x + 22, y + 6, s, FG, 18, font=FONT_KO)
     M.word(lx + lw / 2, y + 5, '— 1 —', DIM, 12, font=FONT_KO)
     M.word(rx + lw / 2, y + 5, '— 2 —', DIM, 12, font=FONT_KO)
