@@ -1,4 +1,4 @@
-"""도감을 책자 메뉴판으로 (시안). 펼친 메뉴 책 두 쪽, 오른쪽 쪽 위에 책갈피 탭: 칵테일 · 조커 · 상위 조커 (그 순서)
+"""도감을 책자 메뉴판으로 (시안). 펼친 메뉴 책 두 쪽, 오른쪽 옆면에 색인 탭: 위에서부터 칵테일 · 조커 · 상위 조커
 
     python tools/neon/codex_book_mock.py 출력폴더   → codex_book_A.png, codex_book_B.png
 
@@ -19,7 +19,7 @@ NAMES = ['핑크 하트 사워', '블랙 스페이드 마티니', '골드 다이
          '코트 로열', '미니 샷', '럭키 세븐', '더블 푸어', '하우스 리필', '원스 모어', '아이 오프너', '프로스트 다이키리', '플레이밍 볼', '스크루드라이버',
          '에이스 오브 진', '이븐 스플릿', '오드볼', '풀하우스 펀치', '네잎 클로버 클럽', '글라스 캐논']
 COLS = [hx('ff6aaa'), hx('e8eeff'), hx('ffd26e'), hx('8fe9ff'), hx('b48cff')]
-BX, BY, BW, BH = 70, 70, 1140, 600  # 책 바깥
+BX, BY, BW, BH = 40, 60, 1140, 610  # 책 바깥 (오른쪽에 옆면 탭 자리 60)
 SPX = BX + BW / 2  # 책등
 
 
@@ -50,16 +50,16 @@ def book(M):
         M.rr(x0, BY + 22, BW / 2 - 28, BH - 44, 8, LAV, 1.2, 0.55)
     M.ln([(SPX, BY + 14), (SPX, BY + BH - 14)], COVER, 1.6, 0.8)
     for y in range(BY + 30, BY + BH - 24, 14): M.ln([(SPX - 1, y), (SPX - 1, y + 6)], COVER, 1.0, 0.5)  # 꿰맨 점선
-    # 책갈피 탭: 오른쪽 쪽 위 (칵테일 · 조커 · 상위 조커)
+    # 책갈피 탭: 책 오른쪽 옆면에 붙어 밖으로 나온 색인 탭, 위에서부터 칵테일 · 조커 · 상위 조커 (고른 탭은 더 길게 나옴)
     tabs = [('칵테일', True), ('조커', False), ('상위 조커', False)]
-    tx = SPX + 236
+    ex = BX + BW  # 책 오른쪽 옆면
     for i, (nm, on) in enumerate(tabs):
-        w = 92 if i < 2 else 112
-        y0 = BY - 26 if on else BY - 18
+        y0, h = BY + 40 + i * 96, 84
+        w = 74 if on else 64
         c = PINK if on else LAV
-        M.ln([(tx, BY + 22), (tx, y0 + 8), (tx + 8, y0), (tx + w - 8, y0), (tx + w, y0 + 8), (tx + w, BY + 22)], c, 1.8 if on else 1.2, 1.0 if on else 0.55)
-        M.word(tx + w / 2, y0 + 30, nm, WHITE if on else FG, 14, font=FONT_KO)
-        tx += w + 8
+        M.ln([(ex, y0), (ex + w - 10, y0), (ex + w, y0 + 10), (ex + w, y0 + h - 10), (ex + w - 10, y0 + h), (ex, y0 + h)], c, 1.8 if on else 1.2, 1.0 if on else 0.55)
+        if on: M.ln([(ex, y0 + 4), (ex, y0 + h - 4)], hx('06060b'), 3.0, 1.0)  # 고른 탭은 책 테와 이어진 듯 (경계선 지움)
+        M.word(ex + w / 2 + 2, y0 + h / 2 + 5, nm, WHITE if on else FG, 13 if len(nm) > 3 else 14, font=FONT_KO)
     # 닫기
     M.rr(1234, 24, 32, 28, 14, PINK, 1.2, 0.7)
     M.ln([(1245, 33), (1255, 43)], WHITE, 1.2, 0.9); M.ln([(1255, 33), (1245, 43)], WHITE, 1.2, 0.9)
