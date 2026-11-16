@@ -151,10 +151,38 @@ inline FLinearColor EnemyColor(EPDEnemy T)
 	case EPDEnemy::Warden: return Hex(TEXT("a8f0ff"));
 	case EPDEnemy::Hexer: return Hex(TEXT("9a7aff"));
 	case EPDEnemy::Breaker: return Hex(TEXT("ffcf5a"));
+	case EPDEnemy::Bluffer: case EPDEnemy::Decoy: return Hex(TEXT("b8a6ff"));
+	case EPDEnemy::BigBlind: return Hex(TEXT("ffd96a"));
+	case EPDEnemy::Dealer: return Hex(TEXT("6affc8"));
+	case EPDEnemy::Counter: return Hex(TEXT("7fb8ff"));
+	case EPDEnemy::HouseRule: return Hex(TEXT("ff8a5a"));
+	case EPDEnemy::Twins: return Hex(TEXT("ff9ad5"));
+	case EPDEnemy::Bouncer: return Hex(TEXT("ff6a6a"));
+	case EPDEnemy::HighRoller: return Hex(TEXT("ffd26e"));
+	case EPDEnemy::House: return Hex(TEXT("ff4fd8"));
 	default: return Hex(TEXT("e8f0ff"));
 	}
 }
 inline const TCHAR* BossName(EPDEnemy T);
+// 보스 웨이브 이름 (D-334): '방패 거인', 짝 · 셋은 '돌진 기사 + 블러퍼', 호위는 '+ 호위', 변이는 앞에
+inline FString BossWaveLabel(const FPDGame& G, int W)
+{
+	EPDBossForm F = EPDBossForm::Solo;
+	FString S;
+	for (const FPDBossSlot& Sl : G.BossWave(W, &F))
+	{
+		if (!S.IsEmpty()) S += TEXT(" + ");
+		if (Sl.Mut & MutFast) S += Tr(TEXT("빠른 "));
+		if (Sl.Mut & MutHard) S += Tr(TEXT("단단한 "));
+		if (Sl.Mut & MutRegen) S += Tr(TEXT("재생하는 "));
+		if (Sl.Mut & MutShield) S += Tr(TEXT("보호막 "));
+		if (Sl.Mut & MutLead) S += Tr(TEXT("이끄는 "));
+		if (Sl.Mut & MutHex) S += Tr(TEXT("저주하는 "));
+		S += BossName(Sl.T);
+	}
+	if (F == EPDBossForm::Escort || (F == EPDBossForm::Final && G.Mode == EPDMode::W30)) S += Tr(TEXT(" + 호위"));
+	return S;
+}
 // 채널 TV 다이얼 (D-316): TV 오른쪽 아래 손잡이 중 위의 것
 constexpr float TvDialR = 11.f;
 inline FVector2f TvDialPos() { return FVector2f(RX + PW - 22.f, FY + PowCardH - 50.f); }
@@ -170,6 +198,7 @@ inline const TCHAR* EnemyName(EPDEnemy T)
 	case EPDEnemy::Splitter: return Tr(TEXT("분열 병정"));
 	case EPDEnemy::Regen: return Tr(TEXT("재생 병정"));
 	case EPDEnemy::Mini: return Tr(TEXT("졸개"));
+	case EPDEnemy::Decoy: return Tr(TEXT("블러퍼"));
 	default: return BossName(T);
 	}
 }
@@ -190,6 +219,15 @@ inline const TCHAR* BossName(EPDEnemy T)
 	case EPDEnemy::Warden: return Tr(TEXT("수호자"));
 	case EPDEnemy::Hexer: return Tr(TEXT("저주술사"));
 	case EPDEnemy::Breaker: return Tr(TEXT("파괴자"));
+	case EPDEnemy::Bluffer: case EPDEnemy::Decoy: return Tr(TEXT("블러퍼"));
+	case EPDEnemy::BigBlind: return Tr(TEXT("빅 블라인드"));
+	case EPDEnemy::Dealer: return Tr(TEXT("딜러"));
+	case EPDEnemy::Counter: return Tr(TEXT("카드 카운터"));
+	case EPDEnemy::HouseRule: return Tr(TEXT("하우스 룰"));
+	case EPDEnemy::Twins: return Tr(TEXT("쌍둥이"));
+	case EPDEnemy::Bouncer: return Tr(TEXT("바운서"));
+	case EPDEnemy::HighRoller: return Tr(TEXT("하이롤러"));
+	case EPDEnemy::House: return Tr(TEXT("더 하우스"));
 	default: return Tr(TEXT(""));
 	}
 }
@@ -211,6 +249,15 @@ inline const TCHAR* BossSkillText(EPDEnemy T)
 	case EPDEnemy::Warden: return Tr(TEXT("6초마다 보호막"));
 	case EPDEnemy::Hexer: return Tr(TEXT("주변 타워 공격력 -35%"));
 	case EPDEnemy::Breaker: return Tr(TEXT("6초마다 가까운 타워를 기절시킨다"));
+	case EPDEnemy::Bluffer: case EPDEnemy::Decoy: return Tr(TEXT("똑같이 생긴 분신 둘을 데리고 온다"));
+	case EPDEnemy::BigBlind: return Tr(TEXT("판돈을 건다: 20초 안에 잡으면 ×2, 넘기면 올인"));
+	case EPDEnemy::Dealer: return Tr(TEXT("8초마다 타워 두 장의 무늬를 잠깐 바꾼다"));
+	case EPDEnemy::Counter: return Tr(TEXT("많이 맞은 무늬의 피해를 덜 받는다"));
+	case EPDEnemy::HouseRule: return Tr(TEXT("주변 타워의 연쇄 배율을 끈다"));
+	case EPDEnemy::Twins: return Tr(TEXT("하나가 쓰러지면 남은 쪽이 회복하고 분노"));
+	case EPDEnemy::Bouncer: return Tr(TEXT("최종 보스: 방패 → 돌진 → 주변 타워 기절"));
+	case EPDEnemy::HighRoller: return Tr(TEXT("최종 보스: 칩 더미 → 무늬 바꾸기 → 올인"));
+	case EPDEnemy::House: return Tr(TEXT("최종 보스: 남의 능력 → 판 절반 연쇄 끔 → 졸개와 흡수"));
 	default: return Tr(TEXT(""));
 	}
 }
@@ -762,6 +809,16 @@ inline int32 SoldierShape(EPDEnemy T)
 	case EPDEnemy::Warden: return 17;
 	case EPDEnemy::Hexer: return 18;
 	case EPDEnemy::Breaker: return 19;
+	// 새 보스 · 최종 보스 (D-335): 그림(아틀라스 칸)을 만들기 전까지 비슷한 모양을 빌려 쓴다 (색은 EnemyColor 로 다름)
+	case EPDEnemy::Bluffer: case EPDEnemy::Decoy: return 12;
+	case EPDEnemy::BigBlind: return 11;
+	case EPDEnemy::Dealer: return 18;
+	case EPDEnemy::Counter: return 13;
+	case EPDEnemy::HouseRule: return 16;
+	case EPDEnemy::Twins: return 10;
+	case EPDEnemy::Bouncer: return 7;
+	case EPDEnemy::HighRoller: return 14;
+	case EPDEnemy::House: return 19;
 	default: return 0;
 	}
 }

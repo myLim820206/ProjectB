@@ -1962,8 +1962,8 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		const float GoalX = SignWvX + SignWvW / 2.f + (G.Goal() > 0 ? -30.f : 0.f);
 		NeonText(C, Wv, GoalX - WvW / 2.f, SignWvY + 46.f, bNow ? Red : Cyan, 36.f, 0, 1.f);
 		if (G.Goal() > 0) NeonText(C, FString::Printf(TEXT("/ %d"), G.Goal()), GoalX + WvW / 2.f + 12.f, SignWvY + 44.f, Cyan, 17.f, 0, 0.75f);
-		const EPDEnemy B = FPDGame::BossOfWave(BW);
-		C.TextCentered(bNow ? TrF(TEXT("보스 웨이브 · %s"), BossName(B)) : TrF(TEXT("다음 보스  %d웨이브 · %s"), BW, BossName(B)),
+		FString BossS = BossWaveLabel(G, BW); // 짝 · 셋이면 '돌진 기사 + 블러퍼' (D-334)
+		C.TextCentered(bNow ? TrF(TEXT("보스 웨이브 · %s"), *BossS) : TrF(TEXT("다음 보스  %d웨이브 · %s"), BW, *BossS),
 			SignWvX + SignWvW / 2.f, SignWvY + 62.f, bNow ? Red : Orange, 10.f, true, SignWvW - 40.f);
 	}
 	// 목숨: 분홍 하트 간판 (5 이하면 빨갛게 깜빡)

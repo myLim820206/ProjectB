@@ -376,7 +376,12 @@ std::vector<std::array<int, 2>> GeneratePath(std::mt19937& Rng);
 // 보통, 빠름, 탱크, 방패병(한 방 피해 감소), 분열체(죽으면 둘), 재생자(체력 회복), 분열 조각, 보스 3종
 // 보스 13종 (D-112): 5웨이브마다 BossOrder 순서로 돌아온다 (65웨이브에 한 바퀴)
 enum class EPDEnemy : uint8_t { Normal, Fast, Tank, Armored, Splitter, Regen, Mini, ShieldBoss, SplitBoss, RegenBoss,
-	Charger, Summoner, Phantom, Warlord, Berserker, Blinker, Devourer, Warden, Hexer, Breaker, Count };
+	Charger, Summoner, Phantom, Warlord, Berserker, Blinker, Devourer, Warden, Hexer, Breaker,
+	Bluffer, BigBlind, Dealer, Counter, HouseRule, Twins, // 새 보스 6종 (D-334, D-335)
+	Bouncer, HighRoller, House,                             // 모드 전용 최종 보스 (30 · 60 · 100)
+	Decoy,                                                  // 블러퍼 분신 (체력 1)
+	Count };
+inline bool IsFinalBoss(EPDEnemy T) { return T == EPDEnemy::Bouncer || T == EPDEnemy::HighRoller || T == EPDEnemy::House; }
 // 보스 능력 수치 (D-112)
 namespace Boss
 {
@@ -391,7 +396,24 @@ constexpr float DevourRange = 2.5f, DevourHeal = 0.2f;                     // �
 constexpr float WardEvery = 6.f, WardTime = 3.f, WardShield = 0.15f;       // 수호자: 최대 체력 15% 보호막
 constexpr float HexRange = 3.f, HexDmg = 0.65f;                            // 저주술사: 주변 타워 공격력 ×0.65
 constexpr float BreakEvery = 6.f, BreakRange = 2.5f, BreakStun = 2.5f;     // 파괴자: 가까운 타워 기절
+// 새 보스 (D-334)
+constexpr int DecoyN = 2;                                                  // 블러퍼: 분신 둘 (체력 1)
+constexpr float BlindTime = 20.f, BlindPotK = 0.3f, AllInSpeed = 1.5f, AllInArmor = 8.f; // 빅 블라인드: 판돈 = 다음 레벨까지 경험치의 30% (가진 만큼), 20초 안에 잡으면 ×2, 넘기면 올인
+constexpr float DealEvery = 8.f, DealTime = 6.f; constexpr int DealN = 2, DealMax = 3; // 딜러: 8초마다 무작위 2장(조커 · 와일드 · Lv4 빼고) 6초, 한꺼번에 최대 3장
+constexpr float CounterGain = 0.02f, CounterDecay = 0.01f, CounterMax = 0.6f; // 카드 카운터: 맞은 무늬 피해 내성 (최대 60%), 다른 무늬로 맞으면 풀림
+constexpr float HouseRange = 3.f, HouseRangeBig = 8.f;                     // 하우스 룰: 주변 타워 연쇄 배율 끔 (더 하우스 2단계는 판 절반)
+constexpr float TwinHeal = 0.5f, TwinRage = 1.6f;                          // 쌍둥이: 하나가 죽으면 남은 쪽 체력 50% 회복 + 속도 ×1.6
+// 최종 보스 (D-334, D-335): 체력 2/3 · 1/3 에서 단계가 바뀐다
+constexpr float BouncerStunEvery = 5.f, BouncerStunRange = 2.5f, BouncerStun = 2.f; // 바운서 3단계: 주변 타워 2초 기절
+constexpr float PileEvery = 6.f, PileTime = 6.f, PileRange = 0.6f, PileSpeed = 1.3f;  // 하이롤러 1단계: 칩 더미 (지나가는 적 빠르게)
+constexpr float AllInRage = 1.5f, AllInShieldEvery = 6.f, AllInShield = 0.1f;          // 하이롤러 3단계: 올인
+constexpr float HouseCycle = 6.f, HouseSummonEvery = 3.f;                  // 더 하우스: 1단계 남의 능력을 6초씩 빌림, 3단계 졸개 + 흡수
+// 변이 (D-334): 60 · 100 뒤쪽 · 무한 뒤쪽 보스
+constexpr float MutArmor = 10.f, MutSpeed = 1.3f, MutRegen = 0.01f, MutShield = 0.25f, MutHex = 0.8f;
 }
+enum EPDMut : uint8_t { MutHard = 1, MutFast = 2, MutRegen = 4, MutShield = 8, MutLead = 16, MutHex = 32, MutAll = 63 }; // 변이 비트
+enum class EPDBossForm : uint8_t { Solo, Duo, Trio, Escort, Final };  // 보스 웨이브 짜임 (D-334): 단독 · 짝 · 셋 · 호위(보스 + 정예 넷) · 최종
+struct FPDBossSlot { EPDEnemy T = EPDEnemy::ShieldBoss; uint8_t Mut = 0; };
 extern const EPDEnemy BossOrder[13];
 struct FPDEnemyDef
 {
@@ -416,7 +438,16 @@ struct FPDEnemy
 	float AbilT = 0.f;  // 능력 주기 타이머
 	float StateT = 0.f; // 능력이 켜져 있는 남은 시간 (돌진·무적·보호막)
 	float Shield = 0.f; // 수호자 보호막 남은 양
-	bool Untargetable() const { return Type == EPDEnemy::Phantom && StateT > 0.f; }
+	uint8_t Mut = 0;     // 변이 (EPDMut)
+	bool bElite = false; // 호위 정예 (체력 ×3)
+	bool bRage = false;  // 쌍둥이 분노 · 빅 블라인드 올인
+	float Pot = 0.f;     // 빅 블라인드 판돈 (경험치)
+	float XpK = 1.f;     // 처치 경험치 배율 (짝 · 셋은 나눠 받음, 분신 0)
+	int Phase = 0;       // 최종 보스 단계 (0 · 1 · 2)
+	int Link = 0;        // 쌍둥이 짝 Id
+	int Borrow = -1;     // 더 하우스가 빌린 능력 (EPDEnemy)
+	float Res[4] = {0.f, 0.f, 0.f, 0.f}; // 카드 카운터 무늬 내성
+	bool Untargetable() const { return (Type == EPDEnemy::Phantom || Borrow == (int)EPDEnemy::Phantom) && StateT > 0.f; }
 };
 
 // ---------------------------------------------------------------- 발사체 (미리보기: tools/neon/neon.py shots / shots_level / shots_hand / shots_joker)
@@ -578,7 +609,12 @@ public:
 	int WaveLeft() const { return (int)(Enemies.size() + Pending.size()); } // 이번 웨이브 남은 적 (나올 적 포함)
 	int WaveTotal = 0;                                                    // 이번 웨이브 적 수 (분열·소환 제외)
 	int NextBossWave() const { const int W = Phase == EPDPhase::Wave ? Wave : Wave + 1; return (W + 4) / 5 * 5; } // 지금 또는 다음 보스 웨이브
-	static EPDEnemy BossOfWave(int W) { return BossOrder[(W / 5 - 1) % 13]; }  // W 는 5의 배수
+	std::vector<FPDBossSlot> BossWave(int W, EPDBossForm* OutForm = nullptr) const; // 그 웨이브 보스들 (D-335: 30 · 60 · 100 고정 차례, 무한은 100 뒤 판마다 뽑기)
+	EPDEnemy BossOfWave(int W) const { const std::vector<FPDBossSlot> S = BossWave(W); return S.empty() ? EPDEnemy::ShieldBoss : S[0].T; } // 대표 보스 (첫째)
+	struct FPDSuitSwap { int Cell = -1; EPDSuit Orig = EPDSuit::Spade; float T = 0.f; };
+	std::vector<FPDSuitSwap> SuitSwaps; // 딜러가 잠깐 바꾼 무늬 (D-334)
+	struct FPDChipPile { float D = 0.f, T = 0.f; };
+	std::vector<FPDChipPile> ChipPiles; // 하이롤러 칩 더미
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
 	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 칵테일 (잠금 해제 메뉴로 늘어남, D-233, D-239)
@@ -607,6 +643,10 @@ public:
 	// 보스 능력 (D-112)
 	bool InWarlordAura(const FPDEnemy& E) const; // 군단장 주변 (군단장 자신은 아님)
 	bool Hexed(const FPDTower& T) const;          // 저주술사 근처 타워
+	float HexFactor(const FPDTower& T) const;     // 저주 배율 (저주술사 ×0.65, 저주하는 변이 ×0.8)
+	bool HouseRuled(const FPDTower& T) const;     // 하우스 룰 · 더 하우스 2단계 근처 (연쇄 배율 끔)
+	void DealSuits(int N);                        // 딜러: 무작위 타워 N 장 무늬 바꾸기 (한꺼번에 최대 DealMax)
+	void RestoreSuits();                          // 딜러가 바꾼 무늬 되돌리기
 	float FuseMult() const;              // 합성 배율 (기본 1.5)
 	float JokerMult() const;             // 조커 배율 (기본 1.2)
 	void RebuildMods();

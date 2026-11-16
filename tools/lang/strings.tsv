@@ -27,6 +27,13 @@ ko	en	ja	zh-Hans	zh-Hant	file
 공격력 ×1.5 · 사거리 ×1.25	ATK ×1.5 · Range ×1.25	攻撃力 ×1.5 · 射程 ×1.25	攻击力 ×1.5 · 射程 ×1.25	攻擊力 ×1.5 · 射程 ×1.25	PDBoardDraw.h
 공격력 ×1.5	ATK ×1.5	攻撃力 ×1.5	攻击力 ×1.5	攻擊力 ×1.5	PDBoardDraw.h
  연쇄×%s	 Chain×%s	 連鎖×%s	 连锁×%s	 連鎖×%s	PDBoardDraw.h
+빠른 	Fast 	素早い	快速	快速	PDBoardDraw.h
+단단한 	Hardened 	硬い	坚硬	堅硬	PDBoardDraw.h
+재생하는 	Regenerating 	再生する	再生	再生	PDBoardDraw.h
+보호막 	Shielded 	シールド	护盾	護盾	PDBoardDraw.h
+이끄는 	Leading 	率いる	统领	統領	PDBoardDraw.h
+저주하는 	Cursing 	呪う	诅咒	詛咒	PDBoardDraw.h
+ + 호위	 + escort	 + 護衛	 + 护卫	 + 護衛	PDBoardDraw.h
 병정	Soldier	兵士	士兵	士兵	PDBoardDraw.h
 빠른 병정	Fast soldier	素早い兵士	快速士兵	快速士兵	PDBoardDraw.h
 탱크	Tank	タンク	坦克	坦克	PDBoardDraw.h
@@ -34,6 +41,7 @@ ko	en	ja	zh-Hans	zh-Hant	file
 분열 병정	Splitter	分裂兵士	分裂士兵	分裂士兵	PDBoardDraw.h
 재생 병정	Regenerator	再生兵士	再生士兵	再生士兵	PDBoardDraw.h
 졸개	Minion	手下	小兵	小兵	PDBoardDraw.h
+블러퍼	Bluffer	ブラッファー	诈唬者	詐唬者	PDBoardDraw.h
 방패 거인	Shield Giant	盾の巨人	盾之巨人	盾之巨人	PDBoardDraw.h
 분열 군주	Split Lord	分裂の君主	分裂君主	分裂君主	PDBoardDraw.h
 재생 왕	Regen King	再生の王	再生之王	再生之王	PDBoardDraw.h
@@ -47,6 +55,14 @@ ko	en	ja	zh-Hans	zh-Hant	file
 수호자	Guardian	守護者	守护者	守護者	PDBoardDraw.h
 저주술사	Hexer	呪術師	诅咒师	詛咒師	PDBoardDraw.h
 파괴자	Destroyer	破壊者	破坏者	破壞者	PDBoardDraw.h
+빅 블라인드	Big Blind	ビッグブラインド	大盲注	大盲注	PDBoardDraw.h
+딜러	Dealer	ディーラー	荷官	荷官	PDBoardDraw.h
+카드 카운터	Card Counter	カードカウンター	算牌者	算牌者	PDBoardDraw.h
+하우스 룰	House Rule	ハウスルール	庄家规则	莊家規則	PDBoardDraw.h
+쌍둥이	Twins	双子	双胞胎	雙胞胎	PDBoardDraw.h
+바운서	Bouncer	バウンサー	保镖	保鑣	PDBoardDraw.h
+하이롤러	High Roller	ハイローラー	豪赌客	豪賭客	PDBoardDraw.h
+더 하우스	The House	ザ・ハウス	庄家	莊家	PDBoardDraw.h
 두꺼운 방패: 한 방 피해를 깎는다	Thick shield: cuts damage per hit	分厚い盾: 一撃のダメージを減らす	厚盾: 削减每次伤害	厚盾: 削減每次傷害	PDBoardDraw.h
 죽으면 탱크 넷으로 갈라진다	Splits into four tanks on death	倒すと戦車4体に分裂	死后分裂成四个坦克	死後分裂成四個坦克	PDBoardDraw.h
 체력이 계속 차오른다	Keeps regenerating HP	体力が回復し続ける	生命持续恢复	生命持續恢復	PDBoardDraw.h
@@ -60,6 +76,15 @@ ko	en	ja	zh-Hans	zh-Hant	file
 6초마다 보호막	Shield every 6s	6秒ごとにバリア	每6秒获得护盾	每6秒獲得護盾	PDBoardDraw.h
 주변 타워 공격력 -35%	Nearby towers ATK -35%	周りのタワー攻撃力 -35%	周围塔攻击力 -35%	周圍塔攻擊力 -35%	PDBoardDraw.h
 6초마다 가까운 타워를 기절시킨다	Stuns a nearby tower every 6s	6秒ごとに近くのタワーを気絶させる	每6秒击晕附近的塔	每6秒擊暈附近的塔	PDBoardDraw.h
+똑같이 생긴 분신 둘을 데리고 온다	Brings two identical decoys	そっくりな分身を2体連れてくる	带来两个一模一样的分身	帶來兩個一模一樣的分身	PDBoardDraw.h
+판돈을 건다: 20초 안에 잡으면 ×2, 넘기면 올인	Places a bet: defeat it within 20s for ×2, otherwise it goes all in	賭け金を置く: 20秒以内に倒せば×2、過ぎるとオールイン	下注: 20秒内击败得×2，超时则全押	下注: 20秒內擊敗得×2，超時則全押	PDBoardDraw.h
+8초마다 타워 두 장의 무늬를 잠깐 바꾼다	Every 8s, briefly changes the suit of two towers	8秒ごとにタワー2枚のスートを一時的に変える	每8秒短暂改变两座塔的花色	每8秒短暫改變兩座塔的花色	PDBoardDraw.h
+많이 맞은 무늬의 피해를 덜 받는다	Takes less damage from the suit that hits it most	多く当たったスートのダメージを軽減する	对被击中最多的花色伤害减免	對被擊中最多的花色傷害減免	PDBoardDraw.h
+주변 타워의 연쇄 배율을 끈다	Turns off chain bonuses of nearby towers	周囲のタワーの連鎖倍率を無効にする	关闭附近塔的连锁倍率	關閉附近塔的連鎖倍率	PDBoardDraw.h
+하나가 쓰러지면 남은 쪽이 회복하고 분노	When one falls, the other heals and rages	片方が倒れると残りが回復して激怒	一个倒下时另一个回复并狂暴	一個倒下時另一個回復並狂暴	PDBoardDraw.h
+최종 보스: 방패 → 돌진 → 주변 타워 기절	Final boss: armor → charge → stuns nearby towers	最終ボス: 盾 → 突進 → 周囲のタワーを気絶	最终首领: 护甲 → 冲锋 → 眩晕附近的塔	最終首領: 護甲 → 衝鋒 → 眩暈附近的塔	PDBoardDraw.h
+최종 보스: 칩 더미 → 무늬 바꾸기 → 올인	Final boss: chip piles → suit swaps → all in	最終ボス: チップの山 → スート変更 → オールイン	最终首领: 筹码堆 → 换花色 → 全押	最終首領: 籌碼堆 → 換花色 → 全押	PDBoardDraw.h
+최종 보스: 남의 능력 → 판 절반 연쇄 끔 → 졸개와 흡수	Final boss: borrowed skills → half-board chain off → minions and absorb	最終ボス: 他者の能力 → 盤面半分の連鎖無効 → 手下と吸収	最终首领: 借用能力 → 半场关闭连锁 → 小兵与吸收	最終首領: 借用能力 → 半場關閉連鎖 → 小兵與吸收	PDBoardDraw.h
 첫 손님 배웅	Seeing Off the First Guest	最初の客を見送って	送走第一位客人	送走第一位客人	PDBoardDraw.h
 두 번째 잔	The Second Glass	二杯目	第二杯	第二杯	PDBoardDraw.h
 마감까지	Until Closing Time	閉店まで	直到打烊	直到打烊	PDBoardDraw.h
@@ -939,4 +964,3 @@ P 또는 버튼: 계속 · 멈춘 동안에도 카드 놓기·합성은 된다	P
 조커 공방	Joker Workshop	ジョーカー工房	小丑工坊	小丑工坊	PDLangTable.inl
 다과회 초대장	Tea Party Invitation	お茶会の招待状	茶会请柬	茶會請柬	PDLangTable.inl
 연쇄 폭발	Chain Blast	連鎖爆発	连锁爆炸	連鎖爆炸	PDLangTable.inl
-쌍둥이	Twins	双子	双胞胎	雙胞胎	PDLangTable.inl

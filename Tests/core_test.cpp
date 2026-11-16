@@ -340,7 +340,69 @@ static void UnitTests()
 		const int B2 = G.NextBossWave();
 		G.Phase = EPDPhase::Build;
 		const int B3 = G.NextBossWave();
-		Expect(B1 == 5 && B2 == 5 && B3 == 10 && FPDGame::BossOfWave(20) == BossOrder[3], "다음 보스 웨이브: 3 → 5, 5 진행 중 → 5, 5 끝 → 10");
+		Expect(B1 == 5 && B2 == 5 && B3 == 10 && G.BossOfWave(20) == EPDEnemy::SplitBoss, "다음 보스 웨이브: 3 → 5, 5 진행 중 → 5, 5 끝 → 10, 20웨이브 = 분열 군주 (D-335 고정 차례)");
+	}
+	{ // 보스 확장 (D-334, D-335): 고정 차례 · 짜임 · 최종 보스 · 무한 뽑기 · 변이 · 새 보스 능력
+		FPDGame G(31);
+		G.Mode = EPDMode::W30;
+		G.NewGame(true);
+		G.bMuted = true;
+		EPDBossForm F15, F20, F30;
+		const auto S15 = G.BossWave(15, &F15), S20 = G.BossWave(20, &F20), S30 = G.BossWave(30, &F30);
+		G.Mode = EPDMode::W60;
+		const auto S30b = G.BossWave(30), S60 = G.BossWave(60);
+		G.Mode = EPDMode::W100;
+		EPDBossForm F100;
+		const auto S100 = G.BossWave(100, &F100), S95 = G.BossWave(95), S60c = G.BossWave(60);
+		const bool bFixed = F15 == EPDBossForm::Duo && S15.size() == 2 && F20 == EPDBossForm::Escort && S20[0].T == EPDEnemy::SplitBoss
+			&& F30 == EPDBossForm::Final && S30[0].T == EPDEnemy::Bouncer && S30b[0].T == EPDEnemy::Phantom && S60[0].T == EPDEnemy::HighRoller && S60.size() == 3 && S60c[0].T == EPDEnemy::Warden
+			&& F100 == EPDBossForm::Final && S100[0].T == EPDEnemy::House && S100.size() == 4 && S95.size() == 3 && (S95[0].Mut & MutRegen);
+		bool bAll19 = true; // 100 모드 안에서 새 보스까지 모두 나온다
+		for (EPDEnemy T : {EPDEnemy::Bluffer, EPDEnemy::BigBlind, EPDEnemy::Dealer, EPDEnemy::Counter, EPDEnemy::HouseRule, EPDEnemy::Twins, EPDEnemy::Breaker, EPDEnemy::Hexer})
+		{
+			bool bSeen = false;
+			for (int W = 5; W <= 100; W += 5) for (const FPDBossSlot& Sl : G.BossWave(W)) bSeen = bSeen || Sl.T == T;
+			bAll19 = bAll19 && bSeen;
+		}
+		G.Mode = EPDMode::Endless;
+		const auto E205a = G.BossWave(205), E205b = G.BossWave(205);
+		bool bSame = E205a.size() == E205b.size(), bMut = true;
+		for (size_t I = 0; I < E205a.size() && I < E205b.size(); ++I) { bSame = bSame && E205a[I].T == E205b[I].T; bMut = bMut && E205a[I].Mut != 0; }
+		// 웨이브 짜임: 30 모드 30웨이브 = 바운서 + 정예 넷, 15 = 둘 (블러퍼 분신 둘 더)
+		G.Mode = EPDMode::W30;
+		int Boss15 = 0, Decoys = 0;
+		for (const FPDEnemy& E : G.PreviewWaveSpec(15)) { Boss15 += EnemyDef(E.Type).bBoss; Decoys += E.Type == EPDEnemy::Decoy; }
+		int Elites = 0, Bouncers = 0;
+		for (const FPDEnemy& E : G.PreviewWaveSpec(30)) { Elites += E.bElite; Bouncers += E.Type == EPDEnemy::Bouncer; }
+		Expect(bFixed && bAll19 && bSame && bMut && Boss15 == 2 && Decoys == 2 && Elites == 4 && Bouncers == 1, "보스 차례 고정 · 짜임(짝 · 호위 · 최종) · 새 보스 모두 등장 · 무한 100 뒤 같은 씨앗이면 같은 뽑기 + 변이 (D-335)");
+		// 딜러: 한꺼번에 최대 3장, 조커 · 와일드는 안 바꿈, 웨이브 끝나면 되돌림
+		G.Enemies.clear(); G.Phase = EPDPhase::Wave; G.Towers.clear();
+		for (int K = 0; K < 6; ++K) Put(G.Towers, K * 2, 1, C(2 + K, EPDSuit::Spade));
+		FPDTower Jk; Jk.Card = {0, EPDSuit::Wild}; Jk.X = 0; Jk.Y = 3; Jk.Joker = (int)EPDJoker::Jack; G.Towers[CellKey(0, 3)] = Jk;
+		G.DealSuits(2); G.DealSuits(2);
+		int Changed = 0;
+		for (const auto& KV : G.Towers) Changed += !KV.second.IsJoker() && KV.second.Card.Suit != EPDSuit::Spade;
+		const bool bJokerSame = G.Towers.at(CellKey(0, 3)).Card.Suit == EPDSuit::Wild;
+		G.RestoreSuits();
+		int After = 0;
+		for (const auto& KV : G.Towers) After += !KV.second.IsJoker() && KV.second.Card.Suit != EPDSuit::Spade;
+		Expect(Changed == 3 && G.SuitSwaps.empty() && After == 0 && bJokerSame, "딜러: 무작위로 바꾸되 한꺼번에 최대 3장, 조커 빼고, 되돌림 (D-334)");
+		// 카드 카운터 내성 · 빅 블라인드 판돈 · 쌍둥이 분노
+		FPDEnemy Co = G.SpawnTestEnemy(EPDEnemy::Counter, 1000.f, 10);
+		G.Enemies = {Co};
+		for (int K = 0; K < 40; ++K) G.HitTestFrom(CellKey(2, 1), G.Enemies[0], 1.f);
+		const float Res = G.Enemies[0].Res[(int)EPDSuit::Spade];
+		FPDEnemy Bb = G.SpawnTestEnemy(EPDEnemy::BigBlind, 1.f, 10);
+		Bb.Pot = 10.f;
+		G.Enemies = {Bb};
+		const int Xp0 = G.XpEarned;
+		G.HitTest(G.Enemies[0], 1e9f);
+		const int XpGot = G.XpEarned - Xp0;
+		FPDEnemy T1 = G.SpawnTestEnemy(EPDEnemy::Twins, 10.f, 10), T2 = G.SpawnTestEnemy(EPDEnemy::Twins, 10.f, 10);
+		T1.Link = T2.Id; T2.Link = T1.Id; T2.Hp = T2.MaxHp * 0.3f;
+		G.Enemies = {T1, T2};
+		G.HitTest(G.Enemies[0], 1e9f);
+		Expect(std::fabs(Res - Boss::CounterMax) < 1e-3f && XpGot >= 20 && G.Enemies[1].bRage && G.Enemies[1].Hp > G.Enemies[1].MaxHp * 0.75f, "카드 카운터 내성 최대 60% · 빅 블라인드 판돈 ×2 · 쌍둥이 회복 + 분노 (D-334)");
 	}
 	{ // 조커가 든 족보는 합성 불가 (D-200, 예전 D-128 은 조커를 뺀 칸만 합성)
 		FPDGame G(22);
@@ -395,8 +457,8 @@ static void UnitTests()
 			for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.B == 1) return Ev.Enemy;
 			return EPDEnemy::Count;
 		};
-		Expect(BossOf(5) == EPDEnemy::ShieldBoss && BossOf(20) == EPDEnemy::Charger && BossOf(65) == EPDEnemy::Breaker && BossOf(70) == EPDEnemy::ShieldBoss,
-			"보스 순서: 5 방패 거인, 20 돌진 기사, 65 파괴자, 70 다시 방패 거인");
+		Expect(BossOf(5) == EPDEnemy::ShieldBoss && BossOf(20) == EPDEnemy::SplitBoss && BossOf(65) == EPDEnemy::HouseRule && BossOf(70) == EPDEnemy::Twins,
+			"보스 차례 (D-335 고정): 5 방패 거인, 20 분열 군주(호위), 65 하우스 룰, 70 쌍둥이");
 		auto Fresh = [](EPDEnemy T, float D) {
 			FPDGame G(41);
 			G.NewGame(true);
@@ -687,8 +749,8 @@ static void UnitTests()
 		G.Wave = 19;
 		G.Phase = EPDPhase::Build;
 		G.StartWave();
-		for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.A == 20) bBoss20 = Ev.B == 1 && Ev.Enemy == EPDEnemy::Charger;
-		Expect(bNoWin && bBoss20, "15웨이브 뒤에도 계속, 20웨이브에 새 보스 돌진 기사");
+		for (const auto& Ev : G.Events) if (Ev.Kind == FPDEvent::EKind::WaveStart && Ev.A == 20) bBoss20 = Ev.B == 1 && Ev.Enemy == EPDEnemy::SplitBoss;
+		Expect(bNoWin && bBoss20, "15웨이브 뒤에도 계속, 20웨이브 보스 분열 군주 (D-335)");
 		FPDGame G2(11);
 		G2.NewGame(true);
 		G2.Deck.clear();
@@ -1097,7 +1159,7 @@ static void UnitTests()
 		R.Wave = 29;
 		R.StartWave();
 		for (const FPDEnemy& E : R.PendingForTest()) if (EnemyDef(E.Type).bBoss) RefHp = E.MaxHp;
-		Expect(BossHp > 0.f && RefHp > 0.f && std::abs(BossHp / (RefHp * K) - FinalBossHpK) < 0.01f, "30 모드 30웨이브 보스 = 최종 보스 (체력 ×3)");
+		Expect(BossHp > 0.f && RefHp > 0.f && std::abs(BossHp / (RefHp * K) - EnemyDef(EPDEnemy::Bouncer).Hp / EnemyDef(EPDEnemy::Phantom).Hp) < 0.01f, "30 모드 30웨이브 = 최종 보스 바운서 (60 모드 30웨이브 유령 대비 체력, D-335)");
 		G.ClearWaveForTest();
 		G.Update(0.05f);
 		bool bEv = false;

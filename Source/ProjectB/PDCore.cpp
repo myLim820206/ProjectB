@@ -38,6 +38,16 @@ static const FPDEnemyDef GPDEnemies[(int)EPDEnemy::Count] = {
 	{12.f, 0.55f, 0.f, 0, false, true},    // 보스: 수호자
 	{11.f, 0.55f, 0.f, 0, false, true},    // 보스: 저주술사
 	{13.f, 0.5f, 0.f, 0, false, true},     // 보스: 파괴자
+	{11.f, 0.55f, 0.f, 0, false, true},    // 보스: 블러퍼 (분신 둘)
+	{10.f, 0.6f, 0.f, 0, false, true},     // 보스: 빅 블라인드 (판돈)
+	{11.f, 0.55f, 0.f, 0, false, true},    // 보스: 딜러 (무늬 바꾸기)
+	{12.f, 0.5f, 0.f, 0, false, true},     // 보스: 카드 카운터 (무늬 내성)
+	{13.f, 0.5f, 0.f, 0, false, true},     // 보스: 하우스 룰 (연쇄 끔)
+	{12.f, 0.55f, 0.f, 0, false, true},    // 보스: 쌍둥이 (둘이 한 묶음)
+	{36.f, 0.45f, 0.f, 0, true, true},     // 최종 보스: 바운서 (30)
+	{40.f, 0.5f, 0.f, 0, false, true},     // 최종 보스: 하이롤러 (60)
+	{45.f, 0.45f, 0.f, 0, false, true},    // 최종 보스: 더 하우스 (100)
+	{0.01f, 0.55f, 0.f, 0, false, false},  // 블러퍼 분신 (체력 1 로 고쳐 만든다)
 };
 const EPDEnemy BossOrder[13] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss, EPDEnemy::Charger, EPDEnemy::Summoner,
 	EPDEnemy::Phantom, EPDEnemy::Warlord, EPDEnemy::Berserker, EPDEnemy::Blinker, EPDEnemy::Devourer, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Breaker};
@@ -941,6 +951,8 @@ void FPDGame::NewGame(bool bStart)
 	Charms.clear();
 	Rewards.clear();
 	Projectiles.clear();
+	SuitSwaps.clear();
+	ChipPiles.clear();
 	AddFreshDeck();
 	Path.Build(GeneratePath(Rng));
 	Draw(StartHand);
@@ -1028,7 +1040,7 @@ bool FPDGame::LoadRun(const std::string& S)
 	N.Phase = EPDPhase::Build;
 	N.AutoStartT = -1.f;
 	N.Time = 0.f;
-	N.Enemies.clear(); N.Pending.clear(); N.Born.clear(); N.Projectiles.clear(); N.Rewards.clear(); N.Events.clear(); N.Sounds.clear();
+	N.Enemies.clear(); N.Pending.clear(); N.Born.clear(); N.Projectiles.clear(); N.Rewards.clear(); N.Events.clear(); N.Sounds.clear(); N.SuitSwaps.clear(); N.ChipPiles.clear();
 	N.RebuildMods();
 	*this = N;
 	return true;
@@ -1178,6 +1190,90 @@ FPDEnemy FPDGame::MakeEnemy(EPDEnemy T, float BaseHp, int W)
 int WaveCount(int W) { return 12 + 4 * W; }
 float WaveScale(int W) { return (8.f + 2.f * W) / (float)WaveCount(W); }
 
+// ---------------------------------------------------------------- 보스 차례 (D-335): 30 · 60 · 100 모드는 고정 (25웨이브까지 셋이 같다), 무한은 100 뒤 판마다 뽑기
+namespace
+{
+struct FPDFixedBoss { int W; EPDBossForm Form; EPDEnemy A, B, C; uint8_t Mut; };
+constexpr EPDEnemy NoB = EPDEnemy::Count;
+const FPDFixedBoss GPDFixedBoss[] = {
+	{5, EPDBossForm::Solo, EPDEnemy::ShieldBoss, NoB, NoB, 0},
+	{10, EPDBossForm::Solo, EPDEnemy::BigBlind, NoB, NoB, 0},
+	{15, EPDBossForm::Duo, EPDEnemy::Charger, EPDEnemy::Bluffer, NoB, 0},
+	{20, EPDBossForm::Escort, EPDEnemy::SplitBoss, NoB, NoB, 0},
+	{25, EPDBossForm::Duo, EPDEnemy::Summoner, EPDEnemy::RegenBoss, NoB, 0},
+	{30, EPDBossForm::Solo, EPDEnemy::Phantom, NoB, NoB, 0},
+	{35, EPDBossForm::Duo, EPDEnemy::Dealer, EPDEnemy::Counter, NoB, 0},
+	{40, EPDBossForm::Escort, EPDEnemy::Berserker, NoB, NoB, 0},
+	{45, EPDBossForm::Duo, EPDEnemy::Warlord, EPDEnemy::Blinker, NoB, 0},
+	{50, EPDBossForm::Trio, EPDEnemy::Devourer, EPDEnemy::Summoner, EPDEnemy::Warlord, 0},
+	{55, EPDBossForm::Escort, EPDEnemy::Dealer, NoB, NoB, 0},
+	{60, EPDBossForm::Duo, EPDEnemy::Warden, EPDEnemy::Hexer, NoB, 0},
+	{65, EPDBossForm::Solo, EPDEnemy::HouseRule, NoB, NoB, 0},
+	{70, EPDBossForm::Duo, EPDEnemy::Twins, NoB, NoB, 0},
+	{75, EPDBossForm::Trio, EPDEnemy::Breaker, EPDEnemy::Warlord, EPDEnemy::Devourer, 0},
+	{80, EPDBossForm::Escort, EPDEnemy::HouseRule, NoB, NoB, 0},
+	{85, EPDBossForm::Trio, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Dealer, MutFast},
+	{90, EPDBossForm::Duo, EPDEnemy::Twins, NoB, NoB, MutHard},
+	{95, EPDBossForm::Trio, EPDEnemy::Breaker, EPDEnemy::HouseRule, EPDEnemy::Counter, MutRegen},
+	{100, EPDBossForm::Trio, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Devourer, MutFast}, // 무한 모드 100 (100 모드는 최종 보스)
+};
+// 무한 뽑기 주머니 (일반 보스 19종)
+const EPDEnemy GPDBossPool[] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss, EPDEnemy::Charger, EPDEnemy::Summoner, EPDEnemy::Phantom, EPDEnemy::Warlord,
+	EPDEnemy::Berserker, EPDEnemy::Blinker, EPDEnemy::Devourer, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Breaker,
+	EPDEnemy::Bluffer, EPDEnemy::BigBlind, EPDEnemy::Dealer, EPDEnemy::Counter, EPDEnemy::HouseRule, EPDEnemy::Twins};
+uint32_t PDBossHash(uint32_t X) { X ^= X >> 16; X *= 0x7feb352du; X ^= X >> 15; X *= 0x846ca68bu; X ^= X >> 16; return X; }
+}
+
+std::vector<FPDBossSlot> FPDGame::BossWave(int W, EPDBossForm* OutForm) const
+{
+	std::vector<FPDBossSlot> Out;
+	EPDBossForm Form = EPDBossForm::Solo;
+	if (W <= 0 || W % 5 != 0) { if (OutForm) *OutForm = Form; return Out; }
+	if (IsFinalWave(W)) // 모드 전용 최종 보스 + 동료 (30 호위 · 60 짝 · 100 셋)
+	{
+		Form = EPDBossForm::Final;
+		if (Mode == EPDMode::W30) Out = {{EPDEnemy::Bouncer, 0}};
+		else if (Mode == EPDMode::W60) Out = {{EPDEnemy::HighRoller, 0}, {EPDEnemy::Berserker, 0}, {EPDEnemy::Blinker, 0}};
+		else Out = {{EPDEnemy::House, 0}, {EPDEnemy::Warden, 0}, {EPDEnemy::Hexer, 0}, {EPDEnemy::Devourer, 0}};
+	}
+	else if (W <= 100)
+	{
+		for (const FPDFixedBoss& F : GPDFixedBoss)
+			if (F.W == W)
+			{
+				Form = F.Form;
+				for (EPDEnemy T : {F.A, F.B, F.C}) if (T != NoB) Out.push_back({T, F.Mut});
+			}
+	}
+	else // 무한 100 뒤 (D-335): 판 씨앗(길 모양)으로 뽑기, 짜임은 돌아가며, 변이는 100웨이브마다 하나씩 늘어남
+	{
+		uint32_t Seed = 2166136261u;
+		for (const auto& Cn : Path.Corners) Seed = (Seed ^ (uint32_t)(Cn[0] * 31 + Cn[1])) * 16777619u;
+		uint32_t R = PDBossHash(Seed ^ (uint32_t)W * 2654435761u);
+		static const EPDBossForm Rot[4] = {EPDBossForm::Duo, EPDBossForm::Trio, EPDBossForm::Escort, EPDBossForm::Duo};
+		Form = Rot[(W / 5) % 4];
+		const int N = Form == EPDBossForm::Trio ? 3 : Form == EPDBossForm::Duo ? 2 : 1;
+		const int NMut = std::min(6, 1 + (W - 101) / 100);
+		for (int I = 0; I < N; ++I)
+		{
+			EPDEnemy T = EPDEnemy::ShieldBoss;
+			for (int Try = 0; Try < 20; ++Try)
+			{
+				R = PDBossHash(R + 0x9e3779b9u);
+				T = GPDBossPool[R % (sizeof(GPDBossPool) / sizeof(GPDBossPool[0]))];
+				bool bDup = T == EPDEnemy::Twins && N > 2; // 쌍둥이는 짝 · 호위에서만
+				for (const FPDBossSlot& S : Out) bDup = bDup || S.T == T;
+				if (!bDup) break;
+			}
+			uint8_t Mut = 0;
+			for (int M = 0; M < NMut; ++M) { R = PDBossHash(R + 77u); Mut |= (uint8_t)(1u << (R % 6)); }
+			Out.push_back({T, Mut});
+		}
+	}
+	if (OutForm) *OutForm = Form;
+	return Out;
+}
+
 std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
@@ -1195,8 +1291,48 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 		if (W >= 8 && I % 6 == 2) T = EPDEnemy::Regen;
 		List.push_back(MakeEnemy(T, Hp, W));
 	}
-	// 보스: 5웨이브마다 BossOrder 13종이 차례로 돌아온다 (D-112)
-	if (W % 5 == 0) List.push_back(MakeEnemy(BossOrder[(W / 5 - 1) % 13], BossHp * GPDDebugHpMul * (IsFinalWave(W) ? FinalBossHpK : 1.f), W)); // 목표 웨이브는 최종 보스
+	// 보스 (D-335): 5웨이브마다 BossWave 의 짜임대로. 짝 · 셋은 한 마리 체력을 나누고(각 ×0.6 · ×0.45), 호위는 보스 ×0.8 + 정예 넷 (D-334)
+	if (W % 5 == 0)
+	{
+		EPDBossForm Form = EPDBossForm::Solo;
+		const std::vector<FPDBossSlot> Slots = BossWave(W, &Form);
+		const int NComp = (int)Slots.size() - (Form == EPDBossForm::Final ? 1 : 0); // 최종 보스 옆 동료 수
+		const float CompK = Form == EPDBossForm::Duo ? 0.6f : Form == EPDBossForm::Trio ? 0.45f : Form == EPDBossForm::Escort ? 0.8f : Form == EPDBossForm::Final ? (NComp >= 3 ? 0.45f : NComp == 2 ? 0.6f : 0.8f) : 1.f;
+		for (const FPDBossSlot& S : Slots)
+		{
+			const bool bFin = IsFinalBoss(S.T);
+			const float K = bFin ? 1.f : CompK;
+			const int Copies = S.T == EPDEnemy::Twins ? 2 : 1; // 쌍둥이는 둘이 한 묶음
+			int FirstId = 0;
+			for (int Cp = 0; Cp < Copies; ++Cp)
+			{
+				FPDEnemy B = MakeEnemy(S.T, BossHp * GPDDebugHpMul * K, W);
+				B.Mut = S.Mut;
+				B.XpK = bFin ? 1.f : K;
+				if (S.Mut & MutHard) B.Armor += Boss::MutArmor;
+				if (S.Mut & MutFast) B.Speed *= Boss::MutSpeed;
+				if (S.Mut & MutShield) B.Shield = B.MaxHp * Boss::MutShield;
+				if (Cp == 0) FirstId = B.Id; else { B.Link = FirstId; for (FPDEnemy& Q : List) if (Q.Id == FirstId) Q.Link = B.Id; }
+				List.push_back(B);
+			}
+			if (S.T == EPDEnemy::Bluffer) // 분신 둘: 체력 1, 맞기 전엔 진짜와 똑같이 보인다 (위젯)
+				for (int I = 0; I < Boss::DecoyN; ++I)
+				{
+					FPDEnemy Dc = MakeEnemy(EPDEnemy::Decoy, 1.f, W);
+					Dc.Hp = Dc.MaxHp = 1.f;
+					Dc.XpK = 0.f;
+					List.push_back(Dc);
+				}
+		}
+		const bool bEscort = Form == EPDBossForm::Escort || (Form == EPDBossForm::Final && NComp == 0);
+		if (bEscort)
+			for (int I = 0; I < 4; ++I) // 정예 넷: 탱크 · 갑옷 병정 체력 ×3
+			{
+				FPDEnemy El = MakeEnemy(I % 2 ? EPDEnemy::Armored : EPDEnemy::Tank, Hp * 3.f, W);
+				El.bElite = true;
+				List.push_back(El);
+			}
+	}
 	return List;
 }
 
@@ -1215,7 +1351,7 @@ void FPDGame::StartWave()
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::WaveStart;
 	E.A = Wave;
-	for (const FPDEnemy& P : Pending) if (EnemyDef(P.Type).bBoss) { E.B = 1; E.Enemy = P.Type; }
+	for (const FPDEnemy& P : Pending) if (EnemyDef(P.Type).bBoss) { E.B = 1; E.Enemy = P.Type; break; } // 짝 · 셋이면 첫째 (D-334)
 	Ev(E);
 	Sfx(EPDSound::Start);
 }
@@ -1223,6 +1359,7 @@ void FPDGame::StartWave()
 void FPDGame::EndWave()
 {
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
+	RestoreSuits(); // 딜러가 바꾼 무늬 · 칩 더미는 웨이브가 끝나면 원래대로 (D-334)
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.DrawAdd, &Got);
 	AddXp((5.f + Wave) * (Has(EPDCharm::Sweeper) ? 2.f : 1.f)); // 웨이브 통과 덤 (청소부 ×2, D-234)
@@ -2079,7 +2216,20 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	if (Has(EPDCharm::OldWatch) && Phase == EPDPhase::Wave && NextBossWave() == Wave) Dmg *= 1.3f; // 낡은 회중시계 (D-239)
 	if (Has(EPDCharm::FirstBeat) && Phase == EPDPhase::Wave && Time - WaveStartT < 10.f) Dmg *= 1.5f; // 첫 박자 (D-239)
 	if (Armor > 0.f && !Has(EPDCharm::Pierce)) Dmg = std::max(Dmg * 0.25f, Dmg - Armor); // 방패: 한 방 피해를 깎는다 (최소 25%)
-	if (E.Shield > 0.f) { const float A = std::min(E.Shield, Dmg); E.Shield -= A; Dmg -= A; } // 수호자 보호막이 먼저 받는다
+	if (E.Type == EPDEnemy::Counter && HitSrc >= 0) // 카드 카운터 (D-334): 맞은 무늬 내성이 쌓이고 다른 무늬는 풀린다
+	{
+		auto It = Towers.find(HitSrc);
+		if (It != Towers.end() && !It->second.IsJoker() && !It->second.Card.IsWild())
+		{
+			const int S = (int)It->second.Card.Suit;
+			if (S >= 0 && S < 4)
+			{
+				Dmg *= 1.f - E.Res[S];
+				for (int K = 0; K < 4; ++K) E.Res[K] = K == S ? std::min(Boss::CounterMax, E.Res[K] + Boss::CounterGain) : std::max(0.f, E.Res[K] - Boss::CounterDecay);
+			}
+		}
+	}
+	if (E.Shield > 0.f) { const float A = std::min(E.Shield, Dmg); E.Shield -= A; Dmg -= A; } // 수호자 보호막 · 보호막 변이가 먼저 받는다
 	E.Hp -= Dmg;
 	if (Slow > 0.f) { E.SlowT = 1.2f; E.SlowAmt = std::max(E.SlowAmt, Slow); }
 	if (E.Hp > 0.f) return;
@@ -2096,10 +2246,14 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	K.X = P.X;
 	K.Y = P.Y;
 	K.Enemy = E.Type;
-	K.A = AddXp(KillXp(E.Type, E.Wave) * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave)) * (Has(EPDCharm::Bounty) ? 1.25f : 1.f)); // 마리 수가 늘어도 웨이브당 골드는 그대로
+	K.A = AddXp(KillXp(E.Type, E.Wave) * E.XpK * (EnemyDef(E.Type).bBoss ? 1.f : WaveScale(E.Wave)) * (Has(EPDCharm::Bounty) ? 1.25f : 1.f)); // 마리 수가 늘어도 웨이브당 골드는 그대로, 짝 · 셋 보스는 나눠 받음
+	if (E.Type == EPDEnemy::BigBlind && E.Pot > 0.f) { K.A += AddXp(E.Pot * 2.f, false); E.Pot = 0.f; } // 빅 블라인드: 20초 안에 잡으면 판돈 ×2
 	Ev(K);
+	if (E.Type == EPDEnemy::Twins && E.Link) // 쌍둥이: 남은 쪽이 회복 + 분노
+		for (FPDEnemy& O : Enemies)
+			if (O.Id == E.Link && !O.bDead) { O.Hp = std::min(O.MaxHp, O.Hp + O.MaxHp * Boss::TwinHeal); O.bRage = true; BossEvent(O); }
 	for (FPDEnemy& O : Enemies) // 흡수자: 주변에서 적이 죽으면 회복
-		if (&O != &E && !O.bDead && O.Type == EPDEnemy::Devourer)
+		if (&O != &E && !O.bDead && (O.Type == EPDEnemy::Devourer || (O.Type == EPDEnemy::House && O.Phase >= 2))) // 더 하우스 3단계도 흡수
 		{
 			const FPDPoint Q = Path.At(O.D);
 			if (std::hypot(Q.X - P.X, Q.Y - P.Y) <= Boss::DevourRange) O.Hp = std::min(O.MaxHp, O.Hp + E.MaxHp * Boss::DevourHeal);
@@ -2260,10 +2414,10 @@ void FPDGame::UpdateProjectiles(float Dt)
 // ---------------------------------------------------------------- 보스 능력 (D-112)
 bool FPDGame::InWarlordAura(const FPDEnemy& E) const
 {
-	if (E.Type == EPDEnemy::Warlord) return false;
+	if (E.Type == EPDEnemy::Warlord || (E.Mut & MutLead)) return false;
 	const FPDPoint P = Path.At(E.D);
 	for (const FPDEnemy& O : Enemies)
-		if (!O.bDead && O.Type == EPDEnemy::Warlord)
+		if (!O.bDead && (O.Type == EPDEnemy::Warlord || (O.Mut & MutLead))) // 이끄는 변이도 군단장 오라
 		{
 			const FPDPoint Q = Path.At(O.D);
 			if (std::hypot(Q.X - P.X, Q.Y - P.Y) <= Boss::AuraRange) return true;
@@ -2280,6 +2434,67 @@ bool FPDGame::Hexed(const FPDTower& T) const
 			if (std::hypot(Q.X - (T.X + 0.5f), Q.Y - (T.Y + 0.5f)) <= Boss::HexRange) return true;
 		}
 	return false;
+}
+
+float FPDGame::HexFactor(const FPDTower& T) const
+{
+	float K = 1.f;
+	for (const FPDEnemy& O : Enemies)
+	{
+		if (O.bDead || (O.Type != EPDEnemy::Hexer && !(O.Mut & MutHex))) continue;
+		const FPDPoint Q = Path.At(O.D);
+		if (std::hypot(Q.X - (T.X + 0.5f), Q.Y - (T.Y + 0.5f)) <= Boss::HexRange) K = std::min(K, O.Type == EPDEnemy::Hexer ? Boss::HexDmg : Boss::MutHex);
+	}
+	return K;
+}
+
+bool FPDGame::HouseRuled(const FPDTower& T) const
+{
+	for (const FPDEnemy& O : Enemies)
+	{
+		if (O.bDead) continue;
+		const float R = O.Type == EPDEnemy::HouseRule ? Boss::HouseRange : (O.Type == EPDEnemy::House && O.Phase >= 1) ? Boss::HouseRangeBig : 0.f;
+		if (R <= 0.f) continue;
+		const FPDPoint Q = Path.At(O.D);
+		if (std::hypot(Q.X - (T.X + 0.5f), Q.Y - (T.Y + 0.5f)) <= R) return true;
+	}
+	return false;
+}
+
+void FPDGame::DealSuits(int N)
+{
+	std::vector<int> Cand;
+	for (const auto& KV : Towers)
+	{
+		const FPDTower& T = KV.second;
+		if (T.IsJoker() || T.Card.IsWild() || T.Level >= MaxLevel) continue; // 조커 · 와일드 · Lv4 는 안 바꾼다
+		bool bAlready = false;
+		for (const FPDSuitSwap& S : SuitSwaps) bAlready = bAlready || S.Cell == KV.first;
+		if (!bAlready) Cand.push_back(KV.first);
+	}
+	for (int I = 0; I < N && !Cand.empty() && (int)SuitSwaps.size() < Boss::DealMax; ++I)
+	{
+		const int Pick = std::uniform_int_distribution<int>(0, (int)Cand.size() - 1)(Rng);
+		const int Cell = Cand[Pick];
+		Cand.erase(Cand.begin() + Pick);
+		FPDTower& T = Towers.at(Cell);
+		FPDSuitSwap Sw;
+		Sw.Cell = Cell; Sw.Orig = T.Card.Suit; Sw.T = Boss::DealTime;
+		T.Card.Suit = (EPDSuit)(((int)T.Card.Suit + 1 + std::uniform_int_distribution<int>(0, 2)(Rng)) % 4);
+		SuitSwaps.push_back(Sw);
+		bReapply = true;
+	}
+}
+
+void FPDGame::RestoreSuits()
+{
+	for (const FPDSuitSwap& Sw : SuitSwaps)
+	{
+		auto It = Towers.find(Sw.Cell);
+		if (It != Towers.end() && !It->second.IsJoker()) It->second.Card.Suit = Sw.Orig;
+	}
+	if (!SuitSwaps.empty()) { SuitSwaps.clear(); Synergies = ApplyEffects(Towers, CharmMask(), &Mods); }
+	ChipPiles.clear();
 }
 
 void FPDGame::BossEvent(const FPDEnemy& E, float X2, float Y2)
@@ -2344,6 +2559,76 @@ float FPDGame::BossTick(FPDEnemy& E, float Dt)
 			if (Best) { Best->StunT = Boss::BreakStun; BossEvent(E, Best->X + 0.5f, Best->Y + 0.5f); }
 		}
 		return 1.f;
+	case EPDEnemy::BigBlind: // 판돈 시간이 다 되면 올인 (D-334)
+		if (E.Pot > 0.f && E.StateT <= 0.f) { E.Pot = 0.f; E.bRage = true; E.Armor += Boss::AllInArmor; BossEvent(E); }
+		return E.bRage ? Boss::AllInSpeed : 1.f;
+	case EPDEnemy::Dealer:
+		if (Every(Boss::DealEvery)) { DealSuits(Boss::DealN); BossEvent(E); }
+		return 1.f;
+	case EPDEnemy::Twins:
+		return E.bRage ? Boss::TwinRage : 1.f;
+	case EPDEnemy::Bouncer:
+	case EPDEnemy::HighRoller:
+	case EPDEnemy::House:
+	{
+		const float Fr = std::max(0.f, E.Hp / std::max(1.f, E.MaxHp));
+		const int Ph = Fr < 1.f / 3.f ? 2 : Fr < 2.f / 3.f ? 1 : 0;
+		if (Ph > E.Phase) { E.Phase = Ph; E.AbilT = 0.f; E.StateT = 0.f; E.Borrow = -1; FPDEvent Pe; const FPDPoint P = Path.At(E.D); Pe.Kind = FPDEvent::EKind::BossSkill; Pe.Enemy = E.Type; Pe.X = P.X; Pe.Y = P.Y; Pe.A = 100 + Ph; Ev(Pe); } // 단계가 바뀜 (A = 100 + 단계, 화면 연출)
+		if (E.Type == EPDEnemy::Bouncer)
+		{
+			if (E.Phase == 1) { if (Every(Boss::ChargeEvery)) { E.StateT = Boss::ChargeTime; BossEvent(E); } return E.StateT > 0.f ? Boss::ChargeSpeed : 1.f; }
+			if (E.Phase == 2 && Every(Boss::BouncerStunEvery)) // 주변 타워 2초 기절 (D-335: 밀어내기 대신)
+			{
+				const FPDPoint P = Path.At(E.D);
+				for (auto& KV : Towers) if (std::hypot(KV.second.X + 0.5f - P.X, KV.second.Y + 0.5f - P.Y) <= Boss::BouncerStunRange) KV.second.StunT = std::max(KV.second.StunT, Boss::BouncerStun);
+				BossEvent(E);
+			}
+			return 1.f;
+		}
+		if (E.Type == EPDEnemy::HighRoller)
+		{
+			if (E.Phase == 0 && Every(Boss::PileEvery)) { ChipPiles.push_back({E.D, Boss::PileTime}); BossEvent(E); }
+			if (E.Phase == 1 && Every(Boss::DealEvery)) { DealSuits(Boss::DealN); BossEvent(E); }
+			if (E.Phase == 2)
+			{
+				if (Every(Boss::AllInShieldEvery)) { E.Shield = std::max(E.Shield, E.MaxHp * Boss::AllInShield); BossEvent(E); }
+				return 1.f + Boss::AllInRage * (1.f - Fr);
+			}
+			return 1.f;
+		}
+		// 더 하우스: 1단계 남의 능력을 6초씩 빌림 (돌진 · 무적 · 기절), 2단계 연쇄 끄기 판 절반 (HouseRuled), 3단계 졸개 + 흡수 (Hit)
+		if (E.Phase == 0)
+		{
+			if (Every(Boss::HouseCycle))
+			{
+				static const EPDEnemy Lend[3] = {EPDEnemy::Charger, EPDEnemy::Phantom, EPDEnemy::Breaker};
+				E.Borrow = (int)Lend[(E.Borrow < 0 ? 0 : (E.Borrow == (int)EPDEnemy::Charger ? 1 : E.Borrow == (int)EPDEnemy::Phantom ? 2 : 0))];
+				if (E.Borrow == (int)EPDEnemy::Charger) E.StateT = Boss::ChargeTime * 2.f;
+				else if (E.Borrow == (int)EPDEnemy::Phantom) E.StateT = Boss::PhaseTime;
+				else
+				{
+					const FPDPoint P = Path.At(E.D);
+					FPDTower* Best = nullptr;
+					float BestD = Boss::BreakRange;
+					for (auto& KV : Towers) { const float Dd = std::hypot(KV.second.X + 0.5f - P.X, KV.second.Y + 0.5f - P.Y); if (Dd <= BestD) { BestD = Dd; Best = &KV.second; } }
+					if (Best) Best->StunT = Boss::BreakStun;
+				}
+				BossEvent(E);
+			}
+			return E.Borrow == (int)EPDEnemy::Charger && E.StateT > 0.f ? Boss::ChargeSpeed : 1.f;
+		}
+		if (E.Phase == 2 && Every(Boss::HouseSummonEvery))
+		{
+			for (int I = 0; I < Boss::SummonCount; ++I)
+			{
+				FPDEnemy M = MakeEnemy(EPDEnemy::Mini, E.BaseHp * Boss::SummonHp, E.Wave);
+				M.D = std::max(0.f, E.D - 0.3f - 0.25f * I);
+				Born.push_back(M);
+			}
+			BossEvent(E);
+		}
+		return 1.f;
+	}
 	default:
 		return 1.f;
 	}
@@ -2359,17 +2644,38 @@ void FPDGame::Update(float Dt)
 	SpawnT -= Dt;
 	if (!Pending.empty() && SpawnT <= 0.f)
 	{
-		const FPDEnemy E = Pending.front();
+		FPDEnemy E = Pending.front();
 		Pending.erase(Pending.begin());
+		if (E.Type == EPDEnemy::BigBlind) // 빅 블라인드 (D-334): 나오면 판돈을 건다 (가진 경험치에서, 다음 레벨까지의 30% 까지)
+		{
+			const int PotI = std::min(Xp, (int)(XpToNext() * Boss::BlindPotK));
+			Xp -= PotI;
+			E.Pot = (float)PotI;
+			E.StateT = Boss::BlindTime;
+		}
 		Enemies.push_back(E);
+		if (E.Type == EPDEnemy::BigBlind) BossEvent(E);
 		SpawnT = EnemyDef(E.Type).bBoss ? 1.2f : 0.65f * WaveScale(Wave); // 마리 수가 늘어도 웨이브 길이는 그대로
 	}
+	// 딜러가 바꾼 무늬는 6초 뒤 되돌린다, 하이롤러 칩 더미는 6초 (D-334)
+	for (FPDSuitSwap& Sw : SuitSwaps)
+	{
+		Sw.T -= Dt;
+		if (Sw.T > 0.f) continue;
+		auto It = Towers.find(Sw.Cell);
+		if (It != Towers.end() && !It->second.IsJoker()) { It->second.Card.Suit = Sw.Orig; bReapply = true; }
+	}
+	SuitSwaps.erase(std::remove_if(SuitSwaps.begin(), SuitSwaps.end(), [](const FPDSuitSwap& S) { return S.T <= 0.f; }), SuitSwaps.end());
+	for (FPDChipPile& Pl : ChipPiles) Pl.T -= Dt;
+	ChipPiles.erase(std::remove_if(ChipPiles.begin(), ChipPiles.end(), [](const FPDChipPile& P) { return P.T <= 0.f; }), ChipPiles.end());
 	for (FPDEnemy& E : Enemies)
 	{
 		E.SlowT = std::max(0.f, E.SlowT - Dt);
-		const float Rg = EnemyDef(E.Type).Regen;
+		const float Rg = EnemyDef(E.Type).Regen + ((E.Mut & MutRegen) ? Boss::MutRegen : 0.f); // 재생하는 변이
 		if (Rg > 0.f && !E.bDead) E.Hp = std::min(E.MaxHp, E.Hp + E.MaxHp * Rg * Dt);
-		const float SpeedK = E.bDead ? 1.f : BossTick(E, Dt) * (InWarlordAura(E) ? Boss::AuraSpeed : 1.f);
+		float PileK = 1.f;
+		for (const FPDChipPile& Pl : ChipPiles) if (std::fabs(Pl.D - E.D) <= Boss::PileRange) PileK = Boss::PileSpeed;
+		const float SpeedK = E.bDead ? 1.f : BossTick(E, Dt) * (InWarlordAura(E) ? Boss::AuraSpeed : 1.f) * PileK;
 		E.D += E.Speed * SpeedK * (E.SlowT > 0.f ? 1.f - E.SlowAmt : 1.f) * Dt;
 		if (E.D >= Path.Length && !E.bDead)
 		{
@@ -2394,7 +2700,12 @@ void FPDGame::Update(float Dt)
 		T.Cd -= Dt;
 		if (T.Cd > 0.f) continue;
 		FPDTowerStats St = TowerStats(T, Mask, Tm);
-		if (Hexed(T)) St.Dmg *= Boss::HexDmg; // 저주술사 근처
+		St.Dmg *= HexFactor(T); // 저주술사 근처 · 저주하는 변이
+		if (T.Eff.Chain >= 2 && HouseRuled(T)) // 하우스 룰 (D-334): 연쇄 배율을 뺀다 (족보 배율은 그대로)
+		{
+			const float Step = (Has(EPDCharm::ChainLink) ? 0.45f : ChainStep) + Mods.ChainAdd + (Mods.Key(EPDKeystone::Crowd) ? 0.15f : 0.f);
+			if (!Mods.Key(EPDKeystone::Lone)) St.Dmg /= 1.f + Step * (T.Eff.Chain - 1);
+		}
 		const bool bUp = T.IsJoker() && Mods.Up(T);
 		const float TX = T.X + 0.5f, TY = T.Y + 0.5f;
 		const int JK = T.IsJoker() ? T.Joker : -1;
