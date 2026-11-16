@@ -309,9 +309,8 @@ void SPDBoardWidget::PaintCdxSheet(FCanvas& C, float U, const FCdxView& Front, c
 	C.PW = FrontMap;
 	{
 		const int32 L = C.NextLayer();
-		// 쪽 바탕(06060b)과 같은 거의 검은색, 눕힌 정도로 아주 조금만 밝게. sRGB 로 만든다 (선형 값을 바로 넣으면 회색으로 크게 뜬다)
-		const uint8 Sh = (uint8)(6.f + 5.f * Face);
-		const FLinearColor Fill = FLinearColor::FromSRGBColor(FColor(Sh, Sh, (uint8)(Sh + 5), 255));
+		// 쪽 바탕(06060b)과 똑같은 색 (넘어가도 면 색은 바뀌지 않는다, 사용자 2026-11-16)
+		const FLinearColor Fill = Hex(TEXT("06060b"), 1.f);
 		constexpr int32 NS = 18;
 		for (int32 I = 0; I < NS; ++I) C.BoxAt(L, CdxSpX + CdxPgW * I / NS, CdxTop, CdxPgW / NS + 1.2f, CdxBot - CdxTop, Fill);
 		C.NextLayer();
