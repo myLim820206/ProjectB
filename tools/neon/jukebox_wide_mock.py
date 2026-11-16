@@ -30,16 +30,17 @@ def main(outdir):
     os.makedirs(outdir, exist_ok=True)
     M, T = Sign(0.8), []
     M.small_glow = 0.0
-    for n, (wpx, cap) in enumerate(((109, '2  폭 109 (지금 비율)'), (150, '2a  폭 150'), (180, '2b  폭 180 (거의 최대)'))):
+    # 2c (사용자: 2a 를 높이 0.9배로): 폭 150 · 높이 85 · 위 끝은 지금처럼 y 2, 바닥 y 87 (판 틀 선까지 5px)
+    for n, (wpx, k, bot, cap) in enumerate(((109, 0.85, 82.0, '2  폭 109 · 높이 0.85'), (150, 0.85, 82.0, '2a  폭 150 · 높이 0.85'), (150, 0.9, 87.0, '2c  폭 150 · 높이 0.9'))):
         px = 20 + n * (PANEL_W + GAP)
         M.word(px + PANEL_W / 2, 66, cap, WHITE, 15, font=FONT_KO)
         M.rr(px - 6, SH.TOP - 6, PANEL_W + 12, 150 * SH.Z + 12, 10, DIM, 1.0, 0.35)
         SH.board(M, px)
-        J.JW = wpx / K
+        J.JW = wpx / k
         x0 = CXJ - wpx / 2
-        J.jukebox(M, T, *SH.S(px, x0, BOT - J.JH * K), K * SH.Z, 0.3, 3, -10, 1)
+        J.jukebox(M, T, *SH.S(px, x0, bot - J.JH * k), k * SH.Z, 0.3, 3, -10, 1)
     J.JW = 128
-    M.word(640, 470, '높이는 모두 80 (0.85배) · 바닥 y 82 로 판 틀 선(y 92) 위에 뜸. 넓힐수록 유리창이 넓어져 곡 이름이 안 흐르고 다 보임', DIM, 13, font=FONT_KO)
+    M.word(640, 470, '0.85: 높이 80 · 바닥 y 82 (판 틀 선까지 10px)   0.9: 높이 85 · 위 끝 y 2 그대로 · 바닥 y 87 (판 틀 선까지 5px)', DIM, 13, font=FONT_KO)
     img = M.draw()
     d = ImageDraw.Draw(img)
     for t in T:
