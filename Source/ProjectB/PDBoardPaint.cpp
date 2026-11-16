@@ -333,6 +333,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintHint(C); // 도움말 카드 (D-217)
 	PaintLevelUp(C); // 레벨업 (D-273)
 	PaintCine(C); // 완성 연출 (D-314): 판 · 패널 위, 창 아래
+	PaintAchToast(C); // 도전 과제 알림 (B8)
 	PaintScreens(C); Part(5);
 	PaintTree(C);
 	// 화면 번쩍임과 덮개 화면 (제목, 게임 오버), 메뉴

@@ -1325,6 +1325,16 @@ static void UnitTests()
 			for (int I = 0; I < (int)EPDGoal::Count; ++I) { bPriced &= (int)GoalDef(I).Reward >= CharmBaseCount; for (int K = 0; K < I; ++K) bUniq &= GoalDef(I).Reward != GoalDef(K).Reward; }
 			Expect(bNone && bSome && bUniq && bPriced && CharmGoal((int)EPDCharm::JokerFan) == (int)EPDGoal::FirstJoker && CharmGoal(0) < 0, "목표 해금 10종: 처음엔 없음, 조건 맞으면 열림, 보상 칵테일은 겹치지 않고 처음 열린 18종이 아님 (D-321)");
 		}
+		{
+			FPDAchStats A;
+			bool bNone = true;
+			for (int I = 0; I < (int)EPDAch::Count; ++I) bNone &= !AchMet((EPDAch)I, A);
+			A.HandsEver = (1u << (int)EPDHand::Count) - 1u; A.MaxFuseLevel = MaxLevel; A.ModesCleared = 1u; A.bSecretChannel = true;
+			const bool bSome = AchMet(EPDAch::AllHands, A) && AchMet(EPDAch::RoyalFlush, A) && AchMet(EPDAch::FuseMax, A) && AchMet(EPDAch::Clear30, A) && AchMet(EPDAch::SecretChannel, A) && !AchMet(EPDAch::Endless150, A);
+			bool bNames = true;
+			for (int I = 0; I < (int)EPDAch::Count; ++I) for (int K = 0; K < I; ++K) bNames &= std::string(AchApiName((EPDAch)I)) != AchApiName((EPDAch)K);
+			Expect(bNone && bSome && bNames, "도전 과제 24종: 처음엔 없음, 조건 맞으면 이룸, 스팀 이름 겹치지 않음 (B8)");
+		}
 		long long Total = 0;
 		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);
 		Expect(UpgradeMax == 20 && Total == 1050, "20레벨까지 한 종류 칩 " + std::to_string(Total));

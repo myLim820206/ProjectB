@@ -21,6 +21,8 @@
 4. 개발용 Depot 구성: Windows용과 macOS용 Depot을 분리
 5. 테스트용 빌드 브랜치 설정 (기본 `default`, 테스트용 비공개 브랜치)
 
+도전 과제 24종 이름(`ACH_…`)은 docs/23 표대로 Steamworks 에 등록한다. 클라우드 저장은 Steam Auto-Cloud 로 SaveGames 폴더를 올린다 (docs/23).
+
 Steamworks 계정 정보와 키는 저장소에 절대 넣지 않습니다. 비밀 값은 별도 보관소에서 관리합니다.
 
 ## 3. 스토어 페이지

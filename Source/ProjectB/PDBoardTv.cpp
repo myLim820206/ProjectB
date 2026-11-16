@@ -204,3 +204,18 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 		Bulb(C, FVector2f(X + 18.f + K * (W - 36.f) / (NB - 1), Y + H - 9.f), 2.6f, bOn, bBoss ? Hex(TEXT("ff6a6a")) : Hex(TEXT("ffe196")));
 	}
 }
+
+// 도전 과제 알림 (B8): 화면 위 가운데에 금색 알약이 내려왔다 3초 뒤 올라간다
+void SPDBoardWidget::PaintAchToast(FCanvas& C) const
+{
+	if (!AchToast.Num()) return;
+	const float T = AchToastT, In = FMath::Clamp(T / 0.3f, 0.f, 1.f), Out = FMath::Clamp((T - 2.8f) / 0.4f, 0.f, 1.f);
+	const float Y = -50.f + 70.f * (1.f - (1.f - In) * (1.f - In)) - 70.f * Out * Out, W = 380.f, H = 44.f, X = DesignW / 2.f - W / 2.f;
+	const FLinearColor Gold = Hex(TEXT("ffd26e"));
+	C.Box(X + 6.f, Y + 3.f, W - 12.f, H - 6.f, Hex(TEXT("06060b"), 0.92f));
+	C.BtnFill(X, Y, W, H, RadPill(H), Gold, false);
+	C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, RadPill(H)), Gold, 2.f, 1.f);
+	C.Shape(EPDSuit::Wild, X + 26.f, Y + H / 2.f, 8.f, Gold, 1.4f, 0.8f);
+	C.Text(Tr(TEXT("도전 과제 달성")), X + 46.f, Y + 18.f, Gold, 10.f, 0, true);
+	C.Text(AchName(AchToast[0]), X + 46.f, Y + 34.f, FLinearColor::White, 13.f, 0, true, W - 70.f);
+}

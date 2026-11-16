@@ -60,6 +60,29 @@ ko	en	ja	zh-Hans	zh-Hant	file
 6초마다 보호막	Shield every 6s	6秒ごとにバリア	每6秒获得护盾	每6秒獲得護盾	PDBoardDraw.h
 주변 타워 공격력 -35%	Nearby towers ATK -35%	周りのタワー攻撃力 -35%	周围塔攻击力 -35%	周圍塔攻擊力 -35%	PDBoardDraw.h
 6초마다 가까운 타워를 기절시킨다	Stuns a nearby tower every 6s	6秒ごとに近くのタワーを気絶させる	每6秒击晕附近的塔	每6秒擊暈附近的塔	PDBoardDraw.h
+첫 손님 배웅	Seeing Off the First Guest	最初の客を見送って	送走第一位客人	送走第一位客人	PDBoardDraw.h
+두 번째 잔	The Second Glass	二杯目	第二杯	第二杯	PDBoardDraw.h
+마감까지	Until Closing Time	閉店まで	直到打烊	直到打烊	PDBoardDraw.h
+첫 조커	First Joker	初めてのジョーカー	第一张小丑	第一張小丑	PDBoardDraw.h
+왕관의 무게	Weight of the Crown	王冠の重み	王冠之重	王冠之重	PDBoardDraw.h
+조커 수집가	Joker Collector	ジョーカーコレクター	小丑收藏家	小丑收藏家	PDBoardDraw.h
+늦은 밤의 고수	Late Night Master	深夜の達人	深夜高手	深夜高手	PDBoardDraw.h
+천 명의 병정	A Thousand Soldiers	千人の兵士	一千名士兵	一千名士兵	PDBoardDraw.h
+만 명의 병정	Ten Thousand Soldiers	一万人の兵士	一万名士兵	一萬名士兵	PDBoardDraw.h
+단골손님	Regular	常連客	常客	常客	PDBoardDraw.h
+끝나지 않는 밤	The Endless Night	終わらない夜	无尽之夜	無盡之夜	PDBoardDraw.h
+새벽이 올 때까지	Until Dawn	夜明けまで	直到黎明	直到黎明	PDBoardDraw.h
+로열 플러시	Royal Flush	ロイヤル・フラッシュ	皇家同花顺	皇家同花順	PDBoardDraw.h
+족보 완성	Every Hand	役コンプリート	集齐牌型	集齊牌型	PDBoardDraw.h
+최고 합성	Top Fusion	最高合成	最高合成	最高合成	PDBoardDraw.h
+상위 조커 열 장	Ten Upper Jokers	上位ジョーカー10枚	十张高级小丑	十張高級小丑	PDBoardDraw.h
+상위 조커 도감 완성	Upper Joker Codex	上位ジョーカー図鑑完成	高级小丑图鉴完成	高級小丑圖鑑完成	PDBoardDraw.h
+칵테일 서른 잔	Thirty Cocktails	カクテル30杯	三十杯鸡尾酒	三十杯雞尾酒	PDBoardDraw.h
+모든 칵테일	Every Cocktail	すべてのカクテル	全部鸡尾酒	全部雞尾酒	PDBoardDraw.h
+영구 강화 끝	Fully Upgraded	永久強化完了	永久强化完成	永久強化完成	PDBoardDraw.h
+숨은 채널	Hidden Channel	隠しチャンネル	隐藏频道	隱藏頻道	PDBoardDraw.h
+바의 터줏대감	Pillar of the Bar	バーの主	酒吧元老	酒吧元老	PDBoardDraw.h
+십만 명의 병정	A Hundred Thousand Soldiers	十万人の兵士	十万名士兵	十萬名士兵	PDBoardDraw.h
 30 모드 클리어	Clear 30 Mode	30モードクリア	通关30模式	通關30模式	PDBoardDraw.h
 60 모드 클리어	Clear 60 Mode	60モードクリア	通关60模式	通關60模式	PDBoardDraw.h
 100 모드 클리어	Clear 100 Mode	100モードクリア	通关100模式	通關100模式	PDBoardDraw.h
@@ -93,7 +116,6 @@ ko	en	ja	zh-Hans	zh-Hant	file
 오드볼	Oddball	オッドボール	奇数怪球	奇數怪球	PDBoardDraw.h
 풀하우스 펀치	Full House Punch	フルハウス・パンチ	满堂红宾治	滿堂紅賓治	PDBoardDraw.h
 네잎 클로버 클럽	Four-Leaf Clover Club	四つ葉クローバー・クラブ	四叶草俱乐部	四葉草俱樂部	PDBoardDraw.h
-로열 플러시	Royal Flush	ロイヤル・フラッシュ	皇家同花顺	皇家同花順	PDBoardDraw.h
 글라스 캐논	Glass Cannon	グラス・キャノン	玻璃大炮	玻璃大砲	PDBoardDraw.h
 롱 드링크	Long Drink	ロング・ドリンク	长饮	長飲	PDBoardDraw.h
 다이너마이트	Dynamite	ダイナマイト	炸药	炸藥	PDBoardDraw.h
@@ -279,7 +301,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 광대의 길	Jester's Path	道化の道	小丑之路	小丑之路	PDBoardDraw.h
 고독한 저격수	Lone Sniper	孤独な狙撃手	孤独狙击手	孤獨狙擊手	PDBoardDraw.h
 군중	Crowd	群衆	群众	群眾	PDBoardDraw.h
-왕관의 무게	Weight of the Crown	王冠の重み	王冠之重	王冠之重	PDBoardDraw.h
 서커스	Circus	サーカス	马戏团	馬戲團	PDBoardDraw.h
 플러시 타워 위력 ×2 / 다른 족보 타워 위력 ×0.5	Flush towers power ×2 / other hand towers ×0.5	フラッシュのタワー威力 ×2 / 他の役のタワー ×0.5	同花塔威力 ×2 / 其他牌型塔 ×0.5	同花塔威力 ×2 / 其他牌型塔 ×0.5	PDBoardDraw.h
 플러시 아닌 족보 위력 ×1.3 / 플러시 범위 효과 없음	Non-Flush hands power ×1.3 / Flush has no area effect	フラッシュ以外の役の威力 ×1.3 / フラッシュの範囲効果なし	非同花牌型威力 ×1.3 / 同花无范围效果	非同花牌型威力 ×1.3 / 同花無範圍效果	PDBoardDraw.h
@@ -717,6 +738,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 지금 웨이브 %d	Current wave %d	現在のウェーブ %d	当前波次 %d	當前波次 %d	PDBoardTv.cpp
 다음 웨이브 %d	Next wave %d	次のウェーブ %d	下一波 %d	下一波 %d	PDBoardTv.cpp
 마지막 웨이브 · 최종 보스	Final wave · final boss	最終ウェーブ · 最終ボス	最后一波 · 最终首领	最後一波 · 最終首領	PDBoardTv.cpp
+도전 과제 달성	Achievement unlocked	実績解除	成就达成	成就達成	PDBoardTv.cpp
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp

@@ -164,6 +164,38 @@ bool GoalMet(EPDGoal G, const FPDGoalStats& S)
 	}
 }
 
+bool AchMet(EPDAch A, const FPDAchStats& S)
+{
+	if ((int)A < (int)EPDGoal::Count) return GoalMet((EPDGoal)A, S);
+	auto Bits = [](uint32_t V) { int N = 0; while (V) { N += V & 1u; V >>= 1; } return N; };
+	switch (A)
+	{
+	case EPDAch::Endless150: return S.EndlessBest >= 150;
+	case EPDAch::Endless200: return S.EndlessBest >= 200;
+	case EPDAch::RoyalFlush: return (S.HandsEver >> (int)EPDHand::RoyalFlush) & 1u;
+	case EPDAch::FiveCard: return (S.HandsEver >> (int)EPDHand::Five) & 1u;
+	case EPDAch::AllHands: return (S.HandsEver & ((1u << (int)EPDHand::Count) - 1u)) == (1u << (int)EPDHand::Count) - 1u;
+	case EPDAch::FuseMax: return S.MaxFuseLevel >= MaxLevel;
+	case EPDAch::Uppers10: return Bits(S.UpperFound) >= 10;
+	case EPDAch::AllUppers: return Bits(S.UpperFound) >= UpperJokerCount;
+	case EPDAch::Charms30: return S.CharmsOpen >= 30;
+	case EPDAch::AllCharms: return S.CharmsOpen >= (int)EPDCharm::Count;
+	case EPDAch::UpgradesAll: return S.bUpgradesMax;
+	case EPDAch::SecretChannel: return S.bSecretChannel;
+	case EPDAch::Runs50: return S.RunsPlayed >= 50;
+	case EPDAch::TotalKills100k: return S.TotalKills >= 100000;
+	default: return false;
+	}
+}
+
+const char* AchApiName(EPDAch A)
+{
+	static const char* N[(int)EPDAch::Count] = {"ACH_CLEAR_30", "ACH_CLEAR_60", "ACH_CLEAR_100", "ACH_FIRST_JOKER", "ACH_FIRST_UPPER", "ACH_ALL_JOKERS", "ACH_LEVEL_30", "ACH_KILLS_1000",
+		"ACH_TOTAL_KILLS_10K", "ACH_RUNS_10", "ACH_ENDLESS_150", "ACH_ENDLESS_200", "ACH_ROYAL_FLUSH", "ACH_FIVE_CARD", "ACH_ALL_HANDS", "ACH_FUSE_MAX", "ACH_UPPERS_10", "ACH_ALL_UPPERS",
+		"ACH_CHARMS_30", "ACH_ALL_CHARMS", "ACH_UPGRADE_MAX", "ACH_SECRET_CHANNEL", "ACH_RUNS_50", "ACH_TOTAL_KILLS_100K"};
+	return N[std::clamp((int)A, 0, (int)EPDAch::Count - 1)];
+}
+
 int UpperPrice(int U) { const FPDUpperDef& D = UpperDef(U); const int Avg = (JokerPrice((int)D.A) + JokerPrice((int)D.B)) / 2; return (300 + Avg + 50) / 100 * 50; } // 150~400 (D-320)
 int UpperOf(EPDJoker A, EPDJoker B)
 {

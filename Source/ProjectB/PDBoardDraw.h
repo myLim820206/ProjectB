@@ -214,6 +214,14 @@ inline const TCHAR* BossSkillText(EPDEnemy T)
 	default: return Tr(TEXT(""));
 	}
 }
+// 도전 과제 이름 (B8, EPDAch 순서). 앞 10개는 목표 해금과 같다
+inline const TCHAR* AchName(int I)
+{
+	static const TCHAR* N[] = {TEXT("첫 손님 배웅"), TEXT("두 번째 잔"), TEXT("마감까지"), TEXT("첫 조커"), TEXT("왕관의 무게"), TEXT("조커 수집가"), TEXT("늦은 밤의 고수"), TEXT("천 명의 병정"),
+		TEXT("만 명의 병정"), TEXT("단골손님"), TEXT("끝나지 않는 밤"), TEXT("새벽이 올 때까지"), TEXT("로열 플러시"), TEXT("파이브 카드"), TEXT("족보 완성"), TEXT("최고 합성"),
+		TEXT("상위 조커 열 장"), TEXT("상위 조커 도감 완성"), TEXT("칵테일 서른 잔"), TEXT("모든 칵테일"), TEXT("영구 강화 끝"), TEXT("숨은 채널"), TEXT("바의 터줏대감"), TEXT("십만 명의 병정")};
+	return I >= 0 && I < (int)UE_ARRAY_COUNT(N) ? Tr(N[I]) : TEXT("");
+}
 // 목표로 여는 칵테일의 목표 글 (D-321 ④, EPDGoal 순서)
 inline const TCHAR* GoalText(int I)
 {

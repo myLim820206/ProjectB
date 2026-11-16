@@ -2,6 +2,7 @@
 // 이펙트는 PDBoardFx.cpp, 그리기는 PDBoardPaint.cpp, 그리기 도우미는 PDBoardDraw.h
 #include "PDBoardWidget.h"
 #include "PDBoardDraw.h"
+#include "PDSteam.h"
 
 #include "InputCoreTypes.h"
 #include "Engine/Engine.h"
@@ -356,6 +357,10 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("BestLevel")) GoalStats.BestLevel = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("BestKills")) GoalStats.BestKills = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("TvSecret")) bTvSecret = FCString::Atoi(*Val) != 0; // 숨은 채널 (D-316)
+			else if (Key == TEXT("Ach")) AchBits = (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 도전 과제 (B8)
+			else if (Key == TEXT("HandsEver")) GoalStats.HandsEver = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
+			else if (Key == TEXT("MaxFuse")) GoalStats.MaxFuseLevel = FMath::Max(0, FCString::Atoi(*Val));
+			else if (Key == TEXT("EndlessBest")) GoalStats.EndlessBest = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
@@ -395,13 +400,14 @@ void SPDBoardWidget::SaveSettings() const
 
 void SPDBoardWidget::SaveProgress()
 {
+	CheckAchievements(); // 저장할 때마다 도전 과제를 확인한다 (판 끝 · 구매 · 숨은 채널 · 도감이 바뀔 때)
 	SavedDiscovered = Game.Discovered;
 	SavedUpper = Game.UpperFound;
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\nTvSecret=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
-		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills, bTvSecret ? 1 : 0), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\nTvSecret=%d\nAch=%u\nHandsEver=%u\nMaxFuse=%d\nEndlessBest=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
+		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills, bTvSecret ? 1 : 0, AchBits, GoalStats.HandsEver, GoalStats.MaxFuseLevel, GoalStats.EndlessBest), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -568,12 +574,14 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		GoalStats.TotalKills += Game.Kills;
 		GoalStats.BestLevel = FMath::Max(GoalStats.BestLevel, Game.Level);
 		GoalStats.BestKills = FMath::Max(GoalStats.BestKills, Game.Kills);
+		if (Game.Mode == EPDMode::Endless) GoalStats.EndlessBest = FMath::Max(GoalStats.EndlessBest, Game.Wave);
 		SyncGoalStats();
 		ApplyGoals();
 		NowAffordable.Reset();
 		for (const FString& S : AffordableNames()) if (!CouldBuy.Contains(S) && NowAffordable.Num() < 3) NowAffordable.Add(S);
 		SaveProgress();
 	}
+	if (AchToast.Num()) { AchToastT += InDeltaTime; if (AchToastT > 3.2f) { AchToast.RemoveAt(0); AchToastT = 0.f; } } // 도전 과제 알림 (B8)
 	// 채널 TV CH1 (D-316): 다음(진행 중이면 지금) 웨이브의 적을 종류별로 센다. 웨이브가 바뀔 때만
 	if (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)
 	{
@@ -1601,6 +1609,25 @@ void SPDBoardWidget::SyncGoalStats()
 	GoalStats.ModesCleared = ModesCleared;
 	GoalStats.Discovered = Game.Discovered;
 	GoalStats.UpperFound = Game.UpperFound;
+	GoalStats.CharmsOpen = 0;
+	for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) GoalStats.CharmsOpen += (Game.CharmUnlocked >> J) & 1u;
+	bool bAllMax = true;
+	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) bAllMax &= Game.Upg[U] >= UpgradeMax;
+	GoalStats.bUpgradesMax = bAllMax;
+	GoalStats.bSecretChannel = bTvSecret;
+}
+
+void SPDBoardWidget::CheckAchievements()
+{
+	SyncGoalStats();
+	for (int32 I = 0; I < (int32)EPDAch::Count; ++I)
+	{
+		if ((AchBits >> I) & 1u || !AchMet((EPDAch)I, GoalStats)) continue;
+		AchBits |= 1u << I;
+		AchToast.Add(I);
+		PDSteam::UnlockAchievement(AchApiName((EPDAch)I)); // 스팀 (App ID 가 생기면 연결, 지금은 아무것도 안 함)
+	}
+	PDSteam::SyncAchievements(AchBits); // 스팀에 이미 이룬 것 다시 알리기 (오프라인에서 이룬 것)
 }
 
 int32 SPDBoardWidget::ApplyGoals()

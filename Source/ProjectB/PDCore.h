@@ -491,6 +491,24 @@ inline const FPDGoalDef& GoalDef(int I)
 	return D[I];
 }
 bool GoalMet(EPDGoal G, const FPDGoalStats& S);
+// 도전 과제 (B8, docs/17 4절): 목표 해금 10종(EPDGoal 과 같은 순서) + 14종. 스팀 도전 과제 API 이름은 AchApiName
+enum class EPDAch : uint8_t
+{
+	Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, TotalKills10k, Runs10, // 목표 해금과 같다
+	Endless150, Endless200, RoyalFlush, FiveCard, AllHands, FuseMax, Uppers10, AllUppers, Charms30, AllCharms, UpgradesAll, SecretChannel, Runs50, TotalKills100k,
+	Count
+};
+struct FPDAchStats : FPDGoalStats
+{
+	uint32_t HandsEver = 0;   // 만들어 본 족보 (1 << EPDHand)
+	int MaxFuseLevel = 0;     // 만들어 본 가장 높은 합성 레벨
+	int CharmsOpen = 0;       // 연 칵테일 수
+	int EndlessBest = 0;      // 무한 모드 최고 웨이브
+	bool bUpgradesMax = false; // 영구 강화 8종 모두 20
+	bool bSecretChannel = false; // 채널 TV 숨은 채널 (D-316)
+};
+bool AchMet(EPDAch A, const FPDAchStats& S);
+const char* AchApiName(EPDAch A); // 스팀 도전 과제 이름 (Steamworks 에 같은 이름으로 등록)
 inline int CharmGoal(int J) { for (int I = 0; I < (int)EPDGoal::Count; ++I) if ((int)GoalDef(I).Reward == J) return I; return -1; } // 목표로 여는 칵테일이면 목표 번호, 아니면 -1 (칩으로 못 산다)
 inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.9f : M == EPDMode::W60 ? 1.37f : M == EPDMode::W100 ? 1.2f : 1.3f; } // D-235: 봇이 너무 쉽게 깨서 올림 (예전 1.6 · 1.32 · 1.18)
 constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)

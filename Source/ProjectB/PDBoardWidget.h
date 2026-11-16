@@ -104,7 +104,12 @@ private:
 	int32 MetaChips = 0;
 	int32 LastChips = 0;                   // 방금 끝난 판에서 받은 칩
 	int32 LastBonus = 0;                   // 그중 모드 첫 클리어 덤 (D-321)
-	PD::FPDGoalStats GoalStats;            // 목표 해금 (D-321 ④) 진행: 판 수 · 누적 처치 · 최고 레벨 · 최고 처치 (진행 파일), 모드 · 조커 도감은 따로 있는 값으로 채운다
+	PD::FPDAchStats GoalStats;             // 목표 해금 (D-321 ④) · 도전 과제 (B8) 진행: 판 수 · 누적 처치 · 최고 레벨 · 최고 처치 · 족보 · 합성 레벨 · 무한 최고 (진행 파일), 모드 · 도감은 따로 있는 값으로 채운다
+	uint32 AchBits = 0;                    // 이룬 도전 과제 (1 << EPDAch, 진행 파일)
+	TArray<int32> AchToast;                // 화면 위에 띄울 새 도전 과제 (맨 앞이 지금)
+	float AchToastT = 0.f;
+	void CheckAchievements();              // 이룬 도전 과제를 남기고 스팀에 알린다 (PDSteam)
+	void PaintAchToast(FCanvas& C) const;
 	TArray<int32> NewGoals;                // 방금 이룬 목표 (영수증 줄)
 	TArray<FString> NowAffordable;         // 이번 판으로 새로 살 수 있게 된 것 (영수증 아래, 3개까지)
 	void SyncGoalStats();                  // 도감 · 모드 값을 GoalStats 로
