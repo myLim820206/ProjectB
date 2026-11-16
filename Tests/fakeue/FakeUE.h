@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstdarg>
 #include <cstddef>
@@ -837,10 +838,11 @@ struct FMath
 	static bool IsNearlyZero(float A, float Tol = UE_SMALL_NUMBER) { return Abs(A) <= Tol; }
 	static bool IsNearlyZero(double A, double Tol = UE_SMALL_NUMBER) { return Abs(A) <= Tol; }
 	template <typename T> static constexpr bool IsPowerOfTwo(T V) { return V > 0 && (V & (V - 1)) == 0; }
-	static int32 CountBits(uint64 Bits) { return (int32)__builtin_popcountll(Bits); }
-	static uint32 FloorLog2(uint32 V) { return V ? 31u - (uint32)__builtin_clz(V) : 0u; }
-	static uint32 CountLeadingZeros(uint32 V) { return V ? (uint32)__builtin_clz(V) : 32u; }
-	static uint32 CountTrailingZeros(uint32 V) { return V ? (uint32)__builtin_ctz(V) : 32u; }
+	// std::bit 함수로 (g++ 와 MSVC cl 둘 다 됨)
+	static int32 CountBits(uint64 Bits) { return (int32)std::popcount(Bits); }
+	static uint32 FloorLog2(uint32 V) { return V ? 31u - (uint32)std::countl_zero(V) : 0u; }
+	static uint32 CountLeadingZeros(uint32 V) { return (uint32)std::countl_zero(V); }
+	static uint32 CountTrailingZeros(uint32 V) { return (uint32)std::countr_zero(V); }
 	template <typename T> static constexpr auto DegreesToRadians(T const& D) -> decltype(D * (UE_PI / 180.f)) { return D * (UE_PI / 180.f); }
 	template <typename T> static constexpr auto RadiansToDegrees(T const& R) -> decltype(R * (180.f / UE_PI)) { return R * (180.f / UE_PI); }
 	template <typename T> static T Wrap(const T X, const T Lo, const T Hi) { return X < Lo ? Hi : X > Hi ? Lo : X; }
