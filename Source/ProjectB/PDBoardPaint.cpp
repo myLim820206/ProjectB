@@ -2029,10 +2029,14 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		C.Shape(EPDSuit::Diamond, HudDivLv + 26.f, MidY, 9.f, Gc, 1.5f, 0.5f);
 		NeonText(C, FString::FromInt(G.Level), (HudDivLv + 40.f + LvBarX - 6.f) / 2.f, MidY + 10.f, Gc, G.Level >= 1000 ? 18.f : G.Level >= 100 ? 24.f : 26.f, 1, 1.f);
 		const float BY = LvBarY - LvBarH / 2.f, Rr = RadPill(LvBarH);
-		C.RoundFill(LvBarX, BY, LvBarW, LvBarH, Rr, WithAlpha(Gold, 0.12f));
-		if (Fill > 0.f) C.RoundFill(LvBarX, BY, FMath::Max(LvBarH, LvBarW * Fill), LvBarH, Rr, WithAlpha(Gold, 0.75f * B));
-		C.Glow(FCanvas::RoundRectPoints(LvBarX, BY, LvBarW, LvBarH, Rr), WithAlpha(Gold, 0.6f), 1.f, 0.3f);
-		C.TextCentered(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), LvBarX + LvBarW / 2.f, LvBarY, Fill > 0.45f ? Hex(TEXT("1a1408")) : Fg, 9.f, true);
+		C.RoundFill(LvBarX, BY, LvBarW, LvBarH, Rr, WithAlpha(Gold, 0.1f));
+		if (Fill > 0.f) C.RoundFill(LvBarX + 3.f, BY + 3.f, FMath::Max(LvBarH - 6.f, (LvBarW - 6.f) * Fill), LvBarH - 6.f, RadPill(LvBarH - 6.f), WithAlpha(Gold, 0.8f * B));
+		C.Glow(FCanvas::RoundRectPoints(LvBarX, BY, LvBarW, LvBarH, Rr), WithAlpha(Gold, 0.7f), 1.2f, 0.4f);
+		// % : 흰 글자 + 어두운 테(사방 1px 그림자) → 금색 채움 위 · 빈칸 위 어디서나 읽힘
+		const FString Pc = FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f));
+		const float PcX = LvBarX + LvBarW / 2.f;
+		for (const FVector2f D : {FVector2f(-1.f, 0.f), FVector2f(1.f, 0.f), FVector2f(0.f, -1.f), FVector2f(0.f, 1.f)}) C.TextCentered(Pc, PcX + D.X, LvBarY + D.Y, Hex(TEXT("281c06")), 12.f, true);
+		C.TextCentered(Pc, PcX, LvBarY, FLinearColor::White, 12.f, true);
 	}
 	{ // 일시정지 버튼 (D-169): 멈춘 동안은 재생 삼각형, 평소엔 두 막대
 		const bool bHov = InRect(Mouse, PauseBtnX, HudBtnY, HudBtnS, HudBtnS);

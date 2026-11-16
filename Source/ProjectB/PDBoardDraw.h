@@ -660,7 +660,7 @@ inline float JukeBtnX(int Dir) { return JukeX0 + JukeW / 2.f + Dir * 30.f * Juke
 constexpr float HudPanX = 430.f, HudPanY = 16.f, HudPanW = 706.f, HudPanH = 68.f;
 constexpr float HudDivLf = 800.f, HudDivLv = 930.f; // 목숨 칸 · 레벨 칸 왼쪽 구분선
 // 레벨 칸 (사용자 2026-11-16): 마름모 · 숫자는 목숨 칸과 같은 자리 · 글자, 경험치 막대는 숫자 오른쪽에 두껍게 (가운데 높이 LvBarY, % 는 막대 안)
-constexpr float LvBarX = HudDivLv + 116.f, LvBarH = 12.f, LvBarY = HudPanY + HudPanH / 2.f, LvBarW = HudPanX + HudPanW - 12.f - LvBarX; // 경험치 막대 (LvBarY = 막대 가운데)
+constexpr float LvBarX = HudDivLv + 116.f, LvBarH = 24.f /* 숫자 글자 크기와 같은 높이 (시안 B tools/neon/lvbar_mock.py) */, LvBarY = HudPanY + HudPanH / 2.f, LvBarW = HudPanX + HudPanW - 12.f - LvBarX; // 경험치 막대 (LvBarY = 막대 가운데)
 constexpr float LvSignCX = (HudDivLv + HudPanX + HudPanW) / 2.f; // 레벨 칸 가운데 (레벨업 간판이 날아가 매달리는 자리)
 constexpr float FloorY = FY + Rows * CS + 8.f;                                      // 바닥선 (손패가 그 아래)
 // 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
