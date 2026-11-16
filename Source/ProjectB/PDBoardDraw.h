@@ -644,9 +644,11 @@ constexpr float BoxBtnW = 233.f, BoxBtnH = 44.f, BoxBtnY = UpgRowY + 8 * UpgRowH
 inline float BoxBtnX(int I) { return UpgRowX + I * (BoxBtnW + 16.f); }
 inline FVector2f UpgButtonPos(int Row, int K) { const FVector2f C0 = UpgCardPos(Row); return FVector2f(C0.X + 14.f + K * 63.f, C0.Y + 208.f); }
 // 웨이브 시작 버튼 아래 버튼 한 줄 (D-119): 트리 K · 강화 U. 도감 · 메뉴 버튼은 뺐다 (D-349): 위 톱니바퀴 = 메뉴, 도감은 메뉴 안 (J 키는 그대로)
-constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 36.f;
+// 오른쪽 패널 아래 셋 크기 맞춤 (D-353, 시안 B tools/neon/rpanel_mock.py): 웨이브 시작 · 스킬 트리 둘 다 높이 52 · 모서리 12, 사이는 모두 10
+constexpr float RBtnR = 12.f; // 웨이브 시작 · 스킬 트리 버튼 모서리
+constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = StartBtnH;
 constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = TreeBtnH;
-constexpr float CharmY = TreeBtnY + TreeBtnH + 12.f; // 부적 칸 (버튼 한 줄이 빠진 만큼 위로)
+constexpr float CharmY = TreeBtnY + TreeBtnH + 10.f; // 부적 칸 (바닥선까지)
 // 위에 걸린 간판 (D-274, 인게임 시안 B)
 constexpr float SignEnX = 270.f, SignEnY = 20.f, SignEnW = 182.f, SignEnH = 68.f;   // 남은 적 (전구 줄)
 // 주크박스 간판 (D-319): 예전 남은 적 간판 자리 (SignEn). ◀ ▶ 곡 넘기기

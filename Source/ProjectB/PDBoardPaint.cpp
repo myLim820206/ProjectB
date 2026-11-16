@@ -2132,7 +2132,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			C.Box(RBtnX, StartBtnY, RBtnW, StartBtnH, WithAlpha(Cyan, bHov ? 0.12f : 0.06f));
 			if (G.AutoStartT >= 0.f) // 자동 시작까지 버튼이 차오른다
 				C.Box(RBtnX, StartBtnY, RBtnW * (1.f - FMath::Clamp(G.AutoStartT / AutoStartDelayFor(G.Wave + 1), 0.f, 1.f)), StartBtnH, WithAlpha(Green, 0.12f));
-			Frame2(RBtnX, StartBtnY, RBtnW, StartBtnH, 14.f, Cyan, 0.75f + 0.25f * Pulse);
+			Frame2(RBtnX, StartBtnY, RBtnW, StartBtnH, RBtnR, Cyan, 0.75f + 0.25f * Pulse);
 			C.TextCentered(TrF(TEXT("웨이브 %d 시작"), G.Wave + 1), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH / 2.f + 4.f - (G.AutoStartT >= 0.f ? 6.f : 0.f), FLinearColor::White, 16.f, true, RBtnW - 50.f);
 			if (G.AutoStartT >= 0.f) C.TextCentered(TrF(TEXT("%d초 뒤 자동"), FMath::CeilToInt(G.AutoStartT)), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH - 10.f, Green, 9.f, false);
 			C.Text(TEXT("Space"), RBtnX + RBtnW - 10.f, StartBtnY + StartBtnH - 7.f, Dim, 9.f, 2);
@@ -2144,7 +2144,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		}
 		else
 		{
-			Frame2(RBtnX, StartBtnY, RBtnW, StartBtnH, 14.f, LavP, 0.6f);
+			Frame2(RBtnX, StartBtnY, RBtnW, StartBtnH, RBtnR, LavP, 0.6f);
 			C.TextCentered(G.Phase == EPDPhase::Wave ? TrF(TEXT("웨이브 %d 진행 중"), G.Wave) : FString(Tr(TEXT("웨이브 시작"))), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH / 2.f - 1.f, Fg, 14.f, true, RBtnW - 20.f);
 			if (G.Phase == EPDPhase::Wave) C.TextCentered(TrF(TEXT("배속 ×%d (F)"), G.Speed), RBtnX + RBtnW / 2.f, StartBtnY + StartBtnH - 10.f, G.Speed > 1 ? Cyan : Dim, 10.f, true);
 		}
@@ -2169,7 +2169,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			if (bHov) C.Box(X, Y, W, H, WithAlpha(Col, 0.08f));
 			const float Fl = bHot ? FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f)) : 0.f; // 살 수 있으면 번쩍 (D-189)
 			if (bHot) C.Box(X, Y, W, H, WithAlpha(PinkP, 0.04f + 0.14f * Fl));
-			Frame2(X, Y, W, H, H / 2.f, bHot ? PinkP : LavP, bHot ? 0.8f + 0.2f * Fl : bHov ? 0.95f : 0.7f); // 두 겹 튜브 (D-274)
+			Frame2(X, Y, W, H, RBtnR, bHot ? PinkP : LavP, bHot ? 0.8f + 0.2f * Fl : bHov ? 0.95f : 0.7f); // 두 겹 튜브 (D-274)
 			if (bHot && Key[0] == TEXT('K') && G.PointsLeft() > 0) // 남은 포인트 꼬리표
 			{
 				const FString Pt = TrF(TEXT("포인트 %d"), G.PointsLeft());
@@ -2177,7 +2177,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 				C.Glow(FCanvas::RoundRectPoints(X + 12.f, Y + H / 2.f - 8.f, TW2, 16.f, RadPill(16.f)), Gold, 1.f, 0.4f);
 				C.TextCentered(Pt, X + 12.f + TW2 / 2.f, Y + H / 2.f, Gold, 9.f, true);
 			}
-			C.TextCentered(Name, X + (W - 12.f) / 2.f, Y + H / 2.f, bHot ? FLinearColor::White : UiValue, 13.f, true, W - (W > 150.f ? 120.f : 34.f)); // 가운데 글자 (D-274), 오른쪽 끝은 키 글자 자리
+			C.TextCentered(Name, X + (W - 12.f) / 2.f, Y + H / 2.f, bHot ? FLinearColor::White : UiValue, 15.f, true, W - (W > 150.f ? 120.f : 34.f)); // 가운데 글자 (D-274, D-353: 13 → 15), 오른쪽 끝은 키 글자 자리
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
@@ -2192,24 +2192,44 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Text(TrF(TEXT("칵테일 %d/%d"), N, CharmMax), RX + 14.f, CharmY + 22.f, UiTitle, 12.f, 0, true);
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		C.Text(TrF(TEXT("다음 %d웨이브"), (W0 + CharmEvery - 1) / CharmEvery * CharmEvery), RX + PW - 14.f, CharmY + 22.f, Dim, 9.f, 2);
-		// 선반 위 칵테일 잔 5개 (D-274 → D-280): 가진 칵테일은 술이 찬 잔, 빈 칸은 흐린 잔
+		// 선반 위 칵테일 잔 5개 (D-274 → D-280 → D-353): 가진 칵테일은 고를 때와 같은 잔 모양 · 색(칵테일 번호로 정해짐)에 술이 찬 잔, 빈 칸은 흐린 마티니 잔
 		{
-			static const TCHAR* BC[5] = {TEXT("ff6aaa"), TEXT("6edcff"), TEXT("ffd26e"), TEXT("8affc4"), TEXT("b48cff")};
-			const float SY = CharmY + 58.f;
+			static const TCHAR* CockCol[5] = {TEXT("ff6aaa"), TEXT("e8eeff"), TEXT("ffd26e"), TEXT("8fe9ff"), TEXT("b48cff")}; // 칵테일 고르기 화면과 같은 색표
+			const float SY = CharmY + 58.f, K = 0.4f; // K = 고르기 화면 잔의 0.4배
 			C.Lines({FVector2f(RX + 12.f, SY), FVector2f(RX + PW - 12.f, SY)}, Hex(TEXT("a896e1"), 0.5f), 1.f);
 			for (int32 I = 0; I < CharmMax; ++I)
 			{
-				const float BXc = RX + 26.f + I * (PW - 52.f) / (CharmMax - 1);
-				const bool bHave = I < N;
-				const FLinearColor Bc = bHave ? Hex(BC[I % 5]) : Hex(TEXT("5f6878"), 0.6f);
-				// 칵테일 잔 (D-280): 넓은 V 잔 + 다리 + 받침. 가진 칵테일은 잔에 술이 차고 올리브 하나
-				C.Glow({FVector2f(BXc - 11.f, SY - 30.f), FVector2f(BXc + 11.f, SY - 30.f), FVector2f(BXc, SY - 15.f), FVector2f(BXc - 11.f, SY - 30.f)}, Bc, 1.2f, bHave ? 0.45f : 0.f);
-				C.Glow({FVector2f(BXc, SY - 15.f), FVector2f(BXc, SY - 3.f)}, Bc, 1.1f, bHave ? 0.35f : 0.f);
-				C.Glow({FVector2f(BXc - 7.f, SY - 2.f), FVector2f(BXc + 7.f, SY - 2.f)}, Bc, 1.1f, bHave ? 0.35f : 0.f);
-				if (bHave)
+				const float GX = RX + 26.f + I * (PW - 52.f) / (CharmMax - 1);
+				auto Q = [&](float Dx, float Dy) { return FVector2f(GX + Dx * K, SY + Dy * K); }; // 고르기 화면 잔 좌표(바닥 가운데 원점, 위 = 음수)를 줄여 찍음
+				if (I >= N) // 빈 칸: 흐린 마티니 잔
 				{
-					for (int32 K = 0; K < 4; ++K) { const float Ly = SY - 26.f + K * 2.5f, Hw = 8.f * (1.f - K * 2.5f / 11.f); C.Lines({FVector2f(BXc - Hw, Ly), FVector2f(BXc + Hw, Ly)}, WithAlpha(Bc, 0.55f), 1.f); }
-					C.Lines(FCanvas::CirclePoints(FVector2f(BXc + 4.f, SY - 27.f), 2.2f, 10), Hex(TEXT("9cffb0")), 1.f);
+					const FLinearColor Ec = Hex(TEXT("5f6878"), 0.6f);
+					C.Lines({Q(-26.f, -70.f), Q(26.f, -70.f), Q(0.f, -36.f), Q(-26.f, -70.f)}, Ec, 1.f);
+					C.Lines({Q(0.f, -36.f), Q(0.f, -4.f)}, Ec, 1.f);
+					C.Lines({Q(-16.f, -2.f), Q(16.f, -2.f)}, Ec, 1.f);
+					continue;
+				}
+				const int32 Id = (int32)G.Charms[I];
+				const FLinearColor Col = Hex(CockCol[Id % 5]);
+				switch (Id % 3) // 0 마티니 1 하이볼 2 온더록 (고르기 화면 D-286 과 같은 규칙)
+				{
+				case 0:
+					C.Glow({Q(-26.f, -70.f), Q(26.f, -70.f), Q(0.f, -36.f), Q(-26.f, -70.f)}, Col, 1.3f, 0.45f);
+					C.Glow({Q(0.f, -36.f), Q(0.f, -4.f)}, Col, 1.1f, 0.35f);
+					C.Glow({Q(-16.f, -2.f), Q(16.f, -2.f)}, Col, 1.1f, 0.35f);
+					for (int32 J = 0; J < 4; ++J) { const float Hw = 22.f * (1.f - J * 6.f / 30.f); C.Lines({Q(-Hw, -64.f + J * 6.f), Q(Hw, -64.f + J * 6.f)}, WithAlpha(Col, 0.55f), 1.f); }
+					C.Lines(FCanvas::CirclePoints(Q(9.f, -66.f), 2.2f, 10), Hex(TEXT("9cffb0")), 1.f); // 올리브
+					break;
+				case 1:
+					C.Glow({Q(-18.f, -78.f), Q(-16.f, -2.f), Q(16.f, -2.f), Q(18.f, -78.f)}, Col, 1.3f, 0.45f);
+					C.Lines({Q(6.f, -86.f), Q(-4.f, -30.f)}, FLinearColor(1.f, 1.f, 1.f, 0.6f), 1.f); // 빨대 (칸 머리글에 안 닿게 조금 짧게)
+					for (int32 J = 0; J < 6; ++J) C.Lines({Q(-15.f, -62.f + J * 10.f), Q(15.f, -62.f + J * 10.f)}, WithAlpha(Col, 0.5f), 1.f);
+					break;
+				default:
+					C.Glow({Q(-24.f, -46.f), Q(-22.f, -2.f), Q(22.f, -2.f), Q(24.f, -46.f)}, Col, 1.3f, 0.45f);
+					for (int32 J = 0; J < 3; ++J) C.Lines({Q(-21.f, -34.f + J * 10.f), Q(21.f, -34.f + J * 10.f)}, WithAlpha(Col, 0.5f), 1.f);
+					C.Lines({Q(-12.f, -30.f), Q(-2.f, -38.f), Q(8.f, -30.f), Q(-2.f, -22.f), Q(-12.f, -30.f)}, FLinearColor(1.f, 1.f, 1.f, 0.6f), 1.f); // 얼음
+					break;
 				}
 			}
 		}
