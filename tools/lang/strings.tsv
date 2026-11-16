@@ -1,4 +1,6 @@
 ko	en	ja	zh-Hans	zh-Hant	file
+강화!	Empowered!	強化!	强化!	強化!	PDBoardCine.cpp
+클릭: 건너뛰기	Click: skip	クリック: スキップ	点击: 跳过	點擊: 跳過	PDBoardCine.cpp
 저격	Snipe	狙撃	狙击	狙擊	PDBoardDraw.h
 폭발	Blast	爆発	爆炸	爆炸	PDBoardDraw.h
 연사	Rapid	連射	连射	連射	PDBoardDraw.h
@@ -689,6 +691,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 수직 동기화	VSync	垂直同期	垂直同步	垂直同步	PDBoardPaint.cpp
 월드 이펙트 (나이아가라)	World Effects (Niagara)	ワールドエフェクト (ナイアガラ)	世界特效 (Niagara)	世界特效 (Niagara)	PDBoardPaint.cpp
 화면 흔들림·번쩍임	Screen Shake · Flash	画面の揺れ・フラッシュ	画面震动·闪光	畫面震動·閃光	PDBoardPaint.cpp
+완성 연출	Completion cutscenes	完成演出	完成演出	完成演出	PDBoardPaint.cpp
 소리	Sound	サウンド	声音	聲音	PDBoardPaint.cpp
 효과음 볼륨	SFX Volume	効果音の音量	音效音量	音效音量	PDBoardPaint.cpp
 음악 볼륨	Music Volume	音楽の音量	音乐音量	音樂音量	PDBoardPaint.cpp
@@ -699,6 +702,9 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 흑백	Mono	モノクロ	黑白	黑白	PDBoardPaint.cpp
 빨강·하양	Red · White	赤・白	红·白	紅·白	PDBoardPaint.cpp
 제한 없음	Unlimited	制限なし	不限制	不限制	PDBoardPaint.cpp
+전부	All	すべて	全部	全部	PDBoardPaint.cpp
+조커만	Jokers only	ジョーカーのみ	仅小丑	僅小丑	PDBoardPaint.cpp
+끔	Off	オフ	关	關	PDBoardPaint.cpp
 켜짐	On	オン	开	開	PDBoardPaint.cpp
 꺼짐	Off	オフ	关	關	PDBoardPaint.cpp
 처음부터 다시	Reset hints	最初から	重新开始	重新開始	PDBoardPaint.cpp

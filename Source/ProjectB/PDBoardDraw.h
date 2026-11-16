@@ -619,19 +619,19 @@ inline const TCHAR* MenuItemName(int I)
 	return Tr(N[I]);
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
-enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Sound, Volume, Music, Help, Close, Count }; // Help: 도움말 켜기·처음부터 (D-217)
-constexpr float SetW = 560.f, SetRowH = 38.f, SetRowGap = 4.f, SetLabelW = 200.f, SetBtnH = 30.f;
+enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Cine, Sound, Volume, Music, Help, Close, Count }; // Cine: 완성 연출 전부/조커만/끔 (D-314) // Help: 도움말 켜기·처음부터 (D-217)
+constexpr float SetW = 560.f, SetRowH = 35.f, SetRowGap = 3.f, SetLabelW = 200.f, SetBtnH = 30.f;
 constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 140.f; // 언어 줄이 늘어 조금 위로 (D-159)
 constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
-inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Lang ? (int)EPDLang::Count : Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || SetBarRow(Row) ? 3 : Row == (int)ESetRow::Help ? 2 : 1; }
+inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Lang ? (int)EPDLang::Count : Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || Row == (int)ESetRow::Cine || SetBarRow(Row) ? 3 : Row == (int)ESetRow::Help ? 2 : 1; }
 inline FLinearColor LevelDotColor() { return GPDCardTheme == 1 ? FLinearColor::White : Hex(TEXT("ffd96a")); } // 타워 레벨 점 (흑백이면 흰빛)
 inline float SetBtnW(int Row, int Idx)
 {
 	if (Row == (int)ESetRow::Lang) return 66.f; // 언어 다섯 (D-159)
-	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return 112.f;
+	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || Row == (int)ESetRow::Cine) return 112.f;
 	if (SetBarRow(Row)) return Idx == 1 ? 220.f : 40.f;
 	if (Row == (int)ESetRow::Close) return 160.f;
 	if (Row == (int)ESetRow::Help) return Idx == 0 ? 120.f : 150.f;
@@ -641,7 +641,7 @@ inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 {
 	const float X0 = SetX + SetLabelW, Y = SetRowY(Row) + (SetRowH - SetBtnH) / 2.f;
 	if (Row == (int)ESetRow::Lang) return FVector2f(X0 + Idx * (66.f + 6.f), Y);
-	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
+	if (Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || Row == (int)ESetRow::Cine) return FVector2f(X0 + Idx * (112.f + 8.f), Y);
 	if (SetBarRow(Row)) return FVector2f(Idx == 0 ? X0 : Idx == 1 ? X0 + 48.f : X0 + 48.f + 220.f + 8.f, Y);
 	if (Row == (int)ESetRow::Close) return FVector2f(DesignW / 2.f - 80.f, Y);
 	if (Row == (int)ESetRow::Help) return FVector2f(Idx == 0 ? X0 : X0 + 128.f, Y);

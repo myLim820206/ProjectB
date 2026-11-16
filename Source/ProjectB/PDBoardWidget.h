@@ -208,6 +208,7 @@ private:
 		int32 WindowMode = 2; // 0 창, 1 전체화면, 2 테두리 없는 전체화면 (기본, D-158)
 		bool bWorldFx = true; // 나이아가라 월드 이펙트
 		bool bShake = true;   // 화면 흔들림·번쩍임
+		int32 Cine = 0;       // 완성 연출 (D-314): 0 전부 · 1 조커만 · 2 끔
 		bool bSound = true;
 		float Volume = 0.8f;
 		float MusicVolume = 0.6f; // 배경 음악 (D-117)
@@ -352,6 +353,15 @@ private:
 	int32 TvMixWave = -1;
 	void TvDial();
 	void PaintTv(FCanvas& C) const;
+	// 완성 연출 (D-314, D-315): 합성 · 조커 · 상위 조커 · 조커 레벨 10 · 같은 조커 합치기 · 상위 조커 레벨 10마다. 도는 동안 게임은 멈추고, 클릭하면 바로 건너뛴다
+	enum class ECine : uint8 { Fuse, Joker, Upper, JokerLv, Merge, UpperLv };
+	struct FCine { ECine Kind = ECine::Fuse; float T = 0.f, Dur = 1.f; int32 Cell = -1; PD::FPDCard Card; int32 Level = 1, Joker = -1; bool bNew = false, bSame = false; TArray<FVector2f> Mats; uint32 Seed = 0; }; // bSame: 같은 상위 조커끼리 합치기 (두 장 다 그 조커)
+	TArray<FCine> Cines;                     // 줄 서 있는 연출 (맨 앞이 지금)
+	bool CineActive() const { return Cines.Num() > 0; }
+	void QueueCine(const PD::FPDEvent& E);
+	void UpdateCine(float Dt);
+	void SkipCine() { if (Cines.Num()) Cines.RemoveAt(0); }
+	void PaintCine(FCanvas& C) const;
 	int32 HoverX = -1, HoverY = -1;
 	FVector2f Mouse = FVector2f(0.f, 0.f);
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보

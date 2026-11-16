@@ -299,6 +299,8 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("TvChannel"), TvChannel, GGameUserSettingsIni); // 채널 TV (D-316)
+		GConfig->GetInt(PDSetSection, TEXT("Cine"), Settings.Cine, GGameUserSettingsIni); // 완성 연출 (D-314)
+		Settings.Cine = FMath::Clamp(Settings.Cine, 0, 2);
 		TvChannel = FMath::Clamp(TvChannel, 0, 2); // 숨은 채널은 저장해도 CH1 로 시작
 		GConfig->GetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 		Settings.CardTheme = FMath::Clamp(Settings.CardTheme, 0, 2);
@@ -382,6 +384,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("TvChannel"), TvChannel, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("Cine"), Settings.Cine, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
@@ -449,6 +452,7 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 	case ESetRow::VSync: Settings.bVSync = !Settings.bVSync; SaveSettings(); ApplyFrameSettings(); break;
 	case ESetRow::WorldFx: Settings.bWorldFx = !Settings.bWorldFx; SaveSettings(); break;
 	case ESetRow::Shake: Settings.bShake = !Settings.bShake; SaveSettings(); break;
+	case ESetRow::Cine: Settings.Cine = ((Settings.Cine + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; SaveSettings(); break;
 	case ESetRow::Sound: SetSound(!Settings.bSound); break;
 	case ESetRow::Volume:
 		Settings.Volume = FMath::Clamp(FMath::RoundToFloat((Settings.Volume + 0.1f * Delta) * 10.f) / 10.f, 0.f, 1.f);
@@ -480,6 +484,7 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			else if (Row == (int32)ESetRow::Window) { ApplyWindowMode(I); UiSound(EPDSound::Move); }
 			else if (Row == (int32)ESetRow::CardTheme) { Settings.CardTheme = I; GPDCardTheme = I; SaveSettings(); UiSound(EPDSound::Move); }
 				else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
+				else if (Row == (int32)ESetRow::Cine) { Settings.Cine = I; SaveSettings(); UiSound(EPDSound::Move); }
 				else if (Row == (int32)ESetRow::Help && I == 1) { HintSeen = 0; HintNow = -1; SaveProgress(); UiSound(EPDSound::Move); } // 도움말 처음부터 (D-217)
 			else if (SetBarRow(Row))
 			{
@@ -653,7 +658,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
 	{
 		const float AutoT0 = Game.AutoStartT;
-		if (!bTree && !bUpg && !bMenu && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
+		if (CineActive()) UpdateCine(Dt); // 완성 연출 동안은 게임이 멈춘다 (D-314)
+		else if (!bTree && !bUpg && !bMenu && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
 		if (HintNow >= 0 && AutoT0 >= 0.f && Game.AutoStartT >= 0.f && Game.Phase == EPDPhase::Build) Game.AutoStartT = AutoT0; // 도움말이 떠 있는 동안 자동 시작 시계는 멈춤 (D-217)
 	}
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
@@ -1235,6 +1241,7 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
 	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
+	if (CineActive() && !bMenu && !bSettings) { SkipCine(); return; } // 완성 연출: 클릭하면 바로 건너뜀 (D-314 ④)
 	if (bRanking) // 랭킹 (D-168): 탭 · 닫기, 창 밖·오른쪽 클릭 = 닫기
 	{
 		for (int32 I = 0; I < (int32)EPDMode::Count; ++I)

@@ -332,6 +332,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintHandTip(C); // 손패 툴팁은 판 위 UI 위에 (D-214)
 	PaintHint(C); // 도움말 카드 (D-217)
 	PaintLevelUp(C); // 레벨업 (D-273)
+	PaintCine(C); // 완성 연출 (D-314): 판 · 패널 위, 창 아래
 	PaintScreens(C); Part(5);
 	PaintTree(C);
 	// 화면 번쩍임과 덮개 화면 (제목, 게임 오버), 메뉴
@@ -3789,7 +3790,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		NeonText(C, TEXT("JUKEBOX"), MidX, SetBoxY + 22.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f);
 		C.TextCentered(TEXT("설정"), MidX, SetBoxY + 42.f, Fg, 12.f, true);
 	}
-	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("도움말"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("도움말"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		const FLinearColor Cc = bOn ? PinkS : LavS; // 알약 튜브 (D-293). 켜진 · 고른 것은 전부 분홍, 꺼진 것은 연보라 (D-328 ③: 초록 · 카드 색 섞이던 것 통일)
 		(void)Col; // 색은 이제 켜짐/꺼짐으로만 (D-328 ③). 카드 색 줄은 아래에서 색 점을 따로 찍는다
@@ -3828,6 +3829,12 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		{
 			static const TCHAR* Caps[] = {TEXT("60"), TEXT("120"), TEXT("제한 없음")};
 			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Caps[I], Cyan, Settings.FrameCap == I, bRowSel); }
+			break;
+		}
+		case ESetRow::Cine: // 완성 연출 (D-314): 전부 / 조커만 / 끔
+		{
+			static const TCHAR* Cs[] = {TEXT("전부"), TEXT("조커만"), TEXT("끔")};
+			for (int32 I = 0; I < 3; ++I) { const FVector2f B = SetBtnPos(Row, I); Button(B.X, B.Y, SetBtnW(Row, I), Cs[I], Cyan, Settings.Cine == I, bRowSel); }
 			break;
 		}
 		case ESetRow::VSync:

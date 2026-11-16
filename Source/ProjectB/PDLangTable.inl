@@ -1,5 +1,7 @@
 // 자동 생성: tools/lang/gen_lang.py (tools/lang/strings.tsv). 직접 고치지 않는다
 static const TCHAR* const PDLangRows[][5] = {
+	{TEXT("강화!"), TEXT("Empowered!"), TEXT("強化!"), TEXT("强化!"), TEXT("強化!")},
+	{TEXT("클릭: 건너뛰기"), TEXT("Click: skip"), TEXT("クリック: スキップ"), TEXT("点击: 跳过"), TEXT("點擊: 跳過")},
 	{TEXT("저격"), TEXT("Snipe"), TEXT("狙撃"), TEXT("狙击"), TEXT("狙擊")},
 	{TEXT("폭발"), TEXT("Blast"), TEXT("爆発"), TEXT("爆炸"), TEXT("爆炸")},
 	{TEXT("연사"), TEXT("Rapid"), TEXT("連射"), TEXT("连射"), TEXT("連射")},
@@ -690,6 +692,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("수직 동기화"), TEXT("VSync"), TEXT("垂直同期"), TEXT("垂直同步"), TEXT("垂直同步")},
 	{TEXT("월드 이펙트 (나이아가라)"), TEXT("World Effects (Niagara)"), TEXT("ワールドエフェクト (ナイアガラ)"), TEXT("世界特效 (Niagara)"), TEXT("世界特效 (Niagara)")},
 	{TEXT("화면 흔들림·번쩍임"), TEXT("Screen Shake · Flash"), TEXT("画面の揺れ・フラッシュ"), TEXT("画面震动·闪光"), TEXT("畫面震動·閃光")},
+	{TEXT("완성 연출"), TEXT("Completion cutscenes"), TEXT("完成演出"), TEXT("完成演出"), TEXT("完成演出")},
 	{TEXT("소리"), TEXT("Sound"), TEXT("サウンド"), TEXT("声音"), TEXT("聲音")},
 	{TEXT("효과음 볼륨"), TEXT("SFX Volume"), TEXT("効果音の音量"), TEXT("音效音量"), TEXT("音效音量")},
 	{TEXT("음악 볼륨"), TEXT("Music Volume"), TEXT("音楽の音量"), TEXT("音乐音量"), TEXT("音樂音量")},
@@ -700,6 +703,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("흑백"), TEXT("Mono"), TEXT("モノクロ"), TEXT("黑白"), TEXT("黑白")},
 	{TEXT("빨강·하양"), TEXT("Red · White"), TEXT("赤・白"), TEXT("红·白"), TEXT("紅·白")},
 	{TEXT("제한 없음"), TEXT("Unlimited"), TEXT("制限なし"), TEXT("不限制"), TEXT("不限制")},
+	{TEXT("전부"), TEXT("All"), TEXT("すべて"), TEXT("全部"), TEXT("全部")},
+	{TEXT("조커만"), TEXT("Jokers only"), TEXT("ジョーカーのみ"), TEXT("仅小丑"), TEXT("僅小丑")},
+	{TEXT("끔"), TEXT("Off"), TEXT("オフ"), TEXT("关"), TEXT("關")},
 	{TEXT("켜짐"), TEXT("On"), TEXT("オン"), TEXT("开"), TEXT("開")},
 	{TEXT("꺼짐"), TEXT("Off"), TEXT("オフ"), TEXT("关"), TEXT("關")},
 	{TEXT("처음부터 다시"), TEXT("Reset hints"), TEXT("最初から"), TEXT("重新开始"), TEXT("重新開始")},
@@ -910,4 +916,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 909;
+static const int32 PDLangRowCount = 915;
