@@ -1345,6 +1345,9 @@ struct SPDBoardWidget::FCanvas
 			ESlateDrawEffect::None, Col);
 		NextLayer();
 	}
+	// 사각 클리핑: PushClip ~ PopClip 사이에 그린 것은 이 사각 밖으로 나가지 않는다 (흐르는 글자 등)
+	void PushClip(float X, float Y, float W, float H) { Out.PushClip(FSlateClippingZone(Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))))); }
+	void PopClip() { Out.PopClip(); }
 	void Panel(float X, float Y, float W, float H) { Lines(RectPoints(X, Y, W, H), Hex(TEXT("7fd6ff"), 0.3f), 1.f); }
 
 	// 무늬 도형: ♠ 삼각형, ♥ 원, ♦ 마름모, ♣ 사각형

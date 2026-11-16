@@ -249,13 +249,12 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 	const float NmW = FCanvas::Measure(Nm, FCanvas::Font(9.f, true)).X, NmY = GY + 22.f;
 	if (Sw < 0.35f) {} // 레코드가 빠지는 동안 이름은 비움
 	else if (NmW <= TxW) C.Text(Nm, TxX, NmY, Fg, 9.f, 0, true);
-	else // 길면 흐른다 (유리창 밖은 덮개로 가림)
+	else // 길면 흐른다 (글자 칸 밖은 클리핑으로 잘라 유리창 밖으로 안 나간다)
 	{
 		const float Loop = NmW + 24.f, Off = FMath::Fmod(FMath::Max(0.f, Sw - 1.2f) * 22.f, Loop); // 곡을 바꾸면 처음부터, 1초쯤 멈췄다 흐름
+		C.PushClip(TxX, NmY - 12.f, TxW, 16.f);
 		for (int32 K = 0; K < 2; ++K) C.Text(Nm, TxX - Off + K * Loop, NmY, Fg, 9.f, 0, true);
-		C.Box(GX + 22.f, NmY - 10.f, 8.f, 13.f, Hex(TEXT("0b0d14"), 1.f));
-		C.Box(GX + GW - 2.f, NmY - 10.f, 26.f, 13.f, Bg);
-		C.Box(GX - 26.f, NmY - 10.f, 26.f, 13.f, Bg);
+		C.PopClip();
 	}
 	// 선곡 버튼 줄: ◀ 번호 ▶ (누르는 버튼은 눌린 듯 살짝 내려감)
 	for (int32 Dir = -1; Dir <= 1; Dir += 2)

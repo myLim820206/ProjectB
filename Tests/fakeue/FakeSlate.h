@@ -74,7 +74,18 @@ class FWidgetStyle
 public:
 	const FLinearColor& GetColorAndOpacityTint() const { return FLinearColor::White; }
 };
-class FSlateWindowElementList {};
+// Layout/Clipping.h: 화면 좌표 사각 클리핑 (DrawElements.h 가 포함)
+class FSlateClippingZone
+{
+public:
+	explicit FSlateClippingZone(const FPaintGeometry& PaintingGeometry) { (void)PaintingGeometry; }
+};
+class FSlateWindowElementList
+{
+public:
+	int32 PushClip(const FSlateClippingZone& InClipZone) { (void)InClipZone; return 0; }
+	void PopClip() {}
+};
 
 enum class ESlateDrawEffect : uint8 { None = 0, NoBlending = 1 << 0, PreMultipliedAlpha = 1 << 1, NoGamma = 1 << 2, InvertAlpha = 1 << 3, NoPixelSnapping = 1 << 4, DisabledEffect = 1 << 5, IgnoreTextureAlpha = 1 << 6, ReverseGamma = 1 << 7 };
 inline ESlateDrawEffect operator|(ESlateDrawEffect A, ESlateDrawEffect B) { return (ESlateDrawEffect)((uint8)A | (uint8)B); }
