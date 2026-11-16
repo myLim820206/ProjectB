@@ -51,7 +51,8 @@ private:
 	// 음악 (D-188 → D-264 → D-319): [0~3] 인게임 재즈 4곡(주크박스로 고름), [4] 보스, [5] 메뉴. 모두 계속 흘리고 소리 크기만 엇갈려 바꾼다
 	void UpdateMusic();
 	static constexpr int32 MusicN = 6; // UPROPERTY 배열 크기라 숫자로 (UHT 가 식을 못 읽는다). = 재즈 곡 수 + 2 (cpp 에서 확인)
-	static constexpr int32 MusicBoss = 4, MusicMenu = 5;
+	static constexpr int32 MusicBoss = 4;
+	static constexpr int32 MusicMenu = 5; // 한 줄에 둘 선언하면 MSVC 가 DLL 클래스에서 C2487
 	TFuture<std::vector<int16_t>> MusicJob[MusicN];
 	TArray<uint8> MusicPcm[MusicN];
 	UPROPERTY(Transient)
