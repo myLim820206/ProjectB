@@ -154,6 +154,25 @@ inline FLinearColor EnemyColor(EPDEnemy T)
 	default: return Hex(TEXT("e8f0ff"));
 	}
 }
+inline const TCHAR* BossName(EPDEnemy T);
+// 채널 TV 다이얼 (D-316): TV 오른쪽 아래 손잡이 중 위의 것
+constexpr float TvDialR = 11.f;
+inline FVector2f TvDialPos() { return FVector2f(RX + PW - 22.f, FY + PowCardH - 50.f); }
+// 적 이름 (보스는 BossName)
+inline const TCHAR* EnemyName(EPDEnemy T)
+{
+	switch (T)
+	{
+	case EPDEnemy::Normal: return Tr(TEXT("병정"));
+	case EPDEnemy::Fast: return Tr(TEXT("빠른 병정"));
+	case EPDEnemy::Tank: return Tr(TEXT("탱크"));
+	case EPDEnemy::Armored: return Tr(TEXT("갑옷 병정"));
+	case EPDEnemy::Splitter: return Tr(TEXT("분열 병정"));
+	case EPDEnemy::Regen: return Tr(TEXT("재생 병정"));
+	case EPDEnemy::Mini: return Tr(TEXT("졸개"));
+	default: return BossName(T);
+	}
+}
 inline const TCHAR* BossName(EPDEnemy T)
 {
 	switch (T)

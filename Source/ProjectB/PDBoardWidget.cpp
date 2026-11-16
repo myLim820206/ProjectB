@@ -298,6 +298,8 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetInt(PDSetSection, TEXT("WindowMode"), Settings.WindowMode, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
+		GConfig->GetInt(PDSetSection, TEXT("TvChannel"), TvChannel, GGameUserSettingsIni); // 채널 TV (D-316)
+		TvChannel = FMath::Clamp(TvChannel, 0, 2); // 숨은 채널은 저장해도 CH1 로 시작
 		GConfig->GetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 		Settings.CardTheme = FMath::Clamp(Settings.CardTheme, 0, 2);
 		GPDCardTheme = Settings.CardTheme;
@@ -349,6 +351,7 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("TotalKills")) GoalStats.TotalKills = FMath::Max(0ll, (long long)FCString::Strtoi64(*Val, nullptr, 10));
 			else if (Key == TEXT("BestLevel")) GoalStats.BestLevel = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("BestKills")) GoalStats.BestKills = FMath::Max(0, FCString::Atoi(*Val));
+			else if (Key == TEXT("TvSecret")) bTvSecret = FCString::Atoi(*Val) != 0; // 숨은 채널 (D-316)
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
@@ -378,6 +381,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("FrameCap"), Settings.FrameCap, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("TvChannel"), TvChannel, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
@@ -390,8 +394,8 @@ void SPDBoardWidget::SaveProgress()
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
-		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\nTvSecret=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
+		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills, bTvSecret ? 1 : 0), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -560,6 +564,23 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		for (const FString& S : AffordableNames()) if (!CouldBuy.Contains(S) && NowAffordable.Num() < 3) NowAffordable.Add(S);
 		SaveProgress();
 	}
+	// 채널 TV CH1 (D-316): 다음(진행 중이면 지금) 웨이브의 적을 종류별로 센다. 웨이브가 바뀔 때만
+	if (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)
+	{
+		const int32 NW = Game.Phase == EPDPhase::Wave ? Game.Wave : Game.Wave + 1;
+		if (NW != TvMixWave)
+		{
+			TvMixWave = NW;
+			TvMix.Reset();
+			for (const FPDEnemy& E : Game.PreviewWaveSpec(NW))
+			{
+				FTvMix* M = TvMix.FindByPredicate([&E](const FTvMix& X) { return X.T == E.Type; });
+				if (M) ++M->N; else TvMix.Add({E.Type, 1});
+			}
+			TvMix.StableSort([](const FTvMix& A, const FTvMix& B) { return EnemyDef(A.T).bBoss && !EnemyDef(B.T).bBoss; });
+		}
+	}
+	else TvMixWave = -1;
 	// 칸 메뉴 상자 (D-312): 연 칸의 타워가 없어지거나, 다른 모드 · 창이 켜지면 닫는다. 할 일 줄은 매 프레임 다시 (족보 번호가 바뀌어도 맞게)
 	if (MenuCell >= 0)
 	{
@@ -1401,6 +1422,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		UiSound(EPDSound::Move);
 		return;
 	}
+	if (!bRight && FVector2f::Distance(P, TvDialPos()) <= TvDialR + 3.f) { TvDial(); return; } // 채널 TV 다이얼 (D-316)
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
 	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; UnlSetTab(1); Sel = -1; return; } // 도감은 조커 판부터 (D-265)

@@ -25,6 +25,13 @@ ko	en	ja	zh-Hans	zh-Hant	file
 공격력 ×1.5 · 사거리 ×1.25	ATK ×1.5 · Range ×1.25	攻撃力 ×1.5 · 射程 ×1.25	攻击力 ×1.5 · 射程 ×1.25	攻擊力 ×1.5 · 射程 ×1.25	PDBoardDraw.h
 공격력 ×1.5	ATK ×1.5	攻撃力 ×1.5	攻击力 ×1.5	攻擊力 ×1.5	PDBoardDraw.h
  연쇄×%s	 Chain×%s	 連鎖×%s	 连锁×%s	 連鎖×%s	PDBoardDraw.h
+병정	Soldier	兵士	士兵	士兵	PDBoardDraw.h
+빠른 병정	Fast soldier	素早い兵士	快速士兵	快速士兵	PDBoardDraw.h
+탱크	Tank	タンク	坦克	坦克	PDBoardDraw.h
+갑옷 병정	Armored soldier	鎧の兵士	装甲士兵	裝甲士兵	PDBoardDraw.h
+분열 병정	Splitter	分裂兵士	分裂士兵	分裂士兵	PDBoardDraw.h
+재생 병정	Regenerator	再生兵士	再生士兵	再生士兵	PDBoardDraw.h
+졸개	Minion	手下	小兵	小兵	PDBoardDraw.h
 방패 거인	Shield Giant	盾の巨人	盾之巨人	盾之巨人	PDBoardDraw.h
 분열 군주	Split Lord	分裂の君主	分裂君主	分裂君主	PDBoardDraw.h
 재생 왕	Regen King	再生の王	再生之王	再生之王	PDBoardDraw.h
@@ -468,10 +475,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
 클릭: 메뉴 (합성 %d · 판매 +%d 경험치)	Click: menu (fuse %d · sell +%d XP)	クリック: メニュー (合成 %d · 売却 +%d 経験値)	点击: 菜单 (合成 %d · 出售 +%d 经验)	點擊: 選單 (合成 %d · 出售 +%d 經驗)	PDBoardPaint.cpp
-남은 적	Enemies left	残りの敵	剩余敌人	剩餘敵人	PDBoardPaint.cpp
-%d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
-웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardPaint.cpp
-처치 %d · 놓침 %d	Kills %d · Leaked %d	撃破 %d · 突破 %d	击杀 %d · 漏掉 %d	擊殺 %d · 漏掉 %d	PDBoardPaint.cpp
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDBoardPaint.cpp
 다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDBoardPaint.cpp
 레벨 %d	Level %d	レベル %d	等级 %d	等級 %d	PDBoardPaint.cpp
@@ -479,11 +482,8 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
 자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
 끄기 X	Off X	やめる X	关闭 X	關閉 X	PDBoardPaint.cpp
-판 위력	Board Power	盤の威力	场上威力	場上威力	PDBoardPaint.cpp
-족보 덤 ×%.1f · 족보 %d · 조커 %d	Hand bonus ×%.1f · Hands %d · Jokers %d	役ボーナス ×%.1f · 役 %d · ジョーカー %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	PDBoardPaint.cpp
-타워를 놓으면 위력이 보인다	Place towers to see power	タワーを置くと威力が見える	放置塔后显示威力	放置塔後顯示威力	PDBoardPaint.cpp
-초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDBoardPaint.cpp
 웨이브 %d 시작	Start wave %d	ウェーブ %d 開始	开始第%d波	開始第%d波	PDBoardPaint.cpp
+%d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
 웨이브 %d 진행 중	Wave %d in progress	ウェーブ %d 進行中	第%d波 进行中	第%d波 進行中	PDBoardPaint.cpp
 웨이브 시작	Start Wave	ウェーブ開始	开始波次	開始波次	PDBoardPaint.cpp
 배속 ×%d (F)	Speed ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	PDBoardPaint.cpp
@@ -704,9 +704,20 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 처음부터 다시	Reset hints	最初から	重新开始	重新開始	PDBoardPaint.cpp
 화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)	Display mode only changes in packaged builds (saved only in the editor)	画面モードはパッケージ版でのみ変わる (エディタでは保存のみ)	画面模式仅在打包版本中改变 (编辑器中只保存)	畫面模式僅在打包版本中改變 (編輯器中只儲存)	PDBoardPaint.cpp
 ↑↓ 고르기 · ←→ 바꾸기 · Enter 켜기/끄기 · Esc 메뉴로	↑↓ select · ←→ change · Enter toggle · Esc back to menu	↑↓ 選ぶ · ←→ 変更 · Enter オン/オフ · Esc メニューへ	↑↓ 选择 · ←→ 更改 · Enter 开/关 · Esc 返回菜单	↑↓ 選擇 · ←→ 更改 · Enter 開/關 · Esc 返回選單	PDBoardPaint.cpp
+남은 적 %d/%d	Enemies left %d/%d	残りの敵 %d/%d	剩余敌人 %d/%d	剩餘敵人 %d/%d	PDBoardTv.cpp
+웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardTv.cpp
+처치 %d · 놓침 %d	Kills %d · Leaked %d	撃破 %d · 突破 %d	击杀 %d · 漏掉 %d	擊殺 %d · 漏掉 %d	PDBoardTv.cpp
+지금 웨이브 %d	Current wave %d	現在のウェーブ %d	当前波次 %d	當前波次 %d	PDBoardTv.cpp
+다음 웨이브 %d	Next wave %d	次のウェーブ %d	下一波 %d	下一波 %d	PDBoardTv.cpp
+마지막 웨이브 · 최종 보스	Final wave · final boss	最終ウェーブ · 最終ボス	最后一波 · 最终首领	最後一波 · 最終首領	PDBoardTv.cpp
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+남은 적	Enemies left	残りの敵	剩余敌人	剩餘敵人	PDLangTable.inl
+판 위력	Board Power	盤の威力	场上威力	場上威力	PDLangTable.inl
+족보 덤 ×%.1f · 족보 %d · 조커 %d	Hand bonus ×%.1f · Hands %d · Jokers %d	役ボーナス ×%.1f · 役 %d · ジョーカー %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	PDLangTable.inl
+타워를 놓으면 위력이 보인다	Place towers to see power	タワーを置くと威力が見える	放置塔后显示威力	放置塔後顯示威力	PDLangTable.inl
+초당 피해 어림	Est. damage/s	秒間ダメージ目安	每秒伤害估计	每秒傷害估計	PDLangTable.inl
 족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기	Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed	役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ	鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养	滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養	PDLangTable.inl
 클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)	Click: feed · kill +%.0f XP (boss +%.0f)	クリック: エサ · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 喂养 · 击杀 +%.0f 经验 (首领 +%.0f)	點擊: 餵養 · 擊殺 +%.0f 經驗 (首領 +%.0f)	PDLangTable.inl
 오른쪽 클릭: 판매 (+%d 경험치)	Right-click: sell (+%d XP)	右クリック: 売却 (+%d 経験値)	右键: 出售 (+%d 经验)	右鍵: 出售 (+%d 經驗)	PDLangTable.inl

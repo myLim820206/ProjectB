@@ -625,6 +625,7 @@ public:
 	std::vector<FPDEvent> Events;
 	std::vector<FPDSoundEvent> Sounds;
 	bool bMuted = false;
+	std::vector<FPDEnemy> PreviewWaveSpec(int W) const { FPDGame C = *this; C.bMuted = true; return C.WaveSpec(W); } // 그 웨이브에 나올 적 (사본에서, 채널 TV CH1 D-316)
 
 private:
 	FPDEnemy MakeEnemy(EPDEnemy T, float BaseHp, int W);

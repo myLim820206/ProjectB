@@ -342,6 +342,16 @@ private:
 	void DoCellAct(int32 Row);
 	void CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) const;
 	void PaintCellMenu(FCanvas& F) const;
+	// 채널 TV (D-316, D-318): 오른쪽 위 TV 의 다이얼을 누르면 채널이 바뀐다. CH1 다음 웨이브 · CH2 포커 중계 · CH3 지직 · 숨은 채널(다이얼을 빠르게 7번)
+	int32 TvChannel = 0;                     // 0~2, 3 = 숨은 채널 (설정에 저장)
+	float TvSwitchAt = -10.f;                // 채널을 바꾼 때 (0.2초 지직)
+	TArray<float> TvDialClicks;              // 다이얼 누른 때 (숨은 채널)
+	bool bTvSecret = false;                  // 숨은 채널을 찾은 적 있음 (진행 파일, 도전 과제 B8)
+	struct FTvMix { PD::EPDEnemy T = PD::EPDEnemy::Normal; int32 N = 0; };
+	TArray<FTvMix> TvMix;                    // 다음 웨이브 적 (종류별 마리 수, 보스 먼저)
+	int32 TvMixWave = -1;
+	void TvDial();
+	void PaintTv(FCanvas& C) const;
 	int32 HoverX = -1, HoverY = -1;
 	FVector2f Mouse = FVector2f(0.f, 0.f);
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
