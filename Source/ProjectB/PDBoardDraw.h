@@ -771,7 +771,8 @@ constexpr int32 AtlasHatch = AtlasFx0 + AtlasFxN, AtlasBracket = AtlasHatch + 1,
 // 선 스프라이트 (D-146): 가로 띠 (가운데 꽉, 위아래 가장자리만 부드럽게). 모든 선은 이걸 늘여 찍는다
 constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4;
 // 카드병정 적 (D-175): 모양 8 × 걷기 4프레임, 흰색으로 구워 그릴 때 적 색으로 물들인다. 칸 가운데가 몸 가운데, 발은 +SoldierFoot
-constexpr int32 SoldierShapes = 29, SoldierFrames = 8, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176) + 새 보스 6 · 최종 보스 3 (D-335). 칸이 모자라 걷기 12 → 8프레임
+constexpr int32 SoldierShapes = 29, SoldierFrames = 12, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176) + 새 보스 6 · 최종 보스 3 (D-335). 카드병정은 둘째 텍스처(쪽 1)에 따로 굽는다 (D-338, 걷기 12프레임 그대로)
+constexpr int32 SoldierCells = SoldierShapes * SoldierFrames;
 constexpr int32 AtlasSnow = AtlasSoldier0 + SoldierShapes * SoldierFrames; // 둔화 눈송이 (D-178)
 constexpr int32 AtlasShield = AtlasSnow + 1, AtlasN = AtlasShield + 1; // 방어력 방패 (D-186)
 constexpr float ShieldBakeS = 30.f; // 방패 칸: 가운데 기준 반폭 0.8S, 위아래 ±1.05S
@@ -832,8 +833,8 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 10; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335)
-constexpr int32 AtlasVersionPrev = 9; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+constexpr int32 AtlasVersion = 11; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335), 11: 카드병정을 둘째 텍스처 T_PDAtlasSoldier 로, 12프레임 (D-338)
+constexpr int32 AtlasVersionPrev = 10; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");
@@ -847,13 +848,18 @@ inline int32 FxBroken(int N) { return 13 + FMath::Clamp(N, 2, 16) - 2; }
 inline int32 FxRays(int N) { return 28 + FMath::Clamp(N, 2, 16) - 2; }
 inline int32 FxSuit(int S) { return 43 + FMath::Clamp(S, 0, 4); }
 inline int32 FxFlare(int Spokes) { return 48 + FMath::Clamp(Spokes / 2, 0, 4); }
-static_assert((AtlasN + AtlasCols - 1) / AtlasCols * AtlasCell * AtlasK <= AtlasTex, "atlas rows overflow the texture");
+// 아틀라스 두 쪽 (D-338): 쪽 0 = 카드 · 조커 · 이펙트 · 선 (T_PDAtlas), 쪽 1 = 카드병정 적 29종 × 12프레임 (T_PDAtlasSoldier). 칸 번호(I)는 그대로 하나로 이어 쓰고 쪽 안 번호로 바꿔 자리를 정한다
+inline int32 AtlasPage(int32 I) { return I >= AtlasSoldier0 && I < AtlasSoldier0 + SoldierCells ? 1 : 0; }
+inline int32 AtlasLocal(int32 I) { return AtlasPage(I) ? I - AtlasSoldier0 : I < AtlasSoldier0 ? I : I - SoldierCells; }
+constexpr int32 AtlasN0 = AtlasN - SoldierCells, AtlasN1 = SoldierCells; // 쪽마다 칸 수
+static_assert((AtlasN0 + AtlasCols - 1) / AtlasCols * AtlasCell * AtlasK <= AtlasTex, "atlas page 0 rows overflow the texture");
+static_assert((AtlasN1 + AtlasCols - 1) / AtlasCols * AtlasCell * AtlasK <= AtlasTex, "atlas page 1 (soldiers) rows overflow the texture");
 inline int32 AtlasCardIndex(const FPDCard& C) { return C.IsWild() ? 52 : (FMath::Clamp(C.Rank, 2, 14) - 2) * 4 + FMath::Clamp((int)C.Suit, 0, 3); }
 inline int32 TowerSprite(const FPDCard& C, int Level, bool bStrong)
 {
 	return AtlasCardIndex(C) * 4 + (FMath::Clamp(Level, 1, 4) - 1); // bStrong 은 구운 칸이 아니라 그릴 때 채움 (D-176)
 }
-inline FVector2f AtlasCellCenter(int32 I) { return FVector2f((I % AtlasCols + 0.5f) * AtlasCell, (I / AtlasCols + 0.5f) * AtlasCell); }
+inline FVector2f AtlasCellCenter(int32 I) { const int32 L = AtlasLocal(I); return FVector2f((L % AtlasCols + 0.5f) * AtlasCell, (L / AtlasCols + 0.5f) * AtlasCell); } // 그 칸의 쪽 안 자리 (D-338)
 // 배속 차례 (D-124): 1 → 2 → 3 → 5 → 10 → 1
 inline int NextSpeed(int S) { return S < 2 ? 2 : S < 3 ? 3 : S < 5 ? 5 : S < 10 ? 10 : 1; }
 // 천 단위 쉼표: 12345 → 12,345
@@ -909,6 +915,9 @@ struct FPDAtlas
 	bool bAsset = false;    // 미리 만든 에셋(Content/Sprites/T_PDAtlas)을 쓰는 중 (D-145): 굽지 않는다
 	// 조각 굽기 (D-143): 패키지에선 화면 밖 그리기가 창 크기로 잘려 큰 텍스처를 한 번에 못 굽는다.
 	// 512 조각 텍스처에 그린 뒤 GPU 로 제자리에 복사한다. 그리는 동안 TileOrigin (텍스처 픽셀) 만큼 밀어 그린다
+	UObject* RT2 = nullptr, *Tex2 = nullptr; // 둘째 쪽: 카드병정 (D-338)
+	TArray<FColor> LastPixels2;
+	int32 BakePage = 0;                    // 지금 굽는 쪽 (PaintAtlas 가 그 쪽 칸만 그린다)
 	UObject* Scratch = nullptr;
 	TSharedPtr<FWidgetRenderer> ScratchRenderer;
 	FVector2f TileOrigin = FVector2f(0.f, 0.f);

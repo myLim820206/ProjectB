@@ -56,6 +56,16 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 	F.ThickK = AtlasK / (Atlas.IsValid() ? Atlas->BakedScale : 1.f); // 화면에서 그리던 선과 같은 화면 픽셀 굵기
 	const float R = CS * 0.4f;
 	auto Vis = [&](FVector2f C) { const FVector2f A = (C - FVector2f(AtlasCell, AtlasCell) * 0.5f) * AtlasK - TO, B = A + FVector2f(AtlasCell, AtlasCell) * AtlasK; return B.X > 0.f && B.Y > 0.f && A.X < BakeTile && A.Y < BakeTile; }; // 이 조각에 걸치는 칸만
+	if (Atlas.IsValid() && Atlas->BakePage == 1) // 둘째 쪽 (D-338): 카드병정 적만
+	{
+		for (int32 Sh = 0; Sh < SoldierShapes; ++Sh) // 카드병정 적 (D-175): 흰색, 걷기 12프레임
+			for (int32 Fr = 0; Fr < SoldierFrames; ++Fr)
+			{
+				const FVector2f P = AtlasCellCenter(AtlasSoldier0 + Sh * SoldierFrames + Fr);
+				if (Vis(P)) F.CardSoldier(Sh, P + FVector2f(0.f, SoldierFoot), Sh >= 7 ? SoldierBossBakeR : SoldierBakeR, Fr / (float)SoldierFrames, FLinearColor::White);
+			}
+		return Layer;
+	}
 	GPDBakeWhiteSuits = true; // 카드 칸은 흰색으로 굽고 그릴 때 카드 색 설정에 맞춰 물들인다 (D-154)
 	ON_SCOPE_EXIT { GPDBakeWhiteSuits = false; };
 	for (int32 Ci = 0; Ci < AtlasCards; ++Ci)
@@ -99,12 +109,7 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 			F.Glow({P + FVector2f(0.f, -0.75f * ShieldBakeS), P + FVector2f(0.f, 0.92f * ShieldBakeS)}, FLinearColor::White, 1.6f, 0.6f);
 		}
 	}
-	for (int32 Sh = 0; Sh < SoldierShapes; ++Sh) // 카드병정 적 (D-175): 흰색, 걷기 4프레임
-		for (int32 Fr = 0; Fr < SoldierFrames; ++Fr)
-		{
-			const FVector2f P = AtlasCellCenter(AtlasSoldier0 + Sh * SoldierFrames + Fr);
-			if (Vis(P)) F.CardSoldier(Sh, P + FVector2f(0.f, SoldierFoot), Sh >= 7 ? SoldierBossBakeR : SoldierBakeR, Fr / (float)SoldierFrames, FLinearColor::White);
-		}
+	// 카드병정은 둘째 쪽에서 굽는다 (D-338)
 	// 이펙트 모양 (D-141): 흰색, 반지름 AtlasFxR, 0도에서 시작 (그릴 때 색·크기·회전)
 	const FLinearColor W = FLinearColor::White;
 	const float RR = AtlasFxR, Th = AtlasFxTh;

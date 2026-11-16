@@ -65,16 +65,22 @@ void SPDBoardWidget::BakeAtlas()
 	if (bFirst) Atlas = MakeShared<FPDAtlas>();
 	Atlas->BakedScale = FMath::Max(0.25f, ViewScale);
 	// 미리 만든 에셋이 있으면 그걸 쓴다 (D-145): 굽지 않으니 시작·창 크기 바뀜에도 멈추지 않는다
-	UObject* Res = nullptr;
+	UObject* Res = nullptr, *Res2 = nullptr; // 쪽 0 · 쪽 1 (카드병정, D-338)
 	if (bFirst && !bForceBake)
-		if (UTexture2D* Tex = LoadObject<UTexture2D>(nullptr, *FString::Printf(TEXT("/Game/Sprites/T_PDAtlas_v%d.T_PDAtlas_v%d"), AtlasVersion, AtlasVersion), nullptr, LOAD_NoWarn | LOAD_Quiet))
+	{
+		UTexture2D* Tex = LoadObject<UTexture2D>(nullptr, *FString::Printf(TEXT("/Game/Sprites/T_PDAtlas_v%d.T_PDAtlas_v%d"), AtlasVersion, AtlasVersion), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		UTexture2D* Tex2 = LoadObject<UTexture2D>(nullptr, *FString::Printf(TEXT("/Game/Sprites/T_PDAtlasSoldier_v%d.T_PDAtlasSoldier_v%d"), AtlasVersion, AtlasVersion), nullptr, LOAD_NoWarn | LOAD_Quiet);
+		if (Tex && Tex2) // 두 쪽이 다 있을 때만 에셋을 쓴다 (하나라도 없으면 둘 다 굽는다)
 		{
 			Tex->AddToRoot();
+			Tex2->AddToRoot();
 			Res = Tex;
+			Res2 = Tex2;
 			Atlas->bAsset = true;
 			Atlas->bRebaked = true;
 			Atlas->Frames = 3;
 		}
+	}
 	UTextureRenderTarget2D* RT = Res ? nullptr : Cast<UTextureRenderTarget2D>(Atlas->RT);
 	if (!Res)
 	{
@@ -88,10 +94,25 @@ void SPDBoardWidget::BakeAtlas()
 		Atlas->Painter = SNew(SPDAtlasPainter).Owner(this);
 		Atlas->Renderer = MakeShared<FWidgetRenderer>(true, true);
 	}
+	UTextureRenderTarget2D* RT2 = Cast<UTextureRenderTarget2D>(Atlas->RT2);
+	if (!RT2)
+	{
+		RT2 = FWidgetRenderer::CreateTargetFor(FVector2D(AtlasTex, AtlasTex), TF_Bilinear, false);
+		if (!RT2) { Atlas.Reset(); return; }
+		RT2->ClearColor = FLinearColor::Transparent;
+		RT2->AddToRoot();
+		Atlas->RT2 = RT2;
+	}
 	Res = RT;
-	BakeTiled(RT, AtlasTex, (AtlasN + AtlasCols - 1) / AtlasCols * (int32)(AtlasCell * AtlasK), Atlas->Painter.ToSharedRef()); // 처음과 화면 크기가 바뀔 때만
+	Atlas->BakePage = 0;
+	BakeTiled(RT, AtlasTex, (AtlasN0 + AtlasCols - 1) / AtlasCols * (int32)(AtlasCell * AtlasK), Atlas->Painter.ToSharedRef()); // 처음과 화면 크기가 바뀔 때만
 	Atlas->Tex = PixelsToTexture(Atlas->Tex, RT, AtlasTex, AtlasTex, &Atlas->LastPixels);
 	Res = Atlas->Tex ? Atlas->Tex : RT;
+	Atlas->BakePage = 1; // 둘째 쪽: 카드병정 (D-338)
+	BakeTiled(RT2, AtlasTex, (AtlasN1 + AtlasCols - 1) / AtlasCols * (int32)(AtlasCell * AtlasK), Atlas->Painter.ToSharedRef());
+	Atlas->Tex2 = PixelsToTexture(Atlas->Tex2, RT2, AtlasTex, AtlasTex, &Atlas->LastPixels2);
+	Res2 = Atlas->Tex2 ? Atlas->Tex2 : RT2;
+	Atlas->BakePage = 0;
 	Atlas->Frames = 0;
 	}
 	Atlas->BgSig = 0; // 판 배경도 다시
@@ -101,7 +122,7 @@ void SPDBoardWidget::BakeAtlas()
 	for (int32 I = 0; I < AtlasN; ++I)
 	{
 		FSlateBrush& B = Atlas->Brushes[I];
-		B.SetResourceObject(RTRes);
+		B.SetResourceObject(AtlasPage(I) ? Res2 : RTRes); // 카드병정 칸은 둘째 텍스처 (D-338)
 		B.ImageSize = FVector2D(AtlasCell * AtlasK, AtlasCell * AtlasK);
 		B.DrawAs = ESlateBrushDrawType::Image;
 		const FVector2f C = AtlasCellCenter(I) * AtlasK, H(AtlasCell * AtlasK * 0.5f, AtlasCell * AtlasK * 0.5f);
@@ -186,12 +207,15 @@ void SPDBoardWidget::SaveAtlasAsset()
 	bForceBake = false;
 	UTextureRenderTarget2D* RT = Atlas.IsValid() ? Cast<UTextureRenderTarget2D>(Atlas->RT) : nullptr;
 	if (!RT) return;
-	const FString AssetName = FString::Printf(TEXT("T_PDAtlas_v%d"), AtlasVersion);
+	bool bAllOk = true;
+	for (int32 Page = 0; Page < 2; ++Page) // 두 쪽을 따로 저장 (D-338): T_PDAtlas_vN · T_PDAtlasSoldier_vN
+	{
+	const FString AssetName = Page ? FString::Printf(TEXT("T_PDAtlasSoldier_v%d"), AtlasVersion) : FString::Printf(TEXT("T_PDAtlas_v%d"), AtlasVersion); // 형식 글자는 그대로 써야 한다 (UE 5.2+ Printf 검사)
 	const FString PkgName = TEXT("/Game/Sprites/") + AssetName;
-	UPackage* Pkg = CreatePackage(*PkgName);
 	// 렌더 타깃 바이트를 그대로 텍스처 원본으로 (sRGB 로 저장된 그대로, 알파는 미리 곱한 값). ConstructTexture2D 는 감마를 바꿔 하얗게 떠서 쓰지 않는다
-	const TArray<FColor>& Px = Atlas->LastPixels;
-	if (Px.Num() != AtlasTex * AtlasTex) return;
+	const TArray<FColor>& Px = Page ? Atlas->LastPixels2 : Atlas->LastPixels;
+	if (Px.Num() != AtlasTex * AtlasTex) { bAllOk = false; continue; }
+	UPackage* Pkg = CreatePackage(*PkgName);
 	Pkg->FullyLoad(); // 게임이 불러 둔 옛 에셋이 있으면 다 불러야 덮어쓸 수 있다
 	UTexture2D* Tex = FindObject<UTexture2D>(Pkg, *AssetName);
 	if (!Tex) Tex = NewObject<UTexture2D>(Pkg, *AssetName, RF_Public | RF_Standalone);
@@ -207,8 +231,10 @@ void SPDBoardWidget::SaveAtlasAsset()
 	FSavePackageArgs Args;
 	Args.TopLevelFlags = RF_Public | RF_Standalone;
 	const bool bOk = UPackage::SavePackage(Pkg, Tex, *FPackageName::LongPackageNameToFilename(PkgName, FPackageName::GetAssetPackageExtension()), Args);
-	UE_LOG(LogTemp, Log, TEXT("PDATLAS asset saved: %s"), bOk ? TEXT("ok") : TEXT("FAILED"));
-	Floats.Add({bOk ? FString(TEXT("아틀라스 에셋 저장: Content/Sprites/")) + AssetName : FString(TEXT("아틀라스 에셋 저장 실패")), FVector2f(DesignW / 2.f, DesignH / 2.f), 0.f, 2.5f, 18.f, bOk ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a"))});
+	UE_LOG(LogTemp, Log, TEXT("PDATLAS asset saved %s: %s"), *AssetName, bOk ? TEXT("ok") : TEXT("FAILED"));
+	bAllOk = bAllOk && bOk;
+	}
+	Floats.Add({bAllOk ? FString::Printf(TEXT("아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d"), AtlasVersion, AtlasVersion) : FString(TEXT("아틀라스 에셋 저장 실패")), FVector2f(DesignW / 2.f, DesignH / 2.f), 0.f, 2.5f, 18.f, bAllOk ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a"))});
 #endif
 }
 
