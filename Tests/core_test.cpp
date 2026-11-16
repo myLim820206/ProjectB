@@ -1419,7 +1419,10 @@ static void UnitTests()
 			const bool bSome = AchMet(EPDAch::AllHands, A) && AchMet(EPDAch::RoyalFlush, A) && AchMet(EPDAch::FuseMax, A) && AchMet(EPDAch::Clear30, A) && AchMet(EPDAch::SecretChannel, A) && !AchMet(EPDAch::Endless150, A);
 			bool bNames = true;
 			for (int I = 0; I < (int)EPDAch::Count; ++I) for (int K = 0; K < I; ++K) bNames &= std::string(AchApiName((EPDAch)I)) != AchApiName((EPDAch)K);
-			Expect(bNone && bSome && bNames, "도전 과제 24종: 처음엔 없음, 조건 맞으면 이룸, 스팀 이름 겹치지 않음 (B8)");
+			FPDAchStats B2;
+			B2.BossKilled = (1u << BossKinds) - 1u; B2.bMut3Kill = true;
+			const bool bBoss = AchMet(EPDAch::AllBosses, B2) && AchMet(EPDAch::AllFinals, B2) && AchMet(EPDAch::Mut3Boss, B2) && !AchMet(EPDAch::AllBosses, A);
+			Expect(bNone && bSome && bNames && bBoss && (int)EPDAch::Count == 27, "도전 과제 27종: 처음엔 없음, 조건 맞으면 이룸, 스팀 이름 겹치지 않음, 보스 셋 (B8, D-337)");
 		}
 		long long Total = 0;
 		for (int L = 0; L < UpgradeMax; ++L) Total += UpgradeCost(L);

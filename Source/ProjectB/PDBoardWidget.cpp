@@ -362,6 +362,9 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("HandsEver")) GoalStats.HandsEver = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("MaxFuse")) GoalStats.MaxFuseLevel = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("EndlessBest")) GoalStats.EndlessBest = FMath::Max(0, FCString::Atoi(*Val));
+			else if (Key == TEXT("BossSeen")) Game.BossSeen |= (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 도감 보스 판 (D-337)
+			else if (Key == TEXT("BossKilled")) Game.BossKilled |= (uint32)FCString::Strtoui64(*Val, nullptr, 10);
+			else if (Key == TEXT("Mut3")) Game.bMut3Kill = Game.bMut3Kill || FCString::Atoi(*Val) != 0;
 			else if (Key == TEXT("Upg")) // 영구 강화 레벨 (D-230), 쉼표로 8개
 			{
 				TArray<FString> Parts;
@@ -408,8 +411,8 @@ void SPDBoardWidget::SaveProgress()
 	SavedBest = FMath::Max3(SavedBest, Game.BestWave, Game.Wave);
 	FString UpgS;
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) { if (U) UpgS += TEXT(","); UpgS += FString::FromInt(Game.Upg[U]); }
-	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\nTvSecret=%d\nAch=%u\nHandsEver=%u\nMaxFuse=%d\nEndlessBest=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
-		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills, bTvSecret ? 1 : 0, AchBits, GoalStats.HandsEver, GoalStats.MaxFuseLevel, GoalStats.EndlessBest), *PDProgressPath());
+	FFileHelper::SaveStringToFile(FString::Printf(TEXT("Discovered=%u\nBestWave=%d\nHints=%u\nModes=%u\nChips=%d\nUpg=%s\nUppers=%u\nCharms=%llu\nJokers=%u\nUpperOpen=%u\nRuns=%d\nTotalKills=%lld\nBestLevel=%d\nBestKills=%d\nTvSecret=%d\nAch=%u\nHandsEver=%u\nMaxFuse=%d\nEndlessBest=%d\nBossSeen=%u\nBossKilled=%u\nMut3=%d\n"), SavedDiscovered, SavedBest, HintSeen, ModesCleared, MetaChips, *UpgS, Game.UpperFound, (unsigned long long)Game.CharmUnlocked, Game.JokerUnlocked, Game.UpperUnlocked,
+		GoalStats.RunsPlayed, GoalStats.TotalKills, GoalStats.BestLevel, GoalStats.BestKills, bTvSecret ? 1 : 0, AchBits, GoalStats.HandsEver, GoalStats.MaxFuseLevel, GoalStats.EndlessBest, Game.BossSeen, Game.BossKilled, Game.bMut3Kill ? 1 : 0), *PDProgressPath());
 }
 
 // 프레임 제한 (D-120): 판이 2D 라 60이면 충분. 제한이 없으면 그래픽카드가 초당 수백 장을 그린다
@@ -700,7 +703,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 	UpdateFx(Dt);
 	if (!Settings.bShake) { Shake = 0.f; FlashT = 0.f; } // 설정: 화면 흔들림·번쩍임 끔
-	if (Game.Discovered != SavedDiscovered || Game.UpperFound != SavedUpper || FMath::Max(Game.BestWave, Game.Wave) > SavedBest) SaveProgress(); // 도감·최고 기록이 바뀌면 바로 저장
+	if (Game.Discovered != SavedDiscovered || Game.UpperFound != SavedUpper || FMath::Max(Game.BestWave, Game.Wave) > SavedBest || Game.BossKilled != SavedBossKilled || Game.BossSeen != SavedBossSeen) { SavedBossKilled = Game.BossKilled; SavedBossSeen = Game.BossSeen; SaveProgress(); } // 도감·최고 기록이 바뀌면 바로 저장
 	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
 	UpdatePreview();
 	JGroups = Game.JokerGroups();
@@ -1594,7 +1597,7 @@ bool SPDBoardWidget::MetaBuy(int32 U, int32 N)
 	return true;
 }
 
-int32 SPDBoardWidget::UnlCount(int32 Tab) const { return Tab == 0 ? (int32)EPDCharm::Count : Tab == 1 ? (int32)EPDJoker::Count : UpperJokerCount; }
+int32 SPDBoardWidget::UnlCount(int32 Tab) const { return Tab == 0 ? (int32)EPDCharm::Count : Tab == 1 ? (int32)EPDJoker::Count : Tab == 2 ? UpperJokerCount : BossKinds; } // 3 = 도감 보스 판 (D-337)
 int32 SPDBoardWidget::UnlPages() const { return FMath::Max(1, (UnlCount(UnlockTab) + UnlPerPage - 1) / UnlPerPage); }
 
 int32 SPDBoardWidget::UnlRowAt(FVector2f P) const
@@ -1626,6 +1629,8 @@ void SPDBoardWidget::SyncGoalStats()
 	for (int32 U = 0; U < (int32)EPDUpgrade::Count; ++U) bAllMax &= Game.Upg[U] >= UpgradeMax;
 	GoalStats.bUpgradesMax = bAllMax;
 	GoalStats.bSecretChannel = bTvSecret;
+	GoalStats.BossKilled = Game.BossKilled;
+	GoalStats.bMut3Kill = Game.bMut3Kill;
 }
 
 void SPDBoardWidget::CheckAchievements()
@@ -1979,7 +1984,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (bCodex)
 	{
 		if (K == EKeys::J || K == EKeys::Escape) bCodex = false;
-		else if (K == EKeys::Tab) UnlSetTab((UnlockTab + 1) % 3); // 다음 판 (D-265)
+		else if (K == EKeys::Tab) UnlSetTab((UnlockTab + 1) % UnlTabs()); // 다음 판 (D-265), 도감은 보스 판까지 넷
 		else if (K == EKeys::Left || K == EKeys::A || K == EKeys::Right || K == EKeys::D) UnlFlip(K == EKeys::Left || K == EKeys::A ? -1 : 1);
 		return FReply::Handled();
 	}

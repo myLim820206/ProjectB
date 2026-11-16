@@ -108,6 +108,9 @@ ko	en	ja	zh-Hans	zh-Hant	file
 숨은 채널	Hidden Channel	隠しチャンネル	隐藏频道	隱藏頻道	PDBoardDraw.h
 바의 터줏대감	Pillar of the Bar	バーの主	酒吧元老	酒吧元老	PDBoardDraw.h
 십만 명의 병정	A Hundred Thousand Soldiers	十万人の兵士	十万名士兵	十萬名士兵	PDBoardDraw.h
+모든 손님 상대	Every Guest Served	すべての客の相手	招待所有客人	招待所有客人	PDBoardDraw.h
+마지막 손님 셋	The Last Three Guests	最後の客3人	最后三位客人	最後三位客人	PDBoardDraw.h
+변이 셋	Triple Mutation	変異3つ	三重变异	三重變異	PDBoardDraw.h
 30 모드 클리어	Clear 30 Mode	30モードクリア	通关30模式	通關30模式	PDBoardDraw.h
 60 모드 클리어	Clear 60 Mode	60モードクリア	通关60模式	通關60模式	PDBoardDraw.h
 100 모드 클리어	Clear 100 Mode	100モードクリア	通关100模式	通關100模式	PDBoardDraw.h
@@ -560,12 +563,17 @@ K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U U
 칵테일 칸이 가득 찼다 (5/5)	Cocktail slots are full (5/5)	カクテル枠がいっぱい (5/5)	鸡尾酒栏已满 (5/5)	雞尾酒欄已滿 (5/5)	PDBoardPaint.cpp
 조커	Joker	ジョーカー	小丑	小丑	PDBoardPaint.cpp
 상위 조커	Upper Jokers	上位ジョーカー	上位小丑	上位小丑	PDBoardPaint.cpp
+보스	Bosses	ボス	首领	首領	PDBoardPaint.cpp
 눌러서 보기	Click to view	クリックで表示	点击查看	點擊查看	PDBoardPaint.cpp
 칵테일 %d / %d 열림	Cocktails %d / %d unlocked	カクテル %d / %d 解放	鸡尾酒 %d / %d 已解锁	雞尾酒 %d / %d 已解鎖	PDBoardPaint.cpp
 %d / 10 발견	%d / 10 found	%d / 10 発見	已发现 %d / 10	已發現 %d / 10	PDBoardPaint.cpp
 상위 조커 %d / 30 발견	Upper Jokers %d / 30 found	上位ジョーカー %d / 30 発見	上位小丑 %d / 30 已发现	上位小丑 %d / 30 已發現	PDBoardPaint.cpp
+보스 %d / %d 처치	Bosses %d / %d defeated	ボス %d / %d 撃破	首领 %d / %d 击败	首領 %d / %d 擊敗	PDBoardPaint.cpp
 연 칵테일만 5웨이브 보상에 나온다	Only unlocked cocktails appear in wave-5 rewards	解放したカクテルだけが5ウェーブ報酬に出る	只有已解锁的鸡尾酒会出现在每5波奖励中	只有已解鎖的雞尾酒會出現在每5波獎勵中	PDBoardPaint.cpp
 목표: %s	Goal: %s	目標: %s	目标: %s	目標: %s	PDBoardPaint.cpp
+아직 만나지 못한 보스	A boss you haven't met yet	まだ出会っていないボス	尚未遇见的首领	尚未遇見的首領	PDBoardPaint.cpp
+모드 최종 보스	Mode final boss	モード最終ボス	模式最终首领	模式最終首領	PDBoardPaint.cpp
+만남	Met	遭遇	已遇见	已遇見	PDBoardPaint.cpp
 가진 칵테일	Owned	所持中	已拥有	已擁有	PDBoardPaint.cpp
 열림	Unlocked	解放済み	已解锁	已解鎖	PDBoardPaint.cpp
 잠김	Locked	ロック中	未解锁	未解鎖	PDBoardPaint.cpp
@@ -576,6 +584,7 @@ K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U U
 만들면 열림	Unlocks when made	作ると解放	制作后解锁	製作後解鎖	PDBoardPaint.cpp
 목표	Goal	目標	目标	目標	PDBoardPaint.cpp
 재료 먼저	Needs parts	素材が先	先解锁材料	先解鎖材料	PDBoardPaint.cpp
+30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다	30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100	30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる	30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同	30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同	PDBoardPaint.cpp
 서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)	Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)	異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)	两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)	兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)	PDBoardPaint.cpp
 족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)	Pick 3 (or 2) hands that match a recipe to make a joker (anywhere on the board)	役を3つ(または2つ)選びレシピと合えばジョーカー(盤のどこでも)	选 3 个(或 2 个)牌型，符合配方即成小丑(场上任意位置)	選 3 個(或 2 個)牌型，符合配方即成小丑(場上任意位置)	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명	Hover a row for details	行にカーソルで説明	悬停查看说明	懸停查看說明	PDBoardPaint.cpp

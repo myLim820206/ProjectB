@@ -2416,8 +2416,9 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		for (const FVector2f Bt : {FVector2f(X + 9.f, Y + 9.f), FVector2f(X + W - 9.f, Y + 9.f), FVector2f(X + 9.f, Y + H - 9.f), FVector2f(X + W - 9.f, Y + H - 9.f)})
 			C.Lines(FCanvas::CirclePoints(Bt, 2.f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
 	};
-	static const TCHAR* TabName[3] = {TEXT("칵테일"), TEXT("조커"), TEXT("상위 조커")};
-	static const TCHAR* TabEn[3] = {TEXT("COCKTAILS"), TEXT("JOKERS"), TEXT("UPPER JOKERS")};
+	static const TCHAR* TabName[4] = {TEXT("칵테일"), TEXT("조커"), TEXT("상위 조커"), TEXT("보스")};
+	static const TCHAR* TabEn[4] = {TEXT("COCKTAILS"), TEXT("JOKERS"), TEXT("UPPER JOKERS"), TEXT("BOSSES")};
+	auto BossIcon = [&](int32 K, float X, float Y, float R, float A) { const EPDEnemy T = (EPDEnemy)((int32)EPDEnemy::ShieldBoss + K); C.CardSoldier(SoldierShape(T), FVector2f(X, Y + R * 1.3f), R, 0.f, WithAlpha(EnemyColor(T), A)); }; // 도감 보스 판 (D-337)
 	// 천장 줄 (판을 매단 선)
 	for (const float X : {300.f, 980.f}) C.Lines({FVector2f(X, 0.f), FVector2f(X, UnlBY)}, Wire, 1.f);
 	for (int32 Sd = 0; Sd < 2; ++Sd)
@@ -2433,6 +2434,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		Frame(X, UnlSideY, UnlSideW, UnlSideH, RadPanel, bH ? Pink : Cyan, bH ? 1.f : 0.75f);
 		const float MY = UnlSideY + UnlSideH / 2.f; // 판 가운데에 모아 그린다 (판이 커졌다, D-328 ⑥)
 		if (Tb == 0) C.Shape(EPDSuit::Heart, X + UnlSideW / 2.f, MY - 60.f, 22.f, Cyan, 1.6f, 0.5f);
+		else if (Tb == 3) BossIcon(0, X + UnlSideW / 2.f, MY - 74.f, 16.f, 0.85f);
 		else C.JokerTower(Tb == 1 ? 0 : UpperBase, X + UnlSideW / 2.f, MY - 60.f, 26.f, 0.85f, 0.f);
 		C.TextCentered(TabName[Tb], X + UnlSideW / 2.f, MY + 6.f, Fg, 20.f, true);
 		C.TextCentered(TabEn[Tb], X + UnlSideW / 2.f, MY + 32.f, WithAlpha(Cyan, 0.75f), 10.f, true);
@@ -2449,7 +2451,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 	{
 		int32 NOpen = 0;
 		if (UnlockTab == 0) for (int32 J = 0; J < (int32)EPDCharm::Count; ++J) NOpen += (G.CharmUnlocked >> J) & 1u;
-		const FString Sub = UnlockTab == 0 ? TrF(TEXT("칵테일 %d / %d 열림"), NOpen, (int32)EPDCharm::Count) : UnlockTab == 1 ? TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)) : TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound));
+		const FString Sub = UnlockTab == 0 ? TrF(TEXT("칵테일 %d / %d 열림"), NOpen, (int32)EPDCharm::Count) : UnlockTab == 1 ? TrF(TEXT("%d / 10 발견"), FMath::CountBits(G.Discovered)) : UnlockTab == 2 ? TrF(TEXT("상위 조커 %d / 30 발견"), FMath::CountBits(G.UpperFound)) : TrF(TEXT("보스 %d / %d 처치"), FMath::CountBits(G.BossKilled), BossKinds);
 		C.TextCentered(FString::Printf(TEXT("%s  ·  %s"), TabEn[UnlockTab], *Sub), HCX, 136.f, WithAlpha(Pink, 0.8f), 11.f, true);
 	}
 	for (const float S : {-1.f, 1.f})
@@ -2471,6 +2473,16 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		{
 			It.Name = JokerName(K); It.Desc = BaseJokerAbility(K); It.Price = JokerPrice(K); It.bOpen = G.JokerOpen(K);
 			for (EPDHand Hd : JokerRecipe((EPDJoker)K)) { if (!It.Note.IsEmpty()) It.Note += TEXT(" · "); It.Note += HandName(Hd); }
+		}
+		else if (UnlockTab == 3) // 보스 (D-337): 만난 보스는 이름 · 능력, 못 만난 보스는 ???
+		{
+			const EPDEnemy T = (EPDEnemy)((int32)EPDEnemy::ShieldBoss + K);
+			const bool bSeen = (G.BossSeen >> K) & 1u, bKill = (G.BossKilled >> K) & 1u;
+			It.bOpen = It.bKnown = bSeen; It.bHave = bKill;
+			It.Name = bSeen ? FString(BossName(T)) : FString(TEXT("???"));
+			It.Desc = bSeen ? FString(BossSkillText(T)) : FString(Tr(TEXT("아직 만나지 못한 보스")));
+			It.Note = IsFinalBoss(T) ? FString(Tr(TEXT("모드 최종 보스"))) : FString(Tr(TEXT("보스")));
+			It.Right = bKill ? FString(Tr(TEXT("처치"))) : bSeen ? FString(Tr(TEXT("만남"))) : FString(TEXT("?"));
 		}
 		else
 		{
@@ -2498,7 +2510,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 				It.Note = JokerRecipeText(K) + TEXT("   ") + JokerRecipe2Text(K); // 레시피는 몰라도 보인다 (예전 도감과 같게)
 				It.Note2 = TrF(TEXT("%s 대장 · 위력 %s"), HandName(CaptainHand((EPDJoker)K)), *TierS) + (It.bKnown ? TEXT("  ·  ") + JokerCommand(K) : FString());
 			}
-			else
+			else if (UnlockTab == 2)
 			{
 				const FPDUpperDef& D = UpperDef(K);
 				It.bKnown = (G.UpperFound >> K) & 1u;
@@ -2526,6 +2538,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 			C.Glow(FCanvas::RoundRectPoints(IX - 10.f, IY - 10.f, 20.f, 20.f, 6.f), WithAlpha(Ic, It.bOpen ? 0.7f : 0.35f), 1.f, 0.f);
 			C.Shape((EPDSuit)(K % 4), IX, IY, 5.f, WithAlpha(Ic, It.bOpen ? 0.85f : 0.45f), 1.f, 0.f);
 		}
+		else if (UnlockTab == 3) BossIcon(K, IX, IY - 9.f, 7.f, It.bKnown ? 0.9f : 0.25f);
 		else C.JokerTower(UnlockTab == 1 ? K : UpperBase + K, IX, IY, 9.f, (bCdx ? It.bKnown : It.bOpen) ? 0.9f : 0.4f, 0.f);
 		if (bH) C.Box(R.X + 26.f, R.Y + 1.f, UnlRowW - 26.f, UnlRowH - 2.f, WithAlpha(Pink, 0.08f));
 		const FLinearColor NameCol = bH ? FLinearColor::White : bCdx ? (It.bHave ? Gold : It.bKnown ? Cyan : Dim) : It.bOpen ? Cyan : bCan ? Gold : Dim;
@@ -2540,7 +2553,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 	}
 	// 아래: 안내 + 쪽 넘기기
 	C.Glow({FVector2f(UnlBX + 30.f, 640.f), FVector2f(UnlBX + UnlBW - 30.f, 640.f)}, WithAlpha(Pink, 0.5f), 1.f, 0.2f * NK);
-	C.TextCentered(bCdx ? (UnlockTab == 2 ? TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)") : UnlockTab == 1 ? TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)") : TEXT("줄에 마우스를 올리면 설명"))
+	C.TextCentered(bCdx ? (UnlockTab == 3 ? TEXT("30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다") : UnlockTab == 2 ? TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)") : UnlockTab == 1 ? TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)") : TEXT("줄에 마우스를 올리면 설명"))
 		: TEXT("줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다"), HCX, 668.f, Dim, 12.f, false, UnlBW - 120.f);
 	if (UnlPages() > 1)
 		for (int32 Dir = -1; Dir <= 1; Dir += 2)
@@ -2574,6 +2587,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		C.Box(TX, TY, TW, TH, Hex(TEXT("0a0910"), 1.f));
 		Frame(TX, TY, TW, TH, RadSmall, Gold, 0.9f);
 		if (UnlockTab == 0) C.Shape((EPDSuit)(Hover % 4), TX + 35.f, TY + 35.f, 9.f, IconCol[Hover % 4], 1.4f, 0.3f);
+		else if (UnlockTab == 3) BossIcon(Hover, TX + 35.f, TY + 20.f, 13.f, It.bKnown ? 1.f : 0.3f);
 		else C.JokerTower(UnlockTab == 1 ? Hover : UpperBase + Hover, TX + 35.f, TY + 35.f, 14.f, 1.f, 0.f);
 		C.Text(It.Name, TX + 64.f, TY + 42.f, FLinearColor::White, 18.f, 0, true, TW - 80.f);
 		Wrap2(C, It.Desc, TX + 20.f, TY + 76.f, Fg, 13.f, TW - 40.f);

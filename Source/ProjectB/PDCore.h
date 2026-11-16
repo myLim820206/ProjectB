@@ -381,6 +381,8 @@ enum class EPDEnemy : uint8_t { Normal, Fast, Tank, Armored, Splitter, Regen, Mi
 	Bouncer, HighRoller, House,                             // 모드 전용 최종 보스 (30 · 60 · 100)
 	Decoy,                                                  // 블러퍼 분신 (체력 1)
 	Count };
+constexpr int BossKinds = 22; // 보스 19 + 최종 보스 3 (방패 거인 ~ 더 하우스)
+inline int BossBit(EPDEnemy T) { const int B = (int)T - (int)EPDEnemy::ShieldBoss; return B >= 0 && B < BossKinds ? B : -1; }
 inline bool IsFinalBoss(EPDEnemy T) { return T == EPDEnemy::Bouncer || T == EPDEnemy::HighRoller || T == EPDEnemy::House; }
 // 보스 능력 수치 (D-112)
 namespace Boss
@@ -527,6 +529,7 @@ enum class EPDAch : uint8_t
 {
 	Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, TotalKills10k, Runs10, // 목표 해금과 같다
 	Endless150, Endless200, RoyalFlush, FiveCard, AllHands, FuseMax, Uppers10, AllUppers, Charms30, AllCharms, UpgradesAll, SecretChannel, Runs50, TotalKills100k,
+	AllBosses, AllFinals, Mut3Boss, // 보스 (D-337)
 	Count
 };
 struct FPDAchStats : FPDGoalStats
@@ -537,6 +540,8 @@ struct FPDAchStats : FPDGoalStats
 	int EndlessBest = 0;      // 무한 모드 최고 웨이브
 	bool bUpgradesMax = false; // 영구 강화 8종 모두 20
 	bool bSecretChannel = false; // 채널 TV 숨은 채널 (D-316)
+	uint32_t BossKilled = 0;  // 잡은 보스 (1 << BossBit)
+	bool bMut3Kill = false;   // 변이 셋 붙은 보스를 잡음
 };
 bool AchMet(EPDAch A, const FPDAchStats& S);
 const char* AchApiName(EPDAch A); // 스팀 도전 과제 이름 (Steamworks 에 같은 이름으로 등록)
@@ -617,6 +622,8 @@ public:
 	std::vector<FPDChipPile> ChipPiles; // 하이롤러 칩 더미
 	uint32_t Discovered = 0;                         // 도감: 만들어 본 조커 (새 판에도 유지)
 	uint32_t UpperFound = 0;                         // 도감: 만들어 본 상위 조커 (1 << 번호, D-231)
+	uint32_t BossSeen = 0, BossKilled = 0;           // 도감 보스 판 (D-337): 만난 · 잡은 보스 (1 << BossBit), 새 판에도 유지
+	bool bMut3Kill = false;                          // 변이 셋 붙은 보스를 잡은 적 있음 (도전 과제)
 	FPDCharmBits CharmUnlocked = CharmBaseMask;          // 나올 수 있는 칵테일 (잠금 해제 메뉴로 늘어남, D-233, D-239)
 	uint32_t JokerUnlocked = 0x3FFu;                    // 만들 수 있는 기본 조커 (1 << EPDJoker, D-239). 규칙·봇은 모두 열림, 게임은 진행 파일로
 	float WaveStartT = 0.f;                             // 웨이브가 시작된 Time (첫 박자 칵테일, D-239)

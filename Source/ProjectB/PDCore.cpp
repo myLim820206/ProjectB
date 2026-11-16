@@ -194,6 +194,9 @@ bool AchMet(EPDAch A, const FPDAchStats& S)
 	case EPDAch::SecretChannel: return S.bSecretChannel;
 	case EPDAch::Runs50: return S.RunsPlayed >= 50;
 	case EPDAch::TotalKills100k: return S.TotalKills >= 100000;
+	case EPDAch::AllBosses: { const uint32_t M = (1u << (BossKinds - 3)) - 1u; return (S.BossKilled & M) == M; } // 일반 보스 19종
+	case EPDAch::AllFinals: { const uint32_t M = 7u << (BossKinds - 3); return (S.BossKilled & M) == M; } // 최종 보스 셋
+	case EPDAch::Mut3Boss: return S.bMut3Kill;
 	default: return false;
 	}
 }
@@ -202,7 +205,7 @@ const char* AchApiName(EPDAch A)
 {
 	static const char* N[(int)EPDAch::Count] = {"ACH_CLEAR_30", "ACH_CLEAR_60", "ACH_CLEAR_100", "ACH_FIRST_JOKER", "ACH_FIRST_UPPER", "ACH_ALL_JOKERS", "ACH_LEVEL_30", "ACH_KILLS_1000",
 		"ACH_TOTAL_KILLS_10K", "ACH_RUNS_10", "ACH_ENDLESS_150", "ACH_ENDLESS_200", "ACH_ROYAL_FLUSH", "ACH_FIVE_CARD", "ACH_ALL_HANDS", "ACH_FUSE_MAX", "ACH_UPPERS_10", "ACH_ALL_UPPERS",
-		"ACH_CHARMS_30", "ACH_ALL_CHARMS", "ACH_UPGRADE_MAX", "ACH_SECRET_CHANNEL", "ACH_RUNS_50", "ACH_TOTAL_KILLS_100K"};
+		"ACH_CHARMS_30", "ACH_ALL_CHARMS", "ACH_UPGRADE_MAX", "ACH_SECRET_CHANNEL", "ACH_RUNS_50", "ACH_TOTAL_KILLS_100K", "ACH_ALL_BOSSES", "ACH_ALL_FINAL_BOSSES", "ACH_MUTANT_BOSS"};
 	return N[std::clamp((int)A, 0, (int)EPDAch::Count - 1)];
 }
 
@@ -2235,6 +2238,13 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	if (E.Hp > 0.f) return;
 	E.bDead = true;
 	Kills++;
+	if (BossBit(E.Type) >= 0) // 도감: 잡은 보스, 변이 셋 (D-337)
+	{
+		BossKilled |= 1u << BossBit(E.Type);
+		int Mb = 0;
+		for (int K = 0; K < 6; ++K) Mb += (E.Mut >> K) & 1;
+		if (Mb >= 3) bMut3Kill = true;
+	}
 	if (HitSrc >= 0) // 조커가 처치하면 경험치 (D-125)
 	{
 		auto It = Towers.find(HitSrc);
@@ -2654,6 +2664,7 @@ void FPDGame::Update(float Dt)
 			E.StateT = Boss::BlindTime;
 		}
 		Enemies.push_back(E);
+		if (BossBit(E.Type) >= 0) BossSeen |= 1u << BossBit(E.Type); // 도감: 만난 보스 (D-337)
 		if (E.Type == EPDEnemy::BigBlind) BossEvent(E);
 		SpawnT = EnemyDef(E.Type).bBoss ? 1.2f : 0.65f * WaveScale(Wave); // 마리 수가 늘어도 웨이브 길이는 그대로
 	}

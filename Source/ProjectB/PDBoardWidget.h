@@ -123,7 +123,9 @@ private:
 	int32 UnlockPage = 0;                  // 가운데 판의 쪽 (한 쪽 30줄)
 	int32 UnlCount(int32 Tab) const;
 	int32 UnlPages() const;
-	int32 UnlSideTab(int32 Side) const { return Side == 0 ? (UnlockTab == 0 ? 1 : 0) : (UnlockTab == 2 ? 1 : 2); } // 양옆 작은 판이 보여 주는 탭
+	int32 UnlTabs() const { return bCodex ? 4 : 3; } // 도감은 보스 판까지 넷 (D-337), 잠금 해제는 셋
+	int32 UnlSideTab(int32 Side) const { if (UnlTabs() == 4) return (UnlockTab + (Side == 0 ? 3 : 1)) % 4; return Side == 0 ? (UnlockTab == 0 ? 1 : 0) : (UnlockTab == 2 ? 1 : 2); } // 양옆 작은 판이 보여 주는 탭
+	uint32 SavedBossKilled = 0, SavedBossSeen = 0;
 	int32 UnlRowAt(FVector2f P) const;     // 마우스 아래 줄 = 항목 번호, 없으면 -1
 	void UnlSetTab(int32 T) { UnlockTab = T; UnlockPage = 0; }
 	void UnlFlip(int32 Dir) { UnlockPage = FMath::Clamp(UnlockPage + Dir, 0, UnlPages() - 1); }
