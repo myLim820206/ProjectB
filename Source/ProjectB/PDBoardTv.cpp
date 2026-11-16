@@ -147,7 +147,7 @@ void SPDBoardWidget::PaintTv(FCanvas& C) const
 	}
 	else // 숨은 채널: 늦은 밤 로고 방송
 	{
-		PaintLogoBadge(C, SX + SW / 2.f - 10.f, SY + 18.f, 0.42f);
+		PaintLogoBadge(C, SX + SW / 2.f - 2.f, SY + 22.f, 0.38f); // 배치 C 는 옆으로 넓어서 조금 작게 (D-346)
 		C.TextCentered(TEXT("LATE NIGHT POKER"), SX + SW / 2.f, ContentBot - 10.f, MonoA(0.85f), 9.f, true, CW);
 		ChTag(TEXT("CH ??"));
 		Ticker();

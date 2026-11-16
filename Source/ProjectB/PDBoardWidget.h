@@ -157,7 +157,7 @@ private:
 	void FinishHint();                     // 지금 도움말을 본 것으로
 	bool HintTarget(int32 H, FBox2f& Out) const; // 가리킬 자리
 	void PaintHint(FCanvas& C) const;
-	void PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const; // 작은 네온 팔라스 로고 (D-274)
+	void PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const; // 작은 네온 로고 (D-274 → 시작 화면과 같은 배치 C, D-346)
 	void PaintBarBack(FCanvas& C) const;   // 벽돌 벽 + 바닥선 (D-274)
 	static void NeonText(FCanvas& C, const FString& S, float X, float Y, const FLinearColor& Col, float Px, int32 Align, float B); // 속 빈 네온 글자 (D-275)
 	// 네온 바 화면 공용 (D-293): 매단 전구 간판(글자마다 밝기 가능) · 두 겹 튜브 버튼 · 바 영수증(아래 끝 Y 를 돌려준다)

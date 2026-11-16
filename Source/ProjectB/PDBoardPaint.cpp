@@ -3337,7 +3337,9 @@ void SPDBoardWidget::PaintBarBack(FCanvas& C) const
 void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) const
 {
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e"));
-	const float NX0 = CX - PDLogo::BlockW * K / 2.f;
+	// 시작 화면과 같은 배치 C (사용자 2026-11-16, D-346): Alice 1.25배 가운데, BAR 는 왼쪽 위 0.55배(굵기 · 빛은 그대로, D-345), 마티니 잔은 오른쪽. 위치 수치는 시작 화면 로고(PaintTitle)와 같다 (Y = BAR 윗줄)
+	const float BK = 0.55f * K, SK = 1.25f * K, BY0 = Y;
+	const float NX0 = CX - 190.f * K;
 	// 벽빛 먼저 (D-303, 시작 화면 D-302 와 같게): 튜브 뒤에 은은하게 비치는 빛. 너비는 로고 크기(K)에 맞춘다
 	for (int32 Pass = 0; Pass < 2; ++Pass)
 	{
@@ -3354,14 +3356,14 @@ void SPDBoardWidget::PaintLogoBadge(FCanvas& C, float CX, float Y, float K) cons
 			for (int32 J = 0; J < N; ++J)
 			{
 				TArray<FVector2f> Pts;
-				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(FVector2f(NX0 + (I * PDLogo::BlockAdv + Ps[J].P[Q * 2] * 0.8f) * K, Y + (60.f + Ps[J].P[Q * 2 + 1]) * K));
+				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(FVector2f(NX0 + (I * PDLogo::BlockAdv + Ps[J].P[Q * 2] * 0.8f) * BK, BY0 + (60.f + Ps[J].P[Q * 2 + 1]) * BK));
 				Tube(Pts, Cyan, 1.2f, 25.f);
 			}
 		}
-		const FVector2f PO(CX - PDLogo::ScriptW / 2.f * K, Y + 170.f * K);
-		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(nullptr)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, K, 0.f, 5), Pink, 1.5f, 40.f); // 이어지는 글자는 한 줄로 (D-299)
+		const FVector2f PO(CX - PDLogo::ScriptW / 2.f * SK, Y + 156.f * K);
+		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(nullptr)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, SK, 0.f, 5), Pink, 1.5f, 40.f); // 이어지는 글자는 한 줄로 (D-299)
 		// 마티니 잔 (D-309)
-		const float SX = CX + 150.f * K, SY = Y + 120.f * K, R = 26.f * K;
+		const float SX = CX + 168.f * K, SY = Y + 102.f * K, R = 26.f * K;
 		Tube({FVector2f(SX - R, SY - R * 0.9f), FVector2f(SX + R, SY - R * 0.9f), FVector2f(SX, SY + R * 0.15f), FVector2f(SX - R, SY - R * 0.9f)}, Gold, 1.f, 14.f);
 		Tube({FVector2f(SX, SY + R * 0.15f), FVector2f(SX, SY + R * 0.95f)}, Gold, 1.f, 14.f);
 		Tube({FVector2f(SX - R * 0.5f, SY + R * 0.95f), FVector2f(SX + R * 0.5f, SY + R * 0.95f)}, Gold, 1.f, 14.f);
