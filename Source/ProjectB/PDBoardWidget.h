@@ -345,6 +345,8 @@ private:
 	void CloseCellMenu() { MenuCell = -1; MenuActs.Reset(); }
 	void BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const;
 	float CellMenuH(int32 Rows) const;
+	float CellMenuY() const;
+	uint64 MenuSig = 0;                      // 할 일 줄을 다시 만들 때 (판이 바뀌었을 때만)
 	int32 CellMenuRowAt(FVector2f P) const;  // 할 일 줄 번호 (-1 = 줄 아님)
 	bool CellMenuHit(FVector2f P) const;     // 상자 안
 	void DoCellAct(int32 Row);

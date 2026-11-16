@@ -304,7 +304,7 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetInt(PDSetSection, TEXT("JukeTrack"), JukeTrack, GGameUserSettingsIni); // 주크박스 곡 (D-319)
 		JukeTrack = FMath::Clamp(JukeTrack, 0, JazzTrackCount - 1);
 		Settings.Cine = FMath::Clamp(Settings.Cine, 0, 2);
-		TvChannel = FMath::Clamp(TvChannel, 0, 2); // 숨은 채널은 저장해도 CH1 로 시작
+		if (TvChannel < 0 || TvChannel > 2) TvChannel = 0; // 숨은 채널은 저장해도 CH1 로 시작
 		GConfig->GetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 		Settings.CardTheme = FMath::Clamp(Settings.CardTheme, 0, 2);
 		GPDCardTheme = Settings.CardTheme;
@@ -332,6 +332,7 @@ void SPDBoardWidget::LoadUserData()
 	Game.bMuted = !Settings.bSound;
 	// 진행: 도감(만들어 본 조커)과 최고 기록
 	TArray<FString> Lines;
+	bool bHadAch = false;
 	LoadRanking(); // 개인 랭킹 (D-168)
 	bHasRunSave = FPaths::FileExists(PDRunSavePath()); // 이어할 판 (D-162)
 	if (bHasRunSave) TitleSel = (int32)ETitleItem::Continue;
@@ -357,7 +358,7 @@ void SPDBoardWidget::LoadUserData()
 			else if (Key == TEXT("BestLevel")) GoalStats.BestLevel = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("BestKills")) GoalStats.BestKills = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("TvSecret")) bTvSecret = FCString::Atoi(*Val) != 0; // 숨은 채널 (D-316)
-			else if (Key == TEXT("Ach")) AchBits = (uint32)FCString::Strtoui64(*Val, nullptr, 10); // 도전 과제 (B8)
+			else if (Key == TEXT("Ach")) { AchBits = (uint32)FCString::Strtoui64(*Val, nullptr, 10); bHadAch = true; } // 도전 과제 (B8)
 			else if (Key == TEXT("HandsEver")) GoalStats.HandsEver = (uint32)FCString::Strtoui64(*Val, nullptr, 10);
 			else if (Key == TEXT("MaxFuse")) GoalStats.MaxFuseLevel = FMath::Max(0, FCString::Atoi(*Val));
 			else if (Key == TEXT("EndlessBest")) GoalStats.EndlessBest = FMath::Max(0, FCString::Atoi(*Val));
@@ -373,6 +374,7 @@ void SPDBoardWidget::LoadUserData()
 	SavedBest = Game.BestWave;
 	SyncGoalStats();
 	ApplyGoals(); // 예전 저장에서 이미 이룬 목표도 연다
+	if (!bHadAch) for (int32 I = 0; I < (int32)EPDAch::Count; ++I) if (AchMet((EPDAch)I, GoalStats)) AchBits |= 1u << I; // 도전 과제 전 저장: 이미 이룬 것은 알림 없이 (스팀에는 다음 저장 때 SyncAchievements)
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("pdunlock"))) ModesCleared = 0xF; // 시험용: 모드 모두 열기
 #endif
@@ -604,7 +606,14 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	{
 		const bool bBoard = Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave;
 		if (!bBoard || !Game.Towers.count(MenuCell) || Sel >= 0 || HandFilter >= 0 || bSwapMode || !PickCells.empty() || bMenu || bTree || bCodex || bSettings || bUpg) CloseCellMenu();
-		else BuildCellActs(MenuCell, MenuActs);
+		else
+		{
+			uint64 Sig = 1469598103934665603ull; // 판이 바뀌었을 때만 다시 만든다 (리뷰: 매 프레임 만들면 비싸다)
+			auto Mix = [&Sig](uint64 V) { Sig = (Sig ^ V) * 1099511628211ull; };
+			for (const auto& KV : Game.Towers) { Mix((uint64)KV.first); Mix((uint64)KV.second.Level << 8 | (uint64)(KV.second.Joker + 1)); Mix((uint64)KV.second.JLevel); Mix((uint64)KV.second.Card.Rank << 4 | (uint64)KV.second.Card.Suit); }
+			Mix(Game.Synergies.size()); Mix((uint64)MenuCell);
+			if (Sig != MenuSig) { MenuSig = Sig; BuildCellActs(MenuCell, MenuActs); }
+		}
 	}
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
@@ -671,12 +680,14 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
 	{
 		const float AutoT0 = Game.AutoStartT;
+		if (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) Cines.Reset(); // 끝 · 보상 화면으로 넘어가면 연출은 버린다 (클릭을 먹지 않게)
 		if (CineActive()) UpdateCine(Dt); // 완성 연출 동안은 게임이 멈춘다 (D-314)
 		else if (!bTree && !bUpg && !bMenu && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
 		if (HintNow >= 0 && AutoT0 >= 0.f && Game.AutoStartT >= 0.f && Game.Phase == EPDPhase::Build) Game.AutoStartT = AutoT0; // 도움말이 떠 있는 동안 자동 시작 시계는 멈춤 (D-217)
 	}
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
+	for (const FPDSynergy& S : Game.Synergies) GoalStats.HandsEver |= 1u << (int32)S.Kind; // 도전 과제: 판에 있는 족보 모두 (사건이 큰 족보 하나만 알려서)
 	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다
 	{
 		auto Cap = [](auto& A, int32 Max) { if (A.Num() > Max) A.RemoveAt(0, A.Num() - Max, EAllowShrinking::No); };
@@ -1254,7 +1265,7 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
 	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
-	if (CineActive() && !bMenu && !bSettings) { SkipCine(); return; } // 완성 연출: 클릭하면 바로 건너뜀 (D-314 ④)
+	if (CineActive() && !bMenu && !bSettings && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { SkipCine(); return; } // 완성 연출: 클릭하면 바로 건너뜀 (D-314 ④)
 	if (bRanking) // 랭킹 (D-168): 탭 · 닫기, 창 밖·오른쪽 클릭 = 닫기
 	{
 		for (int32 I = 0; I < (int32)EPDMode::Count; ++I)
@@ -1624,7 +1635,7 @@ void SPDBoardWidget::CheckAchievements()
 	{
 		if ((AchBits >> I) & 1u || !AchMet((EPDAch)I, GoalStats)) continue;
 		AchBits |= 1u << I;
-		AchToast.Add(I);
+		if (AchToast.Num() < 4) AchToast.Add(I); // 알림은 4개까지 줄 세움
 		PDSteam::UnlockAchievement(AchApiName((EPDAch)I)); // 스팀 (App ID 가 생기면 연결, 지금은 아무것도 안 함)
 	}
 	PDSteam::SyncAchievements(AchBits); // 스팀에 이미 이룬 것 다시 알리기 (오프라인에서 이룬 것)

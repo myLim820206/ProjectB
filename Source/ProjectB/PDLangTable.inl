@@ -494,7 +494,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("만들면: %s · 재료 %d장"), TEXT("If made: %s · %d material cards"), TEXT("作ると: %s · 素材 %d 枚"), TEXT("制作后: %s · 素材 %d 张"), TEXT("製作後: %s · 素材 %d 張")},
 	{TEXT("위력 %s/초 → %s/초 (%s%.0f%%)"), TEXT("Power %s/s → %s/s (%s%.0f%%)"), TEXT("威力 %s/秒 → %s/秒 (%s%.0f%%)"), TEXT("威力 %s/秒 → %s/秒 (%s%.0f%%)"), TEXT("威力 %s/秒 → %s/秒 (%s%.0f%%)")},
 	{TEXT("재료 %d장의 위력 합 → 조커 하나"), TEXT("Total of %d material cards → one Joker"), TEXT("素材 %d 枚の威力合計 → ジョーカー1体"), TEXT("%d 张素材的威力总和 → 一个小丑"), TEXT("%d 張素材的威力總和 → 一個小丑")},
-	{TEXT("클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), TEXT("Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)"), TEXT("クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)"), TEXT("点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)"), TEXT("點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)")},
+	{TEXT("클릭: 메뉴 (먹이기 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), TEXT("Click: menu (feed %d) · kill +%.0f XP (boss +%.0f)"), TEXT("クリック: メニュー (食べさせる %d) · 撃破 +%.0f 経験値 (ボス +%.0f)"), TEXT("点击: 菜单 (喂食 %d) · 击败 +%.0f 经验 (首领 +%.0f)"), TEXT("點擊: 選單 (餵食 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)")},
 	{TEXT("조커 레벨 %d (최대) · 위력 +%d%%"), TEXT("Joker Lv %d (max) · Power +%d%%"), TEXT("ジョーカーレベル %d (最大) · 威力 +%d%%"), TEXT("小丑等级 %d (最高) · 威力 +%d%%"), TEXT("小丑等級 %d (最高) · 威力 +%d%%")},
 	{TEXT("조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), TEXT("Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s"), TEXT("ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s"), TEXT("小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s"), TEXT("小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s")},
 	{TEXT(" · 강화"), TEXT(" · upgraded"), TEXT(" · 強化"), TEXT(" · 强化"), TEXT(" · 強化")},
@@ -743,6 +743,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), TEXT("Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)"), TEXT("クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)"), TEXT("点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)"), TEXT("點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)")},
 	{TEXT("남은 적"), TEXT("Enemies left"), TEXT("残りの敵"), TEXT("剩余敌人"), TEXT("剩餘敵人")},
 	{TEXT("판 위력"), TEXT("Board Power"), TEXT("盤の威力"), TEXT("场上威力"), TEXT("場上威力")},
 	{TEXT("족보 덤 ×%.1f · 족보 %d · 조커 %d"), TEXT("Hand bonus ×%.1f · Hands %d · Jokers %d"), TEXT("役ボーナス ×%.1f · 役 %d · ジョーカー %d"), TEXT("牌型加成 ×%.1f · 牌型 %d · 小丑 %d"), TEXT("牌型加成 ×%.1f · 牌型 %d · 小丑 %d")},
@@ -939,4 +940,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 938;
+static const int32 PDLangRowCount = 939;

@@ -6,15 +6,17 @@
 namespace
 {
 const FLinearColor CGold = FLinearColor(FColor::FromHex(TEXT("ffd96a")));
-float Ease(float U) { U = FMath::Clamp(U, 0.f, 1.f); return 1.f - (1.f - U) * (1.f - U) * (1.f - U); }
-float Seg(float U, float A, float B) { return FMath::Clamp((U - A) / FMath::Max(0.0001f, B - A), 0.f, 1.f); } // U 가 A~B 사이 어디쯤
-uint32 Hash(uint32 X) { X ^= X >> 16; X *= 0x7feb352du; X ^= X >> 15; X *= 0x846ca68bu; X ^= X >> 16; return X; }
-float Rnd(uint32 Seed, int32 I, int32 K) { return (Hash(Seed * 977u + (uint32)I * 131u + (uint32)K * 7919u) & 0xFFFF) / 65535.f; }
+float CineEase(float U) { U = FMath::Clamp(U, 0.f, 1.f); return 1.f - (1.f - U) * (1.f - U) * (1.f - U); }
+float CineSeg(float U, float A, float B) { return FMath::Clamp((U - A) / FMath::Max(0.0001f, B - A), 0.f, 1.f); } // U 가 A~B 사이 어디쯤
+uint32 CineHash(uint32 X) { X ^= X >> 16; X *= 0x7feb352du; X ^= X >> 15; X *= 0x846ca68bu; X ^= X >> 16; return X; }
+float CineRnd(uint32 Seed, int32 I, int32 K) { return (CineHash(Seed * 977u + (uint32)I * 131u + (uint32)K * 7919u) & 0xFFFF) / 65535.f; }
 }
 
 void SPDBoardWidget::QueueCine(const FPDEvent& E)
 {
-	if (Settings.Cine >= 2 || Game.Phase == EPDPhase::Title) return; // 끔
+	if (Settings.Cine >= 2 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave)) return; // 끔, 판 밖
+	if (E.Kind != FPDEvent::EKind::Fuse && E.Kind != FPDEvent::EKind::JokerFuse && E.Kind != FPDEvent::EKind::JokerMerge && E.Kind != FPDEvent::EKind::Feed && E.Kind != FPDEvent::EKind::JokerXp) return; // 발사 · 맞음 같은 많은 사건은 바로 넘긴다
+	if (E.Kind == FPDEvent::EKind::JokerXp && E.B <= 0) return;
 	const int32 Cell = CellKey((int32)E.X, (int32)E.Y);
 	auto It = Game.Towers.find(Cell);
 	if (It == Game.Towers.end()) return;
@@ -24,7 +26,7 @@ void SPDBoardWidget::QueueCine(const FPDEvent& E)
 	Cn.Card = T.Card;
 	Cn.Level = T.IsJoker() ? T.JLevel : T.Level;
 	Cn.Joker = T.Joker;
-	Cn.Seed = Hash((uint32)(Clock * 1000.f) + (uint32)Cell * 31u);
+	Cn.Seed = CineHash((uint32)(Clock * 1000.f) + (uint32)Cell * 31u);
 	Cn.Mats = PendingFuseCells;
 	switch (E.Kind)
 	{
@@ -91,9 +93,9 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		static const FLinearColor Pal[5] = {FLinearColor(FColor::FromHex(TEXT("ff6aaa"))), FLinearColor(FColor::FromHex(TEXT("6edcff"))), FLinearColor(FColor::FromHex(TEXT("ffd96a"))), FLinearColor(FColor::FromHex(TEXT("8affc4"))), FLinearColor(FColor::FromHex(TEXT("b48cff")))};
 		for (int32 I = 0; I < N; ++I)
 		{
-			const float A = Rnd(Cn.Seed, I, 0) * TwoPi, V = Speed * (0.4f + 0.6f * Rnd(Cn.Seed, I, 1)), Spin = Rnd(Cn.Seed, I, 2) * 12.f;
+			const float A = CineRnd(Cn.Seed, I, 0) * TwoPi, V = Speed * (0.4f + 0.6f * CineRnd(Cn.Seed, I, 1)), Spin = CineRnd(Cn.Seed, I, 2) * 12.f;
 			const FVector2f P = O + FVector2f(FMath::Cos(A), FMath::Sin(A)) * V * S + FVector2f(0.f, 160.f * S * S); // 떨어지는 꽃가루
-			const float Fade = 1.f - S / 1.4f, L = 3.f + 3.f * Rnd(Cn.Seed, I, 3), R = Spin * S;
+			const float Fade = 1.f - S / 1.4f, L = 3.f + 3.f * CineRnd(Cn.Seed, I, 3), R = Spin * S;
 			const FLinearColor Pc = bGoldOnly ? CGold : I % 3 == 0 ? Col : Pal[I % 5];
 			C.Glow({P - FVector2f(FMath::Cos(R), FMath::Sin(R)) * L, P + FVector2f(FMath::Cos(R), FMath::Sin(R)) * L}, WithAlpha(Pc, Fade), 1.6f, 0.8f * Fade);
 		}
@@ -101,7 +103,7 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 	auto Firework = [&](FVector2f O, float S, int32 Rays, float Rad, const FLinearColor& Col)
 	{
 		if (S <= 0.f || S > 0.9f) return;
-		const float E = Ease(S / 0.9f), Fade = 1.f - S / 0.9f;
+		const float E = CineEase(S / 0.9f), Fade = 1.f - S / 0.9f;
 		for (int32 K = 0; K < Rays; ++K)
 		{
 			const float A = TwoPi * K / Rays;
@@ -123,12 +125,12 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 	case ECine::Fuse:
 	{
 		const bool bGold = Cn.Level >= MaxLevel;
-		const float Big = 2.6f + 0.4f * FMath::Clamp(Cn.Level - 2, 0, 2), Out = Seg(U, 0.f, 0.25f), Back = Seg(U, 0.78f, 1.f);
+		const float Big = 2.6f + 0.4f * FMath::Clamp(Cn.Level - 2, 0, 2), Out = CineSeg(U, 0.f, 0.25f), Back = CineSeg(U, 0.78f, 1.f);
 		Darken(0.28f * (1.f - Back));
-		const FVector2f Mid = FMath::Lerp(Cell, Ctr, Ease(Out));
-		const FVector2f P = FMath::Lerp(Mid, Cell, Ease(Back));
-		const float R = CS * 0.42f * FMath::Lerp(FMath::Lerp(1.f, Big, Ease(Out)), 1.f, Ease(Back));
-		const float SpinU = Seg(U, 0.2f, 0.6f), W = FMath::Abs(FMath::Cos(SpinU * PI * 4.f)); // 빙글빙글
+		const FVector2f Mid = FMath::Lerp(Cell, Ctr, CineEase(Out));
+		const FVector2f P = FMath::Lerp(Mid, Cell, CineEase(Back));
+		const float R = CS * 0.42f * FMath::Lerp(FMath::Lerp(1.f, Big, CineEase(Out)), 1.f, CineEase(Back));
+		const float SpinU = CineSeg(U, 0.2f, 0.6f), W = FMath::Abs(FMath::Cos(SpinU * PI * 4.f)); // 빙글빙글
 		const FPDCard Cd = Cn.Card;
 		if (U < 0.6f && W < 0.5f) C.Glow(FCanvas::RoundRectPoints(P.X - R * W, P.Y - R, FMath::Max(2.f, 2.f * R * W), 2.f * R, R * 0.22f), SuitColor(Cd.Suit), 2.f, 1.f);
 		else C.CardShape(Cd, P.X, P.Y, R, 1.f, true, 0.5f + 0.5f * FMath::Sin(Clock * 10.f));
@@ -146,22 +148,22 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 	case ECine::Merge:
 	{
 		// 재료 카드들이 화면 앞으로 나와(둘레에 펼쳐짐) 가운데로 모여 하얀 빛과 함께 조커, 폭죽 (D-314 ②)
-		const float Gather = Seg(U, 0.12f, 0.5f), Back = Seg(U, 0.85f, 1.f), Show = Seg(U, 0.55f, 0.65f);
+		const float Gather = CineSeg(U, 0.12f, 0.5f), Back = CineSeg(U, 0.85f, 1.f), Show = CineSeg(U, 0.55f, 0.65f);
 		Darken(0.42f * (1.f - Back));
 		const int32 N = FMath::Max(2, Cn.Mats.Num());
 		for (int32 I = 0; I < Cn.Mats.Num() && U < 0.55f; ++I)
 		{
 			const float A = TwoPi * I / N - PI / 2.f + Gather * 2.2f;
-			const FVector2f Ring = Ctr + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 120.f * (1.f - Ease(Gather));
-			const FVector2f P = FMath::Lerp(Cn.Mats[I], Ring, Ease(Seg(U, 0.f, 0.15f)));
+			const FVector2f Ring = Ctr + FVector2f(FMath::Cos(A), FMath::Sin(A)) * 120.f * (1.f - CineEase(Gather));
+			const FVector2f P = FMath::Lerp(Cn.Mats[I], Ring, CineEase(CineSeg(U, 0.f, 0.15f)));
 			C.Glow(FCanvas::RoundRectPoints(P.X - 14.f, P.Y - 18.f, 28.f, 36.f, 5.f), Cn.Kind == ECine::Merge ? JokerPink : White, 1.8f, 0.9f);
 		}
 		const float Fl = Cn.T - Cn.Dur * 0.55f;
 		if (Fl > 0.f && Fl < 0.25f) C.SoftDisc(Ctr, 150.f, 150.f, White, 0.85f * (1.f - Fl / 0.25f)); // 하얀 빛
 		if (Show > 0.f)
 		{
-			const FVector2f P = FMath::Lerp(Ctr, Cell, Ease(Back));
-			const float R = FMath::Lerp(46.f, CS * 0.42f, Ease(Back)) * (0.6f + 0.4f * Ease(Show));
+			const FVector2f P = FMath::Lerp(Ctr, Cell, CineEase(Back));
+			const float R = FMath::Lerp(46.f, CS * 0.42f, CineEase(Back)) * (0.6f + 0.4f * CineEase(Show));
 			C.JokerTower(Cn.Joker, P.X, P.Y, R, 1.f, 0.5f + 0.5f * FMath::Sin(Clock * 8.f));
 			if (Back < 0.3f) C.TextCentered(JokerName(Cn.Joker), Ctr.X, Ctr.Y + 70.f, JokerPink, 18.f, true);
 			if (Cn.bNew && Back < 0.3f) C.Badge(TEXT("NEW"), Ctr.X + 54.f, Ctr.Y - 54.f, CGold, 1.f);
@@ -170,7 +172,7 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		{
 			for (int32 K = 0; K < 3; ++K)
 			{
-				const FVector2f O = Ctr + FVector2f((Rnd(Cn.Seed, K, 5) - 0.5f) * 360.f, (Rnd(Cn.Seed, K, 6) - 0.7f) * 220.f);
+				const FVector2f O = Ctr + FVector2f((CineRnd(Cn.Seed, K, 5) - 0.5f) * 360.f, (CineRnd(Cn.Seed, K, 6) - 0.7f) * 220.f);
 				Firework(O, Cn.T - Cn.Dur * (0.58f + 0.08f * K), 14, 70.f, K == 1 ? CGold : JokerPink);
 			}
 		}
@@ -180,7 +182,7 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 	case ECine::Upper:
 	{
 		// 상위 조커 (D-314 ③): 판이 어두워짐 → 재료 조커 두 장이 돌며 빨라짐 → 부딪혀 금빛 + 왕관이 내려와 앉음 → 네온 간판에 이름이 전구 하나씩 → 금색 폭죽 · 금가루 → 칸으로
-		const float Orbit = Seg(U, 0.08f, 0.4f), Crash = U - 0.4f, Back = Seg(U, 0.9f, 1.f);
+		const float Orbit = CineSeg(U, 0.08f, 0.4f), Crash = U - 0.4f, Back = CineSeg(U, 0.9f, 1.f);
 		Darken(0.65f * (1.f - Back));
 		const int32 Ui = Cn.Joker - UpperBase;
 		if (U < 0.4f)
@@ -196,10 +198,10 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 		if (Crash > 0.f && Crash < 0.08f) C.SoftDisc(Ctr, 220.f, 220.f, CGold, 0.9f * (1.f - Crash / 0.08f)); // 금빛 번쩍
 		if (U >= 0.4f)
 		{
-			const FVector2f P = FMath::Lerp(Ctr, Cell, Ease(Back));
-			const float R = FMath::Lerp(52.f, CS * 0.42f, Ease(Back));
+			const FVector2f P = FMath::Lerp(Ctr, Cell, CineEase(Back));
+			const float R = FMath::Lerp(52.f, CS * 0.42f, CineEase(Back));
 			C.JokerTower(Cn.Joker, P.X, P.Y, R, 1.f, 0.5f + 0.5f * FMath::Sin(Clock * 6.f));
-			const float Drop = Ease(Seg(U, 0.42f, 0.55f));
+			const float Drop = CineEase(CineSeg(U, 0.42f, 0.55f));
 			if (Back < 0.2f) Crown(Ctr + FVector2f(0.f, -R - 8.f - 120.f * (1.f - Drop)), 22.f, 1.f);
 			// 대표 11종 소품 (D-315): 둘레를 도는 작은 그림
 			const EPDUpperSpecial Sp = JokerSpecial(Cn.Joker);
@@ -228,14 +230,14 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 			{
 				const FString Nm = UpperName(Ui);
 				TArray<float> LB;
-				const float Lit = Seg(U, 0.55f, 0.75f) * Nm.Len();
+				const float Lit = CineSeg(U, 0.55f, 0.75f) * Nm.Len();
 				for (int32 K = 0; K < Nm.Len(); ++K) LB.Add(K < Lit ? (FMath::Abs(Lit - K - 0.6f) < 0.3f ? 0.3f : 1.f) : 0.08f); // 켜지며 한 번 지직
 				BulbSign(C, Ctr.X, Ctr.Y + 78.f, FMath::Max(260.f, Nm.Len() * 26.f + 60.f), 56.f, Nm, CGold, 24.f, Clock, &LB, false);
 				if (Cn.bNew) C.Badge(TEXT("NEW"), Ctr.X + 70.f, Ctr.Y - 70.f, CGold, 1.f);
 			}
 			for (int32 K = 0; K < 5; ++K) // 금색 폭죽 여러 발
 			{
-				const FVector2f O = Ctr + FVector2f((Rnd(Cn.Seed, K, 8) - 0.5f) * 520.f, (Rnd(Cn.Seed, K, 9) - 0.75f) * 300.f);
+				const FVector2f O = Ctr + FVector2f((CineRnd(Cn.Seed, K, 8) - 0.5f) * 520.f, (CineRnd(Cn.Seed, K, 9) - 0.75f) * 300.f);
 				Firework(O, Cn.T - Cn.Dur * (0.6f + 0.05f * K), 16, 80.f, CGold);
 			}
 			Confetti(Ctr, Cn.T - Cn.Dur * 0.62f, 50, 300.f, true, CGold); // 금가루
@@ -246,12 +248,12 @@ void SPDBoardWidget::PaintCine(FCanvas& C) const
 	case ECine::UpperLv:
 	{
 		// 조커 레벨 10 (기본: 금색 고리 한 바퀴 + '강화!' + 열린 능력 한 줄) · 상위 조커 10레벨마다 (간판에 'LvN') (D-315)
-		const float Up = Ease(Seg(U, 0.f, 0.2f)), Back = Seg(U, 0.85f, 1.f);
+		const float Up = CineEase(CineSeg(U, 0.f, 0.2f)), Back = CineSeg(U, 0.85f, 1.f);
 		Darken(0.3f * (1.f - Back));
 		const FVector2f P = Cell + FVector2f(0.f, -26.f * Up * (1.f - Back));
 		const float R = CS * 0.42f * (1.f + 0.9f * Up * (1.f - Back));
 		C.JokerTower(Cn.Joker, P.X, P.Y, R, 1.f, 0.8f);
-		const float Sweep = Seg(U, 0.15f, 0.65f);
+		const float Sweep = CineSeg(U, 0.15f, 0.65f);
 		if (Sweep > 0.f && Sweep < 1.f) { TArray<FVector2f> Arc; for (int32 J = 0; J <= 24; ++J) Arc.Add(P + FVector2f(FMath::Cos(-PI / 2.f + TwoPi * Sweep * J / 24.f), FMath::Sin(-PI / 2.f + TwoPi * Sweep * J / 24.f)) * (R + 10.f)); C.Glow(Arc, CGold, 2.4f, 1.2f); }
 		if (Cn.Kind == ECine::JokerLv)
 		{

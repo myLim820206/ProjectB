@@ -12,6 +12,7 @@ FString Signed(float Pct) { return FString::Printf(TEXT("%s%.0f%%"), Pct >= 0.f 
 }
 
 float SPDBoardWidget::CellMenuH(int32 RowsN) const { return CmTopH + 8.f + RowsN * CmRowH + 8.f; }
+float SPDBoardWidget::CellMenuY() const { return FMath::Min(MenuPos.Y, DesignH - CellMenuH(MenuActs.Num()) - 8.f); } // 그리기 · 마우스 · 클릭이 같은 자리 (줄이 늘어도)
 
 void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 {
@@ -36,13 +37,28 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 		const std::vector<FPDJokerNode> Ns = G.JokerNodes(); // 조커: 이 칸이 든 재료로 만들 수 있는 조커마다 (D-313)
 		for (int32 J = 0; J < (int32)EPDJoker::Count; ++J)
 		{
-			if (!G.JokerOpen(J) || G.BestJokerPicks((EPDJoker)J).empty()) continue;
+			if (!G.JokerOpen(J)) continue;
 			std::vector<EPDHand> Kinds;
 			for (EPDHand H : JokerRecipe((EPDJoker)J)) Kinds.push_back(H);
 			for (EPDHand H : JokerRecipe2((EPDJoker)J)) Kinds.push_back(H);
 			for (const FPDJokerNode& N : Ns)
 			{
 				if (!HasCell(N.Cells, Cell) || std::find(Kinds.begin(), Kinds.end(), N.Kind) == Kinds.end()) continue;
+				auto Fits = [&Ns](const std::vector<EPDHand>& Rec) { // 판의 재료 수로 레시피(3개 또는 2개)가 채워지나 (BestJokerPicks 는 사본을 많이 만들어 비싸다)
+					if (Rec.empty()) return false;
+					for (EPDHand H : Rec)
+					{
+						int Need = 0, Have = 0;
+						for (EPDHand X : Rec) Need += X == H;
+						for (const FPDJokerNode& Q : Ns) Have += Q.Kind == H;
+						if (Have < Need) return false;
+					}
+					return true;
+				};
+				std::vector<EPDHand> R3, R2;
+				for (EPDHand H : JokerRecipe((EPDJoker)J)) R3.push_back(H);
+				for (EPDHand H : JokerRecipe2((EPDJoker)J)) R2.push_back(H);
+				if (!Fits(R3) && !Fits(R2)) break;
 				FCellAct A;
 				A.Kind = ECellAct::Craft; A.A = J; A.Cells = N.Cells; A.Col = JokerPink;
 				A.Label = TrF(TEXT("조커: %s"), (G.Discovered >> J) & 1u ? JokerName(J) : TEXT("???"));
@@ -122,13 +138,13 @@ void SPDBoardWidget::OpenCellMenu(int32 Cell)
 int32 SPDBoardWidget::CellMenuRowAt(FVector2f P) const
 {
 	if (MenuCell < 0) return -1;
-	const float Y0 = MenuPos.Y + CmTopH + 8.f;
+	const float Y0 = CellMenuY() + CmTopH + 8.f;
 	if (!InRect(P, MenuPos.X + 6.f, Y0, CmW - 12.f, MenuActs.Num() * CmRowH)) return -1;
 	const int32 R = (int32)((P.Y - Y0) / CmRowH);
 	return R >= 0 && R < MenuActs.Num() ? R : -1;
 }
 
-bool SPDBoardWidget::CellMenuHit(FVector2f P) const { return MenuCell >= 0 && InRect(P, MenuPos.X, MenuPos.Y, CmW, CellMenuH(MenuActs.Num())); }
+bool SPDBoardWidget::CellMenuHit(FVector2f P) const { return MenuCell >= 0 && InRect(P, MenuPos.X, CellMenuY(), CmW, CellMenuH(MenuActs.Num())); }
 
 void SPDBoardWidget::DoCellAct(int32 Row)
 {
@@ -145,10 +161,15 @@ void SPDBoardWidget::DoCellAct(int32 Row)
 		if (!Game.Feed(A.A, Cell)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
 		break;
 	case ECellAct::Merge:
+	{
+		int32 Mi = -1; // 번호가 아니라 칸으로 다시 찾는다 (그사이 조커 레벨이 올라 묶음 번호가 밀렸을 수 있다)
+		const std::vector<FPDJokerMerge> Ms = Game.JokerMerges();
+		for (int32 I = 0; I < (int32)Ms.size() && Mi < 0; ++I) { std::vector<int> X = Ms[I].Cells, Y = A.Cells; std::sort(X.begin(), X.end()); std::sort(Y.begin(), Y.end()); if (X == Y) Mi = I; }
 		PendingFuseCells.Reset();
 		for (int K : A.Cells) PendingFuseCells.Add(CellCenter(K));
-		if (!Game.MergeJokers(A.A, Cell)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
+		if (Mi < 0 || !Game.MergeJokers(Mi, Cell)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
 		break;
+	}
 	case ECellAct::Craft: // 조커 (D-313): 그 칸을 재료로 넣은 채 조커 고르기(D-211)로 넘어가 나머지를 고른다
 	{
 		if (!InCraft()) ToggleCraft();
@@ -294,7 +315,7 @@ void SPDBoardWidget::PaintCellMenu(FCanvas& F) const
 	else F.Glow(FCanvas::RoundRectPoints(C0.X + 1.f, C0.Y + 1.f, CS - 2.f, CS - 2.f, 8.f), JokerPink, 2.4f, 1.f + 0.4f * Wv);
 	// 상자
 	const float H = CellMenuH(MenuActs.Num());
-	const float X = MenuPos.X, Y = FMath::Min(MenuPos.Y, DesignH - H - 8.f);
+	const float X = MenuPos.X, Y = CellMenuY();
 	const FPDTower& T = Game.Towers.at(MenuCell);
 	const FLinearColor Edge = T.IsJoker() ? (IsUpperJoker(T.Joker) ? Hex(TEXT("ffd26e")) : JokerPink) : SuitColor(T.Card.Suit);
 	F.Box(X, Y, CmW, H, Hex(TEXT("06060b"), 0.96f));

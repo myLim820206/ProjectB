@@ -1898,7 +1898,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), JX + 10.f, JY + 70.f, Grey, 11.f, 0, false, 226.f);
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 86.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 102.f, Gold, 10.f, 0, false, 226.f);
-				{ TArray<FCellAct> Acts; BuildCellActs(It->first, Acts); F.Text(TrF(TEXT("클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), Acts.Num(), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f); }
+				{ const int32 NA = (int32)G.FeedTargets(It->first).size(); F.Text(TrF(TEXT("클릭: 메뉴 (먹이기 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), NA, JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f); }
 				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("조커 레벨 %d (최대) · 위력 +%d%%"), T.JLevel, FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f))
 					: TrF(TEXT("조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f), T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
 					JX + 10.f, JY + 134.f, JokerPink, 10.f, 0, false, 226.f);
@@ -1922,7 +1922,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), BX + 10.f, BYp + 54.f, Fg, 11.f, 0, false, 220.f);
 			F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), BX + 10.f, BYp + 70.f, Grey, 11.f, 0, false, 220.f);
 			if (T.Level >= 2) F.Text(TrF(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 10.f, BYp + 86.f, Gold, 10.f, 0, false, 220.f);
-			{ TArray<FCellAct> Acts; BuildCellActs(It->first, Acts); int32 NF = 0; for (const FCellAct& Ac : Acts) NF += Ac.Kind == ECellAct::Fuse;
+			{ int32 NF = 0; for (int32 Si = 0; Si < (int32)G.Synergies.size(); ++Si) if (G.CanFuse(Si)) { const std::vector<int> FC = FuseSyn(G, Si).Cells; NF += std::find(FC.begin(), FC.end(), It->first) != FC.end(); } // 합성 줄 수만 (메뉴 전체를 만들면 비싸다)
 				F.Text(TrF(TEXT("클릭: 메뉴 (합성 %d · 판매 +%d 경험치)"), NF, G.SellPrice(It->first)), BX + 10.f, BYp + BH0 - 6.f, Hex(TEXT("8a94a6")), 9.f, 0, false, 220.f); } // D-312 ⑤
 			SynLines(true, BX + 10.f, BYp + BH0 + 10.f, 220.f);
 			}

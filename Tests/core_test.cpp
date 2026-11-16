@@ -1527,18 +1527,30 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				FPDTowerMap Cur = G.Towers;
 				const double Before = Power(G, Cur);
 				const auto Groups = G.JokerGroups();
-				int BestI = -1;
+				int BestI = -1, BestCell = -1;
 				double BestGain = 0.0;
 				for (int I = 0; I < (int)Groups.size(); ++I)
 				{
-					FPDGame Copy = G;
-					Copy.JokerFuse(I);
-					FPDTowerMap After = Copy.Towers;
-					const double Gain = Power(Copy, After) - Before;
-					if (Gain > BestGain) { BestGain = Gain; BestI = I; }
+					// 조커가 생길 칸 (B7): 묶음 칸 중에서, 상위 조커 레시피 짝이 되는 조커 옆이면 덤 (나중에 상위 조커를 만들 수 있게)
+					for (int K : Groups[I].Cells)
+					{
+						FPDGame Copy = G;
+						if (!Copy.JokerFuse(I, K) || !Copy.Towers.count(K)) continue;
+						FPDTowerMap After = Copy.Towers;
+						double Gain = Power(Copy, After) - Before;
+						const FPDTower& NJ = Copy.Towers.at(K);
+						for (const auto& OV : Copy.Towers)
+						{
+							const FPDTower& O = OV.second;
+							if (OV.first == K || !O.IsJoker() || IsUpperJoker(O.Joker) || IsUpperJoker(NJ.Joker) || std::abs(O.X - NJ.X) + std::abs(O.Y - NJ.Y) != 1) continue;
+							const int U = UpperOf((EPDJoker)NJ.Joker, (EPDJoker)O.Joker);
+							if (U >= 0 && Copy.UpperOpen(U)) Gain += 0.08 * Before;
+						}
+						if (Gain > BestGain) { BestGain = Gain; BestI = I; BestCell = K; }
+					}
 				}
 				if (BestI < 0) break;
-				G.JokerFuse(BestI);
+				G.JokerFuse(BestI, BestCell);
 				JokersMade[0]++;
 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f) KindsMade[KV2.second.Joker]++;
 			}

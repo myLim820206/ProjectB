@@ -493,7 +493,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 만들면: %s · 재료 %d장	If made: %s · %d material cards	作ると: %s · 素材 %d 枚	制作后: %s · 素材 %d 张	製作後: %s · 素材 %d 張	PDBoardPaint.cpp
 위력 %s/초 → %s/초 (%s%.0f%%)	Power %s/s → %s/s (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
 재료 %d장의 위력 합 → 조커 하나	Total of %d material cards → one Joker	素材 %d 枚の威力合計 → ジョーカー1体	%d 张素材的威力总和 → 一个小丑	%d 張素材的威力總和 → 一個小丑	PDBoardPaint.cpp
-클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
+클릭: 메뉴 (먹이기 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (feed %d) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (食べさせる %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (喂食 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (餵食 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
 조커 레벨 %d (최대) · 위력 +%d%%	Joker Lv %d (max) · Power +%d%%	ジョーカーレベル %d (最大) · 威力 +%d%%	小丑等级 %d (最高) · 威力 +%d%%	小丑等級 %d (最高) · 威力 +%d%%	PDBoardPaint.cpp
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
@@ -742,6 +742,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDLangTable.inl
 남은 적	Enemies left	残りの敵	剩余敌人	剩餘敵人	PDLangTable.inl
 판 위력	Board Power	盤の威力	场上威力	場上威力	PDLangTable.inl
 족보 덤 ×%.1f · 족보 %d · 조커 %d	Hand bonus ×%.1f · Hands %d · Jokers %d	役ボーナス ×%.1f · 役 %d · ジョーカー %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	牌型加成 ×%.1f · 牌型 %d · 小丑 %d	PDLangTable.inl
