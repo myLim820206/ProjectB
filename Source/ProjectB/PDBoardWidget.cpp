@@ -1022,6 +1022,19 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 		}
 	}
 	UiSound(EPDSound::Denied);
+	// 조사용 (2026-11-16 사용자 판: 플러시 합성 타워를 재료로 못 고름): 거절될 때 판의 재료 후보 · 고른 재료를 로그에 (PDCRAFT 로 찾기)
+	FString Dump = FString::Printf(TEXT("PDCRAFT deny cell=%d joker=%d picks=%d idx="), Cell, CraftJoker, (int32)CraftPicks.size());
+	for (int I : Idx) Dump += FString::Printf(TEXT("%d "), I);
+	Dump += TEXT("cands=");
+	for (int I : Cands) Dump += FString::Printf(TEXT("%d "), I);
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *Dump);
+	for (int32 I = 0; I < (int32)Ns.size(); ++I)
+	{
+		FString Cs;
+		for (int K : Ns[I].Cells) Cs += FString::Printf(TEXT("%d(%d%c L%d) "), K, Game.Towers.count(K) ? Game.Towers.at(K).Card.Rank : -1, Game.Towers.count(K) ? TEXT("SHDCW")[FMath::Clamp((int32)Game.Towers.at(K).Card.Suit, 0, 4)] : TEXT('?'), Game.Towers.count(K) ? Game.Towers.at(K).Level : -1);
+		UE_LOG(LogTemp, Warning, TEXT("PDCRAFT node %d kind=%d syn=%d fused=%d cells=%s"), I, (int32)Ns[I].Kind, Ns[I].Syn, Ns[I].Fused, *Cs);
+	}
+	for (const std::vector<int>& Pk : CraftPicks) { FString Cs; for (int K : Pk) Cs += FString::Printf(TEXT("%d "), K); UE_LOG(LogTemp, Warning, TEXT("PDCRAFT pick %s"), *Cs); }
 }
 
 void SPDBoardWidget::CraftRightClick(int32 Cell)
