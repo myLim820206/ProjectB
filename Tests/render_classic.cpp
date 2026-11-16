@@ -1,6 +1,6 @@
-// 클래식 재즈 시안 4곡 (D-359)을 WAV 로 뽑아 들어 본다: 언리얼과 같은 합성기(PDSynth)
+// 클래식 재즈 시안 5곡 (D-359)을 WAV 로 뽑아 들어 본다: 언리얼과 같은 합성기(PDSynth)
 //   g++ -std=c++17 -O2 -o build/render_classic render_classic.cpp ../Source/ProjectB/PDSynth.cpp
-//   ./build/render_classic 출력폴더   → classic_0.wav ~ classic_3.wav
+//   ./build/render_classic 출력폴더   → classic_0.wav ~ classic_4.wav
 #include "../Source/ProjectB/PDSynth.h"
 
 #include <cstdio>

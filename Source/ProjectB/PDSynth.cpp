@@ -1008,14 +1008,15 @@ FJazzChord MkChord(float Root, EChordQ Q)
 }
 bool SameChord(const FJazzChord& A, const FJazzChord& B) { return A.Root == B.Root && A.Voice[0] == B.Voice[0] && A.Voice[3] == B.Voice[3]; }
 
-struct FCNote { int Bar; float At, Len, Midi; };            // 테마 선율 한 음 (마디, 박 자리, 길이(박), 음높이)
-struct FCSection { int Bars; uint8_t Mode; int Inst; float Shift, Amp; int Inst2; float Shift2, Amp2; }; // Mode 0 테마 · 1 즉흥, Inst 0 비브라폰 · 1 약음 리드 · 2 로즈, Inst2 = 겹쳐 치는 악기(-1 없음)
+struct FCNote { int Bar; float At, Len, Midi; int Voice = 0; }; // 테마 선율 한 음 (마디, 박 자리, 길이(박), 음높이, 성부 1 = 따라 들어오는 둘째 성부)
+struct FCSection { int Bars; uint8_t Mode; int Inst; float Shift, Amp; int Inst2; float Shift2, Amp2; int Inst3 = -1; float Amp3 = 0.f; }; // Mode 0 테마 · 1 즉흥, Inst 0 비브라폰 · 1 약음 리드 · 2 로즈, Inst2 = 겹쳐 치는 악기(-1 없음), Inst3 = 둘째 성부 악기
 struct FClassicTune { const char* Name; float Bpm; int Meter; uint8_t Style; bool bSwing; }; // Style 0 스윙 · 1 보사노바 · 2 재즈 왈츠
 const FClassicTune GClassic[ClassicJazzCount] = {
 	{"Little Night Swing", 116.f, 4, 0, true},   // 모차르트 (1791 졸)
 	{"Elise in Rio", 128.f, 4, 1, false},        // 베토벤 (1827 졸)
 	{"Mountain King Shuffle", 112.f, 4, 0, true}, // 그리그 (1907 졸)
 	{"Gymnopedie After Dark", 70.f, 3, 2, false}, // 사티 (1925 졸)
+	{"Canon After Midnight", 92.f, 4, 0, true},   // 파헬벨 (1706 졸)
 };
 
 void PlayInst(FMusic& M, int Inst, float T0, float Dur, float Midi, float Amp)
@@ -1085,6 +1086,28 @@ void ClassicTheme(int Track, std::vector<FJazzChord>& ChA, std::vector<FJazzChor
 		}
 		Form = {{8, 0, 1, 0.f, 0.13f, -1, 0.f, 0.f}, {8, 1, 0, 0.f, 0.14f, -1, 0.f, 0.f}, {8, 0, 1, 0.f, 0.12f, 0, 12.f, 0.07f}};
 	}
+	else if (Track == 4) // D 장조 캐논: 8코드(D A Bm F#m G D G A)를 반 마디씩 = 4마디 한 바퀴, 여섯 바퀴. 원곡 4분음 화음을 2분음으로 펴서
+	{	// 첫 성부(비브라폰): 2분 선율 A → B → 8분이던 선율 C1 · C2 (4분으로) → 16분이던 선율 D (스윙 8분으로) → 한 옥타브 위 A
+		// 둘째 성부(약음 리드): 한 바퀴 늦게 같은 차례로 따라 들어온다 (카논)
+		const FJazzChord D = MkChord(38, QMaj7), A7 = MkChord(45, QDom7), Bm = MkChord(47, QMin7), Fsm = MkChord(42, QMin7), Gm7 = MkChord(43, QMaj7), A13 = MkChord(45, QDom9);
+		for (int C = 0; C < 6; ++C) { Bar2(D, A7); Bar2(Bm, Fsm); Bar2(Gm7, D); Bar2(Gm7, A13); }
+		static const float LA[8] = {78, 76, 74, 73, 71, 69, 71, 73}, LB[8] = {74, 73, 71, 69, 67, 66, 67, 64};
+		static const float LC1[16] = {62, 66, 69, 67, 66, 62, 66, 64, 62, 59, 62, 69, 67, 71, 69, 67}, LC2[16] = {66, 62, 64, 73, 74, 78, 81, 69, 71, 67, 69, 66, 62, 74, 74, 73};
+		static const float LD[32] = {74, 73, 74, 62, 61, 69, 64, 66, 62, 74, 73, 71, 73, 78, 81, 83, 79, 78, 76, 79, 78, 76, 74, 73, 71, 69, 67, 66, 64, 67, 66, 64};
+		auto Line = [&](int Cyc, int Which, int Voice, float Shift) { // Which 0 A · 1 B · 2 C1 · 3 C2 · 4 D
+			const float* L = Which == 0 ? LA : Which == 1 ? LB : Which == 2 ? LC1 : Which == 3 ? LC2 : LD;
+			const int Per = Which < 2 ? 1 : Which < 4 ? 2 : 4, Cnt = 8 * Per; // 코드 하나(2박)에 몇 음
+			for (int K = 0; K < Cnt; ++K)
+			{
+				const float Beat0 = K * 2.f / Per;
+				Mel.push_back({Cyc * 4 + (int)(Beat0 / 4.f), std::fmod(Beat0, 4.f), 2.f / Per, L[K] + Shift, Voice});
+			}
+		};
+		for (int C = 0; C < 5; ++C) Line(C, C, 0, 0.f);
+		Line(5, 0, 0, 12.f);
+		for (int C = 1; C < 6; ++C) Line(C, C - 1, 1, 0.f);
+		Form = {{24, 0, 0, 0.f, 0.14f, -1, 0.f, 0.f, 1, 0.085f}};
+	}
 	else // 3/4 20마디: 4마디 반주, G maj7 · D maj7 번갈아, 5마디부터 원곡 선율
 	{
 		const FJazzChord Gm7 = MkChord(43, QMaj7), Dm7 = MkChord(38, QMaj7);
@@ -1143,7 +1166,18 @@ std::vector<int16_t> SynthesizeClassicJazz(int Track, int SampleRate)
 			const FJazzChord& B = ChB[Ti];
 			const FJazzChord& Nx = ChA[K + 1 == S.Bars ? 0 : Ni]; // 다음 구간(또는 처음)은 테마 첫 마디부터
 			const bool bSplit = !SameChord(A, B);
-			if (Tu.Style == 0) // 스윙 · 셔플: 라이드 '딩 딩-다', 2 · 4박 발 하이햇 + 브러시, 워킹 베이스, 로즈 찰스턴
+			if (Track == 4 && G < 8) // 캐논 앞 두 바퀴: 투 필 — 브러시 쓸기, 반 마디마다 근음 베이스 · 로즈 화음
+			{
+				M.Brush(T, Bar, 0.06f, false);
+				for (const float At : {1.f, 3.f}) M.Brush(T + At * Beat, 0.2f, 0.08f, true);
+				for (int H = 0; H < 2; ++H)
+				{
+					const FJazzChord& C = H ? B : A;
+					M.Upright(1, T + H * 2.f * Beat, 1.9f * Beat, C.Root, 0.4f);
+					for (float V : C.Voice) M.Rhodes(1, T + (H * 2.f + (G % 2 ? Sw : 0.f)) * Beat, 1.8f * Beat, V, 0.05f);
+				}
+			}
+			else if (Tu.Style == 0) // 스윙 · 셔플: 라이드 '딩 딩-다', 2 · 4박 발 하이햇 + 브러시, 워킹 베이스, 로즈 찰스턴
 			{
 				for (const float At : {0.f, 1.f, 1.f + Sw, 2.f, 3.f, 3.f + Sw}) M.Ride(T + At * Beat, At - std::floor(At) > 0.1f ? 0.05f : 0.085f);
 				for (const float At : {1.f, 3.f}) { M.Hat(T + At * Beat, 0.03f, 0.07f); M.Brush(T + At * Beat, 0.2f, Track == 2 ? 0.2f : 0.15f, true); }
@@ -1204,6 +1238,7 @@ std::vector<int16_t> SynthesizeClassicJazz(int Track, int SampleRate)
 					float Len = Nt.Len;
 					const float At = Swung(Nt.At, Len);
 					const float T0 = (G + Bi) * Bar + At * Beat, Dur = Len * Beat * 0.94f;
+					if (Nt.Voice == 1) { if (S.Inst3 >= 0) PlayInst(M, S.Inst3, T0, Dur, Nt.Midi, S.Amp3); continue; }
 					PlayInst(M, S.Inst, T0, Dur, Nt.Midi + S.Shift, S.Amp);
 					if (S.Inst2 >= 0) PlayInst(M, S.Inst2, T0, Dur, Nt.Midi + S.Shift2, S.Amp2);
 				}
