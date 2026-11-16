@@ -881,7 +881,8 @@ namespace
 struct FJazzSong { const char* Name; float Bpm; };
 const FJazzSong GJazz[JazzTrackCount] = {{"Last Call Swing", 80.f}, {"Neon Rain Bossa", 128.f}, {"After Hours Blues", 96.f}, {"Empty Glass Ballad", 66.f}};
 // 한 마디 선율: 리듬 틀 하나를 고르고, 음은 코드 음(+12)에서 앞 음과 가까운 것으로 (가끔 이웃 음). Inst 0 비브라폰, 1 약음 리드, 2 로즈 한 음
-void MelodyBar(FMusic& M, int Inst, const FJazzChord& C, float T, float Beat, bool bSwing, uint32_t& Seed, float& Prev, float Amp)
+// C2 가 있으면 3박부터는 그 코드 음에서 (반 마디마다 코드가 바뀌는 곡, D-359)
+void MelodyBar(FMusic& M, int Inst, const FJazzChord& C0, float T, float Beat, bool bSwing, uint32_t& Seed, float& Prev, float Amp, const FJazzChord* C2 = nullptr)
 {
 	auto R = [&Seed]() { Seed ^= Seed << 13; Seed ^= Seed >> 17; Seed ^= Seed << 5; return (Seed & 0xFFFF) / 65535.f; };
 	const float Sw = bSwing ? 2.f / 3.f : 0.5f;
@@ -896,6 +897,7 @@ void MelodyBar(FMusic& M, int Inst, const FJazzChord& C, float T, float Beat, bo
 	{
 		float At = Pat[P][K][0];
 		if (bSwing && At - std::floor(At) > 0.4f) At = std::floor(At) + Sw; // 뒷박은 스윙 자리
+		const FJazzChord& C = C2 && At >= 2.f ? *C2 : C0;
 		float Best = C.Voice[0] + 12.f, BestD = 99.f;
 		for (int V = 0; V < 4; ++V) for (const float Oc : {12.f, 24.f})
 		{
@@ -983,6 +985,233 @@ std::vector<int16_t> SynthesizeJazz(int Track, int SampleRate)
 	M.Crackle(LoopN + TailN, 0.03f); // 늦은 밤 레코드판
 	FMixOpt O;
 	O.Duck = Track == 1 ? 0.15f : 0.f; O.EchoFb = 0.22f; O.EchoMix = 0.3f; O.Room = Track == 3 ? 0.45f : 0.3f; O.Gain = 1.05f;
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
+}
+
+// ---------------------------------------------------------------- 클래식 재즈 시안 (D-359): 저작권이 끝난 클래식 선율을 재즈로 편곡
+// 테마 선율은 악보에서 옮겨 적고(작곡가가 죽은 지 70년이 훨씬 넘음, 녹음은 쓰지 않고 우리가 합성), 화음 · 반주 · 즉흥은 재즈로.
+// 0 모차르트 '아이네 클라이네 나흐트무지크' 스윙 · 1 베토벤 '엘리제를 위하여' 보사노바 · 2 그리그 '산왕의 궁전에서' 셔플 · 3 사티 '짐노페디 1번' 재즈 왈츠
+namespace
+{
+enum EChordQ : uint8_t { QMaj7, Q6, QMin7, QMin6, QDom7, QDom7b9, QDom9, QB9 };
+// 코드 만들기: 근음은 베이스 자리(36~47), 손 화음 네 음은 G3~F#4(55~66) 안에 모은다. QB9 = 7도 없는 장3화음 + ♭9 (선율에 장7도가 지나갈 때)
+FJazzChord MkChord(float Root, EChordQ Q)
+{
+	static const int Iv[8][4] = {{4, 7, 11, 14}, {4, 7, 9, 14}, {3, 7, 10, 14}, {3, 7, 9, 14}, {4, 7, 10, 14}, {4, 7, 10, 13}, {4, 10, 14, 19}, {4, 7, 13, 16}};
+	static const float Th[8] = {4.f, 4.f, 3.f, 3.f, 4.f, 4.f, 4.f, 4.f}, Sv[8] = {11.f, 9.f, 10.f, 9.f, 10.f, 10.f, 10.f, 10.f};
+	while (Root >= 48.f) Root -= 12.f;
+	while (Root < 36.f) Root += 12.f;
+	FJazzChord C{Root, Th[Q], Sv[Q], {0.f, 0.f, 0.f, 0.f}};
+	for (int K = 0; K < 4; ++K) C.Voice[K] = 55.f + (float)((((int)Root + Iv[Q][K]) % 12 - 7 + 12) % 12);
+	std::sort(C.Voice, C.Voice + 4);
+	return C;
+}
+bool SameChord(const FJazzChord& A, const FJazzChord& B) { return A.Root == B.Root && A.Voice[0] == B.Voice[0] && A.Voice[3] == B.Voice[3]; }
+
+struct FCNote { int Bar; float At, Len, Midi; };            // 테마 선율 한 음 (마디, 박 자리, 길이(박), 음높이)
+struct FCSection { int Bars; uint8_t Mode; int Inst; float Shift, Amp; int Inst2; float Shift2, Amp2; }; // Mode 0 테마 · 1 즉흥, Inst 0 비브라폰 · 1 약음 리드 · 2 로즈, Inst2 = 겹쳐 치는 악기(-1 없음)
+struct FClassicTune { const char* Name; float Bpm; int Meter; uint8_t Style; bool bSwing; }; // Style 0 스윙 · 1 보사노바 · 2 재즈 왈츠
+const FClassicTune GClassic[ClassicJazzCount] = {
+	{"Little Night Swing", 116.f, 4, 0, true},   // 모차르트 (1791 졸)
+	{"Elise in Rio", 128.f, 4, 1, false},        // 베토벤 (1827 졸)
+	{"Mountain King Shuffle", 112.f, 4, 0, true}, // 그리그 (1907 졸)
+	{"Gymnopedie After Dark", 70.f, 3, 2, false}, // 사티 (1925 졸)
+};
+
+void PlayInst(FMusic& M, int Inst, float T0, float Dur, float Midi, float Amp)
+{
+	if (Inst == 0) M.Vibes(2, T0, Dur, Midi, Amp);
+	else if (Inst == 1) M.MuteLead(2, T0, Dur, Midi, Amp);
+	else M.Rhodes(2, T0, Dur, Midi, Amp);
+}
+
+// 곡마다 테마(마디마다 앞 · 뒤 반 마디 코드 + 선율)와 짜임(테마 · 즉흥 차례)
+void ClassicTheme(int Track, std::vector<FJazzChord>& ChA, std::vector<FJazzChord>& ChB, std::vector<FCNote>& Mel, std::vector<FCSection>& Form)
+{
+	auto Bar2 = [&](const FJazzChord& A, const FJazzChord& B) { ChA.push_back(A); ChB.push_back(B); };
+	auto N = [&](int Bar, float At, float Len, float Midi) { Mel.push_back({Bar, At, Len, Midi}); };
+	if (Track == 0) // G 장조 8마디: 1 ~ 4마디는 원곡 주제 그대로, 5 ~ 8마디는 주제 끝 동기로 대답
+	{
+		const FJazzChord G6 = MkChord(43, Q6), Am7 = MkChord(45, QMin7), D7 = MkChord(38, QDom9), E7 = MkChord(40, QDom7b9);
+		Bar2(G6, G6); Bar2(G6, G6); Bar2(Am7, D7); Bar2(D7, D7); Bar2(G6, G6); Bar2(Am7, D7); Bar2(Am7, D7); Bar2(G6, E7);
+		N(0, 0, 1, 67); N(0, 1.5f, .5f, 62); N(0, 2, 1, 67); N(0, 3.5f, .5f, 62);                       // 솔 - 레 솔 - 레
+		N(1, 0, .5f, 67); N(1, .5f, .5f, 62); N(1, 1, .5f, 67); N(1, 1.5f, .5f, 71); N(1, 2, 2, 74);      // 솔 레 솔 시 레—
+		N(2, 0, 1, 72); N(2, 1.5f, .5f, 69); N(2, 2, 1, 72); N(2, 3.5f, .5f, 69);                       // 도 - 라 도 - 라
+		N(3, 0, .5f, 72); N(3, .5f, .5f, 69); N(3, 1, .5f, 66); N(3, 1.5f, .5f, 69); N(3, 2, 2, 62);      // 도 라 파# 라 레—
+		N(4, 0, 1, 67); N(4, 2, .5f, 71); N(4, 2.5f, .5f, 69); N(4, 3, 1, 67);
+		const float R6[8] = {67, 66, 66, 69, 72, 66, 69, 67};
+		for (int K = 0; K < 8; ++K) N(5, K * .5f, .5f, R6[K]);
+		N(6, 0, 1, 71); N(6, 1, 1, 69); N(6, 2, 1, 72); N(6, 3, 1, 66);
+		N(7, 0, 2.5f, 67); N(7, 3, .5f, 71); N(7, 3.5f, .5f, 70);
+		Form = {{8, 0, 0, 0.f, 0.15f, -1, 0.f, 0.f}, {8, 1, 1, 0.f, 0.12f, -1, 0.f, 0.f}, {8, 0, 1, 0.f, 0.12f, 0, 12.f, 0.06f}};
+	}
+	else if (Track == 1) // A 단조 16마디: 원곡 3/8 의 16분음을 8분음으로 펴서 보사노바 4/4 에
+	{
+		const FJazzChord E = MkChord(40, QB9), E7 = MkChord(40, QDom7b9), Am = MkChord(45, QMin7), C = MkChord(36, QMaj7), G7 = MkChord(43, QDom9), Dm = MkChord(38, QMin7);
+		auto E8 = [&](int Bar, int Idx, int Len, float Midi) { N(Bar, Idx * .5f, Len * .5f, Midi); };
+		auto Turn = [&](int Bar) { const float R[8] = {76, 75, 76, 75, 76, 71, 74, 72}; for (int K = 0; K < 8; ++K) E8(Bar, K, 1, R[K]); }; // 미 레# 미 레# 미 시 레 도
+		auto Rise = [&](int Bar) { E8(Bar, 0, 3, 69); E8(Bar, 3, 1, 60); E8(Bar, 4, 1, 64); E8(Bar, 5, 1, 69); E8(Bar, 6, 2, 71); };            // 라 - 도 미 라 시
+		auto Lead = [&](int Bar) { E8(Bar, 1, 1, 64); E8(Bar, 2, 1, 68); E8(Bar, 3, 1, 71); E8(Bar, 4, 4, 72); };                              // 미 솔# 시 도—
+		Bar2(E, E); Turn(0);
+		Bar2(Am, Am); Rise(1);
+		Bar2(E7, Am); Lead(2);
+		Bar2(E, E); Turn(3);
+		Bar2(Am, Am); Rise(4);
+		Bar2(E7, Am); E8(5, 1, 1, 64); E8(5, 2, 1, 72); E8(5, 3, 1, 71); E8(5, 4, 1, 69); E8(5, 5, 1, 71); E8(5, 6, 1, 72); E8(5, 7, 1, 74); // 미 도 시 라 / 시 도 레
+		Bar2(C, G7); E8(6, 0, 1, 76); E8(6, 1, 1, 67); E8(6, 2, 1, 77); E8(6, 3, 1, 76); E8(6, 4, 1, 74); E8(6, 5, 1, 65); E8(6, 6, 1, 76); E8(6, 7, 1, 74);
+		Bar2(Am, E7); E8(7, 0, 1, 72); E8(7, 1, 1, 64); E8(7, 2, 1, 74); E8(7, 3, 1, 72); E8(7, 4, 4, 71);
+		Bar2(E, E); Turn(8);
+		Bar2(Am, Am); Rise(9);
+		Bar2(E7, Am); Lead(10);
+		Bar2(E, E); Turn(11);
+		Bar2(Am, Am); Rise(12);
+		Bar2(E7, Am); E8(13, 1, 1, 64); E8(13, 2, 1, 72); E8(13, 3, 1, 71); E8(13, 4, 4, 69);             // 미 도 시 라—
+		Bar2(Dm, Dm); Bar2(Am, E7);                                                                         // 두 마디 쉬고 처음으로
+		Form = {{16, 0, 0, 0.f, 0.14f, -1, 0.f, 0.f}, {8, 1, 2, 0.f, 0.1f, -1, 0.f, 0.f}};
+	}
+	else if (Track == 2) // B 단조 8마디: 원곡 4마디 주제 두 번, 두 번째 끝은 으뜸음으로 닫음. 반음 위 코드 → 트라이톤 대리
+	{
+		const FJazzChord Bm = MkChord(47, QMin6), Cs7 = MkChord(37, QDom7), C7 = MkChord(36, QDom9), D6 = MkChord(38, Q6), Fs7 = MkChord(42, QDom7b9);
+		auto Up = [&](int Bar, bool bHigh) { const float R[8] = {59, 61, 62, 64, 66, 62, 66, 71}; for (int K = 0; K < (bHigh ? 8 : 6); ++K) N(Bar, K * .5f, .5f, R[K]); if (!bHigh) N(Bar, 3, 1, 66); }; // 시 도# 레 미 파# 레 파#
+		auto Half = [&](int Bar) { N(Bar, 0, .5f, 65); N(Bar, .5f, .5f, 61); N(Bar, 1, 1, 65); N(Bar, 2, .5f, 64); N(Bar, 2.5f, .5f, 60); N(Bar, 3, 1, 64); }; // 미# 도# 미# / 미 도 미
+		for (int H = 0; H < 2; ++H)
+		{
+			const int B0 = H * 4;
+			Bar2(Bm, Bm); Up(B0, false);
+			Bar2(Cs7, C7); Half(B0 + 1);
+			Bar2(Bm, Bm); Up(B0 + 2, true);
+			if (H == 0) { Bar2(D6, Fs7); N(3, 0, .5f, 69); N(3, .5f, .5f, 66); N(3, 1, .5f, 62); N(3, 1.5f, .5f, 66); N(3, 2, 2, 69); } // 라 파# 레 파# 라—
+			else { Bar2(D6, Fs7); N(7, 0, .5f, 69); N(7, .5f, .5f, 66); N(7, 1, .5f, 62); N(7, 1.5f, .5f, 66); N(7, 2, .5f, 65); N(7, 2.5f, .5f, 61); N(7, 3, 1, 59); }
+		}
+		Form = {{8, 0, 1, 0.f, 0.13f, -1, 0.f, 0.f}, {8, 1, 0, 0.f, 0.14f, -1, 0.f, 0.f}, {8, 0, 1, 0.f, 0.12f, 0, 12.f, 0.07f}};
+	}
+	else // 3/4 20마디: 4마디 반주, G maj7 · D maj7 번갈아, 5마디부터 원곡 선율
+	{
+		const FJazzChord Gm7 = MkChord(43, QMaj7), Dm7 = MkChord(38, QMaj7);
+		for (int K = 0; K < 20; ++K) Bar2(K % 2 ? Dm7 : Gm7, K % 2 ? Dm7 : Gm7);
+		for (const int B0 : {4, 12})
+		{
+			N(B0, 1, 1, 78); N(B0, 2, 1, 81);                        // 파# 라
+			N(B0 + 1, 0, 1, 79); N(B0 + 1, 1, 1, 78); N(B0 + 1, 2, 1, 73); // 솔 파# 도#
+			N(B0 + 2, 0, 1, 71); N(B0 + 2, 1, 1, 73); N(B0 + 2, 2, 1, 74); // 시 도# 레
+			N(B0 + 3, 0, 3, 69);                                     // 라—
+		}
+		N(8, 0, 10.f, 66);                                           // 파#———
+		N(16, 0, 3, 73); N(17, 0, 3, 78); N(18, 0, 5.f, 76);         // 도# · 파# · 미—
+		Form = {{20, 0, 2, 0.f, 0.14f, 0, 12.f, 0.045f}};
+	}
+}
+} // namespace
+
+const char* ClassicJazzName(int Track) { return GClassic[Track < 0 || Track >= ClassicJazzCount ? 0 : Track].Name; }
+float ClassicJazzBpm(int Track) { return GClassic[Track < 0 || Track >= ClassicJazzCount ? 0 : Track].Bpm; }
+
+std::vector<int16_t> SynthesizeClassicJazz(int Track, int SampleRate)
+{
+	Track = Track < 0 || Track >= ClassicJazzCount ? 0 : Track;
+	const FClassicTune& Tu = GClassic[Track];
+	const float Beat = 60.f / Tu.Bpm, Bar = Tu.Meter * Beat, Sw = 2.f / 3.f;
+	std::vector<FJazzChord> ChA, ChB;
+	std::vector<FCNote> Mel;
+	std::vector<FCSection> Form;
+	ClassicTheme(Track, ChA, ChB, Mel, Form);
+	const int ThemeBars = (int)ChA.size();
+	int Bars = 0;
+	for (const FCSection& S : Form) Bars += S.Bars;
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(4.f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	M.Rng = 0x51c0ffeu + (uint32_t)Track * 7919u;
+	uint32_t Seed = 0x2545f491u ^ (uint32_t)(Track * 2654435761u);
+	float Prev = 74.f;
+	std::vector<float> Kicks;
+	// 스윙: 8분 짝에서 앞은 길게(2/3), 뒤는 짧게
+	auto Swung = [&](float At, float& Len) {
+		if (!Tu.bSwing) return At;
+		const float Fr = At - std::floor(At);
+		if (Fr > 0.4f && Fr < 0.6f) { if (Len <= 0.5f) Len = 1.f - Sw; return std::floor(At) + Sw; }
+		if (Fr < 0.01f && Len == 0.5f) Len = Sw;
+		return At;
+	};
+	int G = 0; // 전체 마디 번호
+	for (const FCSection& S : Form)
+	{
+		for (int K = 0; K < S.Bars; ++K, ++G)
+		{
+			const float T = G * Bar;
+			const int Ti = K % ThemeBars, Ni = (Ti + 1) % ThemeBars;
+			const FJazzChord& A = ChA[Ti];
+			const FJazzChord& B = ChB[Ti];
+			const FJazzChord& Nx = ChA[K + 1 == S.Bars ? 0 : Ni]; // 다음 구간(또는 처음)은 테마 첫 마디부터
+			const bool bSplit = !SameChord(A, B);
+			if (Tu.Style == 0) // 스윙 · 셔플: 라이드 '딩 딩-다', 2 · 4박 발 하이햇 + 브러시, 워킹 베이스, 로즈 찰스턴
+			{
+				for (const float At : {0.f, 1.f, 1.f + Sw, 2.f, 3.f, 3.f + Sw}) M.Ride(T + At * Beat, At - std::floor(At) > 0.1f ? 0.05f : 0.085f);
+				for (const float At : {1.f, 3.f}) { M.Hat(T + At * Beat, 0.03f, 0.07f); M.Brush(T + At * Beat, 0.2f, Track == 2 ? 0.2f : 0.15f, true); }
+				M.Brush(T, Bar, 0.05f, false);
+				for (const float At : {0.f, 2.f}) M.Kick(T + At * Beat, 0.22f);
+				if (!bSplit) WalkBar(M, T, Beat, A, Nx.Root, G % 2 == 1, 0.42f, false);
+				else
+				{
+					float Br = B.Root, Nr = Nx.Root;
+					while (Br - A.Root > 6.f) Br -= 12.f;
+					while (A.Root - Br > 6.f) Br += 12.f;
+					while (Nr - Br > 6.f) Nr -= 12.f;
+					while (Br - Nr > 6.f) Nr += 12.f;
+					const float Wn[4] = {A.Root, A.Root + A.Third, Br, Nr + (G % 2 ? 1.f : -1.f)};
+					for (int W = 0; W < 4; ++W) M.Upright(1, T + W * Beat, Beat * 0.88f, Wn[W], 0.42f);
+				}
+				const float Hits[2][2] = {{0.f, 0.6f}, {1.f + Sw, 1.2f}}, HitsO[2][2] = {{1.f, 0.5f}, {2.f + Sw, 1.1f}};
+				for (int H = 0; H < 2; ++H)
+				{
+					const float At = G % 2 ? HitsO[H][0] : Hits[H][0], Len = G % 2 ? HitsO[H][1] : Hits[H][1];
+					for (float V : (At >= 2.f ? B : A).Voice) M.Rhodes(1, T + At * Beat, Len * Beat, V, 0.06f);
+				}
+			}
+			else if (Tu.Style == 1) // 보사노바: 곧은 8분, 림 클릭 3-2 클라베, 근음 · 5도 베이스, 로즈 당김
+			{
+				static const int Clave[2][3] = {{0, 3, 6}, {2, 4, -1}};
+				for (int C = 0; C < 3; ++C) if (Clave[G % 2][C] >= 0) M.Brush(T + Clave[G % 2][C] * Beat * 0.5f, 0.06f, 0.2f, true);
+				for (int H = 0; H < 8; ++H) M.Hat(T + H * Beat * 0.5f, 0.025f, H % 2 ? 0.04f : 0.07f);
+				for (const float At : {0.f, 1.5f, 2.f, 3.5f}) { M.Kick(T + At * Beat, 0.18f); Kicks.push_back(T + At * Beat); }
+				float Nr = Nx.Root + 7.f;
+				while (Nr - B.Root > 9.f) Nr -= 12.f;
+				const float BAt[4] = {0.f, 1.5f, 2.f, 3.5f}, BNt[4] = {A.Root, A.Root + 7.f, bSplit ? B.Root : A.Root + 7.f, Nr};
+				for (int W = 0; W < 4; ++W) M.Upright(1, T + BAt[W] * Beat, (W == 1 || W == 3 ? 0.5f : 1.4f) * Beat, BNt[W], 0.4f);
+				for (const float At : {0.5f, 1.5f, 2.f, 3.f}) for (float V : (At >= 2.f ? B : A).Voice) M.Rhodes(1, T + At * Beat, Beat * 0.45f, V, 0.045f);
+			}
+			else // 재즈 왈츠 발라드: 1박 베이스, 2박 로즈 화음을 길게, 브러시 쓸기, 3박 가볍게 탁
+			{
+				M.Brush(T, Bar, 0.06f, false);
+				M.Brush(T + 2.f * Beat, 0.2f, 0.06f, true);
+				M.Upright(1, T, 2.8f * Beat, A.Root, 0.4f);
+				for (float V : A.Voice) M.Rhodes(1, T + Beat, 1.9f * Beat, V + 12.f, 0.045f);
+				if (Ti == 0 || Ti == 1) for (float V : A.Voice) M.Vibes(1, T + Beat, 1.8f * Beat, V + 12.f, 0.025f); // 첫 두 마디 비브라폰 화음으로 문 열기
+			}
+			// 선율
+			if (S.Mode == 1) MelodyBar(M, S.Inst, A, T, Beat, Tu.bSwing, Seed, Prev, S.Amp, bSplit ? &B : nullptr);
+		}
+	}
+	// 테마 선율: 테마 구간마다 악보대로
+	G = 0;
+	for (const FCSection& S : Form)
+	{
+		if (S.Mode == 0)
+			for (int Rep = 0; Rep * ThemeBars < S.Bars; ++Rep)
+				for (const FCNote& Nt : Mel)
+				{
+					const int Bi = Rep * ThemeBars + Nt.Bar;
+					if (Bi >= S.Bars) continue;
+					float Len = Nt.Len;
+					const float At = Swung(Nt.At, Len);
+					const float T0 = (G + Bi) * Bar + At * Beat, Dur = Len * Beat * 0.94f;
+					PlayInst(M, S.Inst, T0, Dur, Nt.Midi + S.Shift, S.Amp);
+					if (S.Inst2 >= 0) PlayInst(M, S.Inst2, T0, Dur, Nt.Midi + S.Shift2, S.Amp2);
+				}
+		G += S.Bars;
+	}
+	M.Crackle(LoopN + TailN, 0.03f); // 늦은 밤 레코드판
+	FMixOpt O;
+	O.Duck = Tu.Style == 1 ? 0.15f : 0.f; O.EchoFb = 0.22f; O.EchoMix = 0.3f; O.Room = Tu.Style == 2 ? 0.45f : 0.3f; O.Gain = 1.05f;
 	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
 }
 

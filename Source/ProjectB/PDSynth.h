@@ -55,6 +55,12 @@ constexpr int JazzTrackCount = 4;
 const char* JazzTrackName(int Track);      // 곡 이름 (영어, 간판에 쓴다)
 float JazzTrackBpm(int Track);             // 박자 (간판 전구가 박자에 맞춰 깜빡인다)
 std::vector<int16_t> SynthesizeJazz(int Track, int SampleRate = 44100);
+// 클래식 재즈 시안 (D-359): 저작권이 끝난 클래식 선율을 재즈로 편곡. 0 모차르트 아이네 클라이네 나흐트무지크 스윙 ·
+// 1 베토벤 엘리제를 위하여 보사노바 · 2 그리그 산왕의 궁전에서 셔플 · 3 사티 짐노페디 1번 재즈 왈츠
+constexpr int ClassicJazzCount = 4;
+const char* ClassicJazzName(int Track);
+float ClassicJazzBpm(int Track);
+std::vector<int16_t> SynthesizeClassicJazz(int Track, int SampleRate = 44100);
 // 캐시 키
 inline int SoundKey(EPDSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }
 } // namespace PD
