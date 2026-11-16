@@ -300,6 +300,8 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("TvChannel"), TvChannel, GGameUserSettingsIni); // 채널 TV (D-316)
 		GConfig->GetInt(PDSetSection, TEXT("Cine"), Settings.Cine, GGameUserSettingsIni); // 완성 연출 (D-314)
+		GConfig->GetInt(PDSetSection, TEXT("JukeTrack"), JukeTrack, GGameUserSettingsIni); // 주크박스 곡 (D-319)
+		JukeTrack = FMath::Clamp(JukeTrack, 0, JazzTrackCount - 1);
 		Settings.Cine = FMath::Clamp(Settings.Cine, 0, 2);
 		TvChannel = FMath::Clamp(TvChannel, 0, 2); // 숨은 채널은 저장해도 CH1 로 시작
 		GConfig->GetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
@@ -385,6 +387,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("CardTheme"), Settings.CardTheme, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("TvChannel"), TvChannel, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("Cine"), Settings.Cine, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("JukeTrack"), JukeTrack, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
@@ -453,6 +456,7 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 	case ESetRow::WorldFx: Settings.bWorldFx = !Settings.bWorldFx; SaveSettings(); break;
 	case ESetRow::Shake: Settings.bShake = !Settings.bShake; SaveSettings(); break;
 	case ESetRow::Cine: Settings.Cine = ((Settings.Cine + (Delta == 0 ? 1 : Delta)) % 3 + 3) % 3; SaveSettings(); break;
+	case ESetRow::Track: JukeStep(Delta == 0 ? 1 : Delta); return; // JukeStep 이 소리 · 저장
 	case ESetRow::Sound: SetSound(!Settings.bSound); break;
 	case ESetRow::Volume:
 		Settings.Volume = FMath::Clamp(FMath::RoundToFloat((Settings.Volume + 0.1f * Delta) * 10.f) / 10.f, 0.f, 1.f);
@@ -485,6 +489,7 @@ void SPDBoardWidget::SettingsClick(FVector2f P)
 			else if (Row == (int32)ESetRow::CardTheme) { Settings.CardTheme = I; GPDCardTheme = I; SaveSettings(); UiSound(EPDSound::Move); }
 				else if (Row == (int32)ESetRow::Frame) { Settings.FrameCap = I; SaveSettings(); ApplyFrameSettings(); UiSound(EPDSound::Move); }
 				else if (Row == (int32)ESetRow::Cine) { Settings.Cine = I; SaveSettings(); UiSound(EPDSound::Move); }
+				else if (Row == (int32)ESetRow::Track) JukeStep(I == 0 ? -1 : 1); // ◀ (이름 칸도) ▶
 				else if (Row == (int32)ESetRow::Help && I == 1) { HintSeen = 0; HintNow = -1; SaveProgress(); UiSound(EPDSound::Move); } // 도움말 처음부터 (D-217)
 			else if (SetBarRow(Row))
 			{
@@ -1430,6 +1435,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (!bRight && FVector2f::Distance(P, TvDialPos()) <= TvDialR + 3.f) { TvDial(); return; } // 채널 TV 다이얼 (D-316)
+	for (int32 Dir = -1; Dir <= 1; Dir += 2) if (!bRight && InRect(P, JukeBtnX(Dir), JukeBtnY, JukeBtnS, JukeBtnS)) { JukeStep(Dir); return; } // 주크박스 간판 ◀ ▶ (D-319)
 	if (!bRight && InRect(P, MenuBtnX, MenuBtnY, MenuBtnW, MenuBtnH)) { bMenu = true; MenuSel = 0; Sel = -1; return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
 	if (!bRight && InRect(P, CodexBtnX, CodexBtnY, CodexBtnW, CodexBtnH)) { bCodex = true; UnlSetTab(1); Sel = -1; return; } // 도감은 조커 판부터 (D-265)

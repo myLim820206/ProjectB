@@ -874,6 +874,118 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate)
 	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
 }
 
+// ---------------------------------------------------------------- 인게임 재즈 4곡 (D-319): 늦은 밤 바
+// 선율은 코드 음에서 씨앗으로 고른다 (곡마다 같은 씨앗 → 늘 같은 곡). 0 느린 스윙 · 1 보사노바 · 2 블루스 · 3 피아노 발라드
+namespace
+{
+struct FJazzSong { const char* Name; float Bpm; };
+const FJazzSong GJazz[JazzTrackCount] = {{"Last Call Swing", 80.f}, {"Neon Rain Bossa", 128.f}, {"After Hours Blues", 96.f}, {"Empty Glass Ballad", 66.f}};
+// 한 마디 선율: 리듬 틀 하나를 고르고, 음은 코드 음(+12)에서 앞 음과 가까운 것으로 (가끔 이웃 음). Inst 0 비브라폰, 1 약음 리드, 2 로즈 한 음
+void MelodyBar(FMusic& M, int Inst, const FJazzChord& C, float T, float Beat, bool bSwing, uint32_t& Seed, float& Prev, float Amp)
+{
+	auto R = [&Seed]() { Seed ^= Seed << 13; Seed ^= Seed >> 17; Seed ^= Seed << 5; return (Seed & 0xFFFF) / 65535.f; };
+	const float Sw = bSwing ? 2.f / 3.f : 0.5f;
+	static const float Pat[5][6][2] = { // {박 자리, 길이}, 길이 0 = 끝
+		{{0.f, 1.f}, {1.f, 1.f}, {2.f, 2.f}, {0, 0}, {0, 0}, {0, 0}},
+		{{0.f, 1.5f}, {1.5f, 0.5f}, {2.f, 1.f}, {3.f, 1.f}, {0, 0}, {0, 0}},
+		{{0.f, 0.5f}, {0.5f, 0.5f}, {1.f, 1.f}, {2.5f, 0.5f}, {3.f, 1.f}, {0, 0}},
+		{{1.f, 1.f}, {2.f, 0.5f}, {2.5f, 1.5f}, {0, 0}, {0, 0}, {0, 0}},
+		{{0.f, 3.f}, {3.f, 1.f}, {0, 0}, {0, 0}, {0, 0}, {0, 0}}};
+	const int P = (int)(R() * 4.999f);
+	for (int K = 0; K < 6 && Pat[P][K][1] > 0.f; ++K)
+	{
+		float At = Pat[P][K][0];
+		if (bSwing && At - std::floor(At) > 0.4f) At = std::floor(At) + Sw; // 뒷박은 스윙 자리
+		float Best = C.Voice[0] + 12.f, BestD = 99.f;
+		for (int V = 0; V < 4; ++V) for (const float Oc : {12.f, 24.f})
+		{
+			const float N = C.Voice[V] + Oc;
+			if (N < 67.f || N > 86.f) continue;
+			const float D = std::fabs(N - Prev) + R() * 4.f;
+			if (D < BestD) { BestD = D; Best = N; }
+		}
+		if (R() < 0.2f && K > 0) Best += R() < 0.5f ? 2.f : -1.f; // 이웃 음
+		Prev = Best;
+		const float Len = Pat[P][K][1] * Beat * 0.92f;
+		if (Inst == 0) M.Vibes(2, T + At * Beat, Len, Best, Amp);
+		else if (Inst == 1) M.MuteLead(2, T + At * Beat, Len, Best, Amp);
+		else M.Rhodes(2, T + At * Beat, Len, Best, Amp);
+	}
+}
+}
+
+const char* JazzTrackName(int Track) { return GJazz[Track < 0 || Track >= JazzTrackCount ? 0 : Track].Name; }
+float JazzTrackBpm(int Track) { return GJazz[Track < 0 || Track >= JazzTrackCount ? 0 : Track].Bpm; }
+
+std::vector<int16_t> SynthesizeJazz(int Track, int SampleRate)
+{
+	Track = Track < 0 || Track >= JazzTrackCount ? 0 : Track;
+	const float Bpm = GJazz[Track].Bpm, Beat = 60.f / Bpm, Bar = 4.f * Beat, Sw = 2.f / 3.f;
+	// 코드: {근음, 3도, 7도, 손 화음 넷}
+	const FJazzChord Bb6{46.f, 4.f, 11.f, {58.f, 62.f, 65.f, 69.f}}, G7{43.f, 4.f, 10.f, {59.f, 62.f, 65.f, 67.f}}, Cm7{36.f, 3.f, 10.f, {58.f, 60.f, 63.f, 67.f}}, F7{41.f, 4.f, 10.f, {57.f, 60.f, 63.f, 65.f}};
+	const FJazzChord Bb7{46.f, 4.f, 10.f, {58.f, 62.f, 65.f, 68.f}}, Ebm7{39.f, 4.f, 11.f, {58.f, 62.f, 63.f, 67.f}}, Ebmi{39.f, 3.f, 10.f, {58.f, 61.f, 63.f, 66.f}}, Dm7{38.f, 3.f, 10.f, {57.f, 60.f, 62.f, 65.f}};
+	const FJazzChord Dm9{38.f, 3.f, 10.f, {57.f, 60.f, 64.f, 65.f}}, G13{43.f, 4.f, 10.f, {59.f, 64.f, 65.f, 69.f}}, Cmaj9{36.f, 4.f, 11.f, {59.f, 62.f, 64.f, 67.f}}, A7b9{45.f, 4.f, 10.f, {58.f, 61.f, 64.f, 67.f}};
+	const FJazzChord F7b{41.f, 4.f, 10.f, {57.f, 60.f, 63.f, 67.f}}, Bb9{46.f, 4.f, 10.f, {56.f, 60.f, 62.f, 65.f}}, C9{36.f, 4.f, 10.f, {58.f, 62.f, 64.f, 67.f}};
+	const FJazzChord EbM{39.f, 4.f, 11.f, {58.f, 62.f, 63.f, 67.f}}, Cm9{36.f, 3.f, 10.f, {58.f, 62.f, 63.f, 67.f}}, Fm9{41.f, 3.f, 10.f, {56.f, 60.f, 63.f, 67.f}}, Bb13{46.f, 4.f, 10.f, {56.f, 62.f, 67.f, 68.f}};
+	std::vector<FJazzChord> Ch;
+	if (Track == 0) Ch = {Bb6, G7, Cm7, F7, Bb6, Bb7, Ebm7, Ebmi, Dm7, G7, Cm7, F7, Dm7, G7, Cm7, F7};
+	else if (Track == 1) { for (int K = 0; K < 4; ++K) { Ch.push_back(Dm9); Ch.push_back(G13); Ch.push_back(Cmaj9); Ch.push_back(A7b9); } }
+	else if (Track == 2) { const FJazzChord B12[12] = {F7b, Bb9, F7b, F7b, Bb9, Bb9, F7b, F7b, C9, Bb9, F7b, C9}; for (int K = 0; K < 24; ++K) Ch.push_back(B12[K % 12]); }
+	else Ch = {EbM, Cm9, Fm9, Bb13, EbM, Cm9, Fm9, Bb13, Cm9, Fm9, Bb13, EbM, Fm9, Bb13, EbM, EbM};
+	const int Bars = (int)Ch.size();
+	const size_t LoopN = (size_t)(Bars * Bar * SampleRate), TailN = (size_t)(3.f * SampleRate);
+	FMusic M(SampleRate, LoopN + TailN);
+	M.Rng = 0x7a2c11u + (uint32_t)Track * 977u;
+	uint32_t Seed = 0x9e3779b9u ^ (uint32_t)(Track * 2654435761u);
+	float Prev = 74.f;
+	std::vector<float> Kicks;
+	for (int B = 0; B < Bars; ++B)
+	{
+		const float T = B * Bar;
+		const FJazzChord& C = Ch[B];
+		const FJazzChord& Nx = Ch[(B + 1) % Bars];
+		if (Track == 0 || Track == 2) // 스윙 · 블루스 셔플: 라이드 '딩 딩-다', 2·4박 발 하이햇 + 브러시, 워킹 베이스, 로즈 찰스턴
+		{
+			for (const float At : {0.f, 1.f, 1.f + Sw, 2.f, 3.f, 3.f + Sw}) M.Ride(T + At * Beat, At - std::floor(At) > 0.1f ? 0.055f : 0.09f);
+			for (const float At : {1.f, 3.f}) { M.Hat(T + At * Beat, 0.03f, 0.07f); M.Brush(T + At * Beat, 0.2f, Track == 2 ? 0.2f : 0.15f, true); }
+			M.Brush(T, Bar, 0.05f, false);
+			for (const float At : {0.f, 2.f}) M.Kick(T + At * Beat, 0.22f);
+			WalkBar(M, T, Beat, C, Nx.Root, B % 2 == 1, 0.42f, false);
+			const float Hits[2][2] = {{0.f, 0.6f}, {1.f + Sw, 1.2f}}, HitsO[2][2] = {{1.f, 0.5f}, {2.f + Sw, 1.1f}};
+			for (int H = 0; H < 2; ++H)
+			{
+				const float At = B % 2 ? HitsO[H][0] : Hits[H][0], Len = B % 2 ? HitsO[H][1] : Hits[H][1];
+				for (float N : C.Voice) M.Rhodes(1, T + At * Beat, Len * Beat, N, 0.065f);
+			}
+			if (Track == 0 ? (B >= 4 && B < 12) : (B < 12)) MelodyBar(M, 0, C, T, Beat, true, Seed, Prev, 0.14f); // 비브라폰
+			else if (Track == 0 || B >= 12) MelodyBar(M, 1, C, T, Beat, true, Seed, Prev, 0.12f); // 약음 리드 (블루스는 두 번째 바퀴)
+		}
+		else if (Track == 1) // 보사노바: 곧은 8분, 림 클릭 3-2 클라베, 근음 · 5도 베이스, 로즈 당김
+		{
+			static const int Clave[2][3] = {{0, 3, 6}, {2, 4, -1}};
+			for (int K = 0; K < 3; ++K) if (Clave[B % 2][K] >= 0) M.Brush(T + Clave[B % 2][K] * Beat * 0.5f, 0.06f, 0.2f, true);
+			for (int K = 0; K < 8; ++K) M.Hat(T + K * Beat * 0.5f, 0.025f, K % 2 ? 0.04f : 0.07f);
+			for (const float At : {0.f, 1.5f, 2.f, 3.5f}) { M.Kick(T + At * Beat, 0.18f); Kicks.push_back(T + At * Beat); }
+			const float BAt[4] = {0.f, 1.5f, 2.f, 3.5f}, BNt[4] = {C.Root, C.Root + 7.f, C.Root + 7.f, Nx.Root + (Nx.Root > C.Root ? -12.f : 0.f) + 7.f};
+			for (int K = 0; K < 4; ++K) M.Upright(1, T + BAt[K] * Beat, (K == 1 || K == 3 ? 0.5f : 1.4f) * Beat, BNt[K], 0.4f);
+			for (const float At : {0.5f, 1.5f, 2.f, 3.f}) for (float N : C.Voice) M.Rhodes(1, T + At * Beat, Beat * 0.45f, N, 0.05f);
+			if (B >= 4 && B < 12) MelodyBar(M, 0, C, T, Beat, false, Seed, Prev, 0.13f);
+			else if (B >= 12) MelodyBar(M, 2, C, T, Beat, false, Seed, Prev, 0.1f);
+		}
+		else // 피아노 발라드: 반 마디마다 로즈 화음, 2분 업라이트, 브러시 쓸기, 비브라폰 긴 음
+		{
+			M.Brush(T, Bar, 0.07f, false);
+			M.Brush(T + 3.f * Beat, 0.25f, 0.08f, true);
+			for (const float At : {0.f, 2.f}) { for (float N : C.Voice) M.Rhodes(1, T + At * Beat, 2.f * Beat * 0.95f, N, 0.06f); M.Upright(1, T + At * Beat, 1.9f * Beat, At == 0.f ? C.Root : C.Root + 7.f, 0.38f); }
+			if (B >= 2) MelodyBar(M, B < 10 ? 0 : 2, C, T, Beat, false, Seed, Prev, 0.12f);
+		}
+	}
+	M.Crackle(LoopN + TailN, 0.03f); // 늦은 밤 레코드판
+	FMixOpt O;
+	O.Duck = Track == 1 ? 0.15f : 0.f; O.EchoFb = 0.22f; O.EchoMix = 0.3f; O.Room = Track == 3 ? 0.45f : 0.3f; O.Gain = 1.05f;
+	return MixDown(M, Kicks, Beat, LoopN, TailN, SampleRate, O);
+}
+
 // ---------------------------------------------------------------- 3. 보스 (D-188 → D-264 → D-267 → D-270): 느와르 위압 시안(3)으로 확정
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate) { return SynthesizeBossMusicAlt(3, SampleRate); } // 느와르 위압 (D-270)
 

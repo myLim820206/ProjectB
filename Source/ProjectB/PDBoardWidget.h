@@ -61,6 +61,8 @@ public:
 	// 소리 크기 0~1 (설정에서 끄면 0). 게임 모드가 소리마다 곱한다 (D-110)
 	float GetVolume() const { return Settings.bSound ? Settings.Volume : 0.f; }
 	float GetMusicVolume() const { return Settings.bSound ? Settings.MusicVolume : 0.f; } // 배경 음악 (D-117)
+	int32 JukeTrack = 0;                   // 주크박스 곡 (D-319, 설정에 저장). 인게임 음악 = 재즈 JukeTrack 번
+	void JukeStep(int32 Dir);              // 곡 넘기기 (간판 ◀ ▶ · 설정)
 	bool WantMenuMusic() const { return Game.Phase == PD::EPDPhase::Title || Game.Phase == PD::EPDPhase::Clear; } // 시작 · 클리어 화면은 메뉴 음악 (D-264)
 	bool WantBossMusic() const { return Game.Phase == PD::EPDPhase::Wave && Game.NextBossWave() == Game.Wave; } // 보스 웨이브 동안은 보스 음악 (D-188)
 
@@ -353,6 +355,7 @@ private:
 	int32 TvMixWave = -1;
 	void TvDial();
 	void PaintTv(FCanvas& C) const;
+	void PaintJukebox(FCanvas& C) const;     // 주크박스 간판 (D-319): 예전 남은 적 간판 자리
 	// 완성 연출 (D-314, D-315): 합성 · 조커 · 상위 조커 · 조커 레벨 10 · 같은 조커 합치기 · 상위 조커 레벨 10마다. 도는 동안 게임은 멈추고, 클릭하면 바로 건너뛴다
 	enum class ECine : uint8 { Fuse, Joker, Upper, JokerLv, Merge, UpperLv };
 	struct FCine { ECine Kind = ECine::Fuse; float T = 0.f, Dur = 1.f; int32 Cell = -1; PD::FPDCard Card; int32 Level = 1, Joker = -1; bool bNew = false, bSame = false; TArray<FVector2f> Mats; uint32 Seed = 0; }; // bSame: 같은 상위 조커끼리 합치기 (두 장 다 그 조커)

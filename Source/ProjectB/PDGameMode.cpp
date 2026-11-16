@@ -124,12 +124,13 @@ void APDGameMode::PlayGameSound(const PD::FPDSoundEvent& Event)
 
 void APDGameMode::UpdateMusic()
 {
+	static_assert(MusicN == PD::JazzTrackCount + 2 && MusicBoss == PD::JazzTrackCount && MusicMenu == PD::JazzTrackCount + 1, "music slots out of sync with jazz tracks (D-319)");
 	const double Now = FPlatformTime::Seconds();
 	const float Dt = LastMusicTime > 0.0 ? FMath::Min(0.25f, (float)(Now - LastMusicTime)) : 0.f; // 실제 시간 (배속과 상관없이)
 	LastMusicTime = Now;
 	if (BoardWidget.IsValid()) // 지금 곡: 시작 화면 = 메뉴, 보스 웨이브 = 보스, 나머지 = 인게임. 1.5초에 걸쳐 엇갈려 바뀐다
 	{
-		const int32 Want = BoardWidget->WantMenuMusic() ? 2 : BoardWidget->WantBossMusic() ? 1 : 0;
+		const int32 Want = BoardWidget->WantMenuMusic() ? MusicMenu : BoardWidget->WantBossMusic() ? MusicBoss : FMath::Clamp(BoardWidget->JukeTrack, 0, PD::JazzTrackCount - 1); // 인게임 = 주크박스 곡 (D-319)
 		for (int32 I = 0; I < MusicN; ++I) MusicMix[I] = FMath::Clamp(MusicMix[I] + (I == Want ? 1.f : -1.f) * Dt / 1.5f, 0.f, 1.f);
 	}
 	for (int32 I = 0; I < MusicN; ++I)
@@ -162,9 +163,9 @@ void APDGameMode::UpdateMusic()
 void APDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	MusicJob[2] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMenuMusic(PDSampleRate); }); // 메뉴 음악 (D-264): 시작 화면이 먼저라 먼저 합성
-	MusicJob[0] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMusic(PDSampleRate); }); // 인게임 음악 (D-117, D-264)
-	MusicJob[1] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeBossMusic(PDSampleRate); }); // 보스 음악 (D-188)
+	MusicJob[MusicMenu] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMenuMusic(PDSampleRate); }); // 메뉴 음악 (D-264): 시작 화면이 먼저라 먼저 합성
+	for (int32 T = 0; T < PD::JazzTrackCount; ++T) MusicJob[T] = Async(EAsyncExecution::ThreadPool, [T]() { return PD::SynthesizeJazz(T, PDSampleRate); }); // 인게임 재즈 4곡 (D-319)
+	MusicJob[MusicBoss] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeBossMusic(PDSampleRate); }); // 보스 음악 (D-188)
 	if (!GEngine || !GEngine->GameViewport) return;
 
 	SAssignNew(BoardWidget, SPDBoardWidget);

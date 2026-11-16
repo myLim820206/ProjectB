@@ -695,6 +695,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 소리	Sound	サウンド	声音	聲音	PDBoardPaint.cpp
 효과음 볼륨	SFX Volume	効果音の音量	音效音量	音效音量	PDBoardPaint.cpp
 음악 볼륨	Music Volume	音楽の音量	音乐音量	音樂音量	PDBoardPaint.cpp
+곡 (주크박스)	Track (jukebox)	曲 (ジュークボックス)	曲目 (点唱机)	曲目 (點唱機)	PDBoardPaint.cpp
 창	Windowed	ウィンドウ	窗口	視窗	PDBoardPaint.cpp
 전체화면	Fullscreen	フルスクリーン	全屏	全螢幕	PDBoardPaint.cpp
 테두리 없음	Borderless	ボーダーレス	无边框	無邊框	PDBoardPaint.cpp

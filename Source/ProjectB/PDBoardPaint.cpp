@@ -1950,6 +1950,7 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 	};
 	PaintLogoBadge(C, LX + LW / 2.f, 6.f, 0.27f);
 	// 남은 적 간판은 뺐다 (D-318): 그 내용은 채널 TV 방송 자막 띠로. 빈자리는 주크박스 간판 (D-319)
+	PaintJukebox(C);
 	// WAVE 간판 (가운데): 큰 글자 + 다음 보스
 	{
 		const int32 BW = G.NextBossWave();
@@ -3790,7 +3791,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		NeonText(C, TEXT("JUKEBOX"), MidX, SetBoxY + 22.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f);
 		C.TextCentered(TEXT("설정"), MidX, SetBoxY + 42.f, Fg, 12.f, true);
 	}
-	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("도움말"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("곡 (주크박스)"), TEXT("도움말"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		const FLinearColor Cc = bOn ? PinkS : LavS; // 알약 튜브 (D-293). 켜진 · 고른 것은 전부 분홍, 꺼진 것은 연보라 (D-328 ③: 초록 · 카드 색 섞이던 것 통일)
 		(void)Col; // 색은 이제 켜짐/꺼짐으로만 (D-328 ③). 카드 색 줄은 아래에서 색 점을 따로 찍는다
@@ -3864,6 +3865,14 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			C.Box(Bar.X, Bar.Y + 6.f, BarW * V, SetBtnH - 12.f, WithAlpha(Cyan, 0.25f));
 			C.Glow(FCanvas::RoundRectPoints(Bar.X, Bar.Y + 6.f, BarW, SetBtnH - 12.f, 4.f), Cyan, 1.f, 0.4f);
 			C.TextCentered(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(V * 100.f)), Bar.X + BarW / 2.f, Bar.Y + SetBtnH / 2.f, FLinearColor::White, 13.f, true);
+			break;
+		}
+		case ESetRow::Track: // 주크박스 곡 (D-319): ◀ 곡 이름 ▶, 간판과 같은 목록
+		{
+			const FVector2f L = SetBtnPos(Row, 0), Nm = SetBtnPos(Row, 1), R = SetBtnPos(Row, 2);
+			Button(L.X, L.Y, SetBtnW(Row, 0), TEXT("◀"), Cyan, true, bRowSel);
+			Button(R.X, R.Y, SetBtnW(Row, 2), TEXT("▶"), Cyan, true, bRowSel);
+			C.TextCentered(FString::Printf(TEXT("%d. %s"), JukeTrack + 1, UTF8_TO_TCHAR(JazzTrackName(JukeTrack))), Nm.X + SetBtnW(Row, 1) / 2.f, Nm.Y + SetBtnH / 2.f, FLinearColor::White, 13.f, true, SetBtnW(Row, 1));
 			break;
 		}
 		case ESetRow::Close:

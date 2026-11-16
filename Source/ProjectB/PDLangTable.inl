@@ -696,6 +696,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("소리"), TEXT("Sound"), TEXT("サウンド"), TEXT("声音"), TEXT("聲音")},
 	{TEXT("효과음 볼륨"), TEXT("SFX Volume"), TEXT("効果音の音量"), TEXT("音效音量"), TEXT("音效音量")},
 	{TEXT("음악 볼륨"), TEXT("Music Volume"), TEXT("音楽の音量"), TEXT("音乐音量"), TEXT("音樂音量")},
+	{TEXT("곡 (주크박스)"), TEXT("Track (jukebox)"), TEXT("曲 (ジュークボックス)"), TEXT("曲目 (点唱机)"), TEXT("曲目 (點唱機)")},
 	{TEXT("창"), TEXT("Windowed"), TEXT("ウィンドウ"), TEXT("窗口"), TEXT("視窗")},
 	{TEXT("전체화면"), TEXT("Fullscreen"), TEXT("フルスクリーン"), TEXT("全屏"), TEXT("全螢幕")},
 	{TEXT("테두리 없음"), TEXT("Borderless"), TEXT("ボーダーレス"), TEXT("无边框"), TEXT("無邊框")},
@@ -916,4 +917,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 915;
+static const int32 PDLangRowCount = 916;

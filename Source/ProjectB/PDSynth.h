@@ -50,6 +50,11 @@ std::vector<int16_t> SynthesizeMusic(int SampleRate = 44100);
 std::vector<int16_t> SynthesizeBossMusic(int SampleRate = 44100);
 // 보스 음악 시안 (D-266): 무겁게. 0 느와르 기어가기 72 BPM, 1 느린 빅밴드 위협 92 BPM 스윙, 2 둠 펑크 84 BPM
 std::vector<int16_t> SynthesizeBossMusicAlt(int Variant, int SampleRate = 44100);
+// 인게임 재즈 (D-319): 늦은 밤 바. 주크박스 간판 · 설정 주크박스에서 고른다. 0 느린 스윙 · 1 보사노바 · 2 블루스 · 3 피아노 발라드
+constexpr int JazzTrackCount = 4;
+const char* JazzTrackName(int Track);      // 곡 이름 (영어, 간판에 쓴다)
+float JazzTrackBpm(int Track);             // 박자 (간판 전구가 박자에 맞춰 깜빡인다)
+std::vector<int16_t> SynthesizeJazz(int Track, int SampleRate = 44100);
 // 캐시 키
 inline int SoundKey(EPDSound Sound, int A, int B) { return ((int)Sound * 64 + (A & 63)) * 8 + (B & 7); }
 } // namespace PD
