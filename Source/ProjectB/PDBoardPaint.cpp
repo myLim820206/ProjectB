@@ -1983,58 +1983,53 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 // 위쪽 상태 띠 (D-119): 웨이브·다음 보스 | 남은 적 | 목숨·골드 | 판 위력 | 속도·설정 버튼
 void SPDBoardWidget::PaintHud(FCanvas& C) const
 {
-	// 인게임 시안 B (D-274): 위쪽 띠 대신 천장에 매단 간판들. 로고 배지 · 남은 적(전구 줄) · WAVE · 목숨 하트 · 레벨 알약 + 버튼 셋
+	// 윗줄 (D-274 → D-351): 로고 배지 · 아치 주크박스 · 한 장 계기판(WAVE | 목숨 | 레벨) + 버튼 셋
 	const FPDGame& G = Game;
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Lav = Hex(TEXT("a896e1")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6")), Green = Hex(TEXT("9cffb0")), Red = Hex(TEXT("ff6a6a")), Orange = Hex(TEXT("ffa86a")), Wire = Hex(TEXT("5f6878"), 0.45f);
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-	constexpr float NK = 0.7f; // 네온 세기 (D-260)
-	// 두 겹 튜브 간판 (D-254/255) + 매단 줄 둘
-	auto Sign = [&](float X, float Y, float W, float H, float R, const FLinearColor& Col, float B)
-	{
-		for (const float Wx : {X + 16.f, X + W - 16.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, Y)}, Wire, 1.f);
-		C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.85f));
-		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, W, H, R), Ri = FCanvas::RoundRectPoints(X + 5.f, Y + 5.f, W - 10.f, H - 10.f, FMath::Max(2.f, R - 5.f));
-		C.Glow(Ro, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), 2.2f, 1.1f * B);
-		C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.35f * B), 0.6f); // 흰 심 (D-275)
-		C.Glow(Ri, FLinearColor(Col.R * B * 0.8f, Col.G * B * 0.8f, Col.B * B * 0.8f, 1.f), 1.2f, 0.5f * B);
-	};
 	PaintLogoBadge(C, LX + LW / 2.f, 6.f, 0.27f);
 	// 남은 적 간판은 뺐다 (D-318): 그 내용은 채널 TV 방송 자막 띠로. 빈자리는 주크박스 간판 (D-319)
 	PaintJukebox(C);
-	// WAVE 간판 (가운데): 큰 글자 + 다음 보스
+	// 한 장 계기판 (D-351, 시안 B tools/neon/topbar_mock.py): 긴 판 하나 + 세로 구분선 둘 → WAVE | 목숨 | 레벨.
+	// 틀은 한 색(하늘) 두 겹, 색은 값 · 아이콘에만. 머리글 · 다음 보스 줄은 뺐다 (다음 보스는 채널 TV 예고, D-344)
 	{
-		const int32 BW = G.NextBossWave();
-		const bool bNow = G.Phase == EPDPhase::Wave && BW == G.Wave;
-		Sign(SignWvX, SignWvY, SignWvW, SignWvH, 14.f, bNow ? Red : Cyan, 1.f);
-		const FString Wv = FString::Printf(TEXT("WAVE %d"), G.Wave);
-		const float WvW = FCanvas::Measure(Wv, FCanvas::Font(36.f, true)).X;
-		const float GoalX = SignWvX + SignWvW / 2.f + (G.Goal() > 0 ? -30.f : 0.f);
-		NeonText(C, Wv, GoalX - WvW / 2.f, SignWvY + 46.f, bNow ? Red : Cyan, 36.f, 0, 1.f);
-		if (G.Goal() > 0) NeonText(C, FString::Printf(TEXT("/ %d"), G.Goal()), GoalX + WvW / 2.f + 12.f, SignWvY + 44.f, Cyan, 17.f, 0, 0.75f);
-		FString BossS = BossWaveLabel(G, BW); // 짝 · 셋이면 '돌진 기사 + 블러퍼' (D-334)
-		C.TextCentered(bNow ? TrF(TEXT("보스 웨이브 · %s"), *BossS) : TrF(TEXT("다음 보스  %d웨이브 · %s"), BW, *BossS),
-			SignWvX + SignWvW / 2.f, SignWvY + 62.f, bNow ? Red : Orange, 10.f, true, SignWvW - 40.f);
+		const FLinearColor Edge = Hex(TEXT("7fd6ff"));
+		const float X = HudPanX, Y = HudPanY, W = HudPanW, H = HudPanH, R = 12.f;
+		C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.85f));
+		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, W, H, R), Ri = FCanvas::RoundRectPoints(X + 3.f, Y + 3.f, W - 6.f, H - 6.f, R - 3.f);
+		C.Glow(Ro, WithAlpha(Edge, 0.85f), 1.6f, 0.6f);
+		C.Lines(Ri, WithAlpha(Edge, 0.3f), 0.7f);
+		for (const float Dx : {HudDivLf, HudDivLv}) C.Lines({FVector2f(Dx, Y + 10.f), FVector2f(Dx, Y + H - 10.f)}, WithAlpha(Edge, 0.35f), 1.f);
 	}
-	// 목숨: 분홍 하트 간판 (5 이하면 빨갛게 깜빡)
+	// WAVE 칸: 큰 글자 + / 목표 (보스 웨이브 중이면 빨강)
+	{
+		const bool bNow = G.Phase == EPDPhase::Wave && G.NextBossWave() == G.Wave;
+		const FLinearColor Wc = bNow ? Red : Cyan;
+		const FString Wv = FString::Printf(TEXT("WAVE %d"), G.Wave);
+		const float WvW = FCanvas::Measure(Wv, FCanvas::Font(32.f, true)).X;
+		const float GoalX = (HudPanX + HudDivLf) / 2.f + (G.Goal() > 0 ? -22.f : 0.f), BaseY = HudPanY + HudPanH / 2.f + 12.f;
+		NeonText(C, Wv, GoalX - WvW / 2.f, BaseY, Wc, 32.f, 0, 1.f);
+		if (G.Goal() > 0) NeonText(C, FString::Printf(TEXT("/ %d"), G.Goal()), GoalX + WvW / 2.f + 10.f, BaseY - 1.f, Wc, 15.f, 0, 0.75f);
+	}
+	// 목숨 칸: 분홍 하트 + 숫자 (5 이하면 빨갛게 깜빡)
 	{
 		const bool bLow = G.Lives <= 5;
-		Sign(SignLfX, SignLfY, SignLfW, SignLfH, 12.f, bLow ? Red : Pink, bLow ? 0.6f + 0.4f * Pulse : 0.9f);
-		C.Shape(EPDSuit::Heart, SignLfX + 26.f, SignLfY + SignLfH / 2.f, 11.f, bLow ? Red : Pink, 1.5f, 0.5f);
-		NeonText(C, FString::FromInt(G.Lives), SignLfX + 72.f, SignLfY + SignLfH / 2.f + 10.f, bLow ? Red : Pink, G.Lives >= 100 ? 20.f : 26.f, 1, 1.f);
+		const FLinearColor Lc = bLow ? WithAlpha(Red, 0.6f + 0.4f * Pulse) : Pink;
+		const float MidY = HudPanY + HudPanH / 2.f;
+		C.Shape(EPDSuit::Heart, HudDivLf + 26.f, MidY, 11.f, Lc, 1.5f, 0.5f);
+		NeonText(C, FString::FromInt(G.Lives), (HudDivLf + 40.f + HudDivLv) / 2.f, MidY + 10.f, Lc, G.Lives >= 1000 ? 18.f : G.Lives >= 100 ? 24.f : 26.f, 1, 1.f);
 	}
-	// 레벨 알약 (금색): 마름모 + 레벨 + 경험치 막대 + %. 남은 포인트가 있으면 숨쉰다
+	// 레벨 칸: 마름모 + 레벨 숫자 + % + 경험치 막대. 남은 포인트가 있으면 숨쉰다
 	{
 		const float Fill = FMath::Clamp((float)G.Xp / FMath::Max(1, G.XpToNext()), 0.f, 1.f);
-		const float B = G.PointsLeft() > 0 ? 0.7f + 0.3f * Pulse : 0.85f;
-		for (const float Wx : {SignLvX + 30.f, SignLvX + SignLvW - 30.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, SignLvY)}, Wire, 1.f);
-		C.Box(SignLvX, SignLvY, SignLvW, SignLvH, Hex(TEXT("06060b"), 0.85f));
-		C.Glow(FCanvas::RoundRectPoints(SignLvX, SignLvY, SignLvW, SignLvH, SignLvH / 2.f), FLinearColor(Gold.R * B, Gold.G * B, Gold.B * B, 1.f), 1.8f, NK * B);
-		C.Shape(EPDSuit::Diamond, SignLvX + 18.f, SignLvY + SignLvH / 2.f, 6.f, Gold, 1.3f, 0.4f);
-		C.Text(TrF(TEXT("레벨 %d"), G.Level), SignLvX + 30.f, SignLvY + 22.f, Gold, 14.f, 0, true, 68.f);
-		const float BX = SignLvX + 100.f, BWd = 42.f, BY = SignLvY + SignLvH / 2.f - 2.f;
-		C.Box(BX, BY, BWd, 4.f, Hex(TEXT("6edcff"), 0.12f));
-		C.Box(BX, BY, BWd * Fill, 4.f, Hex(TEXT("6edcff"), 0.65f));
-		C.Text(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), SignLvX + SignLvW - 12.f, SignLvY + 21.f, Fg, 9.f, 2, true);
+		const float B = G.PointsLeft() > 0 ? 0.7f + 0.3f * Pulse : 1.f;
+		const FLinearColor Gc(Gold.R * B, Gold.G * B, Gold.B * B, 1.f);
+		const float TopY = HudPanY + 30.f;
+		C.Shape(EPDSuit::Diamond, HudDivLv + 18.f, TopY - 6.f, 7.f, Gc, 1.3f, 0.4f);
+		NeonText(C, FString::FromInt(G.Level), HudDivLv + 32.f, TopY + 4.f, Gc, 22.f, 0, 1.f);
+		C.Text(FString::Printf(TEXT("%d%%"), FMath::FloorToInt(Fill * 100.f)), LvBarX + LvBarW, TopY + 2.f, Fg, 10.f, 2, true);
+		C.Box(LvBarX, LvBarY - 2.f, LvBarW, 4.f, WithAlpha(Gold, 0.15f));
+		C.Box(LvBarX, LvBarY - 2.f, LvBarW * Fill, 4.f, WithAlpha(Gold, 0.85f * B));
 	}
 	{ // 일시정지 버튼 (D-169): 멈춘 동안은 재생 삼각형, 평소엔 두 막대
 		const bool bHov = InRect(Mouse, PauseBtnX, HudBtnY, HudBtnS, HudBtnS);
@@ -3377,7 +3372,7 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Wire = Hex(TEXT("5f6878"));
 	auto Ease = [](float U) { U = FMath::Clamp(U, 0.f, 1.f); return 1.f - (1.f - U) * (1.f - U) * (1.f - U); };
 	// 경험치 막대 번쩍 (위쪽 띠의 레벨 막대 자리)
-	if (T < 0.45f) { const float Fl = FMath::Max(0.f, 1.f - FMath::Abs(T - 0.25f) / 0.2f); C.Box(SignLvX + 100.f, SignLvY + SignLvH / 2.f - 3.f, 42.f, 6.f, FLinearColor(1.f, 1.f, 1.f, 0.8f * Fl)); } // 레벨 알약 막대 (D-274)
+	if (T < 0.45f) { const float Fl = FMath::Max(0.f, 1.f - FMath::Abs(T - 0.25f) / 0.2f); C.Box(LvBarX, LvBarY - 3.f, LvBarW, 6.f, FLinearColor(1.f, 1.f, 1.f, 0.8f * Fl)); } // 계기판 레벨 칸 막대 (D-351)
 	static const float Seq[5] = {0.4f, 0.08f, 0.9f, 0.2f, 1.f};
 	const FString Word = TEXT("LEVEL UP");
 	// 빠직 불티 (타이틀 로고와 같은 움직임)
@@ -3411,7 +3406,7 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 		else
 		{
 			const float V = Ease((T - 1.35f) / 0.4f);
-			CX += (930.f - CX) * V;
+			CX += (LvSignCX - CX) * V;
 			CY += (139.f - CY) * V;
 			K = 1.f - 0.55f * V;
 		}
@@ -3435,11 +3430,11 @@ void SPDBoardWidget::PaintLevelUp(FCanvas& C) const
 	if (T >= 1.75f)
 	{
 		const float Fade = T < 2.f ? 1.f : FMath::Max(0.f, 1.f - (T - 2.f) / 0.4f);
-		for (const float X : {880.f, 980.f}) C.Lines({FVector2f(X, SignLvY + SignLvH), FVector2f(X, 110.f)}, WithAlpha(Wire, 0.5f * Fade), 1.f); // 레벨 알약 밑에 매달림 (D-274)
-		BulbSign(C, 930.f, 110.f, 208.f, 58.f, Word, Gold, 26.f, Clock, nullptr, false, Fade); // BREAK TIME 과 같은 전구 간판 (D-296)
-		C.Box(870.f, 176.f, 120.f, 24.f, Hex(TEXT("06060b"), 0.82f * Fade));
-		C.Glow(FCanvas::RoundRectPoints(870.f, 176.f, 120.f, 24.f, RadPill(24.f)), WithAlpha(Pink, Fade), 1.6f, 0.6f * Fade);
-		C.TextCentered(TrF(TEXT("포인트 +%d"), LevelUpPts), 930.f, 188.f, FLinearColor(1.f, 1.f, 1.f, Fade), 13.f, true);
+		for (const float X : {LvSignCX - 50.f, LvSignCX + 50.f}) C.Lines({FVector2f(X, HudPanY + HudPanH), FVector2f(X, 110.f)}, WithAlpha(Wire, 0.5f * Fade), 1.f); // 계기판 밑에 매달림 (D-274, D-351)
+		BulbSign(C, LvSignCX, 110.f, 208.f, 58.f, Word, Gold, 26.f, Clock, nullptr, false, Fade); // BREAK TIME 과 같은 전구 간판 (D-296)
+		C.Box(LvSignCX - 60.f, 176.f, 120.f, 24.f, Hex(TEXT("06060b"), 0.82f * Fade));
+		C.Glow(FCanvas::RoundRectPoints(LvSignCX - 60.f, 176.f, 120.f, 24.f, RadPill(24.f)), WithAlpha(Pink, Fade), 1.6f, 0.6f * Fade);
+		C.TextCentered(TrF(TEXT("포인트 +%d"), LevelUpPts), LvSignCX, 188.f, FLinearColor(1.f, 1.f, 1.f, Fade), 13.f, true);
 	}
 }
 

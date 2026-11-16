@@ -179,17 +179,19 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Cyan = Hex(TEXT("6edcff")), Lav = Hex(TEXT("a896e1")), Fg = Hex(TEXT("dce4f0")), Bulbc = Hex(TEXT("ffe196")), Bg = Hex(TEXT("06060b"), 0.92f);
 	const bool bBoss = WantBossMusic();
 	const float Bpm = bBoss ? 132.f : JazzTrackBpm(JukeTrack), BeatN = Clock * Bpm / 60.f, Beat = FMath::Max(0.f, FMath::Cos(BeatN * TwoPi));
-	const float X0 = JukeX0, W = JukeW, Y0 = JukeY0, CX = X0 + W / 2.f, Bot = Y0 + JukeH;
-	const float ArchH = 26.f, ArchY = Y0 + ArchH; // 위 아치(타원) 밑선
-	auto Arch = [&](float In, float Down) { TArray<FVector2f> P; const float Rx = W / 2.f - In, Ry = ArchH - In; P.Add(FVector2f(CX - Rx, ArchY + Down)); for (int32 A = 0; A <= 24; ++A) { const float T = PI + A * PI / 24.f; P.Add(FVector2f(CX + FMath::Cos(T) * Rx, ArchY + FMath::Sin(T) * Ry)); } P.Add(FVector2f(CX + Rx, ArchY + Down)); return P; };
+	// 설계 단위(폭 JukeDW × 높이 JukeDH, 왼쪽 위 0,0)로 그리고 P() 로 JukeK 배 줄여 화면에 찍는다 (D-351: 폭 150 · 높이 85)
+	const float K = JukeK, W = JukeDW, CX = W / 2.f, Bot = JukeDH;
+	auto P = [&](float X, float Y) { return FVector2f(JukeX0 + X * K, JukeY0 + Y * K); };
+	const float ArchH = 26.f, ArchY = ArchH; // 위 아치(타원) 밑선
+	auto Arch = [&](float In, float Down) { TArray<FVector2f> Pt; const float Rx = W / 2.f - In, Ry = ArchH - In; Pt.Add(P(CX - Rx, ArchY + Down)); for (int32 A = 0; A <= 24; ++A) { const float T = PI + A * PI / 24.f; Pt.Add(P(CX + FMath::Cos(T) * Rx, ArchY + FMath::Sin(T) * Ry)); } Pt.Add(P(CX + Rx, ArchY + Down)); return Pt; };
 	// 몸통 (속 어둡게) + 테두리 + 받침
-	C.Box(X0, ArchY, W, Bot - 6.f - ArchY, Bg);
-	for (float Yy = 0.f; Yy < ArchH; Yy += 2.f) { const float Rx = W / 2.f * FMath::Sqrt(FMath::Max(0.f, 1.f - FMath::Square((ArchH - Yy) / ArchH))); C.Box(CX - Rx, Y0 + Yy, Rx * 2.f, 2.f, Bg); }
+	{ const FVector2f B0 = P(0.f, ArchY); C.Box(B0.X, B0.Y, W * K, (Bot - 6.f - ArchY) * K, Bg); }
+	for (float Yy = 0.f; Yy < ArchH; Yy += 2.f) { const float Rx = W / 2.f * FMath::Sqrt(FMath::Max(0.f, 1.f - FMath::Square((ArchH - Yy) / ArchH))); const FVector2f Q = P(CX - Rx, Yy); C.Box(Q.X, Q.Y, Rx * 2.f * K, 2.f * K, Bg); }
 	TArray<FVector2f> Body = Arch(0.f, Bot - 6.f - ArchY);
 	const FVector2f BodyStart = Body[0]; // 자기 원소를 그대로 Add 하면 TArray 검사에 걸려 크래시
 	Body.Add(BodyStart);
 	C.Glow(Body, Lav, 1.6f, 0.8f);
-	C.Glow({FVector2f(X0 - 3.f, Bot - 6.f), FVector2f(X0 + W + 3.f, Bot - 6.f), FVector2f(X0 + W + 1.f, Bot), FVector2f(X0 - 1.f, Bot), FVector2f(X0 - 3.f, Bot - 6.f)}, Lav, 1.3f, 0.6f);
+	C.Glow({P(-3.f, Bot - 6.f), P(W + 3.f, Bot - 6.f), P(W + 1.f, Bot), P(-1.f, Bot), P(-3.f, Bot - 6.f)}, Lav, 1.3f, 0.6f);
 	// 무지개 튜브 셋 (박자에 맞춰 차례로 밝아짐) — 양옆으로 내려와 몸통 옆 기둥이 된다
 	const FLinearColor Tube[3] = {Pink, Gold, Cyan};
 	for (int32 I = 0; I < 3; ++I)
@@ -202,32 +204,33 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 	{
 		const float T = PI + (I + 0.5f) * PI / 11.f;
 		const bool bOn = (I + FMath::FloorToInt(BeatN * 2.f)) % 4 == 0;
-		Bulb(C, FVector2f(CX + FMath::Cos(T) * (W / 2.f + 3.f), ArchY + FMath::Sin(T) * (ArchH + 3.f)), 1.7f, bOn, bBoss ? Hex(TEXT("ff6a6a")) : Bulbc);
+		Bulb(C, P(CX + FMath::Cos(T) * (W / 2.f + 3.f), ArchY + FMath::Sin(T) * (ArchH + 3.f)), 1.7f * K, bOn, bBoss ? Hex(TEXT("ff6a6a")) : Bulbc);
 	}
 	// 양옆 거품 튜브: 방울이 올라간다
 	for (const float S : {-1.f, 1.f})
 	{
 		const float TX = CX + S * (W / 2.f - 17.f);
-		for (int32 K = 0; K < 4; ++K)
+		for (int32 J = 0; J < 4; ++J)
 		{
-			const float U = FMath::Frac(Clock * 0.6f + K * 0.25f + (S > 0.f ? 0.12f : 0.f));
-			C.Lines(FCanvas::CirclePoints(FVector2f(TX, Bot - 16.f - U * 44.f), 1.3f + 0.6f * U, 8), WithAlpha(S < 0.f ? Pink : Cyan, 0.9f * (1.f - U)), 1.f);
+			const float U = FMath::Frac(Clock * 0.6f + J * 0.25f + (S > 0.f ? 0.12f : 0.f));
+			C.Lines(FCanvas::CirclePoints(P(TX, Bot - 16.f - U * 44.f), (1.3f + 0.6f * U) * K, 8), WithAlpha(S < 0.f ? Pink : Cyan, 0.9f * (1.f - U)), 1.f);
 		}
 	}
-	// 유리창: 도는 레코드 + 곡 정보 (곡을 바꾸면 레코드가 옆으로 빠졌다 새 레코드가 들어온다)
-	const float GX = X0 + 24.f, GY = ArchY + 2.f, GW = W - 48.f, GH = 30.f;
-	C.Box(GX, GY, GW, GH, Hex(TEXT("0b0d14"), 1.f));
-	C.Glow(FCanvas::RoundRectPoints(GX, GY, GW, GH, 6.f), Fg, 1.1f, 0.45f);
+	// 유리창: 도는 레코드 + 곡 정보 (곡을 바꾸면 레코드가 유리창 밑으로 내려갔다 새 레코드가 올라온다)
+	const float GX = 24.f, GY = ArchY + 2.f, GW = W - 48.f, GH = 30.f;
+	const FVector2f G0 = P(GX, GY);
+	C.Box(G0.X, G0.Y, GW * K, GH * K, Hex(TEXT("0b0d14"), 1.f));
+	C.Glow(FCanvas::RoundRectPoints(G0.X, G0.Y, GW * K, GH * K, 6.f * K), Fg, 1.1f, 0.45f);
 	const float Sw = Clock - JukeSwitchAt, SwU = FMath::Clamp(Sw / 0.7f, 0.f, 1.f);
 	const float RecK = Sw < 0.7f ? (SwU < 0.5f ? SwU * 2.f : (1.f - SwU) * 2.f) : 0.f; // 0 → 1 → 0: 레코드가 유리창 밑으로 완전히 내려갔다 새 레코드가 올라옴 (사용자 2026-11-16)
-	const float RecEase = RecK * RecK * (3.f - 2.f * RecK), ClipY = GY + GH - 2.f;
-	const FVector2f RC(GX + 12.f, GY + GH / 2.f + RecEase * (GH / 2.f + 11.f));
-	auto RecLines = [&](const TArray<FVector2f>& P, const FLinearColor& Col) // 유리창 아래로 나간 부분은 자른다
+	const float RecEase = RecK * RecK * (3.f - 2.f * RecK), ClipY = P(0.f, GY + GH - 2.f).Y;
+	const FVector2f RC = P(GX + 12.f, GY + GH / 2.f + RecEase * (GH / 2.f + 11.f));
+	auto RecLines = [&](const TArray<FVector2f>& Pt, const FLinearColor& Col) // 유리창 아래로 나간 부분은 자른다
 	{
 		TArray<FVector2f> Run;
-		for (int32 I = 0; I + 1 < P.Num(); ++I)
+		for (int32 I = 0; I + 1 < Pt.Num(); ++I)
 		{
-			FVector2f A = P[I], B = P[I + 1];
+			FVector2f A = Pt[I], B = Pt[I + 1];
 			if (A.Y > ClipY && B.Y > ClipY) { if (Run.Num() > 1) C.Lines(Run, Col, 1.f); Run.Reset(); continue; }
 			if (A.Y > ClipY) A = A + (B - A) * ((A.Y - ClipY) / (A.Y - B.Y));
 			if (B.Y > ClipY) B = A + (B - A) * ((ClipY - A.Y) / (B.Y - A.Y));
@@ -236,47 +239,48 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 		}
 		if (Run.Num() > 1) C.Lines(Run, Col, 1.f);
 	};
-	RecLines(FCanvas::CirclePoints(RC, 9.f, 20), Fg);
-	RecLines(FCanvas::CirclePoints(RC, 3.f, 10), Pink);
+	RecLines(FCanvas::CirclePoints(RC, 9.f * K, 20), Fg);
+	RecLines(FCanvas::CirclePoints(RC, 3.f * K, 10), Pink);
 	const float RA = Clock * (Bpm / 60.f) * PI * 0.5f;
-	RecLines({RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 4.f, RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 8.f}, WithAlpha(Fg, 0.7f));
+	RecLines({RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 4.f * K, RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 8.f * K}, WithAlpha(Fg, 0.7f));
 	const float ArmA = FMath::DegreesToRadians(Sw < 0.7f ? 70.f - 50.f * (1.f - FMath::Abs(SwU * 2.f - 1.f)) : 40.f); // 집게 팔: 바꿀 때 들렸다 내려옴
-	const FVector2f Pv(GX + 26.f, GY + 4.f);
-	C.Lines({Pv, Pv + FVector2f(-FMath::Cos(ArmA), FMath::Sin(ArmA)) * 12.f}, Gold, 1.1f);
-	const float TxX = GX + 30.f, TxW = GW - 34.f;
-	C.Text(bBoss ? TEXT("BOSS THEME") : TEXT("NOW PLAYING"), TxX, GY + 9.f, bBoss ? Hex(TEXT("ff6a6a")) : Gold, 7.f, 0, true, TxW);
+	const FVector2f Pv = P(GX + 26.f, GY + 4.f);
+	C.Lines({Pv, Pv + FVector2f(-FMath::Cos(ArmA), FMath::Sin(ArmA)) * 12.f * K}, Gold, 1.1f);
+	// 글자 크기는 줄이지 않는다 (읽기 쉽게). 자리만 줄인 좌표로
+	const float TxX = P(GX + 30.f, 0.f).X, TxW = (GW - 34.f) * K;
+	C.Text(bBoss ? TEXT("BOSS THEME") : TEXT("NOW PLAYING"), TxX, P(0.f, GY + 10.f).Y, bBoss ? Hex(TEXT("ff6a6a")) : Gold, 7.f, 0, true, TxW);
 	const FString Nm = bBoss ? FString(Tr(TEXT("보스 웨이브"))) : FString(UTF8_TO_TCHAR(JazzTrackName(JukeTrack)));
-	const float NmW = FCanvas::Measure(Nm, FCanvas::Font(9.f, true)).X, NmY = GY + 22.f;
+	const float NmW = FCanvas::Measure(Nm, FCanvas::Font(9.f, true)).X, NmY = P(0.f, GY + 23.f).Y;
 	if (Sw < 0.35f) {} // 레코드가 빠지는 동안 이름은 비움
 	else if (NmW <= TxW) C.Text(Nm, TxX, NmY, Fg, 9.f, 0, true);
 	else // 길면 흐른다 (글자 칸 밖은 클리핑으로 잘라 유리창 밖으로 안 나간다)
 	{
 		const float Loop = NmW + 24.f, Off = FMath::Fmod(FMath::Max(0.f, Sw - 1.2f) * 22.f, Loop); // 곡을 바꾸면 처음부터, 1초쯤 멈췄다 흐름
 		C.PushClip(TxX, NmY - 12.f, TxW, 16.f);
-		for (int32 K = 0; K < 2; ++K) C.Text(Nm, TxX - Off + K * Loop, NmY, Fg, 9.f, 0, true);
+		for (int32 J = 0; J < 2; ++J) C.Text(Nm, TxX - Off + J * Loop, NmY, Fg, 9.f, 0, true);
 		C.PopClip();
 	}
-	// 선곡 버튼 줄: ◀ 번호 ▶ (누르는 버튼은 눌린 듯 살짝 내려감)
+	// 선곡 버튼 줄: ◀ 번호 ▶ (누르는 버튼은 눌린 듯 살짝 내려감). 버튼 자리는 JukeBtnX / JukeBtnY (클릭과 같은 수치)
 	for (int32 Dir = -1; Dir <= 1; Dir += 2)
 	{
-		const float BtX = JukeBtnX(Dir);
+		const float BtX = JukeBtnX(Dir), BtH = JukeBtnS - 4.f * K;
 		const bool bHov = InRect(Mouse, BtX, JukeBtnY, JukeBtnS, JukeBtnS), bPress = Sw < 0.15f && JukeSwitchDir == Dir;
-		const float Dy = bPress ? 1.5f : 0.f;
-		C.BtnFill(BtX, JukeBtnY + 2.f + Dy, JukeBtnS, JukeBtnS - 4.f, RadPill(JukeBtnS - 4.f), Pink, bHov || bPress);
-		C.Glow(FCanvas::RoundRectPoints(BtX, JukeBtnY + 2.f + Dy, JukeBtnS, JukeBtnS - 4.f, RadPill(JukeBtnS - 4.f)), bHov ? Pink : WithAlpha(Pink, 0.7f), bHov ? 1.4f : 1.1f, bHov ? 0.9f : 0.4f);
+		const float Dy = (bPress ? 1.5f : 0.f) * K;
+		C.BtnFill(BtX, JukeBtnY + 2.f * K + Dy, JukeBtnS, BtH, RadPill(BtH), Pink, bHov || bPress);
+		C.Glow(FCanvas::RoundRectPoints(BtX, JukeBtnY + 2.f * K + Dy, JukeBtnS, BtH, RadPill(BtH)), bHov ? Pink : WithAlpha(Pink, 0.7f), bHov ? 1.4f : 1.1f, bHov ? 0.9f : 0.4f);
 		const FVector2f Cc(BtX + JukeBtnS / 2.f, JukeBtnY + JukeBtnS / 2.f + Dy);
-		C.Lines({Cc + FVector2f(Dir * 3.f, 0.f), Cc + FVector2f(-Dir * 2.f, -3.5f), Cc + FVector2f(-Dir * 2.f, 3.5f), Cc + FVector2f(Dir * 3.f, 0.f)}, bHov ? FLinearColor::White : Fg, 1.1f);
+		C.Lines({Cc + FVector2f(Dir * 3.f, 0.f) * K, Cc + FVector2f(-Dir * 2.f, -3.5f) * K, Cc + FVector2f(-Dir * 2.f, 3.5f) * K, Cc + FVector2f(Dir * 3.f, 0.f) * K}, bHov ? FLinearColor::White : Fg, 1.1f);
 	}
 	for (int32 I = 0; I < JazzTrackCount; ++I) // 곡 번호 칸 (지금 곡이 금색으로 켜짐)
 	{
-		const float KX = CX - (JazzTrackCount - 1) * 4.5f + I * 9.f;
-		C.Glow(FCanvas::RoundRectPoints(KX - 3.f, JukeBtnY + 5.f, 6.f, 6.f, 1.5f), I == JukeTrack ? Gold : WithAlpha(Lav, 0.5f), 1.f, I == JukeTrack ? 0.9f : 0.2f);
+		const FVector2f Q = P(CX - (JazzTrackCount - 1) * 4.5f + I * 9.f - 3.f, 62.f + 5.f);
+		C.Glow(FCanvas::RoundRectPoints(Q.X, Q.Y, 6.f * K, 6.f * K, 1.5f * K), I == JukeTrack ? Gold : WithAlpha(Lav, 0.5f), 1.f, I == JukeTrack ? 0.9f : 0.2f);
 	}
 	// 스피커 그릴: 박자에 맞춰 살짝 떨림
 	for (int32 I = 0; I < 9; ++I)
 	{
 		const float SX = CX - 32.f + I * 8.f, Lh = 8.f + 3.f * Beat * (I % 2 ? 1.f : 0.6f);
-		C.Lines({FVector2f(SX, Bot - 11.f - Lh), FVector2f(SX, Bot - 11.f)}, WithAlpha(Lav, 0.5f + 0.3f * Beat), 1.f);
+		C.Lines({P(SX, Bot - 11.f - Lh), P(SX, Bot - 11.f)}, WithAlpha(Lav, 0.5f + 0.3f * Beat), 1.f);
 	}
 }
 

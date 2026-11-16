@@ -651,12 +651,16 @@ constexpr float CharmY = TreeBtnY + TreeBtnH + 12.f; // 부적 칸 (버튼 한 �
 constexpr float SignEnX = 270.f, SignEnY = 20.f, SignEnW = 182.f, SignEnH = 68.f;   // 남은 적 (전구 줄)
 // 주크박스 간판 (D-319): 예전 남은 적 간판 자리 (SignEn). ◀ ▶ 곡 넘기기
 // 실제 주크박스 (사용자 2026-11-16): 본체 하나(128 × 94, x 297 ~ 425, y 2 ~ 96). 위 아치 무지개 튜브 → 유리창 안 곡 정보 · 도는 레코드 → 선곡 버튼(◀ 번호 ▶) → 스피커 → 받침, 양옆 거품 튜브. 시안 tools/neon/jukebox_mock.py
-constexpr float JukeW = 128.f, JukeX0 = SignEnX + (SignEnW - JukeW) / 2.f, JukeY0 = 2.f, JukeH = 94.f;
-constexpr float JukeBtnS = 16.f, JukeBtnY = JukeY0 + 62.f;
-inline float JukeBtnX(int Dir) { return JukeX0 + JukeW / 2.f + Dir * 30.f - JukeBtnS / 2.f; }
-constexpr float SignWvX = 470.f, SignWvY = 14.f, SignWvW = 340.f, SignWvH = 74.f;   // WAVE
-constexpr float SignLfX = 826.f, SignLfY = 22.f, SignLfW = 108.f, SignLfH = 60.f;   // 목숨
-constexpr float SignLvX = 948.f, SignLvY = 38.f, SignLvW = 172.f, SignLvH = 34.f;   // 레벨 알약
+// 주크박스 2c (D-351, 시안 tools/neon/jukebox_wide_mock.py): 설계 단위(폭 JukeDW × 높이 JukeDH)로 그리고 JukeK 배로 줄여 찍는다 → 화면 폭 150 · 높이 85, 위 끝 y 2 · 바닥 y 87 (판 틀 선 y 92 위로 5px)
+constexpr float JukeK = 0.9f, JukeW = 150.f, JukeDW = JukeW / JukeK, JukeDH = 94.f, JukeH = JukeDH * JukeK;
+constexpr float JukeX0 = 346.f - JukeW / 2.f, JukeY0 = 2.f;
+constexpr float JukeBtnS = 16.f * JukeK, JukeBtnY = JukeY0 + 62.f * JukeK;
+inline float JukeBtnX(int Dir) { return JukeX0 + JukeW / 2.f + Dir * 30.f * JukeK - JukeBtnS / 2.f; }
+// 윗줄 한 장 계기판 (D-351, 시안 B tools/neon/topbar_mock.py): 주크박스 오른쪽 긴 판 하나 + 세로 구분선 둘 → WAVE | 목숨 | 레벨. 머리글 · 다음 보스 줄은 뺐다
+constexpr float HudPanX = 430.f, HudPanY = 16.f, HudPanW = 706.f, HudPanH = 68.f;
+constexpr float HudDivLf = 800.f, HudDivLv = 930.f; // 목숨 칸 · 레벨 칸 왼쪽 구분선
+constexpr float LvBarX = HudDivLv + 12.f, LvBarY = HudPanY + 52.f, LvBarW = HudPanX + HudPanW - 16.f - LvBarX; // 경험치 막대
+constexpr float LvSignCX = (HudDivLv + HudPanX + HudPanW) / 2.f; // 레벨 칸 가운데 (레벨업 간판이 날아가 매달리는 자리)
 constexpr float FloorY = FY + Rows * CS + 8.f;                                      // 바닥선 (손패가 그 아래)
 // 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
 constexpr float CdxCardX = 16.f, CdxCardY = 76.f, CdxCardW = 164.f, CdxCardH = 304.f, CdxGapX = 8.f, CdxGapY = 12.f;
