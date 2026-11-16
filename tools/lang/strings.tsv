@@ -360,6 +360,37 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 %s %d개 합침!	Merged %s ×%d!	%s %d体を合体!	%s %d个合体!	%s %d個合體!	PDBoardFx.cpp
 기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
 합성 레벨 %d!	Fusion Lv %d!	合成レベル %d!	合成等级 %d!	合成等級 %d!	PDBoardFx.cpp
+%d장	%d cards	%d枚	%d张	%d張	PDBoardMenu.cpp
+조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDBoardMenu.cpp
+상위 조커: %s	Upper joker: %s	上位ジョーカー: %s	高级小丑: %s	高級小丑: %s	PDBoardMenu.cpp
+조커 합치기 · %d장	Merge jokers · %d	ジョーカー合体 · %d枚	合并小丑 · %d张	合併小丑 · %d張	PDBoardMenu.cpp
+판매	Sell	売却	出售	出售	PDBoardMenu.cpp
+%s %s · 합성 레벨 %d	%s %s · Fusion Lv %d	%s %s · 合成レベル %d	%s %s · 合成等级 %d	%s %s · 合成等級 %d	PDBoardMenu.cpp
+위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardMenu.cpp
+공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardMenu.cpp
+사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardMenu.cpp
+ · 범위 %.1f	 · area %.1f	 · 範囲 %.1f	 · 范围 %.1f	 · 範圍 %.1f	PDBoardMenu.cpp
+ · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardMenu.cpp
+조커 레벨 %d (최대)	Joker level %d (max)	ジョーカーレベル %d (最大)	小丑等级 %d (最高)	小丑等級 %d (最高)	PDBoardMenu.cpp
+조커 레벨 %d · 경험치 %.0f/%.0f	Joker level %d · XP %.0f/%.0f	ジョーカーレベル %d · 経験値 %.0f/%.0f	小丑等级 %d · 经验 %.0f/%.0f	小丑等級 %d · 經驗 %.0f/%.0f	PDBoardMenu.cpp
+특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardMenu.cpp
+합성하면: %s %s · %s Lv%d	After fusing: %s %s · %s Lv%d	合成すると: %s %s · %s Lv%d	合成后: %s %s · %s Lv%d	合成後: %s %s · %s Lv%d	PDBoardMenu.cpp
+위력 %s/초 → %s/초 (%s)	Power %s/s → %s/s (%s)	威力 %s/秒 → %s/秒 (%s)	威力 %s/秒 → %s/秒 (%s)	威力 %s/秒 → %s/秒 (%s)	PDBoardMenu.cpp
+재료 %d장의 위력 합 → 합성 타워 하나	Total of %d material cards → one fused tower	素材 %d 枚の威力合計 → 合成タワー1つ	%d 张素材的威力总和 → 一座合成塔	%d 張素材的威力總和 → 一座合成塔	PDBoardMenu.cpp
+공격력 %.0f → %.0f · 초당 %.1f → %.1f발	Damage %.0f → %.0f · %.1f → %.1f shots/s	攻撃力 %.0f → %.0f · 毎秒 %.1f → %.1f発	攻击力 %.0f → %.0f · 每秒 %.1f → %.1f 发	攻擊力 %.0f → %.0f · 每秒 %.1f → %.1f 發	PDBoardMenu.cpp
+사거리 %.1f → %.1f · 범위 %.1f → %.1f	Range %.1f → %.1f · Area %.1f → %.1f	射程 %.1f → %.1f · 範囲 %.1f → %.1f	射程 %.1f → %.1f · 范围 %.1f → %.1f	射程 %.1f → %.1f · 範圍 %.1f → %.1f	PDBoardMenu.cpp
+%s 먹이기 → %s	Feed %s → %s	%s を食べさせる → %s	喂 %s → %s	餵 %s → %s	PDBoardMenu.cpp
+조커 레벨 %d → %d · 경험치 %.0f → %.0f	Joker Lv %d → %d · XP %.0f → %.0f	ジョーカーレベル %d → %d · 経験値 %.0f → %.0f	小丑等级 %d → %d · 经验 %.0f → %.0f	小丑等級 %d → %d · 經驗 %.0f → %.0f	PDBoardMenu.cpp
+조커 위력 %s/초 → %s/초 (%s)	Joker power %s/s → %s/s (%s)	ジョーカー威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	PDBoardMenu.cpp
+판 위력 %s → %s (%s)	Board power %s → %s (%s)	盤面威力 %s → %s (%s)	全场威力 %s → %s (%s)	全場威力 %s → %s (%s)	PDBoardMenu.cpp
+먹인 카드 %d장은 사라짐	%d fed cards will be gone	食べさせた%d枚は消える	喂食的%d张牌会消失	餵食的%d張牌會消失	PDBoardMenu.cpp
+합치면: %s Lv%d	Merged: %s Lv%d	合体すると: %s Lv%d	合并后: %s Lv%d	合併後: %s Lv%d	PDBoardMenu.cpp
+조커 %d장의 위력 합 → 조커 하나	Power of %d jokers → one joker	ジョーカー%d枚の威力合計 → ジョーカー1枚	%d张小丑的威力总和 → 一张小丑	%d張小丑的威力總和 → 一張小丑	PDBoardMenu.cpp
+조커: %s · 위력 ×%s	Joker: %s · power ×%s	ジョーカー: %s · 威力 ×%s	小丑: %s · 威力 ×%s	小丑: %s · 威力 ×%s	PDBoardMenu.cpp
+이 칸의 족보를 재료로 넣고 나머지 재료를 고른다	Uses this cell's hand as a material, then pick the rest	このマスの役を素材に入れ、残りの素材を選ぶ	用这一格的牌型作为材料，再选择其余材料	用這一格的牌型作為材料，再選擇其餘材料	PDBoardMenu.cpp
+판매하면 경험치 +%d	Sell for +%d XP	売却すると経験値 +%d	出售获得经验 +%d	出售獲得經驗 +%d	PDBoardMenu.cpp
+이 칸이 든 족보는 깨진다	Hands using this cell will break	このマスを含む役は崩れる	包含这一格的牌型会被拆散	包含這一格的牌型會被拆散	PDBoardMenu.cpp
+할 수 있는 일이 없다	Nothing to do here	できることがない	没有可做的事	沒有可做的事	PDBoardMenu.cpp
 시작	Start	スタート	起点	起點	PDBoardPaint.cpp
 키스톤: %s	Keystone: %s	キーストーン: %s	基石: %s	基石: %s	PDBoardPaint.cpp
 조커 강화: %s	Joker Upgrade: %s	ジョーカー強化: %s	小丑强化: %s	小丑強化: %s	PDBoardPaint.cpp
@@ -425,31 +456,18 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 상위 조커 ???	Upper Joker ???	上位ジョーカー ???	上位小丑 ???	上位小丑 ???	PDBoardPaint.cpp
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
 판매 +%d 경험치	Sell +%d XP	売却 +%d 経験値	出售 +%d 经验	出售 +%d 經驗	PDBoardPaint.cpp
-위력 %s/초 (판의 %d%%)	Power %s/s (%d%% of board)	威力 %s/秒 (盤の%d%%)	威力 %s/秒 (占全场%d%%)	威力 %s/秒 (占全場%d%%)	PDBoardPaint.cpp
 연쇄 ×%s (족보 %d개가 이어짐)	Chain ×%s (%d hands linked)	連鎖 ×%s (役 %d 個がつながる)	连锁 ×%s (%d 个牌型相连)	連鎖 ×%s (%d 個牌型相連)	PDBoardPaint.cpp
 이 타워에 적용: 공격 ×%.2f · 연사 ×%.2f · 사거리 ×%.2f%s	On this tower: damage ×%.2f · rate ×%.2f · range ×%.2f%s	このタワーに適用: 攻撃 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s	本塔生效: 攻击 ×%.2f · 连射 ×%.2f · 射程 ×%.2f%s	本塔生效: 攻擊 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s	PDBoardPaint.cpp
- · 범위 %.1f	 · area %.1f	 · 範囲 %.1f	 · 范围 %.1f	 · 範圍 %.1f	PDBoardPaint.cpp
-%s 먹이기 → %s	Feed %s → %s	%s を食べさせる → %s	喂 %s → %s	餵 %s → %s	PDBoardPaint.cpp
-조커 레벨 %d → %d · 경험치 %.0f → %.0f	Joker Lv %d → %d · XP %.0f → %.0f	ジョーカーレベル %d → %d · 経験値 %.0f → %.0f	小丑等级 %d → %d · 经验 %.0f → %.0f	小丑等級 %d → %d · 經驗 %.0f → %.0f	PDBoardPaint.cpp
 조커 위력 %s/초 → %s/초 (%s%.0f%%)	Joker power %s/s → %s/s (%s%.0f%%)	ジョーカー威力 %s/秒 → %s/秒 (%s%.0f%%)	小丑威力 %s/秒 → %s/秒 (%s%.0f%%)	小丑威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
 판 위력 %s → %s (%s%.0f%%) · 먹인 카드 %d장은 사라짐	Board power %s → %s (%s%.0f%%) · %d fed cards disappear	盤の威力 %s → %s (%s%.0f%%) · 食べさせた %d 枚は消える	棋盘威力 %s → %s (%s%.0f%%) · 喂掉的 %d 张卡会消失	棋盤威力 %s → %s (%s%.0f%%) · 餵掉的 %d 張卡會消失	PDBoardPaint.cpp
 만들면: %s · 재료 %d장	If made: %s · %d material cards	作ると: %s · 素材 %d 枚	制作后: %s · 素材 %d 张	製作後: %s · 素材 %d 張	PDBoardPaint.cpp
 위력 %s/초 → %s/초 (%s%.0f%%)	Power %s/s → %s/s (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
 재료 %d장의 위력 합 → 조커 하나	Total of %d material cards → one Joker	素材 %d 枚の威力合計 → ジョーカー1体	%d 张素材的威力总和 → 一个小丑	%d 張素材的威力總和 → 一個小丑	PDBoardPaint.cpp
-공격력 %.0f → %.0f · 초당 %.1f → %.1f발	Damage %.0f → %.0f · %.1f → %.1f shots/s	攻撃力 %.0f → %.0f · 毎秒 %.1f → %.1f発	攻击力 %.0f → %.0f · 每秒 %.1f → %.1f 发	攻擊力 %.0f → %.0f · 每秒 %.1f → %.1f 發	PDBoardPaint.cpp
-사거리 %.1f → %.1f · 범위 %.1f → %.1f	Range %.1f → %.1f · Area %.1f → %.1f	射程 %.1f → %.1f · 範囲 %.1f → %.1f	射程 %.1f → %.1f · 范围 %.1f → %.1f	射程 %.1f → %.1f · 範圍 %.1f → %.1f	PDBoardPaint.cpp
-합성하면: %s %s · %s Lv%d	After fusing: %s %s · %s Lv%d	合成すると: %s %s · %s Lv%d	合成后: %s %s · %s Lv%d	合成後: %s %s · %s Lv%d	PDBoardPaint.cpp
-재료 %d장의 위력 합 → 합성 타워 하나	Total of %d material cards → one fused tower	素材 %d 枚の威力合計 → 合成タワー1つ	%d 张素材的威力总和 → 一座合成塔	%d 張素材的威力總和 → 一座合成塔	PDBoardPaint.cpp
-공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f	ATK %.0f · %.1f shots/s · crit %.0f%% ×%.2f	攻撃力 %.0f · 毎秒 %.1f発 · クリ %.0f%% ×%.2f	攻击力 %.0f · 每秒 %.1f发 · 暴击 %.0f%% ×%.2f	攻擊力 %.0f · 每秒 %.1f發 · 暴擊 %.0f%% ×%.2f	PDBoardPaint.cpp
-사거리 %.1f%s%s	Range %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	射程 %.1f%s%s	PDBoardPaint.cpp
- · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardPaint.cpp
-클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)	Click: feed · kill +%.0f XP (boss +%.0f)	クリック: エサ · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 喂养 · 击杀 +%.0f 经验 (首领 +%.0f)	點擊: 餵養 · 擊殺 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
+클릭: 메뉴 (할 일 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (%d actions) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (できること %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (可做 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (可做 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
 조커 레벨 %d (최대) · 위력 +%d%%	Joker Lv %d (max) · Power +%d%%	ジョーカーレベル %d (最大) · 威力 +%d%%	小丑等级 %d (最高) · 威力 +%d%%	小丑等級 %d (最高) · 威力 +%d%%	PDBoardPaint.cpp
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
-%s %s · 합성 레벨 %d	%s %s · Fusion Lv %d	%s %s · 合成レベル %d	%s %s · 合成等级 %d	%s %s · 合成等級 %d	PDBoardPaint.cpp
-특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardPaint.cpp
-오른쪽 클릭: 판매 (+%d 경험치)	Right-click: sell (+%d XP)	右クリック: 売却 (+%d 経験値)	右键: 出售 (+%d 经验)	右鍵: 出售 (+%d 經驗)	PDBoardPaint.cpp
+클릭: 메뉴 (합성 %d · 판매 +%d 경험치)	Click: menu (fuse %d · sell +%d XP)	クリック: メニュー (合成 %d · 売却 +%d 経験値)	点击: 菜单 (合成 %d · 出售 +%d 经验)	點擊: 選單 (合成 %d · 出售 +%d 經驗)	PDBoardPaint.cpp
 남은 적	Enemies left	残りの敵	剩余敌人	剩餘敵人	PDBoardPaint.cpp
 %d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
 웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardPaint.cpp
@@ -688,6 +706,8 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/	Atlas asset saved: Content/Sprites/	アトラスアセット保存: Content/Sprites/	图集资源已保存: Content/Sprites/	圖集資源已儲存: Content/Sprites/	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)	Click: feed · kill +%.0f XP (boss +%.0f)	クリック: エサ · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 喂养 · 击杀 +%.0f 经验 (首领 +%.0f)	點擊: 餵養 · 擊殺 +%.0f 經驗 (首領 +%.0f)	PDLangTable.inl
+오른쪽 클릭: 판매 (+%d 경험치)	Right-click: sell (+%d XP)	右クリック: 売却 (+%d 経験値)	右键: 出售 (+%d 经验)	右鍵: 出售 (+%d 經驗)	PDLangTable.inl
 %s 모드 클리어 · 팔라스의 축배	%s mode clear · a toast to Pallas	%sモードクリア · パラスに乾杯	%s模式通关 · 为帕拉斯干杯	%s模式通關 · 為帕拉斯乾杯	PDLangTable.inl
 %s 모드 클리어 · 처치 %d · 레벨 %d	%s mode cleared · Kills %d · Level %d	%s モードクリア · 撃破 %d · レベル %d	%s 模式通关 · 击杀 %d · 等级 %d	%s 模式通關 · 擊殺 %d · 等級 %d	PDLangTable.inl
 개인 랭킹 %d위	Personal rank #%d	個人ランキング %d位	个人排名 第%d名	個人排名 第%d名	PDLangTable.inl
@@ -839,7 +859,6 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 클릭: 그 족보만 보기	Click: show only that hand	クリック: その役だけ表示	点击: 只看该牌型	點擊: 只看該牌型	PDLangTable.inl
 맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커 · 3개 쪽이 카드가 많아 세다 · 숫자가 겹치면 큰 족보로 합쳐지니 주의	3 (or 2) touching hands matching a recipe make a Joker · 3-hand recipes use more cards and are stronger · careful: shared numbers merge into a bigger hand	隣接する役3つ(または2つ)がレシピに合うとジョーカー · 3つの方がカードが多く強い · 数字が重なると大きな役にまとまるので注意	相邻的3个(或2个)牌型符合配方即成小丑 · 3个的配方牌更多更强 · 注意数字重叠会合并成更大的牌型	相鄰的3個(或2個)牌型符合配方即成小丑 · 3個的配方牌更多更強 · 注意數字重疊會合併成更大的牌型	PDLangTable.inl
 조커 만들기만 보기: [조커] 버튼이나 재료 칸 클릭 = 조커 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing Joker recipes only: click [Joker] or a material tile = make Joker · click the list again / Esc: off	ジョーカー作成のみ表示: [ジョーカー] ボタンか素材マスをクリック = ジョーカー合成 · 役リストをもう一度 / Esc: 解除	只看小丑制作: 点击 [小丑] 按钮或素材格 = 合成小丑 · 再点牌型列表 / Esc: 关闭	只看小丑製作: 點擊 [小丑] 按鈕或素材格 = 合成小丑 · 再點牌型列表 / Esc: 關閉	PDLangTable.inl
-조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDLangTable.inl
 맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커. 3개 쪽이 카드가 많아 세다	3 (or 2) touching hands matching a recipe make a Joker. 3-hand recipes use more cards and are stronger	隣接する役3つ(または2つ)がレシピに合うとジョーカー。3つの方がカードが多く強い	相邻的3个(或2个)牌型符合配方即成小丑。3个的配方牌更多更强	相鄰的3個(或2個)牌型符合配方即成小丑。3個的配方牌更多更強	PDLangTable.inl
 맞닿은 족보 3개(또는 2개)가 레시피와 맞으면 조커	3 (or 2) touching hands matching a recipe make a Joker	隣接する役3つ(または2つ)がレシピに合うとジョーカー	相邻的3个(或2个)牌型符合配方即成小丑	相鄰的3個(或2個)牌型符合配方即成小丑	PDLangTable.inl
 왼쪽 족보 목록 클릭: 그 족보만 보기 · G: 합성	Click the hand list: show only that hand · G: fuse	左の役リストをクリック: その役だけ表示 · G: 合成	点击左侧牌型列表: 只看该牌型 · G: 合成	點擊左側牌型列表: 只看該牌型 · G: 合成	PDLangTable.inl

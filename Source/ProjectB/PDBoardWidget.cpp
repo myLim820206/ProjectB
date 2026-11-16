@@ -560,6 +560,13 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		for (const FString& S : AffordableNames()) if (!CouldBuy.Contains(S) && NowAffordable.Num() < 3) NowAffordable.Add(S);
 		SaveProgress();
 	}
+	// 칸 메뉴 상자 (D-312): 연 칸의 타워가 없어지거나, 다른 모드 · 창이 켜지면 닫는다. 할 일 줄은 매 프레임 다시 (족보 번호가 바뀌어도 맞게)
+	if (MenuCell >= 0)
+	{
+		const bool bBoard = Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave;
+		if (!bBoard || !Game.Towers.count(MenuCell) || Sel >= 0 || HandFilter >= 0 || bSwapMode || !PickCells.empty() || bMenu || bTree || bCodex || bSettings || bUpg) CloseCellMenu();
+		else BuildCellActs(MenuCell, MenuActs);
+	}
 	// 자리바꿈 (D-149): 횟수가 없거나 보상·끝 화면이면 끈다, 고른 타워가 사라지면 다시 고르기
 	if (bSwapMode && (Game.Swaps <= 0 || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) { bSwapMode = false; SwapFrom = -1; }
 	if (SwapFrom >= 0 && !Game.Towers.count(SwapFrom)) SwapFrom = -1;
@@ -1316,6 +1323,20 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		if (Id >= 0 && !Game.BuyNode(Id)) UiSound(EPDSound::Denied);
 		return;
 	}
+	// 칸 메뉴 상자 (D-312): 줄 클릭 = 그 일, 상자 안 다른 곳은 먹는다. 바깥 클릭 · 오른쪽 클릭 = 닫기 (다른 타워를 왼쪽 클릭하면 그 타워 메뉴)
+	if (MenuCell >= 0)
+	{
+		if (!bRight)
+		{
+			if (const int32 R = CellMenuRowAt(P); R >= 0) { DoCellAct(R); return; }
+			if (CellMenuHit(P)) return;
+		}
+		const int32 Prev = MenuCell, Cell = CellAt(P);
+		CloseCellMenu();
+		if (!bRight && Cell >= 0 && Cell != Prev && Game.Towers.count(Cell)) OpenCellMenu(Cell);
+		else UiSound(EPDSound::Move);
+		return;
+	}
 	// 합성 위치 고르는 중: 재료 칸 클릭 = 그 칸으로, 같은 버튼 다시 = 계속 고르기 (기본 칸 없음, D-194), 그 밖(오른쪽 클릭 포함) = 취소
 	if (!PickCells.empty())
 	{
@@ -1425,7 +1446,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (bRight)
 	{
 		if (HandHit >= 0) { Game.Discard(HandHit); if (Sel == HandHit) Sel = -1; else if (Sel > HandHit) --Sel; }
-		else if (const int32 Cell = CellAt(P); Sel < 0 && HandFilter < 0 && Cell >= 0 && Game.SellPrice(Cell) > 0) { SellCell = Cell; UiSound(EPDSound::Move); } // 타워 오른쪽 클릭 = 판매 버튼 (D-221)
+		else if (const int32 Cell = CellAt(P); Sel < 0 && HandFilter < 0 && Cell >= 0 && Game.Towers.count(Cell)) OpenCellMenu(Cell); // 타워 오른쪽 클릭 = 칸 메뉴 상자 (D-312 ⑤, 예전 판매 버튼 D-221)
 		else Sel = -1;
 		return;
 	}
@@ -1447,7 +1468,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	// 카드를 고르지 않고 조커를 클릭: 먹이기 모드 (D-131)
-	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && Game.Towers.count(Cell) && Game.Towers.at(Cell).IsJoker()) { ToggleFeed(Cell); return; } // 판의 조커 클릭 = 그 조커를 고른 먹이기 목록 (D-213)
+	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel < 0 && Game.Towers.count(Cell)) { OpenCellMenu(Cell); return; } // 카드를 안 고르고 타워 클릭 = 칸 메뉴 상자 (D-312, D-313: 조커도. 예전 조커 클릭 = 먹이기 목록 D-213)
 	if (const int32 Cell = CellAt(P); Cell >= 0 && Sel >= 0)
 	{
 		if (Game.Place(Sel, Cell % Cols, Cell / Cols)) Sel = -1;
@@ -1916,7 +1937,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		}
 	if (K == EKeys::SpaceBar && (Game.Phase == EPDPhase::Wave || bPaused)) bPaused = !bPaused; // 스페이스: 웨이브 중엔 일시정지/계속 (D-183)
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
-	else if (K == EKeys::Escape) { if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
+	else if (K == EKeys::Escape) { if (MenuCell >= 0) CloseCellMenu(); else if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
 	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) { bCodex = !bCodex; if (bCodex) UnlSetTab(1); }
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }

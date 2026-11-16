@@ -326,6 +326,22 @@ private:
 
 	// 입력과 미리보기
 	int32 Sel = -1;
+	// 칸 메뉴 상자 (D-312, D-313): 타워 클릭 = 툴팁이 그 자리에 고정되며 메뉴가 된다. 위 = 툴팁(줄여서) 또는 줄에 마우스를 올린 할 일의 전후 비교, 아래 = 할 일 줄
+	enum class ECellAct : uint8 { Fuse, Feed, Merge, Craft, Sell };
+	struct FCellAct { ECellAct Kind = ECellAct::Sell; int32 A = -1; std::vector<int> Cells; FString Label, Right; FLinearColor Col = FLinearColor::White; };
+	struct FTipLine { FString S; FLinearColor Col; float Px = 11.f; bool bBold = false; };
+	int32 MenuCell = -1;                     // 메뉴를 연 칸 (-1 = 닫힘)
+	FVector2f MenuPos = FVector2f::ZeroVector; // 처음 뜬 자리에 고정
+	TArray<FCellAct> MenuActs;               // 할 일 줄 (Tick 마다 다시 만든다: 족보 번호가 바뀌어도 맞게)
+	void OpenCellMenu(int32 Cell);
+	void CloseCellMenu() { MenuCell = -1; MenuActs.Reset(); }
+	void BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const;
+	float CellMenuH(int32 Rows) const;
+	int32 CellMenuRowAt(FVector2f P) const;  // 할 일 줄 번호 (-1 = 줄 아님)
+	bool CellMenuHit(FVector2f P) const;     // 상자 안
+	void DoCellAct(int32 Row);
+	void CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) const;
+	void PaintCellMenu(FCanvas& F) const;
 	int32 HoverX = -1, HoverY = -1;
 	FVector2f Mouse = FVector2f(0.f, 0.f);
 	std::vector<PD::FPDSynergy> Preview; // 고른 카드를 마우스 칸에 놓으면 생길 족보
