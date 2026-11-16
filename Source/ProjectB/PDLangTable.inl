@@ -501,7 +501,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("?  도움말"), TEXT("?  Help"), TEXT("?  ヘルプ"), TEXT("?  帮助"), TEXT("?  說明")},
 	{TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)"), TEXT("カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)"), TEXT("点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)"), TEXT("點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)")},
 	{TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"), TEXT("Right-click: discard card · cancel selection"), TEXT("右クリック: カードを捨てる · 選択解除"), TEXT("右键: 弃牌 · 取消选择"), TEXT("右鍵: 棄牌 · 取消選擇")},
-	{TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed"), TEXT("役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ"), TEXT("鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养"), TEXT("滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養")},
+	{TEXT("타워 클릭: 메뉴 (합성 · 조커 · 먹이기 · 판매) · 왼쪽 족보 목록으로도 합성"), TEXT("Click a tower: menu (fuse · joker · feed · sell) · you can also fuse from the hand list"), TEXT("タワークリック: メニュー (合成 · ジョーカー · 食べさせる · 売却) · 左の役リストからも合成"), TEXT("点击塔: 菜单 (合成 · 小丑 · 喂食 · 出售) · 也可从左侧牌型列表合成"), TEXT("點擊塔: 選單 (合成 · 小丑 · 餵食 · 出售) · 也可從左側牌型列表合成")},
 	{TEXT("Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시"), TEXT("Space start wave · F speed · M sound · F3 frame stats"), TEXT("Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示"), TEXT("Space 开始波次 · F 速度 · M 声音 · F3 帧数显示"), TEXT("Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示")},
 	{TEXT("K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴"), TEXT("K Skill Tree · U Upgrades · J Codex · Esc Menu"), TEXT("K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー"), TEXT("K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单"), TEXT("K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單")},
 	{TEXT("웨이브 %d 칵테일 — 하나를 고른다"), TEXT("Wave %d cocktail — pick one"), TEXT("ウェーブ %d カクテル — 1つ選ぶ"), TEXT("第%d波 鸡尾酒 — 选择一个"), TEXT("第%d波 雞尾酒 — 選擇一個")},
@@ -659,9 +659,9 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아무 숫자·무늬로 쳐서 족보를 이어 준다"), TEXT("Counts as any rank and suit to complete hands"), TEXT("どの数字・スートにもなって役をつなぐ"), TEXT("可当任意点数与花色来组成牌型"), TEXT("可當任意點數與花色來組成牌型")},
 	{TEXT("클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TEXT("Click (number key) → click a tile: place · right-click: discard"), TEXT("クリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる"), TEXT("点击(数字键) → 点击格子: 放置 · 右键: 弃牌"), TEXT("點擊(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌")},
 	{TEXT("족보 메뉴"), TEXT("Hand Menu"), TEXT("役メニュー"), TEXT("牌型菜单"), TEXT("牌型菜單")},
+	{TEXT("족보"), TEXT("Hands"), TEXT("役"), TEXT("牌型"), TEXT("牌型")},
 	{TEXT("다시 클릭 / Esc: 끄기"), TEXT("Click again / Esc: off"), TEXT("もう一度クリック / Esc: やめる"), TEXT("再点一次 / Esc: 关闭"), TEXT("再點一次 / Esc: 關閉")},
 	{TEXT("클릭: 그 족보 합성"), TEXT("Click: fuse that hand"), TEXT("クリック: その役を合成"), TEXT("点击: 合成该牌型"), TEXT("點擊: 合成該牌型")},
-	{TEXT("족보"), TEXT("Hands"), TEXT("役"), TEXT("牌型"), TEXT("牌型")},
 	{TEXT("← 족보 목록으로"), TEXT("← Back to hands"), TEXT("← 役リストへ"), TEXT("← 返回牌型列表"), TEXT("← 返回牌型列表")},
 	{TEXT("판에 조커가 없다"), TEXT("No Jokers on the board"), TEXT("盤にジョーカーがいない"), TEXT("棋盘上没有小丑"), TEXT("棋盤上沒有小丑")},
 	{TEXT("먹이 ×%d"), TEXT("Feed ×%d"), TEXT("餌 ×%d"), TEXT("可喂 ×%d"), TEXT("可餵 ×%d")},
@@ -678,6 +678,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("클릭: 만들 수 있는 조커 목록"), TEXT("Click: Jokers you can make"), TEXT("クリック: 作れるジョーカー一覧"), TEXT("点击: 可制作的小丑列表"), TEXT("點擊: 可製作的小丑列表")},
 	{TEXT("클릭: 조커에 족보 먹이기"), TEXT("Click: feed hands to a Joker"), TEXT("クリック: ジョーカーに役を食べさせる"), TEXT("点击: 给小丑喂牌型"), TEXT("點擊: 給小丑餵牌型")},
 	{TEXT("판 %d"), TEXT("On board %d"), TEXT("盤上 %d"), TEXT("场上 %d"), TEXT("場上 %d")},
+	{TEXT("취소"), TEXT("Cancel"), TEXT("キャンセル"), TEXT("取消"), TEXT("取消")},
 	{TEXT("합성 ×%d"), TEXT("Fuse ×%d"), TEXT("合成 ×%d"), TEXT("合成 ×%d"), TEXT("合成 ×%d")},
 	{TEXT("족보끼리 맞닿으면 하나에 +%d%%씩"), TEXT("Each touching hand adds +%d%%"), TEXT("役同士が隣接すると1つにつき +%d%%"), TEXT("牌型相邻每个 +%d%%"), TEXT("牌型相鄰每個 +%d%%")},
 	{TEXT("잠깐 쉬어 가자 · 판은 그대로 멈춰 있다"), TEXT("Take a break · the board is paused"), TEXT("ひと休み · 盤面は止まっている"), TEXT("休息一下 · 棋盘已暂停"), TEXT("休息一下 · 棋盤已暫停")},
@@ -707,6 +708,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/"), TEXT("Atlas asset saved: Content/Sprites/"), TEXT("アトラスアセット保存: Content/Sprites/"), TEXT("图集资源已保存: Content/Sprites/"), TEXT("圖集資源已儲存: Content/Sprites/")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("족보에 마우스: [합성] G · [조커] 버튼 · 조커 클릭: 먹이기"), TEXT("Hover a hand: [Fuse] G · [Joker] button · click a Joker: feed"), TEXT("役にマウス: [合成] G · [ジョーカー] ボタン · ジョーカーをクリック: エサ"), TEXT("鼠标移到牌型: [合成] G · [小丑] 按钮 · 点击小丑: 喂养"), TEXT("滑鼠移到牌型: [合成] G · [小丑] 按鈕 · 點擊小丑: 餵養")},
 	{TEXT("클릭: 먹이기 · 처치 +%.0f 경험치 (보스 +%.0f)"), TEXT("Click: feed · kill +%.0f XP (boss +%.0f)"), TEXT("クリック: エサ · 撃破 +%.0f 経験値 (ボス +%.0f)"), TEXT("点击: 喂养 · 击杀 +%.0f 经验 (首领 +%.0f)"), TEXT("點擊: 餵養 · 擊殺 +%.0f 經驗 (首領 +%.0f)")},
 	{TEXT("오른쪽 클릭: 판매 (+%d 경험치)"), TEXT("Right-click: sell (+%d XP)"), TEXT("右クリック: 売却 (+%d 経験値)"), TEXT("右键: 出售 (+%d 经验)"), TEXT("右鍵: 出售 (+%d 經驗)")},
 	{TEXT("%s 모드 클리어 · 팔라스의 축배"), TEXT("%s mode clear · a toast to Pallas"), TEXT("%sモードクリア · パラスに乾杯"), TEXT("%s模式通关 · 为帕拉斯干杯"), TEXT("%s模式通關 · 為帕拉斯乾杯")},
@@ -897,4 +899,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 	{TEXT("쌍둥이"), TEXT("Twins"), TEXT("双子"), TEXT("双胞胎"), TEXT("雙胞胎")},
 };
-static const int32 PDLangRowCount = 896;
+static const int32 PDLangRowCount = 898;

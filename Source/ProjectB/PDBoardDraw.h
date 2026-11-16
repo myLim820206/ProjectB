@@ -42,7 +42,7 @@ constexpr int32 HandRowsN = (int32)EPDHand::Count + 2;
 // 레터보드 족보 (D-263 → D-276): 패널은 화면 아래까지 (손패가 왼쪽까지 안 오므로), 줄 36
 constexpr int32 HandMenuOrder[HandRowsN] = {0, 1, 2, 4, 5, 6, 3, 7, 8, 9, JokerFilterId, FeedFilterId};
 constexpr float HandPanelY = 66.f; // 왼쪽 패널 윗선 (판보다 위, 로고 배지 아래)
-constexpr float HandMenuY0 = HandPanelY + 84.f, HandMenuRowH = 36.f, HandMenuGroupH = 18.f;
+constexpr float HandMenuY0 = HandPanelY + 72.f, HandMenuRowH = 36.f, HandMenuGroupH = 26.f; // 묶음 사이 여백 18 → 26 + 구분선 (D-328 ④), 머리 설명 글을 빼서 위를 12 당김 (D-328 ⑤)
 inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
 inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
 inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
@@ -558,7 +558,7 @@ inline FVector2f UnlUpperPos(int U) { return FVector2f(DesignW / 2.f - (10.f * U
 inline FVector2f UnlJokerPos(int J) { return FVector2f(DesignW / 2.f - (5.f * UnlJW + 4.f * UnlJGap) / 2.f + (J % 5) * (UnlJW + UnlJGap), UnlJY0 + (J / 5) * (UnlJH + UnlJGap)); }
 // 잠금 해제 시안 C (D-261): 걸린 메뉴판 셋. 가운데 큰 판 = 지금 탭, 양옆 작은 판 = 다른 두 탭 (누르면 바뀜). 줄 2단 × 15 = 한 쪽 30개
 constexpr float UnlBX = 260.f, UnlBY = 70.f, UnlBW = 760.f, UnlBH = 620.f;
-constexpr float UnlSideW = 200.f, UnlSideH = 150.f, UnlSideY = 200.f;
+constexpr float UnlSideW = 210.f, UnlSideH = UnlBH, UnlSideY = UnlBY; // 가운데 큰 판과 위아래 끝을 맞춘다 (D-328 ⑥, 예전 200 × 150)
 inline float UnlSideX(int Side) { return Side == 0 ? 40.f : DesignW - 40.f - UnlSideW; }
 constexpr int32 UnlPerPage = 30;
 constexpr float UnlRowW = 330.f, UnlRowH = 26.f;
@@ -635,6 +635,9 @@ inline float HandCardX(int I, int N)
 	const float Step = N > 1 ? FMath::Min(CardW + 10.f, Avail / (N - 1)) : 0.f;
 	return FX + 96.f + I * Step;
 }
+// 모서리 둥글기 세 단계 (D-328 ①): 버튼 = 알약(높이의 절반), 큰 창 · 판 · 카드 = RadPanel (두 겹 틀 안쪽 선 = RadSmall), 작은 것(줄 강조 · 툴팁 · 칸 · 작은 알약 표) = RadSmall
+constexpr float RadPanel = 14.f, RadSmall = 8.f;
+inline float RadPill(float H) { return H / 2.f; }
 inline bool InRect(FVector2f P, float X, float Y, float W, float H) { return P.X >= X && P.X <= X + W && P.Y >= Y && P.Y <= Y + H; }
 // 가운데 C, 크기 W x H 인 상자 안인가 (판 위 합성·먹이기·조커 버튼)
 inline bool InBox(FVector2f P, FVector2f C, float W, float H) { return FMath::Abs(P.X - C.X) <= W / 2.f && FMath::Abs(P.Y - C.Y) <= H / 2.f; }
@@ -1110,6 +1113,21 @@ struct SPDBoardWidget::FCanvas
 		BoxAt(NextLayer(), X, Y, W, H, Col);
 		NextLayer();
 	}
+	// 둥근 사각 안을 채운다 (D-328 ②: 눌리는 버튼은 안을 아주 옅게). 2px 띠를 둥근 모서리 모양대로 줄여 한 층에 쌓는다
+	void RoundFill(float X, float Y, float W, float H, float R, const FLinearColor& Col)
+	{
+		R = FMath::Min(R, FMath::Min(W, H) / 2.f);
+		const int32 L = NextLayer();
+		for (float Yy = 0.f; Yy < H; Yy += 2.f)
+		{
+			const float Mid = Yy + 1.f, Dy = Mid < R ? R - Mid : Mid > H - R ? Mid - (H - R) : 0.f;
+			const float In = Dy > 0.f ? R - FMath::Sqrt(FMath::Max(0.f, R * R - Dy * Dy)) : 0.f;
+			BoxAt(L, X + In, Y + Yy, W - 2.f * In, FMath::Min(2.f, H - Yy), Col);
+		}
+		NextLayer();
+	}
+	// 눌리는 버튼 바탕 (D-328 ②): 평소 옅게, 마우스를 올리면 더 진하게
+	void BtnFill(float X, float Y, float W, float H, float R, const FLinearColor& Col, bool bHot) { RoundFill(X, Y, W, H, R, FLinearColor(Col.R, Col.G, Col.B, bHot ? 0.16f : 0.07f)); }
 	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
 	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
 	{

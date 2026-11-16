@@ -298,7 +298,7 @@ void SPDBoardWidget::PaintCellMenu(FCanvas& F) const
 	const FPDTower& T = Game.Towers.at(MenuCell);
 	const FLinearColor Edge = T.IsJoker() ? (IsUpperJoker(T.Joker) ? Hex(TEXT("ffd26e")) : JokerPink) : SuitColor(T.Card.Suit);
 	F.Box(X, Y, CmW, H, Hex(TEXT("06060b"), 0.96f));
-	F.Glow(FCanvas::RoundRectPoints(X, Y, CmW, H, 8.f), Edge, 1.4f, 0.55f);
+	F.Glow(FCanvas::RoundRectPoints(X, Y, CmW, H, RadSmall), Edge, 1.4f, 0.55f);
 	TArray<FTipLine> Lines;
 	CellTipLines(MenuCell, Hov, Lines);
 	for (int32 I = 0; I < Lines.Num() && I < (int32)CmTopLines; ++I) F.Text(Lines[I].S, X + 12.f, Y + 20.f + I * CmLineH, Lines[I].Col, Lines[I].Px, 0, Lines[I].bBold, CmW - 24.f);
@@ -311,7 +311,7 @@ void SPDBoardWidget::PaintCellMenu(FCanvas& F) const
 		if (bH)
 		{
 			F.Box(X + 6.f, RY + 1.f, CmW - 12.f, CmRowH - 2.f, WithAlpha(A.Col, 0.14f));
-			F.Glow(FCanvas::RoundRectPoints(X + 6.f, RY + 1.f, CmW - 12.f, CmRowH - 2.f, 8.f), A.Col, 1.6f, 0.9f);
+			F.Glow(FCanvas::RoundRectPoints(X + 6.f, RY + 1.f, CmW - 12.f, CmRowH - 2.f, RadSmall), A.Col, 1.6f, 0.9f);
 		}
 		F.Text(A.Label, X + 18.f, RY + CmRowH / 2.f + 4.f, bH ? FLinearColor::White : A.Col, 12.f, 0, true, CmW - 110.f);
 		F.Text(A.Right, X + CmW - 16.f, RY + CmRowH / 2.f + 4.f, bH ? Fg : Dim, 10.f, 2, false);
