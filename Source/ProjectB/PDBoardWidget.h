@@ -364,6 +364,8 @@ private:
 	struct FTvMix { PD::EPDEnemy T = PD::EPDEnemy::Normal; int32 N = 0; };
 	TArray<FTvMix> TvMix;                    // 다음 웨이브 적 (종류별 마리 수, 보스 먼저)
 	int32 TvMixWave = -1;
+	FString TvTitle;                         // CH1 다음 화 제목 (사용자 2026-11-16: TV 드라마 예고처럼 '왕의 습격')
+	float TvTitleAt = -10.f;                 // 제목이 바뀐 때 (한 글자씩 찍힘)
 	void TvDial();
 	void PaintTv(FCanvas& C) const;
 	void PaintJukebox(FCanvas& C) const;     // 주크박스 간판 (D-319): 예전 남은 적 간판 자리

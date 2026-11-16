@@ -183,6 +183,46 @@ inline FString BossWaveLabel(const FPDGame& G, int W)
 	if (F == EPDBossForm::Escort || (F == EPDBossForm::Final && G.Mode == EPDMode::W30)) S += Tr(TEXT(" + 호위"));
 	return S;
 }
+// 받침 고르기: 끝 글자에 받침이 있으면 true (한글이 아니면 false)
+inline bool HasBatchim(const FString& S)
+{
+	if (S.IsEmpty()) return false;
+	const TCHAR Ch = S[S.Len() - 1];
+	return Ch >= 0xAC00 && Ch <= 0xD7A3 && (Ch - 0xAC00) % 28 != 0;
+}
+// 채널 TV CH1 다음 화 제목 (사용자 2026-11-16, D-344): 보스 웨이브는 짜임대로("{보스}의 습격" · "{A}와 {B}" · "{보스}와 호위대" · "최종화 · {보스}"),
+// 보통 웨이브는 가장 많은 적 종류로 ("병정들의 행진" · "탱크 부대 등장" …). Mix = 종류별 마리 수 (보스 먼저)
+template <typename TMix>
+FString EpisodeTitle(const FPDGame& G, int W, const TArray<TMix>& Mix)
+{
+	EPDBossForm F = EPDBossForm::Solo;
+	const std::vector<FPDBossSlot> B = G.BossWave(W, &F);
+	const bool bBossWave = !Mix.IsEmpty() && EnemyDef(Mix[0].T).bBoss;
+	if (bBossWave && !B.empty())
+	{
+		const FString A = BossName(B[0].T);
+		const bool bA = HasBatchim(A);
+		if (F == EPDBossForm::Final || IsFinalBoss(B[0].T)) return TrF(TEXT("최종화 · %s"), *A);
+		if (F == EPDBossForm::Escort) return bA ? TrF(TEXT("%s과 호위대"), *A) : TrF(TEXT("%s와 호위대"), *A);
+		if (F == EPDBossForm::Trio) return Tr(TEXT("세 보스의 밤"));
+		if (F == EPDBossForm::Duo && B.size() >= 2) { const FString Bn = BossName(B[1].T); return bA ? TrF(TEXT("%s과 %s"), *A, *Bn) : TrF(TEXT("%s와 %s"), *A, *Bn); }
+		return TrF(TEXT("%s의 습격"), *A);
+	}
+	EPDEnemy Main = EPDEnemy::Normal;
+	int Most = -1, Kinds = 0;
+	for (const TMix& M : Mix) if (!EnemyDef(M.T).bBoss) { ++Kinds; if (M.N > Most) { Most = M.N; Main = M.T; } }
+	if (Kinds >= 4) return Tr(TEXT("뒤섞인 밤"));
+	switch (Main)
+	{
+	case EPDEnemy::Fast: return Tr(TEXT("질주하는 밤"));
+	case EPDEnemy::Tank: return Tr(TEXT("탱크 부대 등장"));
+	case EPDEnemy::Armored: return Tr(TEXT("철갑의 벽"));
+	case EPDEnemy::Splitter: return Tr(TEXT("갈라지는 그림자"));
+	case EPDEnemy::Regen: return Tr(TEXT("죽지 않는 자들"));
+	case EPDEnemy::Mini: return Tr(TEXT("졸개들의 습격"));
+	default: return Tr(TEXT("병정들의 행진"));
+	}
+}
 // 채널 TV 다이얼 (D-316): TV 오른쪽 아래 손잡이 중 위의 것
 constexpr float TvDialR = 11.f;
 inline FVector2f TvDialPos() { return FVector2f(RX + PW - 22.f, FY + PowCardH - 50.f); }

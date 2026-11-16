@@ -58,12 +58,27 @@ def jukebox(M, T, X0, Y0, k, clock, track, sw_at, sw_dir, hover=0, boss=False):
     GX, GY, GW, GH = 24, ArchY + 2, W - 48, 30
     gx, gy = P(GX, GY); M.rr(gx, gy, GW * k, GH * k, 6 * k, FG, 1.1, 0.45)
     sw = clock - sw_at; su = min(max(sw / 0.7, 0), 1)
-    rk = (su * 2 if su < 0.5 else (1 - su) * 2) if sw < 0.7 else 0  # 레코드가 밑으로 내려가며 흐려졌다 새 레코드가 올라옴
-    rc = P(GX + 12, GY + GH / 2 + rk * 8); ra_ = 1 - rk
-    M.ln(circle(rc[0], rc[1], 9 * k, 20), FG, 1.0, ra_)
-    M.ln(circle(rc[0], rc[1], 3 * k, 10), PINK, 1.0, ra_)
+    rk = (su * 2 if su < 0.5 else (1 - su) * 2) if sw < 0.7 else 0  # 레코드가 유리창 밑으로 완전히 내려갔다 새 레코드가 올라옴
+    re_ = rk * rk * (3 - 2 * rk); clip_y = Y0 + (GY + GH - 2) * k
+    rc = P(GX + 12, GY + GH / 2 + re_ * (GH / 2 + 11))
+
+    def rec(pts, c, b):
+        run = []
+        for a_, b_ in zip(pts, pts[1:]):
+            if a_[1] > clip_y and b_[1] > clip_y:
+                if len(run) > 1: M.ln(run, c, 1.0, b)
+                run = []; continue
+            if a_[1] > clip_y: t_ = (a_[1] - clip_y) / (a_[1] - b_[1]); a_ = (a_[0] + (b_[0] - a_[0]) * t_, clip_y)
+            if b_[1] > clip_y: t_ = (clip_y - a_[1]) / (b_[1] - a_[1]); b_ = (a_[0] + (b_[0] - a_[0]) * t_, clip_y)
+            if not run or abs(run[-1][0] - a_[0]) + abs(run[-1][1] - a_[1]) > 0.01:
+                if len(run) > 1: M.ln(run, c, 1.0, b)
+                run = [a_]
+            run.append(b_)
+        if len(run) > 1: M.ln(run, c, 1.0, b)
+    rec(circle(rc[0], rc[1], 9 * k, 20), FG, 1.0)
+    rec(circle(rc[0], rc[1], 3 * k, 10), PINK, 1.0)
     ra = clock * (bpm / 60) * math.pi * 0.5
-    M.ln([(rc[0] + math.cos(ra) * 4 * k, rc[1] + math.sin(ra) * 4 * k), (rc[0] + math.cos(ra) * 8 * k, rc[1] + math.sin(ra) * 8 * k)], FG, 1.0, 0.7 * ra_)
+    rec([(rc[0] + math.cos(ra) * 4 * k, rc[1] + math.sin(ra) * 4 * k), (rc[0] + math.cos(ra) * 8 * k, rc[1] + math.sin(ra) * 8 * k)], FG, 0.7)
     arm = math.radians(70 - 50 * (1 - abs(su * 2 - 1)) if sw < 0.7 else 40)
     pv = P(GX + 26, GY + 4)
     M.ln([pv, (pv[0] - math.cos(arm) * 12 * k, pv[1] + math.sin(arm) * 12 * k)], GOLD, 1.1, 1.0)

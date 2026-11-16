@@ -34,6 +34,21 @@ ko	en	ja	zh-Hans	zh-Hant	file
 이끄는 	Leading 	率いる	统领	統領	PDBoardDraw.h
 저주하는 	Cursing 	呪う	诅咒	詛咒	PDBoardDraw.h
  + 호위	 + escort	 + 護衛	 + 护卫	 + 護衛	PDBoardDraw.h
+최종화 · %s	Finale · %s	最終話 · %s	大结局 · %s	大結局 · %s	PDBoardDraw.h
+%s과 호위대	%s and the Guard	%sと護衛隊	%s与护卫队	%s與護衛隊	PDBoardDraw.h
+%s와 호위대	%s and the Guard	%sと護衛隊	%s与护卫队	%s與護衛隊	PDBoardDraw.h
+세 보스의 밤	Night of Three Bosses	三人のボスの夜	三巨头之夜	三巨頭之夜	PDBoardDraw.h
+%s과 %s	%s and %s	%sと%s	%s与%s	%s與%s	PDBoardDraw.h
+%s와 %s	%s and %s	%sと%s	%s与%s	%s與%s	PDBoardDraw.h
+%s의 습격	The %s Strikes	%sの襲撃	%s来袭	%s來襲	PDBoardDraw.h
+뒤섞인 밤	A Tangled Night	入り乱れる夜	混战之夜	混戰之夜	PDBoardDraw.h
+질주하는 밤	Night of the Runners	疾走する夜	疾驰之夜	疾馳之夜	PDBoardDraw.h
+탱크 부대 등장	Enter the Tanks	戦車部隊、現る	坦克部队登场	坦克部隊登場	PDBoardDraw.h
+철갑의 벽	Wall of Iron	鋼鉄の壁	钢铁之墙	鋼鐵之牆	PDBoardDraw.h
+갈라지는 그림자	Splitting Shadows	分かれる影	分裂之影	分裂之影	PDBoardDraw.h
+죽지 않는 자들	The Undying	死なざる者たち	不死之众	不死之眾	PDBoardDraw.h
+졸개들의 습격	Raid of the Minions	手下たちの襲撃	喽啰来袭	嘍囉來襲	PDBoardDraw.h
+병정들의 행진	March of the Soldiers	兵隊の行進	士兵进行曲	士兵進行曲	PDBoardDraw.h
 병정	Soldier	兵士	士兵	士兵	PDBoardDraw.h
 빠른 병정	Fast soldier	素早い兵士	快速士兵	快速士兵	PDBoardDraw.h
 탱크	Tank	タンク	坦克	坦克	PDBoardDraw.h
@@ -771,13 +786,17 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 남은 적 %d/%d	Enemies left %d/%d	残りの敵 %d/%d	剩余敌人 %d/%d	剩餘敵人 %d/%d	PDBoardTv.cpp
 웨이브 %d 준비	Wave %d ready	ウェーブ %d 準備	第%d波 准备	第%d波 準備	PDBoardTv.cpp
 처치 %d · 놓침 %d	Kills %d · Leaked %d	撃破 %d · 突破 %d	击杀 %d · 漏掉 %d	擊殺 %d · 漏掉 %d	PDBoardTv.cpp
-지금 웨이브 %d	Current wave %d	現在のウェーブ %d	当前波次 %d	當前波次 %d	PDBoardTv.cpp
-다음 웨이브 %d	Next wave %d	次のウェーブ %d	下一波 %d	下一波 %d	PDBoardTv.cpp
-마지막 웨이브 · 최종 보스	Final wave · final boss	最終ウェーブ · 最終ボス	最后一波 · 最终首领	最後一波 · 最終首領	PDBoardTv.cpp
+최종화	Finale	最終話	大结局	大結局	PDBoardTv.cpp
+제%d화	Episode %d	第%d話	第%d集	第%d集	PDBoardTv.cpp
+지금 방송 중 · %s	On Air · %s	放送中 · %s	正在播出 · %s	正在播出 · %s	PDBoardTv.cpp
+다음 화 예고 · %s	Next Time · %s	次回予告 · %s	下集预告 · %s	下集預告 · %s	PDBoardTv.cpp
 도전 과제 달성	Achievement unlocked	実績解除	成就达成	成就達成	PDBoardTv.cpp
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+지금 웨이브 %d	Current wave %d	現在のウェーブ %d	当前波次 %d	當前波次 %d	PDLangTable.inl
+다음 웨이브 %d	Next wave %d	次のウェーブ %d	下一波 %d	下一波 %d	PDLangTable.inl
+마지막 웨이브 · 최종 보스	Final wave · final boss	最終ウェーブ · 最終ボス	最后一波 · 最终首领	最後一波 · 最終首領	PDLangTable.inl
 만 명의 병정	Ten Thousand Soldiers	一万人の兵士	一万名士兵	一萬名士兵	PDLangTable.inl
 모든 판 합쳐 10,000마리 처치	Defeat 10,000 enemies in total	合計10,000体撃破	累计击败10,000个敌人	累計擊敗10,000個敵人	PDLangTable.inl
 하이 롤러	High Roller	ハイ・ローラー	豪赌客	豪賭客	PDLangTable.inl

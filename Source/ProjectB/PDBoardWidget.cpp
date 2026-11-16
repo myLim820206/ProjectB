@@ -627,6 +627,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				if (M) ++M->N; else TvMix.Add({E.Type, 1});
 			}
 			TvMix.StableSort([](const FTvMix& A, const FTvMix& B) { return EnemyDef(A.T).bBoss && !EnemyDef(B.T).bBoss; });
+			TvTitle = EpisodeTitle(Game, NW, TvMix);
+			TvTitleAt = Clock;
 		}
 	}
 	else TvMixWave = -1;

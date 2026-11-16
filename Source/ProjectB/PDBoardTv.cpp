@@ -90,23 +90,31 @@ void SPDBoardWidget::PaintTv(FCanvas& C) const
 		FRandomStream Ns(FMath::FloorToInt(Clock * 60.f));
 		for (int32 K = 0; K < 260; ++K) C.Box(Ns.FRandRange(SX + 6.f, SX + SW - 8.f), Ns.FRandRange(SY + 6.f, SY + SH - 8.f), Ns.FRandRange(1.f, 3.f), 1.f, MonoA(Ns.FRandRange(0.2f, 0.7f)));
 	}
-	else if (TvChannel == 0) // CH1 다음 웨이브: 적 그림 · 이름 · 마리 수, 보스면 이름 · 능력 한 줄
+	else if (TvChannel == 0) // CH1 다음 화 예고 (사용자 2026-11-16, D-344): TV 드라마처럼 "다음 화 예고 · 제N화" + 제목(한 글자씩 찍힘) + 나오는 적
 	{
 		const int32 NW = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
-		C.Text(G.Phase == EPDPhase::Wave ? TrF(TEXT("지금 웨이브 %d"), NW) : TrF(TEXT("다음 웨이브 %d"), NW), CX0, SY + 20.f, Mono, 11.f, 0, true, CW - 40.f);
+		const bool bLast = G.Goal() > 0 && NW == G.Goal(), bNow = G.Phase == EPDPhase::Wave;
+		const FString Ep = bLast ? FString(Tr(TEXT("최종화"))) : TrF(TEXT("제%d화"), NW);
+		const FLinearColor Gold = Hex(TEXT("ffd26e"));
+		C.Text(bNow ? TrF(TEXT("지금 방송 중 · %s"), *Ep) : TrF(TEXT("다음 화 예고 · %s"), *Ep), CX0 + (bNow ? 9.f : 0.f), SY + 20.f, bNow ? Hex(TEXT("ff8a8a")) : Gold, 9.f, 0, true, CW - 49.f);
+		if (bNow && FMath::Frac(Clock * 1.2f) < 0.6f) C.Lines(FCanvas::CirclePoints(FVector2f(CX0 + 2.5f, SY + 16.5f), 2.f, 8), Hex(TEXT("ff6a6a")), 2.f); // 방송 중 빨간 점
 		ChTag(TEXT("CH1"));
-		float Y = SY + 40.f;
+		const int32 NShow = FMath::Clamp(FMath::FloorToInt((Clock - TvTitleAt) * 14.f), 0, TvTitle.Len()); // 한 글자씩
+		const FString Ttl = TvTitle.Left(NShow) + ((NShow < TvTitle.Len() && FMath::Frac(Clock * 4.f) < 0.5f) ? TEXT("_") : TEXT(""));
+		const bool bBossEp = TvMix.Num() && EnemyDef(TvMix[0].T).bBoss;
+		C.Text(FString(TEXT("“")) + Ttl + (NShow >= TvTitle.Len() ? TEXT("”") : TEXT("")), CX0 + CW / 2.f, SY + 42.f, bBossEp ? FLinearColor::White : Mono, 13.f, 1, true, CW);
+		C.Lines({FVector2f(CX0 + CW * 0.2f, SY + 50.f), FVector2f(CX0 + CW * 0.8f, SY + 50.f)}, MonoA(0.35f), 1.f);
+		float Y = SY + 58.f;
 		for (int32 I = 0; I < TvMix.Num() && Y < ContentBot - 12.f; ++I)
 		{
 			const FTvMix& M = TvMix[I];
 			const bool bBoss = EnemyDef(M.T).bBoss;
-			C.CardSoldier(SoldierShape(M.T), FVector2f(CX0 + 10.f, Y + 9.f), bBoss ? 9.f : 7.f, FMath::Frac(Clock * 1.5f), MonoA(bBoss ? 1.f : 0.85f));
+			C.CardSoldier(SoldierShape(M.T), FVector2f(CX0 + 10.f, Y + 8.f), bBoss ? 9.f : 7.f, FMath::Frac(Clock * 1.5f), MonoA(bBoss ? 1.f : 0.85f));
 			C.Text(EnemyName(M.T), CX0 + 26.f, Y + 4.f, MonoA(bBoss ? 1.f : 0.88f), 10.f, 0, bBoss, CW * 0.6f);
 			C.Text(FString::Printf(TEXT("×%d"), M.N), CX0 + CW, Y + 4.f, MonoA(0.9f), 10.f, 2, true);
-			if (bBoss) { C.Text(BossSkillText(M.T), CX0 + 26.f, Y + 18.f, MonoA(0.65f), 8.5f, 0, false, CW - 30.f); Y += 14.f; }
-			Y += 20.f;
+			if (bBoss) { C.Text(BossSkillText(M.T), CX0 + 26.f, Y + 17.f, MonoA(0.65f), 8.5f, 0, false, CW - 30.f); Y += 13.f; }
+			Y += 18.f;
 		}
-		if (G.Goal() > 0 && NW == G.Goal()) C.Text(Tr(TEXT("마지막 웨이브 · 최종 보스")), CX0, ContentBot - 2.f, MonoA(0.95f), 9.f, 0, true, CW);
 		Ticker();
 	}
 	else if (TvChannel == 1) // CH2 포커 중계: 카드 다섯 장이 차례로 뒤집히고 자막, 가끔 화면이 흔들린다
@@ -210,13 +218,27 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 	C.Box(GX, GY, GW, GH, Hex(TEXT("0b0d14"), 1.f));
 	C.Glow(FCanvas::RoundRectPoints(GX, GY, GW, GH, 6.f), Fg, 1.1f, 0.45f);
 	const float Sw = Clock - JukeSwitchAt, SwU = FMath::Clamp(Sw / 0.7f, 0.f, 1.f);
-	const float RecK = Sw < 0.7f ? (SwU < 0.5f ? SwU * 2.f : (1.f - SwU) * 2.f) : 0.f; // 0 → 1 → 0: 레코드가 밑으로 내려가며 흐려졌다 새 레코드가 올라옴
-	const FVector2f RC(GX + 12.f, GY + GH / 2.f + RecK * 8.f);
-	const float RecA = 1.f - RecK;
-	C.Lines(FCanvas::CirclePoints(RC, 9.f, 20), WithAlpha(Fg, RecA), 1.f);
-	C.Lines(FCanvas::CirclePoints(RC, 3.f, 10), WithAlpha(Pink, RecA), 1.f);
+	const float RecK = Sw < 0.7f ? (SwU < 0.5f ? SwU * 2.f : (1.f - SwU) * 2.f) : 0.f; // 0 → 1 → 0: 레코드가 유리창 밑으로 완전히 내려갔다 새 레코드가 올라옴 (사용자 2026-11-16)
+	const float RecEase = RecK * RecK * (3.f - 2.f * RecK), ClipY = GY + GH - 2.f;
+	const FVector2f RC(GX + 12.f, GY + GH / 2.f + RecEase * (GH / 2.f + 11.f));
+	auto RecLines = [&](const TArray<FVector2f>& P, const FLinearColor& Col) // 유리창 아래로 나간 부분은 자른다
+	{
+		TArray<FVector2f> Run;
+		for (int32 I = 0; I + 1 < P.Num(); ++I)
+		{
+			FVector2f A = P[I], B = P[I + 1];
+			if (A.Y > ClipY && B.Y > ClipY) { if (Run.Num() > 1) C.Lines(Run, Col, 1.f); Run.Reset(); continue; }
+			if (A.Y > ClipY) A = A + (B - A) * ((A.Y - ClipY) / (A.Y - B.Y));
+			if (B.Y > ClipY) B = A + (B - A) * ((ClipY - A.Y) / (B.Y - A.Y));
+			if (Run.Num() == 0 || FMath::Abs(Run.Last().X - A.X) + FMath::Abs(Run.Last().Y - A.Y) > 0.01f) { if (Run.Num() > 1) C.Lines(Run, Col, 1.f); Run.Reset(); Run.Add(A); }
+			Run.Add(B);
+		}
+		if (Run.Num() > 1) C.Lines(Run, Col, 1.f);
+	};
+	RecLines(FCanvas::CirclePoints(RC, 9.f, 20), Fg);
+	RecLines(FCanvas::CirclePoints(RC, 3.f, 10), Pink);
 	const float RA = Clock * (Bpm / 60.f) * PI * 0.5f;
-	C.Lines({RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 4.f, RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 8.f}, WithAlpha(Fg, 0.7f * RecA), 1.f);
+	RecLines({RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 4.f, RC + FVector2f(FMath::Cos(RA), FMath::Sin(RA)) * 8.f}, WithAlpha(Fg, 0.7f));
 	const float ArmA = FMath::DegreesToRadians(Sw < 0.7f ? 70.f - 50.f * (1.f - FMath::Abs(SwU * 2.f - 1.f)) : 40.f); // 집게 팔: 바꿀 때 들렸다 내려옴
 	const FVector2f Pv(GX + 26.f, GY + 4.f);
 	C.Lines({Pv, Pv + FVector2f(-FMath::Cos(ArmA), FMath::Sin(ArmA)) * 12.f}, Gold, 1.1f);
