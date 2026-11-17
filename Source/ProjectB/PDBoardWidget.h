@@ -420,7 +420,8 @@ private:
 	// 스프라이트 아틀라스 (D-140): 타워 카드·조커를 게임 시작 때 지금 네온 코드로 텍스처 한 장에 구워 두고, 판에선 사각형으로 찍는다
 	TSharedPtr<FPDAtlas> Atlas;
 	void BakeAtlas();
-	void SaveAtlasAsset(); // 에디터 F8: 배율 1 로 구워 Content/Sprites/T_PDAtlas 로 저장 (D-145)
+	bool SaveAtlasAsset(); // 에디터 F8 또는 -pdbakeatlas: 배율 1 로 구워 Content/Sprites/T_PDAtlas 로 저장 (D-145, D-367). 둘 다 저장되면 true
+	bool bBakeAtlasDone = false; // -pdbakeatlas 로 한 번 구웠음
 	bool bForceBake = false; // 에셋이 있어도 굽기 (에셋을 새로 만들 때)
 	bool UseAtlas() const; // 구운 그림을 쓸 수 있고 디버그로 끄지 않았나 (F6)
 	void BakeBoardBg(uint64 Sig); // 판 배경 (격자·길) 굽기, 새 판마다 (D-143)

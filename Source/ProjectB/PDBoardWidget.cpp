@@ -193,9 +193,10 @@ void SPDBoardWidget::BakeTiled(UObject* DstObj, int32 W, int32 H, const TSharedR
 }
 
 // 아틀라스 에셋 만들기 (D-145, 에디터 F8): 화면 배율 1 굵기로 새로 굽고 렌더 타깃을 텍스처로 만들어 Content/Sprites/T_PDAtlas 에 저장.
-// 다음 실행부터 게임은 이 에셋을 쓴다. 그림 코드를 고치면 F8 을 다시 누른다
-void SPDBoardWidget::SaveAtlasAsset()
+// 다음 실행부터 게임은 이 에셋을 쓴다. 그림 코드를 고치면 F8 을 다시 누르거나 tools\bake_atlas.bat (D-367)
+bool SPDBoardWidget::SaveAtlasAsset()
 {
+	bool bAllOk = false;
 #if WITH_EDITOR
 	// 에셋을 쓰는 중이면 굽는 판으로 새로 만든다
 	if (Atlas.IsValid() && Atlas->bAsset) { Atlas.Reset(); }
@@ -206,8 +207,8 @@ void SPDBoardWidget::SaveAtlasAsset()
 	ViewScale = OldScale;
 	bForceBake = false;
 	UTextureRenderTarget2D* RT = Atlas.IsValid() ? Cast<UTextureRenderTarget2D>(Atlas->RT) : nullptr;
-	if (!RT) return;
-	bool bAllOk = true;
+	if (!RT) return false;
+	bAllOk = true;
 	for (int32 Page = 0; Page < 2; ++Page) // 두 쪽을 따로 저장 (D-338): T_PDAtlas_vN · T_PDAtlasSoldier_vN
 	{
 	const FString AssetName = Page ? FString::Printf(TEXT("T_PDAtlasSoldier_v%d"), AtlasVersion) : FString::Printf(TEXT("T_PDAtlas_v%d"), AtlasVersion); // 형식 글자는 그대로 써야 한다 (UE 5.2+ Printf 검사)
@@ -236,6 +237,7 @@ void SPDBoardWidget::SaveAtlasAsset()
 	}
 	Floats.Add({bAllOk ? FString::Printf(TEXT("아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d"), AtlasVersion, AtlasVersion) : FString(TEXT("아틀라스 에셋 저장 실패")), FVector2f(DesignW / 2.f, DesignH / 2.f), 0.f, 2.5f, 18.f, bAllOk ? Hex(TEXT("9cffb0")) : Hex(TEXT("ff6a6a"))});
 #endif
+	return bAllOk;
 }
 
 // 렌더 타깃 바이트 → sRGB 텍스처 (D-145). 선형 렌더 타깃에 감마로 그려 바이트가 곧 화면 값이고, sRGB 로 읽어야 화면과 같다
@@ -770,6 +772,13 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		if (!Atlas.IsValid() && Clock > 1.f) BakeAtlas();
 		else if (Atlas.IsValid() && !Atlas->bRebaked && Clock > 4.f) { Atlas->bRebaked = true; BakeAtlas(); }
 		else if (Atlas.IsValid() && !Atlas->bAsset && Atlas->Ready() && FMath::Abs(ViewScale - Atlas->BakedScale) > 0.04f) BakeAtlas(); // 화면 크기가 바뀜
+		else if (!bBakeAtlasDone && Clock > 5.f && FParse::Param(FCommandLine::Get(), TEXT("pdbakeatlas"))) // 배치 굽기 (D-367, tools\bake_atlas.bat): 4초 다시 굽기 뒤 F8 과 같이 굽고 저장하고 끈다
+		{
+			bBakeAtlasDone = true;
+			const bool bOk = SaveAtlasAsset();
+			UE_LOG(LogTemp, Display, TEXT("PDATLAS bake done %s"), bOk ? TEXT("ok") : TEXT("FAILED"));
+			FPlatformMisc::RequestExit(false);
+		}
 		else if (Atlas.IsValid())
 		{
 			++Atlas->Frames;
