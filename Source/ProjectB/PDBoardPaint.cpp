@@ -40,10 +40,9 @@ void SPDBoardWidget::Wrap2(FCanvas& C, const FString& InS, float X, float Y, con
 // 창 오른쪽 위 닫기 버튼 (도감·트리, D-119)
 void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 {
-	const bool bHov = InRect(Mouse, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH);
-	C.BtnFill(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, RadPill(CdxCloseH), UiEdge, bHov);
-	C.Glow(FCanvas::RoundRectPoints(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, RadPill(CdxCloseH)), UiEdge, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.4f);
-	C.TextCentered(bTree ? TEXT("닫기  K") : bUnlock ? TEXT("닫기  Esc") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? HotCol(Col) : Col, 11.f, true);
+	(void)Col; // 닫기는 어느 창이든 기본 하늘색 ⓧ (D-388, 버튼 색 규칙 D-381)
+	const bool bHov = InRect(Mouse, CdxCloseX - 3.f, CdxCloseY - 3.f, CdxCloseW + 6.f, CdxCloseH + 6.f);
+	C.CloseX(FVector2f(CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f), CdxCloseW / 2.f, bHov);
 }
 
 // 아틀라스 굽기 (D-140): 칸마다 타워 카드(레벨 틀·점 포함) / 조커를 지금 코드 그대로, 맥박은 가운데 값
@@ -4003,10 +4002,10 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			return P;
 		};
 		C.Box(X0, Shoulder, X1 - X0, Bot - Shoulder, Hex(TEXT("06060b"), 0.95f));
-		// 아치 테 (D-384): 분홍은 나가기 · 위험 색이고 오래 보면 눈이 피로해서 연보라로
-		C.Glow(Arch(0.f), LavS, 2.2f, 0.7f);
-		C.Lines(Arch(0.f), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
-		C.Glow(Arch(8.f), WithAlpha(LavS, 0.5f), 1.f, 0.3f);
+		// 아치 테: 핫핑크 (D-389: D-384 의 연보라를 사용자 요청으로 되돌림 — 창 테두리는 버튼 색 규칙과 따로)
+		C.Glow(Arch(0.f), PinkS, 2.4f, 0.9f);
+		C.Lines(Arch(0.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
+		C.Glow(Arch(8.f), WithAlpha(PinkS, 0.6f), 1.f, 0.35f);
 		const int32 Ph = FMath::FloorToInt(Clock * 8.f) % 3;
 		for (int32 K = 1; K < 20; ++K) // 아치를 따라 전구
 		{
@@ -4016,14 +4015,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		}
 		NeonText(C, Tr(TEXT("설정")), MidX, SetBoxY + 30.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 간판 = 창 이름 (D-384, 예전 'JUKEBOX' + 작은 '설정')
 		// 닫기 ⓧ (D-384): 맨 아래 '닫기' 줄 대신. 동그라미 안 X, 마우스 올림 = 같은 색 밝게
-		const bool bXH = FVector2f::Distance(Mouse, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f;
-		const FLinearColor Xc = bXH ? HotCol(BtnColDefault()) : WithAlpha(BtnColDefault(), 0.75f);
-		const FVector2f Xo(SetCloseCX, SetCloseCY);
-		if (bXH) C.SoftDisc(Xo, SetCloseR + 6.f, SetCloseR + 6.f, BtnColDefault(), 0.18f);
-		C.Glow(FCanvas::CirclePoints(Xo, SetCloseR, 28), Xc, bXH ? 1.8f : 1.3f, bXH ? 0.9f : 0.45f);
-		const float Xk = SetCloseR * 0.42f;
-		C.Glow({Xo + FVector2f(-Xk, -Xk), Xo + FVector2f(Xk, Xk)}, Xc, 1.6f, bXH ? 0.8f : 0.4f);
-		C.Glow({Xo + FVector2f(Xk, -Xk), Xo + FVector2f(-Xk, Xk)}, Xc, 1.6f, bXH ? 0.8f : 0.4f);
+		C.CloseX(FVector2f(SetCloseCX, SetCloseCY), SetCloseR, FVector2f::Distance(Mouse, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f); // 공통 ⓧ (D-388)
 	}
 	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("곡 (주크박스)"), TEXT("도움말")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {

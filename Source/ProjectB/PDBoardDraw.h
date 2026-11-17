@@ -703,7 +703,7 @@ inline float CdxIdxY(int I) { return CdxBY + 30.f + I * 92.f; }
 constexpr float CdxNavW = 44.f, CdxNavH = 26.f, CdxNavY = CdxBot - 53.f; // 쪽 넘기기 ‹ › (바깥 아래 귀퉁이)
 inline float CdxNavX(int Dir) { return Dir < 0 ? CdxLX + 18.f : CdxRX + CdxPgW - 18.f - CdxNavW; }
 constexpr float CdxFlipDur = 0.5f, CdxFlipFast = 0.32f, CdxFlipGap = 0.1f; // 한 장 넘김 · 탭 바꿀 때 장마다 · 장 사이
-constexpr float CdxCloseX = 1180.f, CdxCloseY = 22.f, CdxCloseW = 70.f, CdxCloseH = 30.f; // 닫기 버튼 (트리 창도 같은 자리)
+constexpr float CdxCloseX = 1222.f, CdxCloseY = 22.f, CdxCloseW = 28.f, CdxCloseH = 28.f; // 닫기 ⓧ 버튼 자리 (트리 · 도감 · 강화 창, D-388: '닫기 K' 알약 → 동그라미 X, 오른쪽 끝 1250 그대로)
 inline FVector2f CodexCardPos(int K) { return FVector2f(CdxCardX + (K % 5) * (CdxCardW + CdxGapX), CdxCardY + (K / 5) * (CdxCardH + CdxGapY)); }
 // 메뉴 창 (Esc): 가운데 세로 버튼
 enum class EMenuItem : uint8_t { Resume, NewGame, Title, Settings, Codex, Quit, Count }; // Codex: 도감 (D-349, 판 위 도감 버튼 대신) // Title: 메인 메뉴로 (D-287) // 튜토리얼은 뺐다 (D-217, 도움말로)
@@ -1551,6 +1551,16 @@ struct SPDBoardWidget::FCanvas
 		NextLayer();
 	}
 	// 눌리는 버튼 바탕 (D-328 ②): 평소 옅게, 마우스를 올리면 더 진하게
+	// 닫기 ⓧ (D-384, D-388): 동그라미 안 X, 기본 하늘색. 마우스 올림 = 같은 색 밝게 + 빛 판. 설정 · 스킬 트리 · 도감 · 강화 창이 같이 쓴다
+	void CloseX(FVector2f O, float R, bool bHov)
+	{
+		const FLinearColor Xc = bHov ? HotCol(BtnColDefault()) : WithAlpha(BtnColDefault(), 0.75f);
+		if (bHov) SoftDisc(O, R + 6.f, R + 6.f, BtnColDefault(), 0.18f);
+		Glow(CirclePoints(O, R, 28), Xc, bHov ? 1.8f : 1.3f, bHov ? 0.9f : 0.45f);
+		const float K = R * 0.42f;
+		Glow({O + FVector2f(-K, -K), O + FVector2f(K, K)}, Xc, 1.6f, bHov ? 0.8f : 0.4f);
+		Glow({O + FVector2f(K, -K), O + FVector2f(-K, K)}, Xc, 1.6f, bHov ? 0.8f : 0.4f);
+	}
 	void BtnFill(float X, float Y, float W, float H, float R, const FLinearColor& Col, bool bHot)
 	{
 		if (Rec()) GPDLayout.AddPanel(X, Y, W, H, 1.f, true);
