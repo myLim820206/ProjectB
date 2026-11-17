@@ -1011,12 +1011,12 @@ bool SameChord(const FJazzChord& A, const FJazzChord& B) { return A.Root == B.Ro
 struct FCNote { int Bar; float At, Len, Midi; int Voice = 0; }; // 테마 선율 한 음 (마디, 박 자리, 길이(박), 음높이, 성부 1 = 따라 들어오는 둘째 성부)
 struct FCSection { int Bars; uint8_t Mode; int Inst; float Shift, Amp; int Inst2; float Shift2, Amp2; int Inst3 = -1; float Amp3 = 0.f; }; // Mode 0 테마 · 1 즉흥, Inst 0 비브라폰 · 1 약음 리드 · 2 로즈, Inst2 = 겹쳐 치는 악기(-1 없음), Inst3 = 둘째 성부 악기
 struct FClassicTune { const char* Name; float Bpm; int Meter; uint8_t Style; bool bSwing; }; // Style 0 스윙 · 1 보사노바 · 2 재즈 왈츠
-const FClassicTune GClassic[ClassicJazzCount] = {
-	{"Little Night Swing", 116.f, 4, 0, true},   // 모차르트 (1791 졸)
-	{"Elise in Rio", 128.f, 4, 1, false},        // 베토벤 (1827 졸)
-	{"Mountain King Shuffle", 112.f, 4, 0, true}, // 그리그 (1907 졸)
-	{"Gymnopedie After Dark", 70.f, 3, 2, false}, // 사티 (1925 졸)
-	{"Canon After Midnight", 92.f, 4, 0, true},   // 파헬벨 (1706 졸)
+const FClassicTune GClassic[ClassicJazzCount] = { // 템포는 늦은 밤 바 배경음답게 60 ~ 108 (D-361)
+	{"Little Night Swing", 88.f, 4, 0, true},   // 모차르트 (1791 졸)
+	{"Elise in Rio", 108.f, 4, 1, false},        // 베토벤 (1827 졸)
+	{"Mountain King Shuffle", 90.f, 4, 0, true}, // 그리그 (1907 졸)
+	{"Gymnopedie After Dark", 60.f, 3, 2, false}, // 사티 (1925 졸)
+	{"Canon After Midnight", 76.f, 4, 0, true},   // 파헬벨 (1706 졸)
 };
 
 void PlayInst(FMusic& M, int Inst, float T0, float Dur, float Midi, float Amp)
