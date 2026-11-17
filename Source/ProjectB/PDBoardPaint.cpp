@@ -2739,6 +2739,9 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	const FLinearColor Gold = Hex(TEXT("ffd96a")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878")), Fg = Hex(TEXT("cfd8e6")), Green = Hex(TEXT("9cffb0")), Red = Hex(TEXT("ff6a6a"));
 	const FLinearColor Purple = Hex(TEXT("b48cff")), Cyan = Hex(TEXT("7fd6ff"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
+	// 넓힌 트리(D-378)가 설계 화면 밖(창 가장자리 검은 띠)으로 나가지 않게 자른다 (D-379). 띠 묶음은 자르기 앞뒤로 비운다
+	C.FlushQuads();
+	C.PushClip(0.f, 0.f, DesignW, DesignH);
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.97f));
 	{ // 벽돌 벽 (D-293)
 		const FLinearColor Brick = Hex(TEXT("4a3c48"), 0.6f);
@@ -2901,6 +2904,8 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			C.TextCentered(TEXT("클릭해서 찍기"), X + 79.f, Ly + 5.f, Green, 10.f, true);
 		}
 	}
+	C.FlushQuads();
+	C.PopClip(); // D-379
 }
 
 // 시작 화면 (D-153 → D-253 대문 시안 B, D-309 바 앨리스): 벽돌 벽에 바 앨리스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
