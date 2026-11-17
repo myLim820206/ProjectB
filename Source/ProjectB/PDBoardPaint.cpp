@@ -4043,7 +4043,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	{
 		const float Y = SetRowY(Row);
 		const bool bRowSel = Row == SetSel;
-		if (bRowSel) { C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(BtnColDefault(), 0.06f)); C.Shape(EPDSuit::Heart, SetX - 18.f, Y + SetRowH / 2.f, 5.f, BtnColDefault(), 1.2f, 0.4f); }
+		if (bRowSel) C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(BtnColDefault(), 0.06f)); // 고른 줄은 옅은 띠만 (D-385: 하트 뺌)
 		C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? HotCol(Fg) : Fg, 14.f, 0, true, SetLabelW - 10.f);
 		switch ((ESetRow)Row)
 		{
