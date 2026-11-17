@@ -2913,19 +2913,18 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 1.f)); // 뒤 게임판이 비치지 않게 불투명 (D-255)
-	// 벽돌 벽 (흐린 선) + 바닥 경계
+	// 벽돌 벽 (흐린 선): 화면 전체 (D-381: 바닥 경계 · 반사는 뺐다)
 	const FLinearColor Brick = Hex(TEXT("3c303a"), 0.6f);
-	for (int32 R = 0; R < 14; ++R)
+	for (int32 R = 0; R < 21; ++R)
 	{
 		const float Y = 20.f + R * 34.f;
 		C.Lines({FVector2f(0.f, Y), FVector2f(DesignW, Y)}, Brick, 1.f);
 		for (int32 K = 0; K < 21; ++K)
 		{
 			const float X = K * 64.f + (R % 2 ? 32.f : 0.f);
-			C.Lines({FVector2f(X, Y), FVector2f(X, FMath::Min(Y + 34.f, TitleFloorY))}, Brick, 1.f);
+			C.Lines({FVector2f(X, Y), FVector2f(X, Y + 34.f)}, Brick, 1.f);
 		}
 	}
-	C.Glow({FVector2f(0.f, TitleFloorY), FVector2f(DesignW, TitleFloorY)}, Hex(TEXT("786e8c"), 0.7f), 1.3f, 0.3f);
 
 	// ---- 로고 밝기: 켜짐 → 빠직
 	const float T = TitleT, Off = 0.08f;
@@ -2949,30 +2948,29 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	}
 	(void)Off;
 
-	// ---- 로고 (반사는 바닥선 기준으로 뒤집어 흐리게)
-	const float LgX = 400.f, LY = 110.f, LK = 1.55f;
+	// ---- 로고: 묶음(BAR 윗선 ~ 부제)이 화면 위아래 가운데 (D-381, 예전 LY 110 은 아래 바닥 반사 자리를 남겼다)
+	const float LgX = 400.f, LK = 1.55f, LY = DesignH / 2.f - 97.f * LK; // BAR 윗선 LY - 6LK ~ 부제 LY + 200LK 의 가운데
 	// 로고 배치 C (사용자 확정): Alice 를 1.25배로 크게 가운데, BAR 는 왼쪽 위 작게(0.55배, 알약 틀 없음), 마티니 잔 · 부제는 A 배치 모양 (tools/neon/logo_alice.py logo_C)
 	const float BK = 0.55f * LK, SK = 1.25f * LK, BY0 = LY - 6.f * LK;
 	const float NX0 = LgX - 190.f * LK;
 	const FVector2f PO(LgX - PDLogo::ScriptW / 2.f * SK, LY + 150.f * LK);
 	bool bSpill = false; // 벽빛 먼저 한 바퀴 (D-302): 켜진 튜브 뒤 벽돌에 은은하게 비치는 빛. 깜빡여 꺼지면 같이 꺼진다
-	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, bool bRefl)
+	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B)
 	{
 		if (bSpill)
 		{
-			if (bRefl || B <= 0.25f) return;
+			if (B <= 0.25f) return;
 			C.Spill(Pts, Col, Th * 16.f, 0.22f * B);
 			C.Spill(Pts, Col, Th * 44.f, 0.13f * B);
 			return;
 		}
-		if (bRefl) { if (B > 0.25f) C.Glow(Pts, WithAlpha(Col, 0.18f * B), Th, 0.35f * B); return; }
 		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
 		C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B);
 		C.Lines(Pts, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), Th * 0.25f); // 튜브 가운데 흰 심
 	};
-	auto Logo = [&](bool bRefl)
+	auto Logo = [&]()
 	{
-		auto Map = [&](FVector2f V) { if (bRefl) V.Y = 2.f * TitleFloorY - V.Y; return V; };
+		auto Map = [](FVector2f V) { return V; }; // 예전 바닥 반사 뒤집기 자리 (D-381 에서 반사를 뺐다)
 		PDLogo::FPoly Ps[3];
 		for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
 		{
@@ -2981,26 +2979,25 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			{
 				TArray<FVector2f> Pts;
 				for (int32 Q = 0; Q < Ps[J].N; ++Q) Pts.Add(Map(FVector2f(NX0 + (I * PDLogo::BlockAdv + Ps[J].P[Q * 2] * 0.8f) * BK, BY0 + (60.f + Ps[J].P[Q * 2 + 1]) * BK)));
-				Tube(Pts, Cyan, 1.8f, NB[I], bRefl);
+				Tube(Pts, Cyan, 1.8f, NB[I]);
 			}
 		}
 		// 이어지는 글자(A → l → i, c → e)는 밝기가 같으면 조절점부터 한 줄로 (D-299: 글자마다 끝이 따로 있으면 이음매에 자국이 남았다)
-		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, SK, bRefl ? TitleFloorY : 0.f), Pink, 4.5f, PB[Rn.Letter], bRefl);
+		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, SK, 0.f), Pink, 4.5f, PB[Rn.Letter]);
 		// 마티니 잔 (D-309: 예전 왕관 스페이드 자리) — 역삼각 잔 + 다리 + 받침, 올리브 자리에 분홍 스페이드 + 꼬치
 		const float CX = LgX + 168.f * LK, CY = LY + 96.f * LK, R = 26.f * LK;
-		Tube({Map(FVector2f(CX - R, CY - R * 0.9f)), Map(FVector2f(CX + R, CY - R * 0.9f)), Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX - R, CY - R * 0.9f))}, Gold, 2.2f, CB, bRefl);
-		Tube({Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX, CY + R * 0.95f))}, Gold, 2.f, CB, bRefl);
-		Tube({Map(FVector2f(CX - R * 0.5f, CY + R * 0.95f)), Map(FVector2f(CX + R * 0.5f, CY + R * 0.95f))}, Gold, 2.f, CB, bRefl);
+		Tube({Map(FVector2f(CX - R, CY - R * 0.9f)), Map(FVector2f(CX + R, CY - R * 0.9f)), Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX - R, CY - R * 0.9f))}, Gold, 2.2f, CB);
+		Tube({Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX, CY + R * 0.95f))}, Gold, 2.f, CB);
+		Tube({Map(FVector2f(CX - R * 0.5f, CY + R * 0.95f)), Map(FVector2f(CX + R * 0.5f, CY + R * 0.95f))}, Gold, 2.f, CB);
 		TArray<FVector2f> Sp = FCanvas::HeartPoints(CX + R * 0.1f, CY - R * 0.48f, R * 0.26f, -1.f, -R * 0.03f);
 		for (FVector2f& V : Sp) V = Map(V);
-		Tube(Sp, Pink, 1.6f, CB, bRefl);
-		Tube({Map(FVector2f(CX + R * 0.1f, CY - R * 0.3f)), Map(FVector2f(CX + R * 0.62f, CY - R * 1.25f))}, Hex(TEXT("787d8c")), 1.2f, CB, bRefl);
+		Tube(Sp, Pink, 1.6f, CB);
+		Tube({Map(FVector2f(CX + R * 0.1f, CY - R * 0.3f)), Map(FVector2f(CX + R * 0.62f, CY - R * 1.25f))}, Hex(TEXT("787d8c")), 1.2f, CB);
 	};
 	bSpill = true;
-	Logo(false);
+	Logo();
 	bSpill = false;
-	Logo(true);
-	Logo(false);
+	Logo();
 	// 부제 (D-311): 금색 가는 선 + LATE NIGHT POKER (작은 글자는 Slate 글꼴, 마티니 잔과 같이 켜짐)
 	if (CB > 0.25f)
 	{
@@ -3049,41 +3046,38 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Text(S, PX + 30.f, PY + PH / 2.f + 5.f, Gold, 13.f, 0, true);
 	}
 
-	// ---- 튜브 버튼 (고른 것만 분홍으로 켜짐, 왼쪽 하트) + 바닥 반사
+	// ---- 튜브 버튼 (D-381): 색 규칙 = 시작 · 이어하기 초록, 종료 분홍, 나머지 하늘색. 고른 것은 같은 색으로 밝아지고 밑에 같은 모양 빛 판, 왼쪽 하트도 그 색
 	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
 	const bool bCanBuy = AffordableNames().Num() > 0;
-	for (int32 Pass = 0; Pass < 2; ++Pass)
-		for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
+	float LastBtnBot = 0.f;
+	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
+	{
+		if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 위로 당긴다 (D-162)
+		const FVector2f P = TitleBtnPos(I, bHasRunSave);
+		LastBtnBot = P.Y + TitleBtnH;
+		const bool bSel = TitleSel == I;
+		const int32 PrimaryI = bHasRunSave ? (int32)ETitleItem::Continue : (int32)ETitleItem::Start; // 초록 강조는 하나만: 이어할 판이 있으면 이어하기, 없으면 게임 시작
+		const FLinearColor Col = I == PrimaryI ? BtnColPrimary() : I == (int32)ETitleItem::Quit ? BtnColExit() : BtnColDefault();
+		// 네온 간판 버튼 (D-254, D-255): 불이 들어온 튜브 두 겹 (로고와 같은 흰 심 튜브)
+		TArray<FVector2f> Rr = FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, TitleBtnH / 2.f);
+		TArray<FVector2f> Ri = FCanvas::RoundRectPoints(P.X + 6.f, P.Y + 6.f, TitleBtnW - 12.f, TitleBtnH - 12.f, (TitleBtnH - 12.f) / 2.f);
+		const float Bo = bSel ? 1.f : 0.62f;
+		C.BtnFill(P.X, P.Y, TitleBtnW, TitleBtnH, RadPill(TitleBtnH), Col, bSel); // 눌리는 버튼 바탕 (D-328 ②) + 고르면 빛 판 (D-381)
+		Tube(Rr, Col, bSel ? 2.8f : 2.f, Bo);
+		Tube(Ri, Col, 1.2f, bSel ? 0.8f + 0.1f * Pulse : 0.38f);
+		for (const float Bx : {P.X + 3.f + TitleBtnH / 4.f, P.X + TitleBtnW - 3.f - TitleBtnH / 4.f})
+			C.Lines(FCanvas::CirclePoints(FVector2f(Bx, P.Y + TitleBtnH / 2.f), 2.2f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
+		const FLinearColor TxC = bSel ? FLinearColor(FMath::Min(1.f, Col.R * 1.15f + 0.08f), FMath::Min(1.f, Col.G * 1.15f + 0.08f), FMath::Min(1.f, Col.B * 1.15f + 0.08f), 1.f) : WithAlpha(Col, 0.78f); // 흰색으로 바뀌지 않고 같은 색이 밝아진다
+		C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, TxC, 18.f, true);
+		if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Col, 1.4f, 0.8f);
+		if (I == (int32)ETitleItem::Unlock && bCanBuy) // 살 게 있으면 반짝이는 점 (D-321 ③)
 		{
-			if (I == (int32)ETitleItem::Continue && !bHasRunSave) continue; // 이어할 판이 없으면 위로 당긴다 (D-162)
-			const FVector2f P = TitleBtnPos(I, bHasRunSave);
-			const bool bSel = TitleSel == I;
-			const FLinearColor Col = bSel ? Pink : Cyan;
-			// 네온 간판 버튼 (D-254, D-255): 불이 들어온 튜브 두 겹 (로고와 같은 흰 심 튜브). 고르지 않은 것도 켜져 있고, 고른 것은 분홍으로 더 밝게
-			TArray<FVector2f> Rr = FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, TitleBtnH / 2.f);
-			TArray<FVector2f> Ri = FCanvas::RoundRectPoints(P.X + 6.f, P.Y + 6.f, TitleBtnW - 12.f, TitleBtnH - 12.f, (TitleBtnH - 12.f) / 2.f);
-			const float Bo = bSel ? 0.9f + 0.1f * Pulse : 0.8f;
-			if (Pass == 0) // 반사
-			{
-				for (FVector2f& V : Rr) V.Y = 2.f * TitleFloorY - V.Y;
-				Tube(Rr, Col, 2.2f, Bo * 0.6f, true);
-				continue;
-			}
-			C.BtnFill(P.X, P.Y, TitleBtnW, TitleBtnH, RadPill(TitleBtnH), Col, bSel); // 눌리는 버튼 바탕 (D-328 ②)
-			Tube(Rr, Col, bSel ? 2.8f : 2.2f, Bo, false);
-			Tube(Ri, Col, 1.3f, Bo * 0.75f, false);
-			for (const float Bx : {P.X + 3.f + TitleBtnH / 4.f, P.X + TitleBtnW - 3.f - TitleBtnH / 4.f})
-				C.Lines(FCanvas::CirclePoints(FVector2f(Bx, P.Y + TitleBtnH / 2.f), 2.2f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
-			C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, bSel ? FLinearColor::White : Hex(TEXT("d8f4ff")), 18.f, true);
-			if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Pink, 1.4f, 0.8f);
-			if (I == (int32)ETitleItem::Unlock && bCanBuy) // 살 게 있으면 반짝이는 점 (D-321 ③)
-			{
-				const FVector2f Dp(P.X + TitleBtnW - 10.f, P.Y + 4.f);
-				C.SoftDisc(Dp, 9.f, 9.f, Gold, 0.35f + 0.25f * Pulse);
-				C.Glow(FCanvas::CirclePoints(Dp, 3.5f, 12), Gold, 1.6f, 0.8f + 0.4f * Pulse);
-			}
+			const FVector2f Dp(P.X + TitleBtnW - 10.f, P.Y + 4.f);
+			C.SoftDisc(Dp, 9.f, 9.f, Gold, 0.35f + 0.25f * Pulse);
+			C.Glow(FCanvas::CirclePoints(Dp, 3.5f, 12), Gold, 1.6f, 0.8f + 0.4f * Pulse);
 		}
-	if (Game.BestWave > 0) C.Text(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), TitleBtnX, TitleFloorY - 14.f, Grey, 12.f, 0, false);
+	}
+	if (Game.BestWave > 0) C.Text(TrF(TEXT("최고 기록 %d웨이브"), Game.BestWave), TitleBtnX, LastBtnBot + 26.f, Grey, 12.f, 0, false); // 버튼 묶음 아래 (D-381)
 	C.TextCentered(TEXT("위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정"), DesignW / 2.f, DesignH - 20.f, Dim, 11.f, false);
 }
 

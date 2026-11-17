@@ -716,7 +716,7 @@ enum class ETitleItem : uint8_t { Continue, Start, Upgrades, Unlock, Settings, Q
 constexpr float TutW = 780.f, TutH = 500.f, TutX = DesignW / 2.f - TutW / 2.f, TutY = 104.f;
 constexpr float TutBtnW = 120.f, TutBtnH = 38.f, TutBtnY = TutY + TutH - 56.f;
 constexpr float TutNextX = TutX + TutW - 24.f - TutBtnW, TutPrevX = TutNextX - 12.f - TutBtnW, TutSkipX = TutX + 24.f;
-constexpr float TitleBtnW = 300.f, TitleBtnH = 44.f, TitleBtnGap = 14.f, TitleBtnY0 = 120.f, TitleBtnX = 860.f, TitleFloorY = 500.f; // 대문 시안 B (D-253): 오른쪽 세로 튜브 버튼, 벽과 바닥 경계 // 잠금 해제가 늘어 줄임 (D-239) // 튜토리얼·랭킹이 늘어 조금 줄임 (D-166, D-168)
+constexpr float TitleBtnW = 300.f, TitleBtnH = 44.f, TitleBtnGap = 14.f, TitleBtnX = 860.f; // 대문 시안 B (D-253): 오른쪽 세로 튜브 버튼. 바닥 경계 · 반사는 뺐다 (D-381)
 // 랭킹 (D-168): 개인 랭킹 (이 PC 기록 상위 20) + 리더보드 (스팀, 준비 중). 창 크기는 튜토리얼과 같다
 constexpr int32 RankMax = 20;
 constexpr float RankTabW = 120.f, RankTabH = 34.f, RankTabY = 104.f + 60.f, RankTabGap = 10.f; // 탭 = 모드 4개 (D-229)
@@ -724,7 +724,16 @@ inline float RankTabX(int I) { return DesignW / 2.f - (4.f * RankTabW + 3.f * Ra
 // 모드 고르기 창 (D-229): 시작 화면 '게임 시작'에서 연다. 카드 4장 (30 · 60 · 100 · 무한)
 constexpr float ModeCardW = 170.f, ModeCardH = 210.f, ModeCardGap = 20.f, ModeCardY = 250.f;
 inline FVector2f ModeCardPos(int I) { return FVector2f(DesignW / 2.f - (4.f * ModeCardW + 3.f * ModeCardGap) / 2.f + I * (ModeCardW + ModeCardGap), ModeCardY); }
-inline FVector2f TitleBtnPos(int I, bool bCont) { const int K = bCont ? I : I - 1; return FVector2f(TitleBtnX, TitleBtnY0 + K * (TitleBtnH + TitleBtnGap)); } // 이어하기가 없으면 위로 당긴다
+inline FVector2f TitleBtnPos(int I, bool bCont) // 이어하기가 없으면 위로 당긴다. 버튼 묶음은 화면 위아래 가운데 (D-381)
+{
+	const int K = bCont ? I : I - 1, N = bCont ? (int)ETitleItem::Count : (int)ETitleItem::Count - 1;
+	const float Y0 = DesignH / 2.f - (N * TitleBtnH + (N - 1) * TitleBtnGap) / 2.f;
+	return FVector2f(TitleBtnX, Y0 + K * (TitleBtnH + TitleBtnGap));
+}
+// 버튼 색 규칙 (D-381): 기본 = 하늘색, 주 행동(시작 · 이어하기 · 확정) = 초록, 나가기 · 위험(종료) = 분홍. 마우스 올림은 같은 색으로 밝아지기만 한다
+inline FLinearColor BtnColDefault() { return Hex(TEXT("6edcff")); }
+inline FLinearColor BtnColPrimary() { return Hex(TEXT("9cffb0")); }
+inline FLinearColor BtnColExit() { return Hex(TEXT("ff6aaa")); }
 // 게임 오버 · 클리어 버튼 (D-293): 영수증 아래
 constexpr float OverBtnY = 500.f, OverBtnW = 230.f, OverBtnH = 44.f, OverRestartX = DesignW / 2.f - 250.f, OverMenuX = DesignW / 2.f + 20.f;
 constexpr float ClearBtnY = 600.f, ClearBtnX = DesignW / 2.f - 115.f;
@@ -1541,7 +1550,13 @@ struct SPDBoardWidget::FCanvas
 		NextLayer();
 	}
 	// 눌리는 버튼 바탕 (D-328 ②): 평소 옅게, 마우스를 올리면 더 진하게
-	void BtnFill(float X, float Y, float W, float H, float R, const FLinearColor& Col, bool bHot) { if (Rec()) GPDLayout.AddPanel(X, Y, W, H, 1.f, true); RoundFill(X, Y, W, H, R, FLinearColor(Col.R, Col.G, Col.B, bHot ? 0.16f : 0.07f)); }
+	void BtnFill(float X, float Y, float W, float H, float R, const FLinearColor& Col, bool bHot)
+	{
+		if (Rec()) GPDLayout.AddPanel(X, Y, W, H, 1.f, true);
+		// 마우스 올림 (D-381): 같은 색으로 밝아지고, 버튼 모양 그대로 밑에 은은한 빛 판 (다른 색으로 바꾸지 않는다)
+		if (bHot) Spill(RoundRectPoints(X, Y, W, H, FMath::Min(R, FMath::Min(W, H) / 2.f)), Col, FMath::Min(H, 28.f), 0.16f);
+		RoundFill(X, Y, W, H, R, FLinearColor(Col.R, Col.G, Col.B, bHot ? 0.16f : 0.07f));
+	}
 	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
 	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
 	{
