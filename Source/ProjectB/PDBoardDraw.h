@@ -1627,7 +1627,7 @@ struct SPDBoardWidget::FCanvas
 		FSlateDrawElement::MakeText(Out, NextLayer(), PG(Left, Top, Sz.X, Sz.Y), S, F, ESlateDrawEffect::None, FadeC(Col));
 		NextLayer();
 	}
-	// 돌리고 키운 글자 (D-374 회사 로고): 가운데 (CX, CY), Angle 라디안 (화면 시계 방향), Scale 배. 언어팩을 거치지 않는다 (로고 글자)
+	// 돌리고 키운 글자 (D-385 회사 로고): 가운데 (CX, CY), Angle 라디안 (화면 시계 방향), Scale 배. 언어팩을 거치지 않는다 (로고 글자)
 	void TextRot(const FString& S, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float Angle, float Scale = 1.f)
 	{
 		const FSlateFontInfo F = Font(Px, bBold);

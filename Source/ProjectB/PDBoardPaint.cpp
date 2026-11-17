@@ -419,7 +419,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	if (bSettings) PaintSettings(C);
 	if (bRanking) PaintRanking(C);
 	if (LoadT > 0.f) PaintLoading(C);
-	if (bSplash) PaintSplash(C); // 회사 로고 (D-374): 맨 위
+	if (bSplash) PaintSplash(C); // 회사 로고 (D-385): 맨 위
 	// 디버그 표시 (D-133, F3): 맨 위 왼쪽 아래 구석에
 	if (GPDDebug.bShow)
 	{
@@ -3540,7 +3540,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 	C.Text(TEXT("도움말 끄기"), Off.X, Off.Y + 9.f, HintOffRect.IsInside(Mouse) ? Fg : Dim, 9.f, 0, false, 90.f);
 }
 
-// 회사 로고 부트 스플래시 (D-374, 시안 tools/neon/logo_jollybaldy_type.py 의 K · k_frame 과 같은 타이밍): 평면 로고라 네온 화풍 예외
+// 회사 로고 부트 스플래시 (D-385, 시안 tools/neon/logo_jollybaldy_type.py 의 K · k_frame 과 같은 타이밍): 평면 로고라 네온 화풍 예외
 // 0.3 눈 뜸 → 0.7 JOLLY BALDY 가 한 글자씩 튀어나와 웃는 입 곡선 → 1.85 깜빡 → 2.1 정수리 광 '띵' → 3.6 부터 사라지며 시작 화면
 namespace
 {

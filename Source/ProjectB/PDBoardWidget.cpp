@@ -303,6 +303,27 @@ void SPDBoardWidget::Construct(const FArguments& InArgs)
 {
 	SetCanTick(true);
 	LoadUserData();
+	if (FParse::Param(FCommandLine::Get(), TEXT("pdnosplash")) || FParse::Param(FCommandLine::Get(), TEXT("pdbakeatlas"))) bSplash = false; // 회사 로고 건너뛰기 (D-385)
+}
+
+// 회사 로고 스플래시 (D-385): 글자가 튀어나올 때 톡, 광이 번쩍할 때 띵. 시작 화면이 아니면 바로 끝
+namespace { constexpr float SplashLetterT0 = 0.7f, SplashLetterGap = 0.065f, SplashDingT = 2.2f; const TCHAR* const SplashWord = TEXT("JOLLY BALDY"); }
+void SPDBoardWidget::TickSplash(float Dt)
+{
+	if (!bSplash) return;
+	if (Game.Phase != EPDPhase::Title || LoadT > 0.f) { EndSplash(); return; }
+	const float T0 = SplashT, T1 = SplashT + Dt;
+	SplashT = T1;
+	const int32 N = FCString::Strlen(SplashWord);
+	for (int32 I = 0, K = 0; I < N; ++I)
+	{
+		if (SplashWord[I] == TEXT(' ')) continue;
+		const float At = SplashLetterT0 + I * SplashLetterGap;
+		if (T0 < At && T1 >= At && !Game.bMuted) Game.Sounds.push_back({EPDSound::Pop, K, 0, 0.7f});
+		++K;
+	}
+	if (T0 < SplashDingT && T1 >= SplashDingT) UiSound(EPDSound::Ding);
+	if (SplashT >= SplashLen) bSplash = false;
 }
 
 
@@ -711,7 +732,8 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 			if (Pt >= PourEndT) { const int32 J = PourIdx; PourIdx = -1; Game.TakeReward(J); }
 		}
 	}
-	TitleT = Game.Phase == EPDPhase::Title && LoadT <= 0.f ? TitleT + Dt : 0.f;
+	TickSplash(Dt);
+	TitleT = Game.Phase == EPDPhase::Title && LoadT <= 0.f && (!bSplash || SplashT >= SplashHold) ? TitleT + Dt : 0.f; // 로고가 사라지기 시작하면 시작 화면 연출 (D-385)
 	if (bPaused && Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) bPaused = false; // 게임 오버·보상·제목이면 풀린다
 	{
 		const float AutoT0 = Game.AutoStartT;
@@ -1369,6 +1391,7 @@ FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEv
 void SPDBoardWidget::Click(FVector2f P, bool bRight)
 {
 	if (LoadT > 0.f) return; // 로딩 중엔 입력 없음 (D-153)
+	if (bSplash) { EndSplash(); return; } // 회사 로고: 누르면 넘김 (D-385)
 	if (CineActive() && !bMenu && !bSettings && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { SkipCine(); return; } // 완성 연출: 클릭하면 바로 건너뜀 (D-314 ④)
 	if (bRanking) // 랭킹 (D-168): 탭 · 닫기, 창 밖·오른쪽 클릭 = 닫기
 	{
@@ -2022,6 +2045,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 {
 	if (InKeyEvent.IsRepeat()) return FReply::Handled();
 	const FKey K = InKeyEvent.GetKey();
+	if (bSplash) { EndSplash(); return FReply::Handled(); } // 회사 로고: 아무 키나 넘김 (D-385)
 	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
 	if (K == EKeys::F6) { GPDDebug.bNoAtlas = !GPDDebug.bNoAtlas; return FReply::Handled(); } // 구운 그림 ↔ 선 비교
 #if !UE_BUILD_SHIPPING

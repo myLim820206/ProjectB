@@ -214,6 +214,9 @@ private:
 	void FeedClick(int32 Cell, bool bRight);
 	void PaintHandTip(FCanvas& C) const;     // 손패 카드 툴팁 (판 위 UI 다음에 그려 네온이 위로 비치지 않게, D-214)
 	void PaintFuseCursorTag(FCanvas& C) const; // 합성 모드 커서 꼬리표: 마우스 오른쪽 버튼 = 취소 (D-373)
+	void PaintSplash(FCanvas& C) const;        // 회사 로고 부트 스플래시 (D-385, 시안 tools/neon/logo_jollybaldy_type.py K)
+	void TickSplash(float Dt);
+	void EndSplash() { if (bSplash) { bSplash = false; SplashT = SplashLen; } }
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
 	// ---- 설정 (D-110): GameUserSettings.ini [ProjectB.Settings]. 화면 모드는 엔진 GameUserSettings 가 저장
 	struct FSettings
@@ -489,6 +492,10 @@ private:
 	FLinearColor BannerCol = FLinearColor::White;
 	float Clock = 0.f;
 	float TitleT = 0.f; // 시작 화면을 연 뒤 시간 (로고 켜짐 · 빠직, D-253)
+	// 회사 로고 부트 스플래시 (D-385): 게임을 켜면 시작 화면 위에 한 번. 누르면 넘김. SplashHold 뒤 SplashLen 까지 사라지며 시작 화면이 비친다
+	bool bSplash = true;
+	float SplashT = 0.f;
+	static constexpr float SplashHold = 3.6f, SplashLen = 4.1f;
 
 	// 그릴 때 정한 화면 배율 (마우스 좌표 변환, 월드 이펙트 좌표에 씀)
 	mutable float ViewScale = 1.f;

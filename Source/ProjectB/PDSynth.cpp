@@ -180,6 +180,20 @@ std::vector<int16_t> SynthesizeSound(EPDSound Sound, int A, int B, int Rate)
 		Buf.Echo(0.15f, 0.25f, 3);
 		break;
 	}
+	case EPDSound::Ding: // 회사 로고 광 (D-385): 맑은 종 — 높은 사인 + 배음 (2.76배 · 5.4배) 이 천천히 사라짐
+		Buf.Tone(0.f, 1.1f, 1760.f, 1760.f, EWave::Sine, 0.30f, 0.002f, 4.f);
+		Buf.Tone(0.f, 0.7f, 1760.f * 2.76f, 1760.f * 2.76f, EWave::Sine, 0.10f, 0.002f, 6.f);
+		Buf.Tone(0.f, 0.35f, 1760.f * 5.4f, 1760.f * 5.4f, EWave::Sine, 0.05f, 0.001f, 8.f);
+		Buf.Echo(0.09f, 0.25f, 3);
+		break;
+	case EPDSound::Pop: // 로고 글자 톡 (D-385): 위로 휘는 짧은 사인, 글자마다 장조 5음계로 조금씩 높게
+	{
+		static const int Pent[5] = {0, 2, 4, 7, 9};
+		const int I = std::max(0, A);
+		const float F = MidiHz(67.f + Pent[I % 5] + 12.f * (I / 5));
+		Buf.Tone(0.f, 0.07f, F * 0.7f, F * 1.15f, EWave::Sine, 0.22f, 0.002f, 5.f);
+		break;
+	}
 	case EPDSound::Win:
 	{
 		const float Ns[4] = {72.f, 76.f, 79.f, 84.f};
