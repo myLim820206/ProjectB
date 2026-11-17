@@ -2,6 +2,7 @@
 // 좌표 그대로 재현해 고치기 전엔 잡히고 고친 뒤엔 깨끗한지, 일부러 겹치게 그린 것(네온 글자 · 흐린 벽돌 · 버튼 속 아이콘)은 거르는지 본다.
 //   g++ -std=c++20 -w -I Tests/fakeue -I Source/ProjectB -o Tests/build/layout_check_test Tests/layout_check_test.cpp && Tests/build/layout_check_test
 //   기대: tree before 1 · tree fixed 0 · jukebox before 2 · jukebox fixed 0 · should be clean 0
+#include "PDBoardDraw.h"
 #include <cstdio>
 static void Dump(const char* Title)
 {
