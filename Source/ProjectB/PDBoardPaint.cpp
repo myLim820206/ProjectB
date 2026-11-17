@@ -2407,15 +2407,25 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			}
 			else if (bHov && !bAnyPour && Kind < 3) Shaker(FVector2f(GX + 54.f, BY), 0.f, true, 0.62f, 0.75f); // 마우스: 잔 옆 선반에 셰이커가 서 있다
 			// 가격표 꼬리표: 이름 · 효과
-			const float TX = P.X, TY = RewardShelfY + 32.f, TW = RewardW, TH = 48.f;
+			// 효과 글이 한 줄에 안 들어가면 가운데 가까운 띄어쓰기에서 두 줄로, 꼬리표도 그만큼 높게 (D-369)
+			const FString DescS = TrS(R.bCharm ? CharmDesc(R.Id) : InstantDesc(R.Id));
+			FString Desc1 = DescS, Desc2;
+			if (FCanvas::Measure(DescS, FCanvas::Font(10.f, false)).X > RewardW - 34.f)
+			{
+				int32 Cut = -1;
+				for (int32 Ci = 0; Ci < DescS.Len(); ++Ci) if (DescS[Ci] == TEXT(' ') && (Cut < 0 || FMath::Abs(Ci - DescS.Len() / 2) < FMath::Abs(Cut - DescS.Len() / 2))) Cut = Ci;
+				if (Cut > 0) { Desc1 = DescS.Left(Cut); Desc2 = DescS.Mid(Cut + 1); }
+			}
+			const float TX = P.X, TY = RewardShelfY + 32.f, TW = RewardW, TH = Desc2.IsEmpty() ? 48.f : 60.f;
 			const FLinearColor TagC = bHov ? PinkR : R.bCharm ? Gold : Cyan;
 			const TArray<FVector2f> Tg = {FVector2f(TX, TY + TH / 2.f), FVector2f(TX + 14.f, TY), FVector2f(TX + TW, TY), FVector2f(TX + TW, TY + TH), FVector2f(TX + 14.f, TY + TH), FVector2f(TX, TY + TH / 2.f)};
 			C.Box(TX + 14.f, TY, TW - 14.f, TH, Hex(TEXT("06060b"), 0.9f));
 			C.Glow(Tg, TagC, bHov ? 1.8f : 1.4f, bHov ? 0.8f : 0.45f);
 			C.Lines(FCanvas::CirclePoints(FVector2f(TX + 12.f, TY + TH / 2.f), 3.f, 10), WithAlpha(Fg, 0.6f), 1.f);
 			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), TX + TW / 2.f + 8.f, TY + 16.f, bHov ? White : Fg, 13.f, true, TW - 34.f);
-			C.TextCentered(R.bCharm ? CharmDesc(R.Id) : InstantDesc(R.Id), TX + TW / 2.f + 8.f, TY + 34.f, Fg, 10.f, false, TW - 34.f);
-			C.TextCentered(FString::Printf(TEXT("%s  ·  %d"), R.bCharm ? Tr(TEXT("칵테일")) : Tr(TEXT("서비스")), I + 1), GX, TY + TH + 18.f, R.bCharm ? Gold : Cyan, 10.f, true);
+			C.TextCentered(Desc1, TX + TW / 2.f + 8.f, TY + 34.f, Fg, 10.f, false, TW - 34.f);
+			if (!Desc2.IsEmpty()) C.TextCentered(Desc2, TX + TW / 2.f + 8.f, TY + 47.f, Fg, 10.f, false, TW - 34.f);
+			C.TextCentered(FString::Printf(TEXT("%s  ·  %d"), R.bCharm ? Tr(TEXT("칵테일")) : Tr(TEXT("서비스")), I + 1), GX, TY + 78.f, R.bCharm ? Gold : Cyan, 10.f, true); // 꼬리표 높이와 상관없이 같은 줄
 		}
 		C.TextCentered(TEXT("1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기"), CXb, FY + Rows * CS - 30.f, Grey, 12.f, false, Cols * CS - 20.f);
 		if ((int32)G.Charms.size() >= CharmMax) C.TextCentered(TEXT("칵테일 칸이 가득 찼다 (5/5)"), CXb, FY + Rows * CS - 12.f, Dim, 11.f, false);
