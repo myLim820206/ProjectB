@@ -2240,7 +2240,6 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 			}
 		}
 		if (N == 0) C.Text(TrF(TEXT("%d웨이브마다 하나를 고른다"), CharmEvery), RX + 14.f, CharmY + 76.f, Dim, 10.f, 0, false, PW - 28.f);
-		else C.Text(TEXT("잔에 마우스: 이름 · 설명"), RX + 14.f, CharmY + 76.f, Dim, 9.f, 0, false, PW - 28.f);
 		for (int32 I = 0; I < N; ++I) // 병 툴팁 (D-275): 패널이 바닥선에서 끝나 목록 대신
 		{
 			const float BXc = RX + 26.f + I * (PW - 52.f) / (CharmMax - 1), SY = CharmY + 58.f;

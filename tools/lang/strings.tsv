@@ -604,7 +604,6 @@ F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍
 칵테일 %d/%d	Cocktails %d/%d	カクテル %d/%d	鸡尾酒 %d/%d	雞尾酒 %d/%d	PDBoardPaint.cpp
 다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
 %d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
-잔에 마우스: 이름 · 설명	Hover a glass: name · effect	グラスにカーソル: 名前 · 説明	悬停酒杯: 名称 · 说明	懸停酒杯: 名稱 · 說明	PDBoardPaint.cpp
 ?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDBoardPaint.cpp
 카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)	Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)	カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)	点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)	PDBoardPaint.cpp
 오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
@@ -810,6 +809,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+잔에 마우스: 이름 · 설명	Hover a glass: name · effect	グラスにカーソル: 名前 · 説明	悬停酒杯: 名称 · 说明	懸停酒杯: 名稱 · 說明	PDLangTable.inl
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDLangTable.inl
 다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDLangTable.inl
 위쪽에 보스 이름이 보여요	Its name is shown at the top	上にボスの名前が表示されます	顶部会显示首领名字	頂部會顯示首領名字	PDLangTable.inl
