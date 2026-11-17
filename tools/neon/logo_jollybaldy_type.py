@@ -407,6 +407,111 @@ def logo_L():
     return img.resize((W, H), Image.LANCZOS)
 
 
+# ---------------------------------------------------------------- K 애니메이션
+def _clamp01(v):
+    return 0.0 if v < 0 else 1.0 if v > 1 else v
+
+
+def _ease_out_back(v, k=1.9):
+    v -= 1
+    return 1 + (k + 1) * v ** 3 + k * v ** 2
+
+
+def _ease_out(v):
+    return 1 - (1 - v) ** 3
+
+
+def _dim(c, a):
+    return tuple(int(BG[i] + (c[i] - BG[i]) * a) for i in range(3))
+
+
+K_LEN = 3.6   # 초
+
+
+def k_frame(t, s=2):
+    """K 시안의 t 초 장면. 0.3 눈 뜸 → 0.7 글자가 하나씩 튀어나와 웃는 입 → 1.75 깜빡 → 2.1 정수리 광 '띵' → 유지"""
+    global S
+    S0, S = S, s
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    cx, cy, R = 640, 40, 520
+    # 1) 눈: 납작한 선에서 둥근 웃는 눈으로 (0.3~0.65), 1.75 에 한 번 깜빡
+    eo = _ease_out_back(_clamp01((t - 0.3) / 0.35), 1.4)
+    bl = _clamp01(1 - abs(t - 1.85) / 0.1)            # 깜빡 (1.75~1.95)
+    eh = max(0.0, eo) * (1 - bl * 0.85)
+    if t > 0.3:
+        w = max(1, int(16 * S))
+        for sg in (-1, 1):
+            ex, ey = cx + sg * 150, 300
+            hh = 45 * eh
+            if hh < 4:
+                d.line(sc([(ex - 46, ey + 3), (ex + 46, ey + 3)]), fill=_dim(CREAM, _clamp01(eo)), width=w)
+            else:
+                d.arc(sc([(ex - 50, ey + 5 - hh), (ex + 50, ey + 5 + hh)]), 200, 340, fill=_dim(CREAM, _clamp01(eo)), width=w)
+    # 2) 글자: 왼쪽부터 0.065초 간격으로 튀어나옴 (커졌다 제자리, 위에서 살짝 떨어짐)
+    s_txt, px, gap_k = 'JOLLY BALDY', 92, 0.04
+    f = F(px)
+    widths = [f.getlength(c) / S for c in s_txt]
+    gap = px * gap_k
+    tot = sum(widths) + gap * (len(s_txt) - 1)
+    Rt = R
+    a = 90 + math.degrees(tot / Rt) / 2
+    for i, (c, wd) in enumerate(zip(s_txt, widths)):
+        am = a - math.degrees((wd / 2) / Rt)
+        a -= math.degrees((wd + gap) / Rt)
+        lt = _clamp01((t - 0.7 - i * 0.065) / 0.32)
+        if lt <= 0 or c == ' ':
+            continue
+        sc_ = max(0.05, _ease_out_back(lt))
+        drop = (1 - _ease_out(lt)) * 40                   # 원 가운데 쪽(위)에서 떨어져 내려옴
+        tile = Image.new('L', (int(px * 2 * S), int(px * 2 * S)), 0)
+        ImageDraw.Draw(tile).text((tile.width / 2, tile.height / 2), c, font=f, fill=255, anchor='mt')
+        n = max(1, int(tile.width * sc_))
+        tile = tile.resize((n, n), Image.LANCZOS).rotate(-(am - 90), resample=Image.BICUBIC)
+        rr = Rt - drop
+        x, y = cx + math.cos(math.radians(am)) * rr, cy + math.sin(math.radians(am)) * rr
+        col = _dim(YELLOW, _clamp01(lt * 2.5))
+        img.paste(Image.new('RGB', tile.size, col), (int(x * S - tile.width / 2), int(y * S - tile.height / 2)), tile)
+    # 3) 정수리 광: 2.1 에 타원이 스르륵, 별이 크게 번쩍했다 제자리 (빛줄 넷)
+    gt = _clamp01((t - 2.1) / 0.25)
+    if gt > 0:
+        ga = _ease_out(gt)
+        ex0, ey0 = cx - 175, 136
+        rw, rh = 35 * ga, 16 * ga
+        d.ellipse(sc([(ex0 - rw, ey0 - rh), (ex0 + rw, ey0 + rh)]), fill=WHITE)
+        st = _clamp01((t - 2.2) / 0.45)
+        if st > 0:
+            big = 1 + 2.2 * math.sin(math.pi * min(1.0, st * 1.3)) if st < 0.77 else 1.0
+            sx_, sy_ = cx - 108, 118
+            rot = (1 - _ease_out(st)) * 90
+            pts = [(sx_ + math.cos(math.radians(-90 + k * 45 + rot)) * (18 * big if k % 2 == 0 else 18 * big * 0.25),
+                    sy_ + math.sin(math.radians(-90 + k * 45 + rot)) * (18 * big if k % 2 == 0 else 18 * big * 0.25)) for k in range(8)]
+            d.polygon(sc(pts), fill=WHITE)
+            if st < 0.8:   # 번쩍 빛줄
+                ra = (1 - st / 0.8)
+                for k in range(4):
+                    ang = math.radians(45 + k * 90)
+                    r0, r1 = 26, 26 + 60 * _ease_out(st / 0.8)
+                    d.line(sc([(sx_ + math.cos(ang) * r0, sy_ + math.sin(ang) * r0), (sx_ + math.cos(ang) * r1, sy_ + math.sin(ang) * r1)]),
+                           fill=_dim(WHITE, ra), width=max(1, int(4 * S)))
+    out = img.resize((W, H), Image.LANCZOS)
+    S = S0
+    return out
+
+
+def anim_K(outdir, fps=25):
+    os.makedirs(outdir, exist_ok=True)
+    n = int(K_LEN * fps)
+    frames = [k_frame(i / fps) for i in range(n)]
+    for tt in (0.5, 1.0, 1.85, 2.3, 3.5):   # 확인용 낱장
+        k_frame(tt).save(os.path.join(outdir, 'K_t%.2f.png' % tt))
+    small = [fr.resize((800, 450), Image.LANCZOS).convert('P', palette=Image.ADAPTIVE, colors=64) for fr in frames]
+    durs = [int(1000 / fps)] * n
+    durs[-1] = 1500   # 끝에서 잠깐 머묾
+    small[0].save(os.path.join(outdir, 'K_anim.gif'), save_all=True, append_images=small[1:], duration=durs, loop=0)
+    print('anim ok', n, 'frames')
+
+
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
     for group, names, fns in (('', 'ABC', (logo_A, logo_B, logo_C)), ('2', 'DEF', (logo_D, logo_E, logo_F)), ('3', 'GHI', (logo_G, logo_H, logo_I)), ('4', 'JKL', (logo_J, logo_K, logo_L))):
@@ -420,4 +525,7 @@ def main(outdir):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else '.')
+    if len(sys.argv) > 2 and sys.argv[2] == 'animK':   # python logo_jollybaldy_type.py 출력폴더 animK
+        anim_K(sys.argv[1])
+    else:
+        main(sys.argv[1] if len(sys.argv) > 1 else '.')
