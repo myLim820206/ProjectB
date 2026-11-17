@@ -1687,9 +1687,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			bool bCan = false;
 			for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) bCan = bCan || ((int32)G.Synergies[I].Kind == HandFilter && G.CanFuse(I));
-			F.Badge(bCan ? TrF(TEXT("%s 합성: 합쳐질 칸을 클릭"), HandName((EPDHand)HandFilter)) // 끄는 법은 커서 꼬리표로 (D-373)
-						 : TrF(TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), HandName((EPDHand)HandFilter)),
-				FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
+			if (!bCan) // 합성할 수 있을 땐 판 위 안내 꼬리표를 띄우지 않는다 (D-374): 빛나는 칸과 커서 꼬리표로 충분
+				F.Badge(TrF(TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), HandName((EPDHand)HandFilter)),
+					FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
 		}
 	}
 	// 조커를 만들 수 있는 재료 칸 반짝임 (먹이기·만들기 모드에선 숨김). 버튼은 없애고 [조커 만들기]로 (D-195)
