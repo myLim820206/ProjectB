@@ -1551,11 +1551,12 @@ struct SPDBoardWidget::FCanvas
 		NextLayer();
 	}
 	// 눌리는 버튼 바탕 (D-328 ②): 평소 옅게, 마우스를 올리면 더 진하게
-	// 닫기 ⓧ (D-384, D-388): 동그라미 안 X, 기본 하늘색. 마우스 올림 = 같은 색 밝게 + 빛 판. 설정 · 스킬 트리 · 도감 · 강화 창이 같이 쓴다
+	// 닫기 ⓧ (D-384, D-388, D-391): 동그라미 안 X, 흰색 네온. 마우스 올림 = 더 밝게 + 빛 판. 설정 · 스킬 트리 · 도감 · 강화 창이 같이 쓴다
 	void CloseX(FVector2f O, float R, bool bHov)
 	{
-		const FLinearColor Xc = bHov ? HotCol(BtnColDefault()) : WithAlpha(BtnColDefault(), 0.75f);
-		if (bHov) SoftDisc(O, R + 6.f, R + 6.f, BtnColDefault(), 0.18f);
+		const FLinearColor W = Hex(TEXT("eef3ff"));
+		const FLinearColor Xc = bHov ? FLinearColor::White : WithAlpha(W, 0.72f);
+		if (bHov) SoftDisc(O, R + 6.f, R + 6.f, W, 0.16f);
 		Glow(CirclePoints(O, R, 28), Xc, bHov ? 1.8f : 1.3f, bHov ? 0.9f : 0.45f);
 		const float K = R * 0.42f;
 		Glow({O + FVector2f(-K, -K), O + FVector2f(K, K)}, Xc, 1.6f, bHov ? 0.8f : 0.4f);
