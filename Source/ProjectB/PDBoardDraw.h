@@ -752,7 +752,7 @@ constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 140.f; // 언어 줄�
 constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
-constexpr float SetCloseR = 13.f, SetCloseCX = SetBoxX + SetBoxW - 30.f, SetCloseCY = SetBoxY + 52.f; // 닫기 ⓧ (D-384): 아치 어깨 바로 아래 오른쪽, 언어 줄 위
+constexpr float SetCloseR = 13.f, SetCloseCX = SetX + SetLabelW + 352.f - SetCloseR, SetCloseCY = SetBoxY + 52.f; // 닫기 ⓧ (D-384): 아치 어깨 바로 아래, 언어 줄 위. 오른쪽 끝을 선택지 버튼 열 오른쪽 끝(X0 + 352)에 맞춤 (D-387)
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
 inline int SetBtnCount(int Row) { return Row == (int)ESetRow::Lang ? (int)EPDLang::Count : Row == (int)ESetRow::Window || Row == (int)ESetRow::CardTheme || Row == (int)ESetRow::Frame || Row == (int)ESetRow::Cine || Row == (int)ESetRow::Track || SetBarRow(Row) ? 3 : Row == (int)ESetRow::Help ? 2 : 1; }
 inline FLinearColor LevelDotColor() { return GPDCardTheme == 1 ? FLinearColor::White : Hex(TEXT("ffd96a")); } // 타워 레벨 점 (흑백이면 흰빛)
