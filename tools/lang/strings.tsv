@@ -630,6 +630,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 키스톤 %d / %d	Keystones %d / %d	キーストーン %d / %d	基石 %d / %d	基石 %d / %d	PDBoardPaint.cpp
 찍은 노드 %d	Nodes taken %d	取得ノード %d	已点亮节点 %d	已點亮節點 %d	PDBoardPaint.cpp
 이번 판에서만 · 레벨이 오를 때마다 포인트 1	This run only · 1 point per level up	このランのみ · レベルアップごとにポイント 1	仅限本局 · 每次升级获得 1 点	僅限本局 · 每次升級獲得 1 點	PDBoardPaint.cpp
+휠: 확대 · 축소 · 빈 곳 끌기: 옮기기 · 0: 원래대로 (×%.1f)	Wheel: zoom · Drag empty space: pan · 0: reset (×%.1f)	ホイール: 拡大・縮小 · 空き所をドラッグ: 移動 · 0: 元に戻す (×%.1f)	滚轮: 放大 · 缩小 · 拖动空白处: 移动 · 0: 复原 (×%.1f)	滾輪: 放大 · 縮小 · 拖曳空白處: 移動 · 0: 復原 (×%.1f)	PDBoardPaint.cpp
+휠: 확대 · 축소 · 빈 곳 끌기: 옮기기	Wheel: zoom · Drag empty space: pan	ホイール: 拡大・縮小 · 空き所をドラッグ: 移動	滚轮: 放大 · 缩小 · 拖动空白处: 移动	滾輪: 放大 · 縮小 · 拖曳空白處: 移動	PDBoardPaint.cpp
 찍을 수 있음 · 남은 포인트 %d	Can take · points left %d	取得可能 · 残りポイント %d	可点亮 · 剩余点数 %d	可點亮 · 剩餘點數 %d	PDBoardPaint.cpp
 찍음	Taken	取得済み	已点亮	已點亮	PDBoardPaint.cpp
 찍은 노드와 이어져야 한다	Must connect to a taken node	取得済みノードとつながっている必要がある	必须与已点亮节点相连	必須與已點亮節點相連	PDBoardPaint.cpp

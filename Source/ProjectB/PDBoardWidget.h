@@ -26,7 +26,8 @@ public:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override; // 잠금 해제 쪽 넘기기 (D-261)
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override; // 잠금 해제 쪽 넘기기 (D-261), 트리 확대 (D-376)
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override; // 트리 끌기 끝 (D-376)
 
 	// 게임이 낸 소리를 꺼내 간다 (게임 모드가 매 프레임 재생)
 	std::vector<PD::FPDSoundEvent> TakeSounds()
@@ -262,6 +263,14 @@ private:
 	bool SynRevealed(int32 SynergyIdx) const;
 	bool JokerRevealed(const PD::FPDJokerGroup& Gr) const;
 	int32 TreeHoverAt(FVector2f P) const; // 트리 창에서 이 위치의 노드 (-1 = 없음)
+	// 트리 확대 · 옮기기 (D-376): 노드 자리(트리 좌표) ↔ 화면. 가운데(640, 392) 기준 TreeZoom 배, TreePan 만큼 밀기
+	float TreeZoom = 1.f;
+	FVector2f TreePan = FVector2f(0.f, 0.f);
+	bool bTreeDrag = false;
+	FVector2f TreeDragFrom = FVector2f(0.f, 0.f), TreePanFrom = FVector2f(0.f, 0.f);
+	FVector2f TreeToScreen(FVector2f P) const { return FVector2f(640.f, 392.f) + (P - FVector2f(640.f, 392.f)) * TreeZoom + TreePan; }
+	FVector2f ScreenToTree(FVector2f P) const { return FVector2f(640.f, 392.f) + (P - FVector2f(640.f, 392.f) - TreePan) / TreeZoom; }
+	void ClampTreePan() { TreePan.X = FMath::Clamp(TreePan.X, -640.f * TreeZoom, 640.f * TreeZoom); TreePan.Y = FMath::Clamp(TreePan.Y, -360.f * TreeZoom, 360.f * TreeZoom); }
 	TArray<FVector2f> PendingFuseCells; // 합성 직전 족보 칸 위치 (연출용)
 
 	// ---- 이펙트

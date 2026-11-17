@@ -1290,10 +1290,10 @@ void SPDBoardWidget::ToggleCraft()
 int32 SPDBoardWidget::TreeHoverAt(FVector2f P) const
 {
 	int32 Best = -1;
-	float BestD = 15.f;
+	float BestD = 15.f * FMath::Max(1.f, TreeZoom); // 화면에서 잰다 (D-376): 확대하면 노드가 커진 만큼 잡히는 자리도
 	for (int32 Id = 0; Id < TreeNodeCount(); ++Id)
 	{
-		const float D = FVector2f::Distance(P, TreeNodePos(Id));
+		const float D = FVector2f::Distance(P, TreeToScreen(TreeNodePos(Id)));
 		if (D < BestD) { BestD = D; Best = Id; }
 	}
 	return Best;
@@ -1340,6 +1340,11 @@ FVector2f SPDBoardWidget::ToDesign(const FGeometry& MyGeometry, const FPointerEv
 FReply SPDBoardWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	Mouse = ToDesign(MyGeometry, MouseEvent);
+	if (bTreeDrag) // 트리 끌기 (D-376)
+	{
+		if (!bTree || !MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton)) bTreeDrag = false;
+		else { TreePan = TreePanFrom + (Mouse - TreeDragFrom); ClampTreePan(); return FReply::Handled(); }
+	}
 	if (bSettings)
 	{
 		for (int32 Row = 0; Row < (int32)ESetRow::Count; ++Row)
@@ -1457,9 +1462,10 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (bTree)
 	{
-		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bTree = false; return; }
+		if (bRight || InRect(P, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH)) { bTree = false; bTreeDrag = false; return; }
 		const int32 Id = TreeHoverAt(P);
 		if (Id >= 0 && !Game.BuyNode(Id)) UiSound(EPDSound::Denied);
+		if (Id < 0) { bTreeDrag = true; TreeDragFrom = P; TreePanFrom = TreePan; } // 빈 곳을 누르고 끌면 옮기기 (D-376)
 		return;
 	}
 	// 칸 메뉴 상자 (D-312): 줄 클릭 = 그 일, 상자 안 다른 곳은 먹는다. 바깥 클릭 · 오른쪽 클릭 = 닫기 (다른 타워를 왼쪽 클릭하면 그 타워 메뉴)
@@ -1705,7 +1711,22 @@ FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerE
 {
 	if (bCodex) { CdxGo(UnlockTab, UnlockPage + (MouseEvent.GetWheelDelta() > 0.f ? -1 : 1)); return FReply::Handled(); } // 도감 책자: 휠 = 쪽 넘기기 (D-354)
 	if (Game.Phase == EPDPhase::Title && bUnlock) { CdxGo(UnlockTab, UnlockPage + (MouseEvent.GetWheelDelta() > 0.f ? -1 : 1)); return FReply::Handled(); } // 잠금 해제 책자 (D-356)
+	if (bTree) // 트리 확대 · 축소 (D-376): 커서 아래 자리가 그대로 남게
+	{
+		const FVector2f M = ToDesign(MyGeometry, MouseEvent), W = ScreenToTree(M);
+		TreeZoom = FMath::Clamp(TreeZoom * (MouseEvent.GetWheelDelta() > 0.f ? 1.15f : 1.f / 1.15f), 0.7f, 2.5f);
+		if (FMath::IsNearlyEqual(TreeZoom, 1.f, 0.03f)) TreeZoom = 1.f;
+		TreePan = M - FVector2f(640.f, 392.f) - (W - FVector2f(640.f, 392.f)) * TreeZoom;
+		ClampTreePan();
+		return FReply::Handled();
+	}
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
+}
+
+FReply SPDBoardWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (bTreeDrag && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) { bTreeDrag = false; return FReply::Handled(); }
+	return SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
 }
 
 void SPDBoardWidget::SyncGoalStats()
@@ -2082,7 +2103,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		else if (K == EKeys::Left || K == EKeys::A || K == EKeys::Right || K == EKeys::D) CdxGo(UnlockTab, UnlockPage + (K == EKeys::Left || K == EKeys::A ? -1 : 1));
 		return FReply::Handled();
 	}
-	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
+	if (bTree) { if (K == EKeys::K || K == EKeys::Escape) bTree = false; else if (K == EKeys::M) SetSound(!Settings.bSound); else if (K == EKeys::Zero || K == EKeys::NumPadZero) { TreeZoom = 1.f; TreePan = FVector2f(0.f, 0.f); } return FReply::Handled(); } // 0: 확대 원래대로 (D-376)
 	if (bUpg) { if (K == EKeys::U || K == EKeys::Escape) bUpg = false; else if (K == EKeys::M) SetSound(!Settings.bSound); return FReply::Handled(); }
 	if (!PickCells.empty())
 	{

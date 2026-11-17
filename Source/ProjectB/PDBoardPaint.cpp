@@ -2749,7 +2749,10 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			for (int32 K = 0; K < 21; ++K) { const float X = K * 64.f + (R % 2 ? 32.f : 0.f); C.Lines({FVector2f(X, Y), FVector2f(X, Y + 34.f)}, Brick, 1.f); }
 		}
 	}
-	// 걸린 'SKILL TREE' 간판 + 정보 알약 (간판 왼쪽 셋, 오른쪽 하나: 겹치지 않게, D-291)
+	// 걸린 'SKILL TREE' 간판 + 정보 알약 (간판 왼쪽 셋, 오른쪽 하나: 겹치지 않게, D-291).
+	// 확대해도 그대로인 자리라 노드 위에 나중에 그린다 (D-376)
+	auto Header = [&]()
+	{
 	for (const float Wx : {470.f, 810.f}) C.Lines({FVector2f(Wx, 0.f), FVector2f(Wx, 8.f)}, Hex(TEXT("5f6878"), 0.5f), 1.f);
 	C.Box(440.f, 8.f, 400.f, 54.f, Hex(TEXT("06060b"), 0.9f));
 	C.Glow(FCanvas::RoundRectPoints(440.f, 8.f, 400.f, 54.f, RadPanel), Purple, 2.2f, 1.f);
@@ -2766,7 +2769,11 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	Pill(280.f, TrF(TEXT("키스톤 %d / %d"), G.KeystoneCount(), KeystoneMax), Gold);
 	Pill(860.f, TrF(TEXT("찍은 노드 %d"), G.Points), Fg);
 	C.Text(TEXT("이번 판에서만 · 레벨이 오를 때마다 포인트 1"), 42.f, 66.f, Dim, 10.f, 0, false, 350.f); // 정보 알약 밑 (D-365: 바닥 가운데는 맨 아래 키스톤 이름 알약과 겹쳤다)
+	C.Text(TreeZoom != 1.f || !TreePan.IsNearlyZero() ? TrF(TEXT("휠: 확대 · 축소 · 빈 곳 끌기: 옮기기 · 0: 원래대로 (×%.1f)"), TreeZoom) : FString(Tr(TEXT("휠: 확대 · 축소 · 빈 곳 끌기: 옮기기"))), 1238.f, 66.f, Dim, 10.f, 2, false, 420.f); // D-376
 	PaintCloseButton(C, Purple);
+	};
+	// 노드 · 연결선은 확대 · 옮기기를 거쳐 그린다 (D-376): 붓의 점 옮기기(PW)를 쓰면 상자 · 글자 · 스프라이트도 같이 커진다
+	if (TreeZoom != 1.f || !TreePan.IsNearlyZero()) C.PW = [this](FVector2f Q) { return TreeToScreen(Q); };
 	// 연결선: 노드 테두리에서 끊는다 (아이콘을 가로지르지 않게)
 	auto NodeR = [](int32 Id) { switch (TreeNode(Id).Kind) { case EPDNode::Start: return 14.f; case EPDNode::Small: return 11.f; case EPDNode::Notable: return 16.f; case EPDNode::Keystone: return 21.f; default: return 17.f; } };
 	for (int32 A = 0; A < TreeNodeCount(); ++A)
@@ -2860,6 +2867,8 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			C.Glow(FCanvas::CirclePoints(P, 14.f + 40.f * U, 40), WithAlpha(Col, 1.f - U), 2.f, 1.f);
 		}
 	}
+	C.PW = nullptr;
+	Header();
 	// 범례(찍음 · 찍을 수 있음 · 못 찍음 · 봉인, D-130)는 뺌 (D-375): 노드에 마우스를 올리면 설명에 상태가 나온다
 	// 설명
 	if (Hov >= 0)
@@ -2882,8 +2891,9 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 		for (const FPDNodeFx& Fx : N.Fx) if (Fx.Stat != EPDStat::None) Lines.Add(TreeFxText(Fx));
 		const bool bKey = N.Kind == EPDNode::Keystone;
 		const float W = 320.f, H = 52.f + Lines.Num() * 20.f + (bKey ? 20.f : 0.f) + 34.f;
-		const FVector2f P = TreeNodePos(Hov);
-		const float X = P.X + 34.f + W > DesignW - 12.f ? P.X - 34.f - W : P.X + 34.f, Y = FMath::Clamp(P.Y - 60.f, 76.f, DesignH - H - 12.f);
+		const FVector2f P = TreeToScreen(TreeNodePos(Hov)); // 설명 상자는 확대하지 않고 화면의 노드 옆에 (D-376)
+		const float Off = 34.f * FMath::Max(1.f, TreeZoom);
+		const float X = FMath::Clamp(P.X + Off + W > DesignW - 12.f ? P.X - Off - W : P.X + Off, 12.f, DesignW - W - 12.f), Y = FMath::Clamp(P.Y - 60.f, 76.f, DesignH - H - 12.f);
 		const FLinearColor Edge = Can == FPDGame::EBuy::Ok ? Green : TreeNodeColor(Hov);
 		C.Box(X, Y, W, H, Hex(TEXT("0a0b14"), 0.97f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, RadSmall), Edge, 1.4f, 0.6f);

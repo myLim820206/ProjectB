@@ -631,6 +631,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("키스톤 %d / %d"), TEXT("Keystones %d / %d"), TEXT("キーストーン %d / %d"), TEXT("基石 %d / %d"), TEXT("基石 %d / %d")},
 	{TEXT("찍은 노드 %d"), TEXT("Nodes taken %d"), TEXT("取得ノード %d"), TEXT("已点亮节点 %d"), TEXT("已點亮節點 %d")},
 	{TEXT("이번 판에서만 · 레벨이 오를 때마다 포인트 1"), TEXT("This run only · 1 point per level up"), TEXT("このランのみ · レベルアップごとにポイント 1"), TEXT("仅限本局 · 每次升级获得 1 点"), TEXT("僅限本局 · 每次升級獲得 1 點")},
+	{TEXT("휠: 확대 · 축소 · 빈 곳 끌기: 옮기기 · 0: 원래대로 (×%.1f)"), TEXT("Wheel: zoom · Drag empty space: pan · 0: reset (×%.1f)"), TEXT("ホイール: 拡大・縮小 · 空き所をドラッグ: 移動 · 0: 元に戻す (×%.1f)"), TEXT("滚轮: 放大 · 缩小 · 拖动空白处: 移动 · 0: 复原 (×%.1f)"), TEXT("滾輪: 放大 · 縮小 · 拖曳空白處: 移動 · 0: 復原 (×%.1f)")},
+	{TEXT("휠: 확대 · 축소 · 빈 곳 끌기: 옮기기"), TEXT("Wheel: zoom · Drag empty space: pan"), TEXT("ホイール: 拡大・縮小 · 空き所をドラッグ: 移動"), TEXT("滚轮: 放大 · 缩小 · 拖动空白处: 移动"), TEXT("滾輪: 放大 · 縮小 · 拖曳空白處: 移動")},
 	{TEXT("찍을 수 있음 · 남은 포인트 %d"), TEXT("Can take · points left %d"), TEXT("取得可能 · 残りポイント %d"), TEXT("可点亮 · 剩余点数 %d"), TEXT("可點亮 · 剩餘點數 %d")},
 	{TEXT("찍음"), TEXT("Taken"), TEXT("取得済み"), TEXT("已点亮"), TEXT("已點亮")},
 	{TEXT("찍은 노드와 이어져야 한다"), TEXT("Must connect to a taken node"), TEXT("取得済みノードとつながっている必要がある"), TEXT("必须与已点亮节点相连"), TEXT("必須與已點亮節點相連")},
@@ -1019,4 +1021,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 };
-static const int32 PDLangRowCount = 1018;
+static const int32 PDLangRowCount = 1020;
