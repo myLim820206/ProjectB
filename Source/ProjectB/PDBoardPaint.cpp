@@ -4002,8 +4002,8 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		C.Lines(Bo, FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
 		C.Glow(FCanvas::RoundRectPoints(X0 + 10.f, BoardY + 10.f, X1 - X0 - 20.f, Bot - BoardY - 20.f, 3.f), WithAlpha(PinkS, 0.6f), 1.f, 0.35f);
 		// 위 가로대: 손잡이 구멍 + 양쪽 전구 줄
-		C.Box(X0 - 6.f, BarY, X1 - X0 + 12.f, BarH, Hex(TEXT("06060b"), 0.97f));
-		const TArray<FVector2f> Ba = FCanvas::RoundRectPoints(X0 - 6.f, BarY, X1 - X0 + 12.f, BarH, 10.f);
+		C.Box(X0, BarY, X1 - X0, BarH, Hex(TEXT("06060b"), 0.97f)); // 칠판과 같은 너비 (D-394)
+		const TArray<FVector2f> Ba = FCanvas::RoundRectPoints(X0, BarY, X1 - X0, BarH, 10.f);
 		C.Glow(Ba, PinkS, 2.2f, 0.9f);
 		C.Lines(Ba, FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
 		C.Glow(FCanvas::RoundRectPoints(MidX - 34.f, BarY + 9.f, 68.f, 16.f, 8.f), WithAlpha(PinkS, 0.7f), 1.f, 0.4f); // 손잡이 구멍
@@ -4014,7 +4014,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 				const float Xa = Side ? MidX + 52.f : X0 + 18.f, Xb = Side ? X1 - 18.f : MidX - 52.f;
 				Bulb(C, FVector2f(FMath::Lerp(Xa, Xb, K / 8.f), BarY + BarH / 2.f), 3.f, (K + Side * 9 + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 			}
-		NeonText(C, Tr(TEXT("환경 설정")), MidX, BoardY + 34.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 칠판 맨 위 제목 (D-384 간판 글자)
+		NeonText(C, Tr(TEXT("환경 설정")), MidX, SetCloseCY + 8.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 칠판 맨 위 제목: 닫기 ⓧ 와 같은 높이 (D-394, 기준선 = 가운데 + 8)
 		// 닫기 ⓧ (D-384): 맨 아래 '닫기' 줄 대신. 동그라미 안 X, 마우스 올림 = 같은 색 밝게
 		C.CloseX(FVector2f(SetCloseCX, SetCloseCY), SetCloseR, FVector2f::Distance(Mouse, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f); // 공통 ⓧ (D-388)
 	}
