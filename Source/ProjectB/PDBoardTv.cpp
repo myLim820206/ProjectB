@@ -56,9 +56,9 @@ void SPDBoardWidget::PaintTv(FCanvas& C) const
 		const FVector2f Kc = TvDialPos();
 		const bool bHov = FVector2f::Distance(Mouse, Kc) <= TvDialR + 3.f;
 		C.BtnFill(Kc.X - TvDialR, Kc.Y - TvDialR, TvDialR * 2.f, TvDialR * 2.f, TvDialR, LavP, bHov); // 누르는 다이얼 (D-328 ②)
-		C.Glow(FCanvas::CirclePoints(Kc, TvDialR - 3.f, 20), bHov ? FLinearColor::White : LavP, bHov ? 1.6f : 1.2f, bHov ? 0.8f : 0.4f);
+		C.Glow(FCanvas::CirclePoints(Kc, TvDialR - 3.f, 20), bHov ? HotCol(LavP) : LavP, bHov ? 1.6f : 1.2f, bHov ? 0.8f : 0.4f);
 		const float A = FMath::DegreesToRadians(-150.f + TvChannel * 60.f); // 채널마다 돌아간 다이얼
-		C.Lines({Kc, Kc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * (TvDialR - 4.f)}, bHov ? FLinearColor::White : LavP, 1.4f);
+		C.Lines({Kc, Kc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * (TvDialR - 4.f)}, bHov ? HotCol(LavP) : LavP, 1.4f);
 		const FVector2f K2 = Kc + FVector2f(0.f, 26.f); // 아래 손잡이 = 장식 (소리 크기)
 		C.Glow(FCanvas::CirclePoints(K2, 8.f, 20), LavP, 1.2f, 0.4f);
 		C.Lines({K2, K2 + FVector2f(FMath::Cos(0.8f), FMath::Sin(0.8f)) * 6.f}, LavP, 1.2f);
@@ -269,7 +269,7 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 		C.BtnFill(BtX, JukeBtnY + 2.f * K + Dy, JukeBtnS, BtH, RadPill(BtH), Pink, bHov || bPress);
 		C.Glow(FCanvas::RoundRectPoints(BtX, JukeBtnY + 2.f * K + Dy, JukeBtnS, BtH, RadPill(BtH)), bHov ? Pink : WithAlpha(Pink, 0.7f), bHov ? 1.4f : 1.1f, bHov ? 0.9f : 0.4f);
 		const FVector2f Cc(BtX + JukeBtnS / 2.f, JukeBtnY + JukeBtnS / 2.f + Dy);
-		C.Lines({Cc + FVector2f(Dir * 3.f, 0.f) * K, Cc + FVector2f(-Dir * 2.f, -3.5f) * K, Cc + FVector2f(-Dir * 2.f, 3.5f) * K, Cc + FVector2f(Dir * 3.f, 0.f) * K}, bHov ? FLinearColor::White : Fg, 1.1f);
+		C.Lines({Cc + FVector2f(Dir * 3.f, 0.f) * K, Cc + FVector2f(-Dir * 2.f, -3.5f) * K, Cc + FVector2f(-Dir * 2.f, 3.5f) * K, Cc + FVector2f(Dir * 3.f, 0.f) * K}, bHov ? HotCol(Fg) : Fg, 1.1f);
 	}
 	for (int32 I = 0; I < JazzTrackCount; ++I) // 곡 번호 칸 (지금 곡이 금색으로 켜짐)
 	{

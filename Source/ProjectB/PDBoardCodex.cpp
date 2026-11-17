@@ -181,7 +181,8 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 			else if (V.Tab == 3) Boss(K, X0 + 12.f, Y + 6.f, 8.f, IA);
 			else C.JokerTower(V.Tab == 1 ? K : UpperBase + K, X0 + 12.f, Y + 18.f, 11.f, It.bKnown ? 0.95f : 0.35f, 0.f);
 			const bool bCan = CdxShop() && CdxCanBuy(It);
-			const FLinearColor NameCol = bH ? FLinearColor::White : CdxShop() ? (It.bOpen ? Cyan : bCan ? Gold : Dim) : It.bHave ? Gold : It.bKnown ? Cyan : Dim;
+			const FLinearColor NameBase = CdxShop() ? (It.bOpen ? Cyan : bCan ? Gold : Dim) : It.bHave ? Gold : It.bKnown ? Cyan : Dim;
+			const FLinearColor NameCol = bH ? HotCol(NameBase) : NameBase; // 마우스 올림 = 같은 색 밝게 (D-382)
 			const bool bSub = V.Tab != 0; // 조커 · 상위 조커 · 보스는 이름 밑에 작은 글 (대장 족보 · 재료 · 보스 종류)
 			const float NY = bSub ? Base - 4.f : Base;
 			C.Text(It.Name, X0 + 34.f, NY, NameCol, 14.f, 0, true, 230.f);
@@ -208,7 +209,7 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 		if (bCan) C.BtnFill(CdxBuyX, CdxBuyY, CdxBuyW, CdxBuyH, RadPill(CdxBuyH), Gold, bH);
 		C.Glow(FCanvas::RoundRectPoints(CdxBuyX, CdxBuyY, CdxBuyW, CdxBuyH, CdxBuyH / 2.f), WithAlpha(Bc, 0.9f), bH ? 1.8f : 1.3f, bCan ? 0.6f : 0.25f);
 		const FString Top = It.bOpen ? FString(Tr(TEXT("열림"))) : It.bGoal ? FString(Tr(TEXT("목표"))) : !It.bMat ? FString(Tr(TEXT("재료 조커 먼저"))) : TrF(TEXT("%d칩"), It.Price);
-		C.TextCentered(Top, CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 15.f, bH ? FLinearColor::White : Bc, 15.f, true, CdxBuyW - 16.f);
+		C.TextCentered(Top, CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 15.f, bH ? HotCol(Bc) : Bc, 15.f, true, CdxBuyW - 16.f);
 		if (!It.bOpen && It.bMat && !It.bGoal) C.TextCentered(bCan ? FString(Tr(TEXT("클릭해서 열기"))) : FString(Tr(TEXT("칩이 모자란다"))), CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 31.f, bCan ? Pink : Dim, 10.f, true);
 	};
 	// 상점의 조커 쪽은 레시피 밑 안내문이 [열기] 버튼에 겹치지 않게 그림부터 위로 올린다 (D-368)

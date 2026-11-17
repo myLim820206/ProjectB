@@ -362,7 +362,7 @@ void SPDBoardWidget::PaintCellMenu(FCanvas& F) const
 		F.BtnFill(BX, BY, BW, CmBtnH, Rr, A.Col, bH);
 		F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, CmBtnH, Rr), WithAlpha(A.Col, bH ? 1.f : 0.75f), bH ? 1.8f : 1.3f, bH ? 1.f : 0.45f);
 		F.Lines(FCanvas::RoundRectPoints(BX + 3.f, BY + 3.f, BW - 6.f, CmBtnH - 6.f, RadPill(CmBtnH - 6.f)), WithAlpha(A.Col, bH ? 0.6f : 0.3f), 0.7f); // 안쪽 둘째 겹
-		F.Text(A.Label, BX + 16.f, BY + CmBtnH / 2.f + 4.f, bH ? FLinearColor::White : A.Col, 12.f, 0, true, BW - 100.f);
+		F.Text(A.Label, BX + 16.f, BY + CmBtnH / 2.f + 4.f, bH ? HotCol(A.Col) : A.Col, 12.f, 0, true, BW - 100.f); // D-382
 		F.Text(A.Right, BX + BW - 14.f, BY + CmBtnH / 2.f + 4.f, bH ? Fg : Hex(TEXT("8a94a6")), 10.f, 2, false);
 	}
 	if (MenuActs.Num() == 0) F.Text(Tr(TEXT("할 수 있는 일이 없다")), X + 18.f, Y + CmTopH + 22.f, Dim, 11.f);

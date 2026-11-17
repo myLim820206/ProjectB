@@ -43,7 +43,7 @@ void SPDBoardWidget::PaintCloseButton(FCanvas& C, const FLinearColor& Col) const
 	const bool bHov = InRect(Mouse, CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH);
 	C.BtnFill(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, RadPill(CdxCloseH), UiEdge, bHov);
 	C.Glow(FCanvas::RoundRectPoints(CdxCloseX, CdxCloseY, CdxCloseW, CdxCloseH, RadPill(CdxCloseH)), UiEdge, bHov ? 1.6f : 1.1f, bHov ? 1.f : 0.4f);
-	C.TextCentered(bTree ? TEXT("닫기  K") : bUnlock ? TEXT("닫기  Esc") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? FLinearColor::White : Col, 11.f, true);
+	C.TextCentered(bTree ? TEXT("닫기  K") : bUnlock ? TEXT("닫기  Esc") : bUpg ? TEXT("닫기  U") : TEXT("닫기  J"), CdxCloseX + CdxCloseW / 2.f, CdxCloseY + CdxCloseH / 2.f, bHov ? HotCol(Col) : Col, 11.f, true);
 }
 
 // 아틀라스 굽기 (D-140): 칸마다 타워 카드(레벨 틀·점 포함) / 조커를 지금 코드 그대로, 맥박은 가운데 값
@@ -412,8 +412,8 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 		const float RcB = Receipt(C, DesignW / 2.f, 196.f, RcRows, FString::Printf(TEXT("+ %d"), LastChips), TrF(TEXT("모은 칩 %s"), *CommaNum(MetaChips)));
 		PaintRunUnlocks(C, RcB + 14.f);
 		const float Pul = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-		TubeBtn(C, OverRestartX, OverBtnY, OverBtnW, OverBtnH, Tr(TEXT("다시 한 판 (R)")), !InRect(Mouse, OverMenuX, OverBtnY, OverBtnW, OverBtnH), Hex(TEXT("6edcff")), Pul);
-		TubeBtn(C, OverMenuX, OverBtnY, OverBtnW, OverBtnH, Tr(TEXT("메인 메뉴로")), InRect(Mouse, OverMenuX, OverBtnY, OverBtnW, OverBtnH), LavO, Pul);
+		TubeBtn(C, OverRestartX, OverBtnY, OverBtnW, OverBtnH, Tr(TEXT("다시 한 판 (R)")), !InRect(Mouse, OverMenuX, OverBtnY, OverBtnW, OverBtnH), BtnColPrimary(), Pul); // 주 행동 초록 (D-382)
+		TubeBtn(C, OverMenuX, OverBtnY, OverBtnW, OverBtnH, Tr(TEXT("메인 메뉴로")), InRect(Mouse, OverMenuX, OverBtnY, OverBtnW, OverBtnH), BtnColDefault(), Pul);
 	}
 	if (bMenu) PaintMenu(C);
 	if (bSettings) PaintSettings(C);
@@ -1789,7 +1789,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		F.Box(BX, BY, BW, BHt, Hex(TEXT("06060b"), 0.94f));
 		if (bH) F.Box(BX, BY, BW, BHt, WithAlpha(Gold, 0.18f));
 		F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, BHt, RadPill(BHt)), Gold, bH ? 1.8f : 1.3f, bH ? 1.2f : 0.7f + 0.3f * Pulse);
-		F.TextCentered(TrF(TEXT("판매 +%d 경험치"), Price), BX + BW / 2.f, BY + BHt / 2.f, bH ? FLinearColor::White : Gold, 11.f, true, BW - 8.f);
+		F.TextCentered(TrF(TEXT("판매 +%d 경험치"), Price), BX + BW / 2.f, BY + BHt / 2.f, bH ? HotCol(Gold) : Gold, 11.f, true, BW - 8.f);
 		BadgeRects.Add(SellBtnRect);
 	}
 	// 타워 정보 (마우스를 올리면). 맨 마지막에 그려 이름표·떠오르는 글자·배너가 위에 겹치지 않게 (D-150)
@@ -2056,7 +2056,7 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		C.BtnFill(PauseBtnX, HudBtnY, HudBtnS, HudBtnS, RadPill(HudBtnS), UiEdge, bHov || bPaused);
 		C.Glow(FCanvas::RoundRectPoints(PauseBtnX, HudBtnY, HudBtnS, HudBtnS, RadPill(HudBtnS)), UiEdge, bHov || bPaused ? 1.6f : 1.1f, bPaused ? 1.f + 0.5f * Pulse : bHov ? 1.f : 0.3f);
 		const float Mx = PauseBtnX + HudBtnS / 2.f, My = HudBtnY + HudBtnS / 2.f;
-		const FLinearColor Ic = bPaused || bHov ? FLinearColor::White : UiEdge;
+		const FLinearColor Ic = bPaused || bHov ? HotCol(UiEdge) : UiEdge; // D-382
 		if (bPaused) C.Glow({{Mx - 4.f, My - 7.f}, {Mx + 7.f, My}, {Mx - 4.f, My + 7.f}, {Mx - 4.f, My - 7.f}}, Ic, 1.6f, 0.6f);
 		else { C.Glow({{Mx - 4.f, My - 7.f}, {Mx - 4.f, My + 7.f}}, Ic, 2.2f, 0.5f); C.Glow({{Mx + 4.f, My - 7.f}, {Mx + 4.f, My + 7.f}}, Ic, 2.2f, 0.5f); }
 	}
@@ -2190,7 +2190,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 				C.Glow(FCanvas::RoundRectPoints(X + 12.f, Y + H / 2.f - 8.f, TW2, 16.f, RadPill(16.f)), Gold, 1.f, 0.4f);
 				C.TextCentered(Pt, X + 12.f + TW2 / 2.f, Y + H / 2.f, Gold, 9.f, true);
 			}
-			C.TextCentered(Name, X + (W - 12.f) / 2.f, Y + H / 2.f, bHot ? FLinearColor::White : UiValue, 15.f, true, W - (W > 150.f ? 120.f : 34.f)); // 가운데 글자 (D-274, D-353: 13 → 15), 오른쪽 끝은 키 글자 자리
+			C.TextCentered(Name, X + (W - 12.f) / 2.f, Y + H / 2.f, bHot ? HotCol(UiValue) : UiValue, 15.f, true, W - (W > 150.f ? 120.f : 34.f)); // 가운데 글자 (D-274, D-353: 13 → 15), 오른쪽 끝은 키 글자 자리
 			C.Text(Key, X + W - 9.f, Y + H / 2.f + 4.f, Dim, 9.f, 2);
 		};
 		const bool bPlay = G.Phase != EPDPhase::Title;
@@ -2423,12 +2423,12 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 				if (Cut > 0) { Desc1 = DescS.Left(Cut); Desc2 = DescS.Mid(Cut + 1); }
 			}
 			const float TX = P.X, TY = RewardShelfY + 32.f, TW = RewardW, TH = Desc2.IsEmpty() ? 48.f : 60.f;
-			const FLinearColor TagC = bHov ? PinkR : R.bCharm ? Gold : Cyan;
+			const FLinearColor TagC = R.bCharm ? Gold : Cyan; // 마우스 올림은 같은 색으로 밝아짐 (D-382, 예전 분홍)
 			const TArray<FVector2f> Tg = {FVector2f(TX, TY + TH / 2.f), FVector2f(TX + 14.f, TY), FVector2f(TX + TW, TY), FVector2f(TX + TW, TY + TH), FVector2f(TX + 14.f, TY + TH), FVector2f(TX, TY + TH / 2.f)};
 			C.Box(TX + 14.f, TY, TW - 14.f, TH, Hex(TEXT("06060b"), 0.9f));
 			C.Glow(Tg, TagC, bHov ? 1.8f : 1.4f, bHov ? 0.8f : 0.45f);
 			C.Lines(FCanvas::CirclePoints(FVector2f(TX + 12.f, TY + TH / 2.f), 3.f, 10), WithAlpha(Fg, 0.6f), 1.f);
-			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), TX + TW / 2.f + 8.f, TY + 16.f, bHov ? White : Fg, 13.f, true, TW - 34.f);
+			C.TextCentered(R.bCharm ? CharmName(R.Id) : InstantName(R.Id), TX + TW / 2.f + 8.f, TY + 16.f, bHov ? HotCol(Fg) : Fg, 13.f, true, TW - 34.f);
 			C.TextCentered(Desc1, TX + TW / 2.f + 8.f, TY + 34.f, Fg, 10.f, false, TW - 34.f);
 			if (!Desc2.IsEmpty()) C.TextCentered(Desc2, TX + TW / 2.f + 8.f, TY + 47.f, Fg, 10.f, false, TW - 34.f);
 			C.TextCentered(FString::Printf(TEXT("%s  ·  %d"), R.bCharm ? Tr(TEXT("칵테일")) : Tr(TEXT("서비스")), I + 1), GX, TY + 78.f, R.bCharm ? Gold : Cyan, 10.f, true); // 꼬리표 높이와 상관없이 같은 줄
@@ -2588,7 +2588,8 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 		else if (UnlockTab == 3) BossIcon(K, IX, IY - 9.f, 7.f, It.bKnown ? 0.9f : 0.25f);
 		else C.JokerTower(UnlockTab == 1 ? K : UpperBase + K, IX, IY, 9.f, (bCdx ? It.bKnown : It.bOpen) ? 0.9f : 0.4f, 0.f);
 		if (bH) C.Box(R.X + 26.f, R.Y + 1.f, UnlRowW - 26.f, UnlRowH - 2.f, WithAlpha(Pink, 0.08f));
-		const FLinearColor NameCol = bH ? FLinearColor::White : bCdx ? (It.bHave ? Gold : It.bKnown ? Cyan : Dim) : It.bOpen ? Cyan : bCan ? Gold : Dim;
+		const FLinearColor NameBase = bCdx ? (It.bHave ? Gold : It.bKnown ? Cyan : Dim) : It.bOpen ? Cyan : bCan ? Gold : Dim;
+		const FLinearColor NameCol = bH ? HotCol(NameBase) : NameBase; // D-382
 		C.Text(It.Name, R.X + 30.f, Base, NameCol, 13.f, 0, true, 200.f);
 		const float NameW = FMath::Min(200.f, FCanvas::Measure(TrS(It.Name), FCanvas::Font(13.f, true)).X);
 		const FString Pt = bCdx ? It.Right : It.bOpen ? FString(Tr(TEXT("열림"))) : It.bGoal ? FString(Tr(TEXT("목표"))) : !It.bMat ? FString(Tr(TEXT("재료 먼저"))) : FString::Printf(TEXT("%d"), It.Price);
@@ -3151,7 +3152,7 @@ void SPDBoardWidget::PaintRanking(FCanvas& C) const
 		const bool bOn = RankTab == I, bHov = InRect(Mouse, X, RankTabY, RankTabW, RankTabH);
 		if (bOn) C.Box(X, RankTabY, RankTabW, RankTabH, WithAlpha(UiEdge, 0.14f));
 		C.Glow(FCanvas::RoundRectPoints(X, RankTabY, RankTabW, RankTabH, RadPill(RankTabH)), UiEdge, bOn || bHov ? 1.6f : 1.1f, bOn ? 1.f : 0.35f);
-		C.TextCentered(Tabs[I], X + RankTabW / 2.f, RankTabY + RankTabH / 2.f, bOn ? FLinearColor::White : Fg, 14.f, true, RankTabW - 8.f);
+		C.TextCentered(Tabs[I], X + RankTabW / 2.f, RankTabY + RankTabH / 2.f, bOn ? HotCol(UiEdge) : Fg, 14.f, true, RankTabW - 8.f);
 	}
 	const float TopY = RankTabY + RankTabH + 22.f;
 	{
@@ -3267,17 +3268,17 @@ void SPDBoardWidget::BulbSign(FCanvas& C, float CX, float Y, float W, float H, c
 
 void SPDBoardWidget::TubeBtn(FCanvas& C, float X, float Y, float W, float H, const FString& S, bool bOn, const FLinearColor& Col, float Pulse, float Px)
 {
-	const FLinearColor Pink = Hex(TEXT("ff6aaa"));
-	const FLinearColor Cc = bOn ? Pink : Col;
-	const float B = bOn ? 0.9f + 0.1f * Pulse : 0.8f;
+	// 튜브 버튼 (D-382): 고르면 분홍으로 바꾸던 것 → 자기 색 그대로 밝아짐 (D-381 버튼 규칙). 평소는 조금 어둡게 두어 고른 것과 차이를 낸다
+	const FLinearColor Cc = Col;
+	const float B = bOn ? 0.95f + 0.05f * Pulse : 0.65f;
 	const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, W, H, H / 2.f), Ri = FCanvas::RoundRectPoints(X + 5.f, Y + 5.f, W - 10.f, H - 10.f, (H - 10.f) / 2.f);
 	C.Box(X + 6.f, Y + 3.f, W - 12.f, H - 6.f, Hex(TEXT("06060b"), 0.85f));
-	C.BtnFill(X, Y, W, H, RadPill(H), bOn ? Pink : Cc, bOn);
+	C.BtnFill(X, Y, W, H, RadPill(H), Cc, bOn); // 고르면 같은 색으로 (D-382: 예전 분홍 채움)
 	C.Glow(Ro, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), bOn ? 2.6f : 2.1f, 1.f * B);
 	C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.35f * B), 0.6f);
 	C.Glow(Ri, FLinearColor(Cc.R * B * 0.8f, Cc.G * B * 0.8f, Cc.B * B * 0.8f, 1.f), 1.2f, 0.5f * B);
-	C.TextCentered(S, X + W / 2.f, Y + H / 2.f, bOn ? FLinearColor::White : Hex(TEXT("d8f4ff")), Px, true, W - 30.f);
-	if (bOn) C.Shape(EPDSuit::Heart, X - 20.f, Y + H / 2.f, 7.f, Pink, 1.4f, 0.6f);
+	C.TextCentered(S, X + W / 2.f, Y + H / 2.f, bOn ? HotCol(Cc) : WithAlpha(Cc, 0.85f), Px, true, W - 30.f); // 글자도 버튼 색 (D-382)
+	if (bOn) C.Shape(EPDSuit::Heart, X - 20.f, Y + H / 2.f, 7.f, Cc, 1.4f, 0.6f);
 }
 
 float SPDBoardWidget::Receipt(FCanvas& C, float CX, float Y, const TArray<TPair<FString, FString>>& RcRows, const FString& Total, const FString& Sub)
@@ -3842,10 +3843,10 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			FString Price;
 			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);
 			else { int32 XI = INDEX_NONE; if (Eff.FindChar(TEXT('×'), XI)) { int32 E2 = XI + 1; while (E2 < Eff.Len() && (FChar::IsDigit(Eff[E2]) || Eff[E2] == TEXT('.'))) ++E2; if (E2 > XI + 1) Price = Eff.Mid(XI, E2 - XI); } }
-			const FLinearColor PC = bHov ? FLinearColor::White : Cream;
+			const FLinearColor PC = bHov ? HotCol(Cream) : Cream; // D-382
 			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, PriceFn).X;
 			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, PC, 12.f, 2, true);
-			const FLinearColor NameCol = bHov ? FLinearColor::White : bPv ? Gold : (bOn ? Cream : WithAlpha(Cream, 0.7f));
+			const FLinearColor NameCol = bHov ? HotCol(bPv ? Gold : Cream) : bPv ? Gold : (bOn ? Cream : WithAlpha(Cream, 0.7f));
 			const float NMax = XR - NX - PrW - 44.f;
 			C.Text(Name, NX, NY + 1.f, NameCol, 11.5f, 0, true, NMax);
 			float TX = NX + FMath::Min(NMax, FCanvas::Measure(TrS(Name), NameFn).X) + 6.f;
@@ -3860,7 +3861,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 				const FLinearColor BC = bFilt ? HC : Gold;
 				C.BtnFill(BX, BY, TagW, BH, RadPill(BH), BC, bHov || bFilt);
 				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), BC, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
-				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? FLinearColor::White : BC, 9.f, true);
+				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(BC) : BC, 9.f, true);
 			}
 			else if (Id == FeedFilterId && bOn)
 			{
@@ -3869,9 +3870,9 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 				const float BX = XR - TagW, BY = DY - 11.f, BH = 16.f;
 				C.BtnFill(BX, BY, TagW, BH, RadPill(BH), JokerPink, bHov);
 				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), JokerPink, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
-				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? FLinearColor::White : JokerPink, 9.f, true);
+				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(JokerPink) : JokerPink, 9.f, true);
 			}
-			const FLinearColor DC = bHov ? Hex(TEXT("ffc8e1")) : bPv ? Gold : WithAlpha(Cream, 0.62f);
+			const FLinearColor DC = bHov ? (bPv ? Gold : Cream) : bPv ? Gold : WithAlpha(Cream, 0.62f); // 마우스 올림 = 같은 색 밝게 (D-382, 예전 분홍빛)
 			C.Text(Eff, NX, DY, DC, 9.f, 0, false, XR - NX - (TagW > 0.f ? TagW + 5.f : 0.f));
 		}
 	}
@@ -3900,7 +3901,7 @@ void SPDBoardWidget::PaintMenu(FCanvas& C) const
 	for (int32 I = 0; I < N; ++I)
 	{
 		const FVector2f B = MenuItemPos(I);
-		TubeBtn(C, B.X, B.Y, MenuW, MenuItemH, MenuItemName(I), I == MenuSel, (EMenuItem)I == EMenuItem::Quit ? Red : Cyan, Pulse, 17.f);
+		TubeBtn(C, B.X, B.Y, MenuW, MenuItemH, MenuItemName(I), I == MenuSel, (EMenuItem)I == EMenuItem::Resume ? BtnColPrimary() : (EMenuItem)I == EMenuItem::Quit ? BtnColExit() : BtnColDefault(), Pulse, 17.f); // 버튼 색 규칙 (D-382)
 	}
 	C.TextCentered(TEXT("↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)"), DesignW / 2.f, MenuItemPos(N).Y + 10.f, Dim, 11.f, false);
 }
@@ -3938,19 +3939,19 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	}
 	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("곡 (주크박스)"), TEXT("도움말"), TEXT("")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
-		const FLinearColor Cc = bOn ? PinkS : LavS; // 알약 튜브 (D-293). 켜진 · 고른 것은 전부 분홍, 꺼진 것은 연보라 (D-328 ③: 초록 · 카드 색 섞이던 것 통일)
+		const FLinearColor Cc = bOn ? BtnColDefault() : LavS; // 알약 튜브 (D-293). 켜진 · 고른 것은 기본 하늘색, 꺼진 것은 연보라 (D-382: 분홍은 나가기 · 위험 색이라 바꿈, D-328 ③)
 		(void)Col; // 색은 이제 켜짐/꺼짐으로만 (D-328 ③). 카드 색 줄은 아래에서 색 점을 따로 찍는다
 		C.BtnFill(X, Y, W, SetBtnH, RadPill(SetBtnH), Cc, bOn);
 		C.Glow(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, SetBtnH / 2.f), WithAlpha(Cc, bOn ? 1.f : 0.6f), bOn ? 1.7f : 1.1f, bOn ? (bRowSel ? 1.f + 0.4f * Pulse : 0.8f) : 0.25f);
 		if (bOn) C.Lines(FCanvas::RoundRectPoints(X, Y, W, SetBtnH, SetBtnH / 2.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
-		C.TextCentered(S, X + W / 2.f, Y + SetBtnH / 2.f, bOn ? FLinearColor::White : Grey, 13.f, true, W - 12.f);
+		C.TextCentered(S, X + W / 2.f, Y + SetBtnH / 2.f, bOn ? HotCol(Cc) : Grey, 13.f, true, W - 12.f);
 	};
 	for (int32 Row = 0; Row < (int32)ESetRow::Count; ++Row)
 	{
 		const float Y = SetRowY(Row);
 		const bool bRowSel = Row == SetSel;
-		if (bRowSel) { C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(PinkS, 0.06f)); C.Shape(EPDSuit::Heart, SetX - 18.f, Y + SetRowH / 2.f, 5.f, PinkS, 1.2f, 0.4f); }
-		if (Row != (int32)ESetRow::Close) C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? FLinearColor::White : Fg, 14.f, 0, true, SetLabelW - 10.f);
+		if (bRowSel) { C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(BtnColDefault(), 0.06f)); C.Shape(EPDSuit::Heart, SetX - 18.f, Y + SetRowH / 2.f, 5.f, BtnColDefault(), 1.2f, 0.4f); }
+		if (Row != (int32)ESetRow::Close) C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? HotCol(Fg) : Fg, 14.f, 0, true, SetLabelW - 10.f);
 		switch ((ESetRow)Row)
 		{
 		case ESetRow::Window:

@@ -734,6 +734,8 @@ inline FVector2f TitleBtnPos(int I, bool bCont) // 이어하기가 없으면 위
 inline FLinearColor BtnColDefault() { return Hex(TEXT("6edcff")); }
 inline FLinearColor BtnColPrimary() { return Hex(TEXT("9cffb0")); }
 inline FLinearColor BtnColExit() { return Hex(TEXT("ff6aaa")); }
+// 마우스 올림 · 고름 글자색 (D-381, D-382): 흰색으로 바꾸지 않고 같은 색을 밝게 (색상은 그대로, 밝기만 올림)
+inline FLinearColor HotCol(const FLinearColor& C) { return FLinearColor(FMath::Min(1.f, C.R * 1.15f + 0.08f), FMath::Min(1.f, C.G * 1.15f + 0.08f), FMath::Min(1.f, C.B * 1.15f + 0.08f), 1.f); }
 // 게임 오버 · 클리어 버튼 (D-293): 영수증 아래
 constexpr float OverBtnY = 500.f, OverBtnW = 230.f, OverBtnH = 44.f, OverRestartX = DesignW / 2.f - 250.f, OverMenuX = DesignW / 2.f + 20.f;
 constexpr float ClearBtnY = 600.f, ClearBtnX = DesignW / 2.f - 115.f;
@@ -1624,6 +1626,38 @@ struct SPDBoardWidget::FCanvas
 		const float Top = Y - Sz.Y * 0.8f;
 		if (Rec()) GPDLayout.AddText(S, Left, Top, Sz.X, Sz.Y, S.EndsWith(TEXT("…")) && !InS.EndsWith(TEXT("…")), Col.A * FadeK);
 		FSlateDrawElement::MakeText(Out, NextLayer(), PG(Left, Top, Sz.X, Sz.Y), S, F, ESlateDrawEffect::None, FadeC(Col));
+		NextLayer();
+	}
+	// 돌리고 키운 글자 (D-374 회사 로고): 가운데 (CX, CY), Angle 라디안 (화면 시계 방향), Scale 배. 언어팩을 거치지 않는다 (로고 글자)
+	void TextRot(const FString& S, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float Angle, float Scale = 1.f)
+	{
+		const FSlateFontInfo F = Font(Px, bBold);
+		const FVector2f Sz = Measure(S, F);
+		const float Co = FMath::Cos(Angle) * Scale, Si = FMath::Sin(Angle) * Scale;
+		const FGeometry G = Geo.MakeChild(Sz, FSlateLayoutTransform(FVector2f(CX - Sz.X / 2.f, CY - Sz.Y / 2.f)), FSlateRenderTransform(FMatrix2x2f(Co, Si, -Si, Co), FVector2f(0.f, 0.f)), FVector2f(0.5f, 0.5f));
+		FSlateDrawElement::MakeText(Out, NextLayer(), G.ToPaintGeometry(), S, F, ESlateDrawEffect::None, FadeC(Col));
+		NextLayer();
+	}
+	// 채운 다각형 (가로 띠로): 가로로 자르면 한 구간이 되는 모양만 (타원 · 네 갈래 별)
+	void FillPoly(const TArray<FVector2f>& P, const FLinearColor& Col, float Step = 0.5f)
+	{
+		if (P.Num() < 3) return;
+		float Y0 = P[0].Y, Y1 = P[0].Y;
+		for (const FVector2f& Q : P) { Y0 = FMath::Min(Y0, Q.Y); Y1 = FMath::Max(Y1, Q.Y); }
+		const int32 L = NextLayer();
+		for (float Y = Y0; Y < Y1; Y += Step)
+		{
+			const float Ym = Y + Step * 0.5f;
+			float X0 = 1e9f, X1 = -1e9f;
+			for (int32 I = 0; I < P.Num(); ++I)
+			{
+				const FVector2f A = P[I], B = P[(I + 1) % P.Num()];
+				if ((A.Y > Ym) == (B.Y > Ym)) continue;
+				const float X = A.X + (Ym - A.Y) * (B.X - A.X) / (B.Y - A.Y);
+				X0 = FMath::Min(X0, X); X1 = FMath::Max(X1, X);
+			}
+			if (X1 > X0) BoxAt(L, X0, Y, X1 - X0, Step, Col);
+		}
 		NextLayer();
 	}
 	void TextCentered(const FString& InS, float CX, float CY, const FLinearColor& Col, float Px, bool bBold, float MaxW = 0.f)
