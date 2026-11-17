@@ -338,6 +338,7 @@ void SPDBoardWidget::LoadUserData()
 		GPDCardTheme = Settings.CardTheme;
 		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 		GConfig->GetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
+		GConfig->GetInt(PDSetSection, TEXT("RClickCancels"), RClickCancels, GGameUserSettingsIni); // 합성 취소 꼬리표 (D-373)
 	}
 	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
 	if (Settings.Lang < 0 || Settings.Lang >= (int32)EPDLang::Count) Settings.Lang = LangFromSystem(); // 처음 켜면 시스템 언어 (D-159)
@@ -428,6 +429,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("JukeTrack"), JukeTrack, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
+	GConfig->SetInt(PDSetSection, TEXT("RClickCancels"), RClickCancels, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -1579,7 +1581,12 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		const float X = HandCardX(I, (int32)Game.Hand.size());
 		if (InRect(P, X, HandY - 12.f, CardW, CardH + 12.f)) HandHit = I;
 	}
-	if (bRight && HandHit < 0 && HandFilter >= 0 && !InCraft() && !InFeed() && CellAt(P) >= 0) { HandFilter = -1; return; } // 합성 모드 끄기 (D-199)
+	if (bRight && HandHit < 0 && HandFilter >= 0 && !InCraft() && !InFeed() && CellAt(P) >= 0) // 합성 모드 끄기 (D-199)
+	{
+		HandFilter = -1;
+		if (RClickCancels < RClickTagUntil) { ++RClickCancels; SaveSettings(); } // 몇 번 써 보면 커서 꼬리표를 거둔다 (D-373)
+		return;
+	}
 	if (bRight)
 	{
 		if (HandHit >= 0) { Game.Discard(HandHit); if (Sel == HandHit) Sel = -1; else if (Sel > HandHit) --Sel; }
@@ -1602,6 +1609,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 			return;
 		}
 		UiSound(EPDSound::Denied);
+		FuseMissAt = Clock; // 헛클릭: 커서 꼬리표의 오른쪽 버튼이 번쩍 (취소는 이거, D-373)
 		return;
 	}
 	// 카드를 고르지 않고 조커를 클릭: 먹이기 모드 (D-131)

@@ -212,6 +212,7 @@ private:
 	void ToggleFeed(int32 Joker = -1);       // Joker 를 주면 그 조커를 고른 채로 연다
 	void FeedClick(int32 Cell, bool bRight);
 	void PaintHandTip(FCanvas& C) const;     // 손패 카드 툴팁 (판 위 UI 다음에 그려 네온이 위로 비치지 않게, D-214)
+	void PaintFuseCursorTag(FCanvas& C) const; // 합성 모드 커서 꼬리표: 마우스 오른쪽 버튼 = 취소 (D-373)
 	bool bMenu = false;                    // 메뉴 창 (Esc). 여는 동안 게임은 멈춘다
 	// ---- 설정 (D-110): GameUserSettings.ini [ProjectB.Settings]. 화면 모드는 엔진 GameUserSettings 가 저장
 	struct FSettings
@@ -437,6 +438,9 @@ private:
 	int32 SellCell = -1;                   // 판매 (D-221): 오른쪽 클릭한 타워 칸. 그 아래 [판매] 버튼을 누르면 판다
 	mutable FBox2f SellBtnRect;
 	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만
+	int32 RClickCancels = 0;               // 합성 모드를 오른쪽 클릭으로 끈 횟수 (D-373): RClickTagUntil 번이 되면 커서 꼬리표를 안 띄운다 (설정 ini 에 저장)
+	static constexpr int32 RClickTagUntil = 3;
+	float FuseMissAt = -100.f;             // 합성 모드 헛클릭 시각 (D-373): 꼬리표 오른쪽 버튼이 빨갛게 번쩍
 	bool bSwapMode = false;                // 자리바꿈 모드 (D-149): 옮길 타워 → 바꿀 자리 순서로 클릭
 	int32 SwapFrom = -1;                   // 자리바꿈: 고른 타워 칸
 	bool FilterPass(PD::EPDHand Kind) const { return HandFilter < 0 || (int32)Kind == HandFilter; }

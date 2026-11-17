@@ -1012,8 +1012,29 @@ constexpr int32 AtlasLineAA = AtlasHatch + 3, AtlasHalo = AtlasHatch + 4;
 constexpr int32 SoldierShapes = 29, SoldierFrames = 12, AtlasSoldier0 = AtlasHatch + 5; // 일반 7 + 보스 13 (D-176) + 새 보스 6 · 최종 보스 3 (D-335). 카드병정은 둘째 텍스처(쪽 1)에 따로 굽는다 (D-338, 걷기 12프레임 그대로)
 constexpr int32 SoldierCells = SoldierShapes * SoldierFrames;
 constexpr int32 AtlasSnow = AtlasSoldier0 + SoldierShapes * SoldierFrames; // 둔화 눈송이 (D-178)
-constexpr int32 AtlasShield = AtlasSnow + 1, AtlasN = AtlasShield + 1; // 방어력 방패 (D-186)
+constexpr int32 AtlasShield = AtlasSnow + 1; // 방어력 방패 (D-186)
+constexpr int32 AtlasMouse = AtlasShield + 1, AtlasMouseR = AtlasShield + 2, AtlasN = AtlasShield + 3; // 마우스 몸통 · 오른쪽 버튼 (D-373, 합성 모드 커서 꼬리표): 따로 물들인다
 constexpr float ShieldBakeS = 30.f; // 방패 칸: 가운데 기준 반폭 0.8S, 위아래 ±1.05S
+constexpr float MouseBakeH = 60.f; // 마우스 칸: 가운데 기준 높이 MouseBakeH, 폭 0.66배 (미리보기 tools/neon/rclick_hint_mock.py)
+// 마우스 몸통: 위아래가 둥근 캡슐 + 가름선 + 가운데 세로선 (선 셋). C = 가운데, H = 높이
+inline TArray<TArray<FVector2f>> MouseBodyLines(FVector2f C, float H)
+{
+	const float W = H * 0.66f, R = W / 2.f, X = C.X - W / 2.f, Y = C.Y - H / 2.f, Split = Y + H * 0.42f;
+	TArray<FVector2f> Body;
+	for (int32 K = 0; K <= 10; ++K) { const float A = PI + K * PI / 10.f; Body.Add(FVector2f(X + R + FMath::Cos(A) * R, Y + R + FMath::Sin(A) * R * 0.9f)); }
+	for (int32 K = 0; K <= 10; ++K) { const float A = K * PI / 10.f; Body.Add(FVector2f(X + R + FMath::Cos(A) * R, Y + H - R + FMath::Sin(A) * R)); }
+	{ const FVector2f B0 = Body[0]; Body.Add(B0); }
+	return {Body, {FVector2f(X, Split), FVector2f(X + W, Split)}, {FVector2f(X + R, Y + 1.f), FVector2f(X + R, Split)}};
+}
+// 오른쪽 버튼 윤곽: 몸통 위 오른쪽 1/4
+inline TArray<FVector2f> MouseRightPoints(FVector2f C, float H)
+{
+	const float W = H * 0.66f, R = W / 2.f, X = C.X - W / 2.f, Y = C.Y - H / 2.f, Split = Y + H * 0.42f;
+	TArray<FVector2f> P = {FVector2f(X + R, Y)};
+	for (int32 K = 0; K <= 8; ++K) { const float A = 1.5f * PI + K * HALF_PI / 8.f; P.Add(FVector2f(X + R + FMath::Cos(A) * R, Y + R + FMath::Sin(A) * R * 0.9f)); }
+	P.Add(FVector2f(X + W, Split)); P.Add(FVector2f(X + R, Split)); P.Add(FVector2f(X + R, Y));
+	return P;
+}
 // 방패 윤곽 (D-186, 미리보기 tools/neon 방패 시안): 위는 살짝 솟고, 옆은 곧게 내려가다 아래 끝이 뾰족
 inline TArray<FVector2f> ShieldPoints(FVector2f C, float S)
 {
@@ -1071,8 +1092,8 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 11; // 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335), 11: 카드병정을 둘째 텍스처 T_PDAtlasSoldier 로, 12프레임 (D-338)
-constexpr int32 AtlasVersionPrev = 10; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
+constexpr int32 AtlasVersion = 12; // 12: 마우스 아이콘 칸 둘 (D-373), 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335), 11: 카드병정을 둘째 텍스처 T_PDAtlasSoldier 로, 12프레임 (D-338)
+constexpr int32 AtlasVersionPrev = 11; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
 static_assert(((int)(FX + FY)) % 12 == 0, "hatch phase must line up across cells");

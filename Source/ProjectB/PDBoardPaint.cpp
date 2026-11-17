@@ -109,6 +109,12 @@ int32 SPDBoardWidget::PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindow
 			F.Glow({P + FVector2f(0.f, -0.75f * ShieldBakeS), P + FVector2f(0.f, 0.92f * ShieldBakeS)}, FLinearColor::White, 1.6f, 0.6f);
 		}
 	}
+	{ // 마우스 아이콘 (D-373): 몸통 · 오른쪽 버튼을 따로 흰색으로 (그릴 때 몸통은 회색, 버튼은 금/빨강)
+		const FVector2f P = AtlasCellCenter(AtlasMouse);
+		if (Vis(P)) for (const TArray<FVector2f>& L : MouseBodyLines(P, MouseBakeH)) F.Glow(L, FLinearColor::White, 2.2f, 0.7f);
+		const FVector2f Q = AtlasCellCenter(AtlasMouseR);
+		if (Vis(Q)) F.Glow(MouseRightPoints(Q, MouseBakeH), FLinearColor::White, 3.f, 1.f);
+	}
 	// 카드병정은 둘째 쪽에서 굽는다 (D-338)
 	// 이펙트 모양 (D-141): 흰색, 반지름 AtlasFxR, 0도에서 시작 (그릴 때 색·크기·회전)
 	const FLinearColor W = FLinearColor::White;
@@ -341,6 +347,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintPanels(C); Part(4);
 	PaintBoardUi(F); Part(3); // 판 위 UI 를 패널 뒤에 그려 툴팁이 패널 위로 나갈 수 있게 (D-150)
 	PaintHandTip(C); // 손패 툴팁은 판 위 UI 위에 (D-214)
+	PaintFuseCursorTag(C); // 합성 모드 커서 꼬리표 (D-373)
 	PaintHint(C); // 도움말 카드 (D-217)
 	PaintLevelUp(C); // 레벨업 (D-273)
 	PaintCine(C); // 완성 연출 (D-314): 판 · 패널 위, 창 아래
@@ -1680,7 +1687,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			bool bCan = false;
 			for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) bCan = bCan || ((int32)G.Synergies[I].Kind == HandFilter && G.CanFuse(I));
-			F.Badge(bCan ? TrF(TEXT("%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기"), HandName((EPDHand)HandFilter))
+			F.Badge(bCan ? TrF(TEXT("%s 합성: 합쳐질 칸을 클릭"), HandName((EPDHand)HandFilter)) // 끄는 법은 커서 꼬리표로 (D-373)
 						 : TrF(TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), HandName((EPDHand)HandFilter)),
 				FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
 		}
@@ -3545,6 +3552,45 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 	const FVector2f Off(P.X + 12.f, P.Y + TH - 24.f);
 	HintOffRect = FBox2f(Off, Off + FVector2f(90.f, 16.f));
 	C.Text(TEXT("도움말 끄기"), Off.X, Off.Y + 9.f, HintOffRect.IsInside(Mouse) ? Fg : Dim, 9.f, 0, false, 90.f);
+}
+
+// 합성 모드 커서 꼬리표 (D-373, 미리보기 tools/neon/rclick_hint_mock.py): 커서 오른쪽 아래 어두운 둥근 상자에 마우스(오른쪽 버튼만 금빛) + "취소".
+// 판 위에서만 (오른쪽 클릭 취소는 판 칸에서만 먹는다). 오른쪽 클릭으로 RClickTagUntil 번 꺼 보면 거둔다. 헛클릭하면 버튼이 빨갛게 번쩍 (거둔 뒤에도)
+void SPDBoardWidget::PaintFuseCursorTag(FCanvas& C) const
+{
+	const FPDGame& G = Game;
+	const bool bFuseMode = HandFilter >= 0 && !InCraft() && !InFeed() && PickCells.empty() && G.Phase != EPDPhase::Reward && !bSwapMode && Sel < 0;
+	if (!bFuseMode || bMenu || bSettings || bTree || bCodex || bUpg || bPaused || CellAt(Mouse) < 0) return;
+	const float MissT = Clock - FuseMissAt, Fl = MissT >= 0.f && MissT < 0.6f ? 1.f - MissT / 0.6f : 0.f; // 번쩍 (0.6초 동안 줄어듦)
+	if (RClickCancels >= RClickTagUntil && Fl <= 0.f) return;
+	const FLinearColor Gold = Hex(TEXT("ffd96a")), Red = Hex(TEXT("ff6e78")), Body = Hex(TEXT("8a94a6"));
+	const FLinearColor Col = Fl > 0.f ? FMath::Lerp(Gold, Red, FMath::Min(1.f, Fl * 2.f)) : Gold;
+	const FString Label = TrS(TEXT("취소"));
+	const float Tw = FCanvas::Measure(Label, FCanvas::Font(11.f, true)).X;
+	const float IconH = 20.f, BX = Mouse.X + 14.f, BY = Mouse.Y + 18.f, BH = 26.f, BW = 8.f + IconH * 0.66f + 6.f + Tw + 9.f;
+	C.RoundFill(BX, BY, BW, BH, 6.f, Hex(TEXT("06060b"), 0.92f));
+	C.Glow(FCanvas::RoundRectPoints(BX, BY, BW, BH, 6.f), WithAlpha(Col, 0.45f + 0.45f * Fl), 1.f, 0.4f + 0.6f * Fl);
+	const FVector2f IC(BX + 8.f + IconH * 0.33f, BY + BH / 2.f);
+	if (UseAtlas())
+	{
+		C.Sprite(C.NextLayer(), &Atlas->Brushes[AtlasMouse], IC.X, IC.Y, IconH / MouseBakeH, WithAlpha(Body, 0.85f));
+		C.Sprite(C.NextLayer(), &Atlas->Brushes[AtlasMouseR], IC.X, IC.Y, IconH / MouseBakeH, Col);
+	}
+	else // 아틀라스가 없을 때 (F6): 같은 모양을 선으로
+	{
+		for (const TArray<FVector2f>& L : MouseBodyLines(IC, IconH)) C.Glow(L, WithAlpha(Body, 0.85f), 1.f, 0.5f);
+		C.Glow(MouseRightPoints(IC, IconH), Col, 1.4f, 1.f);
+	}
+	if (Fl > 0.f) // 오른쪽 버튼에서 튀는 빛줄 셋
+	{
+		const FVector2f O = IC + FVector2f(IconH * 0.18f, -IconH * 0.32f);
+		for (const float A : {-75.f, -35.f, 5.f})
+		{
+			const FVector2f D = Rot2(FVector2f(1.f, 0.f), FMath::DegreesToRadians(A));
+			C.Glow({O + D * IconH * 0.45f, O + D * IconH * (0.45f + 0.45f * Fl)}, WithAlpha(Red, Fl), 1.3f, 1.f);
+		}
+	}
+	C.Text(Label, IC.X + IconH * 0.33f + 6.f, BY + BH / 2.f + 5.f, Col, 11.f, 0, true);
 }
 
 // 손패 카드 툴팁 (D-177, D-214): 판 위 UI 다음에 그린다 (예전엔 패널과 함께 그려 판 위 딱지·빛이 툴팁 위로 비쳤다)

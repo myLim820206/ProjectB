@@ -570,7 +570,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 %s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)	Make %s: %d materials picked · click a candidate = add (Best = the game's pick)	%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)	制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)	製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)	PDBoardPaint.cpp
 레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로	Recipe complete: click a picked tile = Joker there · right-click = remove material · Esc = back to list	レシピ完成: 選んだ素材マスをクリック = そこにジョーカー · 右クリック = 素材を外す · Esc = リストへ	配方完成: 点击已选素材格 = 小丑放那里 · 右键 = 移除素材 · Esc = 返回列表	配方完成: 點擊已選素材格 = 小丑放那裡 · 右鍵 = 移除素材 · Esc = 返回列表	PDBoardPaint.cpp
 고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로	Click a picked material = remove · right-click elsewhere / Esc = back to list	選んだ素材をクリック = 外す · ほかを右クリック / Esc = リストへ	点击已选素材 = 移除 · 右键别处 / Esc = 返回列表	點擊已選素材 = 移除 · 右鍵別處 / Esc = 返回列表	PDBoardPaint.cpp
-%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기	Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off	%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる	合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭	合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉	PDBoardPaint.cpp
+%s 합성: 합쳐질 칸을 클릭	Fuse %s: click the tile to fuse into	%s 合成: まとめるマスをクリック	合成 %s: 点击要合成到的格子	合成 %s: 點擊要合成到的格子	PDBoardPaint.cpp
 %s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
 상위: %s	Upper: %s	上位: %s	上位: %s	上位: %s	PDBoardPaint.cpp
 상위 조커 ???	Upper Joker ???	上位ジョーカー ???	上位小丑 ???	上位小丑 ???	PDBoardPaint.cpp
@@ -740,6 +740,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 도움말	Hints	ヒント	提示	提示	PDBoardPaint.cpp
 알겠어	Got it	わかった	知道了	知道了	PDBoardPaint.cpp
 도움말 끄기	Turn off hints	ヒントを切る	关闭提示	關閉提示	PDBoardPaint.cpp
+취소	Cancel	キャンセル	取消	取消	PDBoardPaint.cpp
 멀리 있는 적도 레이저로 바로 맞힌다	Hits even distant enemies instantly with a laser	遠くの敵もレーザーで即座に撃ち抜く	用激光瞬间命中远处的敌人	用雷射瞬間命中遠處的敵人	PDBoardPaint.cpp
 미사일이 터져 둘레 적에게도 피해	Missiles explode, damaging nearby enemies too	ミサイルが爆発し周りの敵にもダメージ	导弹爆炸, 周围敌人也受伤害	導彈爆炸, 周圍敵人也受傷害	PDBoardPaint.cpp
 탄환을 빠르게 여러 발	Fires bullets rapidly	弾丸を素早く何発も撃つ	快速连发子弹	快速連發子彈	PDBoardPaint.cpp
@@ -766,7 +767,6 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
 클릭: 조커에 족보 먹이기	Click: feed hands to a Joker	クリック: ジョーカーに役を食べさせる	点击: 给小丑喂牌型	點擊: 給小丑餵牌型	PDBoardPaint.cpp
 판 %d	On board %d	盤上 %d	场上 %d	場上 %d	PDBoardPaint.cpp
-취소	Cancel	キャンセル	取消	取消	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
 족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
 잠깐 쉬어 가자 · 판은 그대로 멈춰 있다	Take a break · the board is paused	ひと休み · 盤面は止まっている	休息一下 · 棋盘已暂停	休息一下 · 棋盤已暫停	PDBoardPaint.cpp
@@ -809,6 +809,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기	Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off	%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる	合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭	合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉	PDLangTable.inl
 잔에 마우스: 이름 · 설명	Hover a glass: name · effect	グラスにカーソル: 名前 · 説明	悬停酒杯: 名称 · 说明	懸停酒杯: 名稱 · 說明	PDLangTable.inl
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDLangTable.inl
 다음 보스  %d웨이브 · %s	Next boss  wave %d · %s	次のボス  %dウェーブ · %s	下个首领  第%d波 · %s	下個首領  第%d波 · %s	PDLangTable.inl

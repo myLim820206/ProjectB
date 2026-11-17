@@ -571,7 +571,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("%s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)"), TEXT("Make %s: %d materials picked · click a candidate = add (Best = the game's pick)"), TEXT("%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)"), TEXT("制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)"), TEXT("製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)")},
 	{TEXT("레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로"), TEXT("Recipe complete: click a picked tile = Joker there · right-click = remove material · Esc = back to list"), TEXT("レシピ完成: 選んだ素材マスをクリック = そこにジョーカー · 右クリック = 素材を外す · Esc = リストへ"), TEXT("配方完成: 点击已选素材格 = 小丑放那里 · 右键 = 移除素材 · Esc = 返回列表"), TEXT("配方完成: 點擊已選素材格 = 小丑放那裡 · 右鍵 = 移除素材 · Esc = 返回列表")},
 	{TEXT("고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로"), TEXT("Click a picked material = remove · right-click elsewhere / Esc = back to list"), TEXT("選んだ素材をクリック = 外す · ほかを右クリック / Esc = リストへ"), TEXT("点击已选素材 = 移除 · 右键别处 / Esc = 返回列表"), TEXT("點擊已選素材 = 移除 · 右鍵別處 / Esc = 返回列表")},
-	{TEXT("%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기"), TEXT("Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off"), TEXT("%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる"), TEXT("合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭"), TEXT("合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉")},
+	{TEXT("%s 합성: 합쳐질 칸을 클릭"), TEXT("Fuse %s: click the tile to fuse into"), TEXT("%s 合成: まとめるマスをクリック"), TEXT("合成 %s: 点击要合成到的格子"), TEXT("合成 %s: 點擊要合成到的格子")},
 	{TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), TEXT("%s: nothing to fuse (max level or a Joker inside) · Esc: off"), TEXT("%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる"), TEXT("%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭"), TEXT("%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉")},
 	{TEXT("상위: %s"), TEXT("Upper: %s"), TEXT("上位: %s"), TEXT("上位: %s"), TEXT("上位: %s")},
 	{TEXT("상위 조커 ???"), TEXT("Upper Joker ???"), TEXT("上位ジョーカー ???"), TEXT("上位小丑 ???"), TEXT("上位小丑 ???")},
@@ -741,6 +741,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("도움말"), TEXT("Hints"), TEXT("ヒント"), TEXT("提示"), TEXT("提示")},
 	{TEXT("알겠어"), TEXT("Got it"), TEXT("わかった"), TEXT("知道了"), TEXT("知道了")},
 	{TEXT("도움말 끄기"), TEXT("Turn off hints"), TEXT("ヒントを切る"), TEXT("关闭提示"), TEXT("關閉提示")},
+	{TEXT("취소"), TEXT("Cancel"), TEXT("キャンセル"), TEXT("取消"), TEXT("取消")},
 	{TEXT("멀리 있는 적도 레이저로 바로 맞힌다"), TEXT("Hits even distant enemies instantly with a laser"), TEXT("遠くの敵もレーザーで即座に撃ち抜く"), TEXT("用激光瞬间命中远处的敌人"), TEXT("用雷射瞬間命中遠處的敵人")},
 	{TEXT("미사일이 터져 둘레 적에게도 피해"), TEXT("Missiles explode, damaging nearby enemies too"), TEXT("ミサイルが爆発し周りの敵にもダメージ"), TEXT("导弹爆炸, 周围敌人也受伤害"), TEXT("導彈爆炸, 周圍敵人也受傷害")},
 	{TEXT("탄환을 빠르게 여러 발"), TEXT("Fires bullets rapidly"), TEXT("弾丸を素早く何発も撃つ"), TEXT("快速连发子弹"), TEXT("快速連發子彈")},
@@ -767,7 +768,6 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("클릭: 만들 수 있는 조커 목록"), TEXT("Click: Jokers you can make"), TEXT("クリック: 作れるジョーカー一覧"), TEXT("点击: 可制作的小丑列表"), TEXT("點擊: 可製作的小丑列表")},
 	{TEXT("클릭: 조커에 족보 먹이기"), TEXT("Click: feed hands to a Joker"), TEXT("クリック: ジョーカーに役を食べさせる"), TEXT("点击: 给小丑喂牌型"), TEXT("點擊: 給小丑餵牌型")},
 	{TEXT("판 %d"), TEXT("On board %d"), TEXT("盤上 %d"), TEXT("场上 %d"), TEXT("場上 %d")},
-	{TEXT("취소"), TEXT("Cancel"), TEXT("キャンセル"), TEXT("取消"), TEXT("取消")},
 	{TEXT("합성 ×%d"), TEXT("Fuse ×%d"), TEXT("合成 ×%d"), TEXT("合成 ×%d"), TEXT("合成 ×%d")},
 	{TEXT("족보끼리 맞닿으면 하나에 +%d%%씩"), TEXT("Each touching hand adds +%d%%"), TEXT("役同士が隣接すると1つにつき +%d%%"), TEXT("牌型相邻每个 +%d%%"), TEXT("牌型相鄰每個 +%d%%")},
 	{TEXT("잠깐 쉬어 가자 · 판은 그대로 멈춰 있다"), TEXT("Take a break · the board is paused"), TEXT("ひと休み · 盤面は止まっている"), TEXT("休息一下 · 棋盘已暂停"), TEXT("休息一下 · 棋盤已暫停")},
@@ -810,6 +810,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d"), TEXT("Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d"), TEXT("アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d"), TEXT("图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d"), TEXT("圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d")},
 	{TEXT("아틀라스 에셋 저장 실패"), TEXT("Atlas asset save failed"), TEXT("アトラスアセットの保存に失敗"), TEXT("图集资源保存失败"), TEXT("圖集資源儲存失敗")},
 	{TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어"), TEXT("한국어")},
+	{TEXT("%s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기"), TEXT("Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off"), TEXT("%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる"), TEXT("合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭"), TEXT("合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉")},
 	{TEXT("잔에 마우스: 이름 · 설명"), TEXT("Hover a glass: name · effect"), TEXT("グラスにカーソル: 名前 · 説明"), TEXT("悬停酒杯: 名称 · 说明"), TEXT("懸停酒杯: 名稱 · 說明")},
 	{TEXT("보스 웨이브 · %s"), TEXT("Boss wave · %s"), TEXT("ボスウェーブ · %s"), TEXT("首领波次 · %s"), TEXT("首領波次 · %s")},
 	{TEXT("다음 보스  %d웨이브 · %s"), TEXT("Next boss  wave %d · %s"), TEXT("次のボス  %dウェーブ · %s"), TEXT("下个首领  第%d波 · %s"), TEXT("下個首領  第%d波 · %s")},
@@ -1018,4 +1019,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 };
-static const int32 PDLangRowCount = 1017;
+static const int32 PDLangRowCount = 1018;
