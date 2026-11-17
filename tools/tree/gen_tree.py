@@ -22,6 +22,7 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CX, CY = 640.0, 392.0       # 트리 창 가운데 (1280 x 720 화면)
 RA, RB = 585.0, 296.0       # 타원 반지름 (가로, 세로)
+SPREAD = 1.5                # 간격 넓히기 (D-378): 가운데에서 1.5배로 벌림. 화면보다 커져서 휠 축소 · 끌기(D-376)로 본다
 
 # 효과 이름은 PDCore.h EPDStat 과 같은 순서
 STATS = ['None', 'SuitDmg', 'SuitRate', 'SuitRange', 'SuitSplash', 'SuitSlow', 'HandDmg', 'HandRate', 'HandSplash', 'AllDmg', 'ChainAdd',
@@ -53,7 +54,7 @@ nodes, links = [], []
 
 def pos(deg, f):
     a = math.radians(deg)
-    return round(CX + math.cos(a) * RA * f, 1), round(CY + math.sin(a) * RB * f, 1)
+    return round(CX + math.cos(a) * RA * f * SPREAD, 1), round(CY + math.sin(a) * RB * f * SPREAD, 1)
 
 
 def add(kind, theme, deg, f, fx=(), name=None):

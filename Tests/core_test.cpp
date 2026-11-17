@@ -1137,10 +1137,11 @@ static void UnitTests()
 		Expect(MinJJ >= 4, "조커 강화끼리 최소 4걸음 (다시 올라와야 함): " + std::to_string(MinJJ));
 		Expect(MaxD <= 9, "가장 먼 노드 " + std::to_string(MaxD) + "포인트");
 		bool bPos = true;
-		for (int I = 0; I < N; ++I) bPos = bPos && TreeNode(I).X > 20.f && TreeNode(I).X < 1260.f && TreeNode(I).Y > 90.f && TreeNode(I).Y < 700.f;
+		// D-378: 간격을 1.5배로 벌려 화면(1280x720)보다 커졌다 — 0.55배로 줄이면 다 보이는 범위 안 (휠 축소 · 끌기, D-376)
+		for (int I = 0; I < N; ++I) bPos = bPos && std::abs(TreeNode(I).X - 640.f) < 640.f / 0.55f - 20.f && std::abs(TreeNode(I).Y - 392.f) < 328.f / 0.55f - 20.f;
 		float MinGap = 1e9f;
 		for (int I = 0; I < N; ++I) for (int J = I + 1; J < N; ++J) MinGap = std::min(MinGap, std::hypot(TreeNode(I).X - TreeNode(J).X, TreeNode(I).Y - TreeNode(J).Y));
-		Expect(bPos && MinGap >= 24.f, "노드가 화면 안, 서로 24px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
+		Expect(bPos && MinGap >= 36.f, "노드가 0.55배 화면 안, 서로 36px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
 	}
 	{ // 모드 (D-229): 목표 웨이브, 최종 보스 체력 ×3, 목표 웨이브를 넘기면 클리어
 		Expect(ModeGoal(EPDMode::W30) == 30 && ModeGoal(EPDMode::W60) == 60 && ModeGoal(EPDMode::W100) == 100 && ModeGoal(EPDMode::Endless) == 0, "모드 목표 30 · 60 · 100 · 무한");

@@ -270,7 +270,7 @@ private:
 	FVector2f TreeDragFrom = FVector2f(0.f, 0.f), TreePanFrom = FVector2f(0.f, 0.f);
 	FVector2f TreeToScreen(FVector2f P) const { return FVector2f(640.f, 392.f) + (P - FVector2f(640.f, 392.f)) * TreeZoom + TreePan; }
 	FVector2f ScreenToTree(FVector2f P) const { return FVector2f(640.f, 392.f) + (P - FVector2f(640.f, 392.f) - TreePan) / TreeZoom; }
-	void ClampTreePan() { TreePan.X = FMath::Clamp(TreePan.X, -640.f * TreeZoom, 640.f * TreeZoom); TreePan.Y = FMath::Clamp(TreePan.Y, -360.f * TreeZoom, 360.f * TreeZoom); }
+	void ClampTreePan() { TreePan.X = FMath::Clamp(TreePan.X, -900.f * TreeZoom, 900.f * TreeZoom); TreePan.Y = FMath::Clamp(TreePan.Y, -470.f * TreeZoom, 470.f * TreeZoom); } // 트리 끝(가운데에서 ±880, ±450, D-378)까지 가운데로 끌어올 수 있게
 	TArray<FVector2f> PendingFuseCells; // 합성 직전 족보 칸 위치 (연출용)
 
 	// ---- 이펙트

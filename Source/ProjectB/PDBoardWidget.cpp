@@ -1714,7 +1714,7 @@ FReply SPDBoardWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerE
 	if (bTree) // 트리 확대 · 축소 (D-376): 커서 아래 자리가 그대로 남게
 	{
 		const FVector2f M = ToDesign(MyGeometry, MouseEvent), W = ScreenToTree(M);
-		TreeZoom = FMath::Clamp(TreeZoom * (MouseEvent.GetWheelDelta() > 0.f ? 1.15f : 1.f / 1.15f), 0.7f, 2.5f);
+		TreeZoom = FMath::Clamp(TreeZoom * (MouseEvent.GetWheelDelta() > 0.f ? 1.15f : 1.f / 1.15f), 0.55f, 2.5f); // 0.55배 = 넓힌 트리 전체 (D-378)
 		if (FMath::IsNearlyEqual(TreeZoom, 1.f, 0.03f)) TreeZoom = 1.f;
 		TreePan = M - FVector2f(640.f, 392.f) - (W - FVector2f(640.f, 392.f)) * TreeZoom;
 		ClampTreePan();
