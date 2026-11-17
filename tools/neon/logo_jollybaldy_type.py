@@ -344,9 +344,72 @@ def logo_I():
     return img.resize((W, H), Image.LANCZOS)
 
 
+def logo_J():
+    """이름 글자로 얼굴: 큰 O = 머리, 누운 B = 웃는 눈 둘(∩∩), 누운 D = 입, L 둘 = 귀, Y = 정수리 광"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    cx, cy = 640, 300
+    thin = next((p for p in ['C:/Windows/Fonts/segoeuisl.ttf', 'C:/Windows/Fonts/segoeui.ttf'] if os.path.exists(p)), FONT)
+    put_char(img, 'O', cx, cy, 620, YELLOW, sx=1.05, font=thin)         # 가는 O = 머리 윤곽
+    put_char(img, 'B', cx, cy - 25, 120, CREAM, rot=90)                 # 둥근 쪽이 위: ∩∩ 웃는 눈
+    put_char(img, 'D', cx, cy + 75, 120, CREAM, rot=-90, sx=1.3)        # 둥근 쪽이 아래: 웃는 입
+    put_char(img, 'L', cx - 232, cy + 20, 110, YELLOW, sx=0.8)          # 귀
+    put_char(img, 'L', cx + 232, cy + 20, 110, YELLOW, sx=0.8)
+    put_char(img, 'Y', cx - 95, cy - 140, 60, WHITE, rot=25)            # 광 (Y 가 반짝)
+    bw = text_w('JOLLY BALDY', 58, 12)
+    draw_text(d, 640 - bw / 2, 660, 'JOLLY BALDY', 58, YELLOW, 12)
+    return img.resize((W, H), Image.LANCZOS)
+
+
+def logo_K():
+    """이름이 곧 웃는 입: JOLLY BALDY 를 활짝 웃는 곡선 위에, 위에 웃는 눈 둘 + 정수리 광"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    cx, cy, R = 640, 40, 520
+    arc_text_bottom(img, 'JOLLY BALDY', cx, cy, R, 92, YELLOW, gap_k=0.04)
+    w = int(16 * S)
+    for sg in (-1, 1):
+        ex, ey = cx + sg * 150, 300
+        d.arc(sc([(ex - 50, ey - 40), (ex + 50, ey + 50)]), 200, 340, fill=CREAM, width=w)
+    d.ellipse(sc([(cx - 210, 120), (cx - 140, 152)]), fill=WHITE)
+    d.polygon(sc(sparkle(cx - 108, 118, 18)), fill=WHITE)
+    return img.resize((W, H), Image.LANCZOS)
+
+
+def logo_L():
+    """빈칸 대머리: 글자로 꽉 찬 판에서 대머리 모양만 비우고, 얼굴은 노랑으로"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    x0, y0, x1, y1 = 300, 70, 980, 560
+    blk = Image.new('RGB', img.size, BG)
+    bd = ImageDraw.Draw(blk)
+    px = 62
+    f = F(px)
+    for i, y in enumerate(range(y0, y1, int(px * 0.92))):
+        word = ('JOLLY BALDY ' if i % 2 == 0 else 'BALDY JOLLY ') * 4
+        bd.text(((x0 - (i * 53) % 200) * S, (y + px * 0.85) * S), word, font=f, fill=CREAM if i % 2 else (90, 90, 110), anchor='ls')
+    frame = Image.new('L', img.size, 0)
+    ImageDraw.Draw(frame).rounded_rectangle(sc([(x0, y0), (x1, y1)]), 30 * S, fill=255)
+    cx, cy, R = 640, 330, 200
+    hm = head_mask(img.size, cx, cy, R)
+    frame = ImageChops.subtract(frame, hm)
+    img.paste(blk, mask=frame)
+    # 얼굴 (빈칸 안에 노랑)
+    w = int(R * 0.1 * S)
+    for sg in (-1, 1):
+        ex, ey = cx + sg * R * 0.33, cy - R * 0.08
+        d.arc(sc([(ex - R * 0.17, ey - R * 0.14), (ex + R * 0.17, ey + R * 0.2)]), 200, 340, fill=YELLOW, width=w)
+    d.chord(sc([(cx - R * 0.48, cy + R * 0.1), (cx + R * 0.48, cy + R * 0.8)]), 0, 180, fill=YELLOW)
+    d.ellipse(sc([(cx - R * 0.56, cy - R * 0.86), (cx - R * 0.24, cy - R * 0.62)]), fill=WHITE)
+    d.polygon(sc(sparkle(cx - R * 0.08, cy - R * 0.8, R * 0.14)), fill=WHITE)
+    bw = text_w('JOLLY BALDY', 58, 12)
+    draw_text(d, 640 - bw / 2, 660, 'JOLLY BALDY', 58, YELLOW, 12)
+    return img.resize((W, H), Image.LANCZOS)
+
+
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    for group, names, fns in (('', 'ABC', (logo_A, logo_B, logo_C)), ('2', 'DEF', (logo_D, logo_E, logo_F)), ('3', 'GHI', (logo_G, logo_H, logo_I))):
+    for group, names, fns in (('', 'ABC', (logo_A, logo_B, logo_C)), ('2', 'DEF', (logo_D, logo_E, logo_F)), ('3', 'GHI', (logo_G, logo_H, logo_I)), ('4', 'JKL', (logo_J, logo_K, logo_L))):
         sheet = Image.new('RGB', (1920, 360))
         for i, (n, fn) in enumerate(zip(names, fns)):
             im = fn()
