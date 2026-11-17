@@ -749,8 +749,8 @@ inline const TCHAR* MenuItemName(int I)
 enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Cine, Sound, Volume, Music, Track, Help, Count }; // 닫기 줄은 뺐다 → 오른쪽 위 ⓧ 버튼 (D-384) // Track: 주크박스 곡 ◀ 이름 ▶ (D-319) // Cine: 완성 연출 전부/조커만/끔 (D-314) // Help: 도움말 켜기·처음부터 (D-217)
 constexpr float SetW = 560.f, SetRowH = 33.f, SetRowGap = 2.f, SetLabelW = 200.f, SetBtnH = 30.f;
 constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 140.f; // 언어 줄이 늘어 조금 위로 (D-159)
-constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 76.f, SetBoxW = SetW + 60.f;
-constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 120.f;
+constexpr float SetBoxX = SetX - 30.f, SetBoxY = SetY0 - 91.f, SetBoxW = SetW + 60.f; // 위로 15 늘림 (D-392, 예전 SetY0 - 76)
+constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 135.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 constexpr float SetCloseR = 13.f, SetCloseCX = SetX + SetLabelW + 352.f - SetCloseR, SetCloseCY = SetBoxY + 49.f; // 닫기 ⓧ (D-384): 아치 어깨 바로 아래, 언어 줄 위. 오른쪽 끝을 선택지 버튼 열 오른쪽 끝(X0 + 352)에 맞춤 (D-387)
 inline bool SetBarRow(int Row) { return Row == (int)ESetRow::Volume || Row == (int)ESetRow::Music; } // −/막대/+ 줄
