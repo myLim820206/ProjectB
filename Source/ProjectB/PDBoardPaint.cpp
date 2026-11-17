@@ -4013,7 +4013,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			const FVector2f Q(MidX + FMath::Cos(A) * (Rx - 24.f), Shoulder - FMath::Sin(A) * (Shoulder - Top - 20.f));
 			Bulb(C, Q, 3.f, (K + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 		}
-		NeonText(C, Tr(TEXT("설정")), MidX, SetBoxY + 30.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 간판 = 창 이름 (D-384, 예전 'JUKEBOX' + 작은 '설정')
+		NeonText(C, Tr(TEXT("환경 설정")), MidX, SetBoxY + 30.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 간판 = 창 이름 (D-384, 예전 'JUKEBOX' + 작은 '설정')
 		// 닫기 ⓧ (D-384): 맨 아래 '닫기' 줄 대신. 동그라미 안 X, 마우스 올림 = 같은 색 밝게
 		C.CloseX(FVector2f(SetCloseCX, SetCloseCY), SetCloseR, FVector2f::Distance(Mouse, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f); // 공통 ⓧ (D-388)
 	}

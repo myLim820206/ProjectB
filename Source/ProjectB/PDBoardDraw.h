@@ -742,7 +742,7 @@ constexpr float ClearBtnY = 600.f, ClearBtnX = DesignW / 2.f - 115.f;
 constexpr float LoadDur = 1.4f; // 로딩 화면 길이 (초)
 inline const TCHAR* MenuItemName(int I)
 {
-	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("메인 메뉴로"), TEXT("설정"), TEXT("도감"), TEXT("게임 종료")};
+	static const TCHAR* N[] = {TEXT("계속하기"), TEXT("새 게임"), TEXT("메인 메뉴로"), TEXT("환경 설정"), TEXT("도감"), TEXT("게임 종료")}; // '설정' → 시작 화면과 같은 '환경 설정' (D-390)
 	return Tr(N[I]);
 }
 // 설정 창 (D-110): 줄마다 이름 + 버튼
