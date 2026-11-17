@@ -750,7 +750,7 @@ enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, S
 constexpr float SetW = 560.f, SetRowH = 33.f, SetRowGap = 2.f, SetLabelW = 200.f, SetBtnH = 30.f;
 // D-395: 제목 아래 · 맨 아래에 여백 (38 → 33 → 23씩). 창 윗변은 35 (전구 가로대 윗변 8, 칠판 아랫변 681)
 constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 159.f; // 첫 줄 (D-159 140 → D-394 150 → D-395 159)
-constexpr float SetBoxX = SetX - 35.f, SetBoxY = SetY0 - 124.f, SetBoxW = SetW + 70.f; // 창 윗변 35 (D-392 · D-394 49 에서 14 올림), 양옆 5씩 넓힘 (D-395)
+constexpr float SetBoxX = SetX - 40.f, SetBoxY = SetY0 - 124.f, SetBoxW = SetW + 80.f; // 창 윗변 35 (D-392 · D-394 49 에서 14 올림), 양옆 10씩 넓힘 (D-395)
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 191.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
 constexpr float SetCloseR = 13.f, SetCloseCX = SetX + SetLabelW + 352.f - SetCloseR, SetCloseCY = SetBoxY + 57.f; /* D-394: 칠판 윗변(SetBoxY + 15) + 42, 제목과 같은 높이 */ // 닫기 ⓧ (D-384): 아치 어깨 바로 아래, 언어 줄 위. 오른쪽 끝을 선택지 버튼 열 오른쪽 끝(X0 + 352)에 맞춤 (D-387)
