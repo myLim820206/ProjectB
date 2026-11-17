@@ -4008,9 +4008,10 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			return P;
 		};
 		C.Box(X0, Shoulder, X1 - X0, Bot - Shoulder, Hex(TEXT("06060b"), 0.95f));
-		C.Glow(Arch(0.f), PinkS, 2.4f, 0.9f);
-		C.Lines(Arch(0.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
-		C.Glow(Arch(8.f), WithAlpha(PinkS, 0.6f), 1.f, 0.35f);
+		// 아치 테 (D-384): 분홍은 나가기 · 위험 색이고 오래 보면 눈이 피로해서 연보라로
+		C.Glow(Arch(0.f), LavS, 2.2f, 0.7f);
+		C.Lines(Arch(0.f), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
+		C.Glow(Arch(8.f), WithAlpha(LavS, 0.5f), 1.f, 0.3f);
 		const int32 Ph = FMath::FloorToInt(Clock * 8.f) % 3;
 		for (int32 K = 1; K < 20; ++K) // 아치를 따라 전구
 		{
@@ -4018,10 +4019,18 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			const FVector2f Q(MidX + FMath::Cos(A) * (Rx - 24.f), Shoulder - FMath::Sin(A) * (Shoulder - Top - 20.f));
 			Bulb(C, Q, 3.f, (K + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
 		}
-		NeonText(C, TEXT("JUKEBOX"), MidX, SetBoxY + 22.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f);
-		C.TextCentered(TEXT("설정"), MidX, SetBoxY + 42.f, Fg, 12.f, true);
+		NeonText(C, Tr(TEXT("설정")), MidX, SetBoxY + 30.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 간판 = 창 이름 (D-384, 예전 'JUKEBOX' + 작은 '설정')
+		// 닫기 ⓧ (D-384): 맨 아래 '닫기' 줄 대신. 동그라미 안 X, 마우스 올림 = 같은 색 밝게
+		const bool bXH = FVector2f::Distance(Mouse, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f;
+		const FLinearColor Xc = bXH ? HotCol(BtnColDefault()) : WithAlpha(BtnColDefault(), 0.75f);
+		const FVector2f Xo(SetCloseCX, SetCloseCY);
+		if (bXH) C.SoftDisc(Xo, SetCloseR + 6.f, SetCloseR + 6.f, BtnColDefault(), 0.18f);
+		C.Glow(FCanvas::CirclePoints(Xo, SetCloseR, 28), Xc, bXH ? 1.8f : 1.3f, bXH ? 0.9f : 0.45f);
+		const float Xk = SetCloseR * 0.42f;
+		C.Glow({Xo + FVector2f(-Xk, -Xk), Xo + FVector2f(Xk, Xk)}, Xc, 1.6f, bXH ? 0.8f : 0.4f);
+		C.Glow({Xo + FVector2f(Xk, -Xk), Xo + FVector2f(-Xk, Xk)}, Xc, 1.6f, bXH ? 0.8f : 0.4f);
 	}
-	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("곡 (주크박스)"), TEXT("도움말"), TEXT("")};
+	static const TCHAR* Labels[] = {TEXT("언어"), TEXT("화면"), TEXT("카드 색"), TEXT("프레임 제한"), TEXT("수직 동기화"), TEXT("월드 이펙트 (나이아가라)"), TEXT("화면 흔들림·번쩍임"), TEXT("완성 연출"), TEXT("소리"), TEXT("효과음 볼륨"), TEXT("음악 볼륨"), TEXT("곡 (주크박스)"), TEXT("도움말")};
 	auto Button = [&](float X, float Y, float W, const FString& S, const FLinearColor& Col, bool bOn, bool bRowSel) {
 		const FLinearColor Cc = bOn ? BtnColDefault() : LavS; // 알약 튜브 (D-293). 켜진 · 고른 것은 기본 하늘색, 꺼진 것은 연보라 (D-382: 분홍은 나가기 · 위험 색이라 바꿈, D-328 ③)
 		(void)Col; // 색은 이제 켜짐/꺼짐으로만 (D-328 ③). 카드 색 줄은 아래에서 색 점을 따로 찍는다
@@ -4035,7 +4044,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		const float Y = SetRowY(Row);
 		const bool bRowSel = Row == SetSel;
 		if (bRowSel) { C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(BtnColDefault(), 0.06f)); C.Shape(EPDSuit::Heart, SetX - 18.f, Y + SetRowH / 2.f, 5.f, BtnColDefault(), 1.2f, 0.4f); }
-		if (Row != (int32)ESetRow::Close) C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? HotCol(Fg) : Fg, 14.f, 0, true, SetLabelW - 10.f);
+		C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? HotCol(Fg) : Fg, 14.f, 0, true, SetLabelW - 10.f);
 		switch ((ESetRow)Row)
 		{
 		case ESetRow::Window:
@@ -4103,12 +4112,6 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 			Button(L.X, L.Y, SetBtnW(Row, 0), TEXT("◀"), Cyan, true, bRowSel);
 			Button(R.X, R.Y, SetBtnW(Row, 2), TEXT("▶"), Cyan, true, bRowSel);
 			C.TextCentered(FString::Printf(TEXT("%d. %s"), JukeTrack + 1, UTF8_TO_TCHAR(JazzTrackName(JukeTrack))), Nm.X + SetBtnW(Row, 1) / 2.f, Nm.Y + SetBtnH / 2.f, FLinearColor::White, 13.f, true, SetBtnW(Row, 1));
-			break;
-		}
-		case ESetRow::Close:
-		{
-			const FVector2f B = SetBtnPos(Row, 0);
-			Button(B.X, B.Y, SetBtnW(Row, 0), TEXT("닫기"), Cyan, bRowSel, bRowSel);
 			break;
 		}
 		default: break;

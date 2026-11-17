@@ -510,7 +510,6 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 		else SaveSettings();
 		break;
 	case ESetRow::Help: Settings.bHints = !Settings.bHints; if (!Settings.bHints) HintNow = -1; SaveSettings(); break;
-	case ESetRow::Close: bSettings = false; return;
 	default: return;
 	}
 	UiSound(EPDSound::Move);
@@ -519,6 +518,7 @@ void SPDBoardWidget::SettingsChange(int32 Row, int32 Delta)
 void SPDBoardWidget::SettingsClick(FVector2f P)
 {
 	if (!InRect(P, SetBoxX, SetBoxY, SetBoxW, SetBoxH)) { bSettings = false; return; } // 창 바깥 = 닫기
+	if (FVector2f::Distance(P, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f) { bSettings = false; UiSound(EPDSound::Move); return; } // 닫기 ⓧ (D-384)
 	for (int32 Row = 0; Row < (int32)ESetRow::Count; ++Row)
 		for (int32 I = 0; I < SetBtnCount(Row); ++I)
 		{
