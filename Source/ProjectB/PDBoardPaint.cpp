@@ -2770,9 +2770,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	Pill(40.f, TrF(TEXT("레벨 %d"), G.Level), Gold);
 	Pill(160.f, TrF(TEXT("남은 포인트 %d"), G.PointsLeft()), G.PointsLeft() > 0 ? Green : Grey);
 	Pill(280.f, TrF(TEXT("키스톤 %d / %d"), G.KeystoneCount(), KeystoneMax), Gold);
-	Pill(860.f, TrF(TEXT("찍은 노드 %d"), G.Points), Fg);
-	C.Text(TEXT("이번 판에서만 · 레벨이 오를 때마다 포인트 1"), 42.f, 66.f, Dim, 10.f, 0, false, 350.f); // 정보 알약 밑 (D-365: 바닥 가운데는 맨 아래 키스톤 이름 알약과 겹쳤다)
-	C.Text(TreeZoom != 1.f || !TreePan.IsNearlyZero() ? TrF(TEXT("휠: 확대 · 축소 · 빈 곳 끌기: 옮기기 · 0: 원래대로 (×%.1f)"), TreeZoom) : FString(Tr(TEXT("휠: 확대 · 축소 · 빈 곳 끌기: 옮기기"))), 1238.f, 66.f, Dim, 10.f, 2, false, 420.f); // D-376
+	// '찍은 노드' 알약 · '이번 판에서만…' · 휠 안내 글은 뺌 (D-380)
 	PaintCloseButton(C, Purple);
 	};
 	// 노드 · 연결선은 확대 · 옮기기를 거쳐 그린다 (D-376): 붓의 점 옮기기(PW)를 쓰면 상자 · 글자 · 스프라이트도 같이 커진다
