@@ -817,12 +817,16 @@ struct FPDDebugStats
 inline FPDDebugStats GPDDebug;
 // 레이아웃 검사 (D-365, F2): 한 프레임 동안 그린 글자 · 판(불투명 상자) · 버튼 · 선의 자리를 모아 서로 부딪히는 곳을 찾는다.
 //   글자 ↔ 글자 겹침 · 선이 글자를 지나감 · 글자가 판/버튼 테두리에 걸침 · 선이 버튼을 가로지름 · 글자가 화면 밖 · 칸이 좁아 "…"로 잘림
+//   그림 ↔ 그림 일부 겹침 · 그림이 글자에 걸침 (D-366): 그림 함수(무늬 · 카드 · 조커 · 상위 조커 · 아이콘 · 전구 · 스프라이트) 하나가 그린 것을 한 덩어리로,
+//   옅은 선(알파 < 0.3, 빛 고리)은 빼고 바깥 상자를 잰다. 한쪽이 다른 쪽 안에 다 들어가면(카드 속 무늬) 일부러 그린 것이라 뺀다.
+//   그림은 고정 패널 · 창(C 판)에서만 본다: 판(F)의 타워는 칸에 맞춰 놓여 겹칠 수 없고, 적 · 이펙트 · 판 위 말풍선은 원래 겹친다
 // 켜 두면 0.5초마다 다시 찾는다. 찾은 곳은 화면에 빨간 테두리, Saved/Logs/PDLayout.log 에 화면 이름과 함께 (같은 것은 한 번만).
 // 흐린 장식 선(벽돌 · 격자 등, 밝기 × 알파 < 0.35)과 굵은 번짐 띠, 거의 안 보이는 글자(알파 < 0.15)는 보지 않는다. 위젯 헤더를 덜 건드리려고 전역
 struct FPDLayoutCheck
 {
 	struct FR { float X0 = 0.f, Y0 = 0.f, X1 = 0.f, Y1 = 0.f; float W() const { return X1 - X0; } float H() const { return Y1 - Y0; } };
-	struct FTxt { FR B, G; FString S; bool bCut = false; }; // B = 글자 몸통 (글자끼리 · 선), G = 글자 칸 거의 전부 (판 테두리에 닿는지)
+	struct FTxt { FR B, G; FString S; bool bCut = false; int32 Obj = -1; }; // B = 글자 몸통 (글자끼리 · 선), G = 글자 칸 거의 전부 (판 테두리에 닿는지), Obj = 이 글자를 그린 그림
+	struct FObj { FR B; FString N; };
 	struct FPanel { FR B; bool bBtn = false; };
 	struct FSeg { FVector2f A, B; };
 	struct FHit { FR A, B; bool bTwo = false; };
@@ -831,13 +835,31 @@ struct FPDLayoutCheck
 	TArray<FTxt> Texts;
 	TArray<FPanel> Panels;
 	TArray<FSeg> Segs;
+	TArray<FObj> Objs;
 	TArray<FR> Clip;
+	int32 ObjDepth = 0;  // 그림 함수 안 (겹친 그림은 바깥 것 하나로)
+	bool bObjHas = false;
+	FR ObjB;
+	FString ObjN;
 	TArray<FHit> Hits;        // 마지막으로 찾은 것 (화면에 빨갛게)
 	TArray<FString> Logged;   // 이미 로그에 쓴 것 (같은 것은 한 번만)
 	TArray<FString> NewLines; // 이번에 새로 찾은 것 (로그 파일로)
 	int32 Found = 0;          // 켠 뒤 로그에 쓴 개수
 
-	void Begin() { Texts.Reset(); Panels.Reset(); Segs.Reset(); Clip.Reset(); }
+	void Begin() { Texts.Reset(); Panels.Reset(); Segs.Reset(); Objs.Reset(); Clip.Reset(); ObjDepth = 0; }
+	// 그림 덩어리: 바깥 그림 함수가 시작할 때 열고 끝날 때 닫는다. 그 사이에 그린 선 · 상자 · 글자로 바깥 상자를 넓힌다
+	void BeginObj(const TCHAR* N) { if (ObjDepth++ == 0) { bObjHas = false; ObjN = N; } }
+	void EndObj()
+	{
+		if (ObjDepth <= 0 || --ObjDepth > 0) return;
+		if (bObjHas && ObjB.W() >= 3.f && ObjB.H() >= 3.f) Objs.Add({ObjB, ObjN});
+	}
+	void Grow(const FR& R, float Alpha)
+	{
+		if (ObjDepth == 0 || Alpha < 0.3f) return;
+		if (!bObjHas) { ObjB = R; bObjHas = true; return; }
+		ObjB = {FMath::Min(ObjB.X0, R.X0), FMath::Min(ObjB.Y0, R.Y0), FMath::Max(ObjB.X1, R.X1), FMath::Max(ObjB.Y1, R.Y1)};
+	}
 	static bool Inter(const FR& A, const FR& B, FR& O)
 	{
 		O = {FMath::Max(A.X0, B.X0), FMath::Max(A.Y0, B.Y0), FMath::Min(A.X1, B.X1), FMath::Min(A.Y1, B.Y1)};
@@ -866,10 +888,13 @@ struct FPDLayoutCheck
 		if (Alpha < 0.15f || S.IsEmpty()) return;
 		FR B{L + 0.5f, T + 0.2f * H, L + W - 0.5f, T + 0.85f * H}, G{L, T + 0.08f * H, L + W, T + 0.92f * H};
 		if (Clip.Num() && (!Inter(B, Clip.Last(), B) || !Inter(G, Clip.Last(), G))) return;
-		Texts.Add({B, G, S, bCut});
+		Grow(B, Alpha);
+		Texts.Add({B, G, S, bCut, ObjDepth > 0 ? Objs.Num() : -1}); // 그림 안 글자: 그 그림이 닫히면 받을 번호
 	}
 	void AddPanel(float X, float Y, float W, float H, float Alpha, bool bBtn)
 	{
+		if (!bBtn) Grow({X, Y, X + W, Y + H}, Alpha);
+		if (ObjDepth > 0) return; // 그림 속 상자는 판이 아니다
 		if (W < 10.f || H < 8.f || (!bBtn && Alpha < 0.5f) || (W > DesignW * 0.8f && H > DesignH * 0.8f)) return; // 화면 전체 어둡게 깔기는 빼고
 		FR B{X, Y, X + W, Y + H};
 		if (Clip.Num() && !Inter(B, Clip.Last(), B)) return;
@@ -877,6 +902,7 @@ struct FPDLayoutCheck
 	}
 	void AddLines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
 	{
+		if (ObjDepth > 0 && Thick <= 3.f) for (const FVector2f& Q : P) Grow({Q.X - 0.5f, Q.Y - 0.5f, Q.X + 0.5f, Q.Y + 0.5f}, Col.A);
 		if (Thick > 3.f || FMath::Max3(Col.R, Col.G, Col.B) * Col.A < 0.35f) return; // 번짐 띠 · 흐린 장식 선은 빼고
 		for (int32 I = 0; I + 1 < P.Num(); ++I)
 		{
@@ -934,6 +960,25 @@ struct FPDLayoutCheck
 				Note(P.bBtn ? TEXT("TEXT on BUTTON edge") : TEXT("TEXT on PANEL edge"), Q(A.S), A.B, &P.B);
 			}
 		}
+		// 그림 ↔ 그림: 일부만 겹침 (다 들어간 것 · 같은 그림을 같은 자리에 겹친 것은 뺀다)
+		for (int32 I = 0; I < Objs.Num(); ++I)
+			for (int32 J = I + 1; J < Objs.Num(); ++J)
+			{
+				const FObj& A = Objs[I];
+				const FObj& B = Objs[J];
+				FR O;
+				if (!Inter(A.B, B.B, O) || O.W() < 2.f || O.H() < 2.f || Inside(A.B, B.B, 1.f) || Inside(B.B, A.B, 1.f)) continue;
+				Note(TEXT("PICTURE overlaps PICTURE"), A.N + TEXT(" <> ") + B.N, A.B, &B.B);
+			}
+		// 그림이 글자에 걸침: 글자 일부만 그림 상자 안 (그림 속에 다 들어간 글자 = 그림 위 숫자 · 이름이라 괜찮다, 그 그림이 그린 글자도 뺀다)
+		for (const FTxt& T : Texts)
+			for (int32 I = 0; I < Objs.Num(); ++I)
+			{
+				if (T.Obj == I) continue;
+				FR O;
+				if (!Inter(T.B, Objs[I].B, O) || O.W() < 1.5f || O.H() < 1.5f || Inside(T.B, Objs[I].B, 1.f)) continue;
+				Note(TEXT("PICTURE on TEXT"), Objs[I].N + TEXT(" <> ") + Q(T.S), Objs[I].B, &T.B);
+			}
 		// 선이 버튼을 가로지름: 일부는 버튼 안(가장자리 1px 안쪽으로 1.5px 넘게), 일부는 밖 (버튼 속 아이콘 · 테두리는 다 안이라 괜찮다)
 		for (const FPanel& P : Panels)
 		{
@@ -1129,6 +1174,13 @@ struct SPDBoardWidget::FCanvas
 	float PxToDesign = 1.f;              // 화면 픽셀 → 설계 좌표 (선 굵기는 화면 픽셀 기준이라)
 	bool bRec = false;  // 레이아웃 검사 (D-365): 이 판에 그리는 글자 · 상자 · 선의 자리를 GPDLayout 에 모은다 (화면 판 C · F 만, 굽기 판은 아님)
 	bool Rec() const { return bRec && GPDLayout.bCap && !PW && !Warp.bOn; }
+	bool bObjRec = false; // 그림 덩어리도 모은다 (고정 패널 · 창 판 C 만, D-366)
+	struct FObjScope // 그림 함수 하나 = 그림 덩어리 하나 (안에서 부른 그림 함수는 바깥 덩어리에 합쳐진다)
+	{
+		bool bOn;
+		FObjScope(const FCanvas& C, const TCHAR* N) : bOn(C.bObjRec && C.Rec()) { if (bOn) GPDLayout.BeginObj(N); }
+		~FObjScope() { if (bOn) GPDLayout.EndObj(); }
+	};
 	float ThickK = 1.f; // 선 굵기 배율: Slate 선 굵기는 화면 픽셀이라 배율을 따라가지 않는다. 2배로 굽는 그림은 2 (D-143)
 
 	// 띠 묶음 (D-147): 같은 층의 띠는 꼭짓점 묶음 하나로 모아 Slate 요소 하나로 넘긴다
@@ -1593,6 +1645,7 @@ struct SPDBoardWidget::FCanvas
 	// 무늬 도형: 실제 무늬 모양 (♠ ♥ ♦ ♣), 와일드는 별
 	void Shape(EPDSuit S, float CX, float CY, float R, const FLinearColor& Col, float Thick, float GlowK)
 	{
+		const FObjScope Ob(*this, TEXT("Shape"));
 		switch (S)
 		{
 		case EPDSuit::Spade:
@@ -1938,6 +1991,7 @@ struct SPDBoardWidget::FCanvas
 	// bFrame=false 면 틀 없이 안쪽만 (손패 카드는 카드 테두리가 틀 역할)
 	void CardShape(const FPDCard& Card, float CX, float CY, float R, float Alpha, bool bStrong, float Pulse = 0.f, bool bFrame = true)
 	{
+		const FObjScope Ob(*this, TEXT("Card"));
 		const FLinearColor Col = WithAlpha(SuitColor(Card.Suit), Alpha);
 		if (bFrame)
 		{
@@ -1996,6 +2050,7 @@ struct SPDBoardWidget::FCanvas
 	// K = 조커 종류(0~9), 틀 반 너비 R 안에 그린다
 	void JokerArt(int32 K, float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk)
 	{
+		const FObjScope Ob(*this, TEXT("JokerArt"));
 		auto P = [&](float X, float Y) { return FVector2f(CX + X * R, CY + Y * R); };
 		switch (K)
 		{
@@ -2089,6 +2144,7 @@ struct SPDBoardWidget::FCanvas
 	// 조커 포탑: 분홍 둥근 사각 틀 + 조커 그림
 	void JokerTower(int32 K, float CX, float CY, float R, float Alpha, float Pulse)
 	{
+		const FObjScope Ob(*this, TEXT("JokerTower"));
 		const FLinearColor Col = WithAlpha(JokerPink, Alpha);
 		const float H = R * 0.98f;
 		Box(CX - H, CY - H, H * 2.f, H * 2.f, WithAlpha(Col, 0.08f + 0.06f * Pulse));
@@ -2104,6 +2160,7 @@ struct SPDBoardWidget::FCanvas
 	// 상위 조커 기호 (미리보기 tools/neon/upper_jokers.py 그대로): 점 배열을 틀 반 너비 R 로 늘려 네온 선
 	void UpperArt(int32 U, float CX, float CY, float R, const FLinearColor& Col, float Th, float Gk)
 	{
+		const FObjScope Ob(*this, TEXT("UpperArt"));
 		if (U < 0 || U >= UpperJokerCount) return;
 		const int* Ix = GPDUpperIndex[U];
 		for (int L = Ix[0]; L < Ix[0] + Ix[1]; ++L)
@@ -2121,6 +2178,7 @@ struct SPDBoardWidget::FCanvas
 	}
 	void UpperMark(float CX, float CY, float R, const FLinearColor& Gold, float Pulse)
 	{
+		const FObjScope Ob(*this, TEXT("UpperMark"));
 		const float H = R * 0.98f, H2 = R * 0.86f;
 		Glow(RoundRectPoints(CX - H, CY - H, H * 2.f, H * 2.f, R * 0.22f), Gold, 2.f, 1.2f + 0.5f * Pulse);
 		Glow(RoundRectPoints(CX - H2, CY - H2, H2 * 2.f, H2 * 2.f, R * 0.17f), Gold, 1.2f, 0.6f);
@@ -2159,7 +2217,9 @@ struct SPDBoardWidget::FCanvas
 	// 아틀라스 칸 찍기 (D-140): 가운데 (CX, CY), 설계 크기 AtlasCell × S. 같은 층 L 에 모으면 한 번에 그려진다
 	void Sprite(int32 L, const FSlateBrush* B, float CX, float CY, float S, const FLinearColor& Tint)
 	{
+		const FObjScope Ob(*this, TEXT("Sprite"));
 		const float H = AtlasCell * S * 0.5f;
+		if (Ob.bOn) GPDLayout.Grow({CX - H * 0.6f, CY - H * 0.6f, CX + H * 0.6f, CY + H * 0.6f}, Tint.A * FadeK); // 칸 가장자리는 빛번짐 여백
 		FSlateDrawElement::MakeBox(Out, L, PG(CX - H, CY - H, H * 2.f, H * 2.f), B, ESlateDrawEffect::PreMultipliedAlpha, PM(FadeC(Tint)));
 	}
 	// 붓 찍기 (D-143): 왼쪽 위 (X, Y), 크기 W × H
@@ -2183,6 +2243,7 @@ struct SPDBoardWidget::FCanvas
 	// 트리 노드 아이콘 (D-119, PDIcons.h): 선 묶음 + 광대 모자·네 무늬는 직접 그림
 	void Icon(const PDIcon::FIcon& I, const FLinearColor& Col, float Th, float Gk)
 	{
+		const FObjScope Ob(*this, TEXT("Icon"));
 		for (const PDIcon::FLine& L : I.Lines) Glow(L, Col, Th, Gk);
 		if (I.Extra == PDIcon::EExtra::Hat) JesterHat(I.HatC.X, I.HatC.Y, I.HatR, Col, Th, Gk);
 		else if (I.Extra == PDIcon::EExtra::Suits) IconSuits(I.HatC.X, I.HatC.Y, I.HatR, Col, Th, Gk);
@@ -2197,6 +2258,7 @@ struct SPDBoardWidget::FCanvas
 	// 버튼 위 판 위력 비교 (D-107): "판 위력 1.2k → 1.6k (+27%)" 오르면 초록, 내리면 빨강. 누를 수 없으면 안 그림
 	void PowerBadge(const FPDGame::FPowerPreview& P, float X, float Y)
 	{
+		const FObjScope Ob(*this, TEXT("PowerBadge"));
 		if (P.After < 0.f || P.Before <= 0.f) return;
 		const float Pct = (P.After / P.Before - 1.f) * 100.f;
 		const FLinearColor Col = Pct >= 0.5f ? Hex(TEXT("9cffb0")) : Pct <= -0.5f ? Hex(TEXT("ff6a6a")) : Hex(TEXT("cfd8e6"));

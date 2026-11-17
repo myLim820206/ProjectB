@@ -276,6 +276,7 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	GPDLayout.bCap = GPDLayout.bOn && T0 >= GPDLayout.NextAt;
 	if (GPDLayout.bCap) { GPDLayout.Begin(); GPDLayout.NextAt = T0 + 0.5; }
 	C.bRec = F.bRec = GPDLayout.bCap;
+	C.bObjRec = true; // 그림 겹침은 고정 패널 · 창(C)에서만 (D-366): 판(F)의 타워는 칸에 맞춰 놓이고, 적 · 이펙트 · 말풍선은 원래 겹친다
 	PaintAll(C, F);
 	if (GPDLayout.bOn) LayoutCheckEnd(C);
 	GPDDebug.PaintMs = FMath::Lerp(GPDDebug.PaintMs, (float)((FPlatformTime::Seconds() - T0) * 1000.0), 0.1f);
@@ -3218,6 +3219,7 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 // 동그란 전구 (D-294): 켜진 전구 = 부드러운 둥근 빛 + 꽉 찬 알 + 흰 심, 꺼진 전구 = 흐린 얇은 원. 톱니처럼 보이던 10각 테두리 대신
 void SPDBoardWidget::Bulb(FCanvas& C, FVector2f P, float R, bool bOn, const FLinearColor& Col)
 {
+	const FCanvas::FObjScope Ob(C, TEXT("Bulb")); // 레이아웃 검사 그림 덩어리 (D-366)
 	if (!bOn) { C.Lines(FCanvas::CirclePoints(P, R, 20), FLinearColor(Col.R, Col.G, Col.B, 0.2f), 1.f); C.Box(P.X - 0.6f, P.Y - 0.6f, 1.2f, 1.2f, FLinearColor(Col.R, Col.G, Col.B, 0.25f)); return; }
 	for (int32 K = 0; K < 3; ++K) C.Lines(FCanvas::CirclePoints(P, R * (1.15f + 0.3f * K), 24), FLinearColor(Col.R, Col.G, Col.B, 0.28f - 0.08f * K), 1.3f); // 둥근 빛: 옅은 고리 셋 (번짐 띠는 작은 원에서 톱니가 됐다)
 	for (float Rr = R * 0.75f; Rr > 0.4f; Rr -= 0.9f) C.Lines(FCanvas::CirclePoints(P, Rr, 16), Col, 1.2f); // 꽉 찬 알

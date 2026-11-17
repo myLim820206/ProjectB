@@ -1,7 +1,7 @@
 // 레이아웃 검사기 (D-365) 시험: 사용자가 찾은 두 겹침(스킬 트리 잡식가 이름 알약 ↔ 바닥 안내문, 주크박스 그릴 ↔ 선곡 버튼)을
 // 좌표 그대로 재현해 고치기 전엔 잡히고 고친 뒤엔 깨끗한지, 일부러 겹치게 그린 것(네온 글자 · 흐린 벽돌 · 버튼 속 아이콘)은 거르는지 본다.
 //   g++ -std=c++20 -w -I Tests/fakeue -I Source/ProjectB -o Tests/build/layout_check_test Tests/layout_check_test.cpp && Tests/build/layout_check_test
-//   기대: tree before 1 · tree fixed 0 · jukebox before 2 · jukebox fixed 0 · should be clean 0
+//   기대: tree before 1 · tree fixed 0 · jukebox before 2 · jukebox fixed 0 · should be clean 0 · pictures 3 (그림끼리 1 · 그림이 글자에 1 · 같은 자리 선이 글자를 지나감 1) · pictures clean 0 (D-366)
 #include "PDBoardDraw.h"
 #include <cstdio>
 static void Dump(const char* Title)
@@ -46,4 +46,23 @@ int main()
 	GPDLayout.AddPanel(100.f, 100.f, 40.f, 20.f, 1.f, true);
 	GPDLayout.AddLines({FVector2f(115.f, 105.f), FVector2f(125.f, 110.f), FVector2f(115.f, 115.f)}, FLinearColor(1.f, 1.f, 1.f, 1.f), 1.1f);
 	Dump("should be clean");
+	// 4) 그림 (D-366): 아이콘 둘이 반쯤 겹침 → 1, 아이콘이 이름 글자에 걸침 → 1
+	auto Pic = [](const TCHAR* N, float CX, float CY, float R, float A) { GPDLayout.BeginObj(N); GPDLayout.AddLines(TArray<FVector2f>{FVector2f(CX - R, CY - R), FVector2f(CX + R, CY - R), FVector2f(CX + R, CY + R), FVector2f(CX - R, CY + R), FVector2f(CX - R, CY - R)}, FLinearColor(1.f, 1.f, 1.f, A), 1.f); GPDLayout.EndObj(); };
+	GPDLayout.Begin();
+	Pic(TEXT("Icon"), 200.f, 200.f, 10.f, 1.f);
+	Pic(TEXT("Shape"), 212.f, 205.f, 8.f, 1.f);
+	Pic(TEXT("Bulb"), 400.f, 300.f, 6.f, 1.f);
+	GPDLayout.AddText(TEXT("이름"), 404.f, 296.f, 40.f, 14.f, false, 1.f);
+	Dump("pictures");
+	// 5) 걸러야 하는 것: 카드 속 무늬(다 들어감), 그림이 그린 자기 글자, 옅은 빛 고리만 닿음, 그림 위에 다 들어간 숫자
+	GPDLayout.Begin();
+	GPDLayout.BeginObj(TEXT("Card"));
+	GPDLayout.AddLines(TArray<FVector2f>{FVector2f(500.f, 500.f), FVector2f(540.f, 500.f), FVector2f(540.f, 560.f), FVector2f(500.f, 560.f), FVector2f(500.f, 500.f)}, FLinearColor(1.f, 1.f, 1.f, 1.f), 1.f);
+	GPDLayout.AddText(TEXT("A"), 510.f, 505.f, 30.f, 20.f, false, 1.f);
+	Pic(TEXT("Shape"), 520.f, 540.f, 6.f, 1.f); // 안에서 부른 그림 = 같은 덩어리
+	GPDLayout.EndObj();
+	Pic(TEXT("Shape"), 600.f, 530.f, 8.f, 1.f);
+	Pic(TEXT("Bulb"), 616.f, 530.f, 9.f, 0.2f); // 옅은 고리만 → 상자 없음
+	GPDLayout.AddText(TEXT("7"), 595.f, 522.f, 10.f, 16.f, false, 1.f); // 무늬 위에 다 들어간 숫자
+	Dump("pictures clean");
 }
