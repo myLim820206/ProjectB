@@ -471,6 +471,9 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 %s · %d단계	%s · phase %d	%s · 第%d段階	%s · 第%d阶段	%s · 第%d階段	PDBoardFx.cpp
 기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
 합성 레벨 %d!	Fusion Lv %d!	合成レベル %d!	合成等级 %d!	合成等級 %d!	PDBoardFx.cpp
+합성 불가 · %s	Can't fuse · %s	合成不可 · %s	不可合成 · %s	不可合成 · %s	PDBoardMenu.cpp
+조커가 낌	Joker inside	ジョーカー入り	含小丑	含小丑	PDBoardMenu.cpp
+최고 레벨	Max level	最大レベル	已满级	已滿級	PDBoardMenu.cpp
 %d장	%d cards	%d枚	%d张	%d張	PDBoardMenu.cpp
 조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDBoardMenu.cpp
 상위 조커: %s	Upper joker: %s	上位ジョーカー: %s	高级小丑: %s	高級小丑: %s	PDBoardMenu.cpp
@@ -499,6 +502,12 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 조커 %d장의 위력 합 → 조커 하나	Power of %d jokers → one joker	ジョーカー%d枚の威力合計 → ジョーカー1枚	%d张小丑的威力总和 → 一张小丑	%d張小丑的威力總和 → 一張小丑	PDBoardMenu.cpp
 조커: %s · 위력 ×%s	Joker: %s · power ×%s	ジョーカー: %s · 威力 ×%s	小丑: %s · 威力 ×%s	小丑: %s · 威力 ×%s	PDBoardMenu.cpp
 이 칸의 족보를 재료로 넣고 나머지 재료를 고른다	Uses this cell's hand as a material, then pick the rest	このマスの役を素材に入れ、残りの素材を選ぶ	用这一格的牌型作为材料，再选择其余材料	用這一格的牌型作為材料，再選擇其餘材料	PDBoardMenu.cpp
+%s · 합성할 수 없다	%s · can't be fused	%s · 合成できない	%s · 无法合成	%s · 無法合成	PDBoardMenu.cpp
+조커가 낀 족보는 합성하지 않는다	Hands with a Joker aren't fused	ジョーカー入りの役は合成しない	含小丑的牌型不会合成	含小丑的牌型不會合成	PDBoardMenu.cpp
+조커에 먹이면 조커 레벨이 오른다	Feed it to the Joker to raise its level	ジョーカーに食べさせるとレベルが上がる	喂给小丑可提升小丑等级	餵給小丑可提升小丑等級	PDBoardMenu.cpp
+키스톤 광대의 길: 합성은 레벨 2까지	Keystone Jester's Path: fusing only up to level 2	キーストーン 道化の道: 合成はレベル2まで	基石 小丑之路: 合成最多到2级	基石 小丑之路: 合成最多到2級	PDBoardMenu.cpp
+대신 조커 배율 +0.4	In exchange, Joker multiplier +0.4	代わりにジョーカー倍率 +0.4	作为交换，小丑倍率 +0.4	作為交換，小丑倍率 +0.4	PDBoardMenu.cpp
+이미 최고 합성 레벨 (Lv%d)	Already at max fuse level (Lv%d)	すでに最大合成レベル (Lv%d)	已是最高合成等级 (Lv%d)	已是最高合成等級 (Lv%d)	PDBoardMenu.cpp
 판매하면 경험치 +%d	Sell for +%d XP	売却すると経験値 +%d	出售获得经验 +%d	出售獲得經驗 +%d	PDBoardMenu.cpp
 이 칸이 든 족보는 깨진다	Hands using this cell will break	このマスを含む役は崩れる	包含这一格的牌型会被拆散	包含這一格的牌型會被拆散	PDBoardMenu.cpp
 할 수 있는 일이 없다	Nothing to do here	できることがない	没有可做的事	沒有可做的事	PDBoardMenu.cpp

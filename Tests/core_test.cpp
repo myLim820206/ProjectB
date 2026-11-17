@@ -1346,6 +1346,12 @@ static void UnitTests()
 		for (auto& KV : G.Towers) KV.second.Level = 2;
 		G.RebuildMods();
 		Expect(!G.CanFuse(0) && std::abs(G.JokerMult() - 1.6f) < 1e-4f, "광대의 길: 레벨 2는 더 합성 못 함, 조커 배율 1.6");
+		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::ClownPath, "합성 막힌 까닭 = 광대의 길 (D-371)");
+		for (auto& KV : G.Towers) KV.second.Level = MaxLevel;
+		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::MaxLevel, "합성 막힌 까닭 = 최고 레벨 (D-371)");
+		for (auto& KV : G.Towers) KV.second.Level = 1;
+		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::None && G.CanFuse(0), "레벨 1 은 광대의 길이어도 합성 (D-371)");
+		for (auto& KV : G.Towers) KV.second.Level = 2; // 뒤 시험은 레벨 2 그대로
 		FPDTower J;
 		J.Card = {0, EPDSuit::Wild};
 		J.Joker = (int)EPDJoker::Jack;

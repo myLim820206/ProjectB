@@ -1619,11 +1619,20 @@ FPDGame::FPowerPreview FPDGame::PreviewPower(EPowerAction Action, int Idx) const
 
 bool FPDGame::CanFuse(int SynergyIdx) const
 {
-	if (!InPlay()) return false;
 	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return false;
+	return FuseBlock(SynergyIdx) == EFuseBlock::None;
+}
+
+FPDGame::EFuseBlock FPDGame::FuseBlock(int SynergyIdx) const
+{
+	if (!InPlay()) return EFuseBlock::NotInPlay;
+	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return EFuseBlock::NotInPlay;
 	FPDSynergy S;
-	if (!FuseSynergy(SynergyIdx, S)) return false;
-	return Towers.at(S.Cells[0]).Level < (Mods.Key(EPDKeystone::ClownPath) ? 2 : MaxLevel); // 광대의 길: 합성은 레벨 2까지
+	if (!FuseSynergy(SynergyIdx, S)) return EFuseBlock::Joker;
+	const int Lv = Towers.at(S.Cells[0]).Level;
+	if (Lv >= MaxLevel) return EFuseBlock::MaxLevel;
+	if (Mods.Key(EPDKeystone::ClownPath) && Lv >= 2) return EFuseBlock::ClownPath; // 광대의 길: 합성은 레벨 2까지
+	return EFuseBlock::None;
 }
 
 bool FPDGame::FuseSynergy(int SynergyIdx, FPDSynergy& Out) const

@@ -339,8 +339,8 @@ private:
 	// 입력과 미리보기
 	int32 Sel = -1;
 	// 칸 메뉴 상자 (D-312, D-313): 타워 클릭 = 툴팁이 그 자리에 고정되며 메뉴가 된다. 위 = 툴팁(줄여서) 또는 줄에 마우스를 올린 할 일의 전후 비교, 아래 = 할 일 줄
-	enum class ECellAct : uint8 { Fuse, Feed, Merge, Craft, Sell };
-	struct FCellAct { ECellAct Kind = ECellAct::Sell; int32 A = -1; std::vector<int> Cells; FString Label, Right; FLinearColor Col = FLinearColor::White; };
+	enum class ECellAct : uint8 { Fuse, Feed, Merge, Craft, Sell, NoFuse }; // NoFuse: 누를 수 없는 '합성 불가' 줄, A = 족보 번호, B = 까닭 (D-371)
+	struct FCellAct { ECellAct Kind = ECellAct::Sell; int32 A = -1, B = 0; std::vector<int> Cells; FString Label, Right; FLinearColor Col = FLinearColor::White; };
 	struct FTipLine { FString S; FLinearColor Col; float Px = 11.f; bool bBold = false; };
 	int32 MenuCell = -1;                     // 메뉴를 연 칸 (-1 = 닫힘)
 	FVector2f MenuPos = FVector2f::ZeroVector; // 처음 뜬 자리에 고정

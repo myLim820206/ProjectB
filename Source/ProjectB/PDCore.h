@@ -579,6 +579,9 @@ public:
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;
+	// 합성이 막힌 까닭 (D-371): 화면이 '합성 불가' 줄에 이유를 보여 준다
+	enum class EFuseBlock : uint8_t { None, NotInPlay, Joker, ClownPath, MaxLevel };
+	EFuseBlock FuseBlock(int SynergyIdx) const;
 	// 합성할 족보 (D-128): 조커가 든 족보는 조커를 뺀 칸들이 그대로 족보면 그 칸들만 (예: 조커 + ♦ 셋 = 플러시4 → ♦ 셋 플러시 합성)
 	bool FuseSynergy(int SynergyIdx, FPDSynergy& Out) const;
 	// 합성: 결과 타워가 놓일 칸을 재료 칸 중에서 고를 수 있다 (-1 = 기본 칸). 재료 밖 칸이면 실패

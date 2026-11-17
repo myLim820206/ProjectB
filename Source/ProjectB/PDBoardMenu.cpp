@@ -26,7 +26,18 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 	{
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) // 합성: 이 칸이 든 합성 되는 족보마다 (조커 칸은 빠진다, D-128)
 		{
-			if (!G.CanFuse(I)) continue;
+			if (!G.CanFuse(I))
+			{
+				// 이 칸이 든 족보인데 합성이 막혔으면 누를 수 없는 줄로 까닭을 보여 준다 (D-371)
+				const FPDGame::EFuseBlock Why = G.FuseBlock(I);
+				if (Why == FPDGame::EFuseBlock::NotInPlay || Why == FPDGame::EFuseBlock::None || !HasCell(G.Synergies[I].Cells, Cell)) continue;
+				FCellAct A;
+				A.Kind = ECellAct::NoFuse; A.A = I; A.B = (int32)Why; A.Cells = G.Synergies[I].Cells; A.Col = Hex(TEXT("5f6878"));
+				A.Label = TrF(TEXT("합성 불가 · %s"), *HandLabel(G.Synergies[I]));
+				A.Right = Why == FPDGame::EFuseBlock::Joker ? FString(Tr(TEXT("조커가 낌"))) : Why == FPDGame::EFuseBlock::ClownPath ? FString(Tr(TEXT("광대의 길"))) : FString(Tr(TEXT("최고 레벨")));
+				Out.Add(MoveTemp(A));
+				continue;
+			}
 			const FPDSynergy FS = FuseSyn(G, I);
 			if (!HasCell(FS.Cells, Cell)) continue;
 			FCellAct A;
@@ -152,6 +163,7 @@ void SPDBoardWidget::DoCellAct(int32 Row)
 	if (Row < 0 || Row >= MenuActs.Num()) return;
 	const FCellAct A = MenuActs[Row];
 	const int32 Cell = MenuCell;
+	if (A.Kind == ECellAct::NoFuse) { UiSound(EPDSound::Denied); return; } // 누를 수 없는 줄: 메뉴는 그대로 (D-371)
 	RuleLog(FString::Printf(TEXT("cell menu (%d,%d) act=%d arg=%d '%s'"), Cell % Cols, Cell / Cols, (int32)A.Kind, A.A, *A.Label)); // 룰 로그 (D-358)
 	CloseCellMenu();
 	switch (A.Kind)
@@ -181,6 +193,7 @@ void SPDBoardWidget::DoCellAct(int32 Row)
 		break;
 	}
 	case ECellAct::Sell: if (!Game.SellTower(Cell)) UiSound(EPDSound::Denied); break;
+	case ECellAct::NoFuse: break;
 	}
 }
 
@@ -273,6 +286,12 @@ void SPDBoardWidget::CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) 
 		Add(Tr(TEXT("이 칸의 족보를 재료로 넣고 나머지 재료를 고른다")), Grey, 10.f);
 		Add(JokerAbility(A->A), Fg, 10.f);
 		break;
+	case ECellAct::NoFuse: // 합성이 막힌 까닭 (D-371)
+		Add(TrF(TEXT("%s · 합성할 수 없다"), *HandLabel(G.Synergies[A->A])), Grey, 13.f, true);
+		if (A->B == (int32)FPDGame::EFuseBlock::Joker) { Add(Tr(TEXT("조커가 낀 족보는 합성하지 않는다")), Fg); Add(Tr(TEXT("조커에 먹이면 조커 레벨이 오른다")), Grey, 10.f); }
+		else if (A->B == (int32)FPDGame::EFuseBlock::ClownPath) { Add(Tr(TEXT("키스톤 광대의 길: 합성은 레벨 2까지")), Fg); Add(Tr(TEXT("대신 조커 배율 +0.4")), Grey, 10.f); }
+		else Add(TrF(TEXT("이미 최고 합성 레벨 (Lv%d)"), MaxLevel), Fg);
+		break;
 	case ECellAct::Sell:
 	{
 		const float BoardB = PowerSum;
@@ -333,6 +352,13 @@ void SPDBoardWidget::PaintCellMenu(FCanvas& F) const
 		const bool bH = R == Hov;
 		// 알약 튜브 버튼 (D-350, 시안 A tools/neon/cellmenu_btn_mock.py): 처음부터 버튼 테 · 옅은 채움이라 누르는 줄 안다. 마우스 = 진한 채움 + 밝은 테 + 흰 글자
 		const float BX = X + 9.f, BY = RY + (CmRowH - CmBtnH) / 2.f, BW = CmW - 18.f, Rr = RadPill(CmBtnH);
+		if (A.Kind == ECellAct::NoFuse) // 누를 수 없는 줄 (D-371): 채움 없이 흐린 테 한 겹, 회색 글자
+		{
+			F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, CmBtnH, Rr), WithAlpha(A.Col, bH ? 0.9f : 0.6f), 1.f, 0.15f);
+			F.Text(A.Label, BX + 16.f, BY + CmBtnH / 2.f + 4.f, Hex(TEXT("8a94a6")), 11.f, 0, false, BW - 100.f);
+			F.Text(A.Right, BX + BW - 14.f, BY + CmBtnH / 2.f + 4.f, Hex(TEXT("8a94a6")), 10.f, 2, false);
+			continue;
+		}
 		F.BtnFill(BX, BY, BW, CmBtnH, Rr, A.Col, bH);
 		F.Glow(FCanvas::RoundRectPoints(BX, BY, BW, CmBtnH, Rr), WithAlpha(A.Col, bH ? 1.f : 0.75f), bH ? 1.8f : 1.3f, bH ? 1.f : 0.45f);
 		F.Lines(FCanvas::RoundRectPoints(BX + 3.f, BY + 3.f, BW - 6.f, CmBtnH - 6.f, RadPill(CmBtnH - 6.f)), WithAlpha(A.Col, bH ? 0.6f : 0.3f), 0.7f); // 안쪽 둘째 겹
