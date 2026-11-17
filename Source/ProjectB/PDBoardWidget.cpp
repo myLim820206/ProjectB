@@ -721,6 +721,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);
 	HandleEvents();
+	if (!bRuleLogOpen && Clock > 1.f) RuleLog(TEXT("game start")); // 실행하면 바로 머리말을 써 둔다 (D-372): 로그 자리 · 빌드 시각을 사건 전에도 확인
 	FlushRuleLog(); // 룰 로그 (D-358)
 	for (const FPDSynergy& S : Game.Synergies) GoalStats.HandsEver |= 1u << (int32)S.Kind; // 도전 과제: 판에 있는 족보 모두 (사건이 큰 족보 하나만 알려서)
 	// 이펙트 상한 (D-138): 10배속에선 사건이 열 배라 쌓이기만 한다. 넘치면 오래된 것(곧 사라질 것)부터 버린다

@@ -11,3 +11,6 @@ if /i not "%~1"=="nobake" (
 call "%UE%\Build\BatchFiles\RunUAT.bat" BuildCookRun -project="%~dp0..\ProjectB.uproject" -platform=Win64 -clientconfig=Shipping -build -nocompileeditor -cook -stage -pak -prereqs "-applocaldirectory=%UE%\Binaries\ThirdParty\AppLocalDependencies" -archive -archivedirectory="%~dp0..\Saved\PackagedShipping" -nodebuginfo -unattended -utf8output
 rem D-282: no PDB in the shipping package (-nodebuginfo, and delete leftovers)
 del /s /q "%~dp0..\Saved\PackagedShipping\*.pdb" >nul 2>&1
+rem D-372: a new package starts with no rule logs (game folder Logs\, and the old %LOCALAPPDATA% spot from D-358)
+if exist "%~dp0..\Saved\PackagedShipping\Windows\Logs" rmdir /s /q "%~dp0..\Saved\PackagedShipping\Windows\Logs"
+del /q "%LOCALAPPDATA%\ProjectB\Saved\Logs\PDRules*.log" >nul 2>&1

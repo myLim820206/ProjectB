@@ -1157,6 +1157,8 @@ struct FParse
 struct FPaths
 {
 	static FString ProjectSavedDir() { return FString(); }
+	static FString RootDir() { return FString(); }
+	static FString ConvertRelativePathToFull(const FString& P) { return P; }
 	static FString ProjectDir() { return FString(); }
 	static FString ProjectContentDir() { return FString(); }
 	static FString ProjectLogDir() { return FString(); }

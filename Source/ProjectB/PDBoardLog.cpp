@@ -1,12 +1,20 @@
 // 룰 로그 (D-358): 쉬핑 빌드에서도 남는 파일 로그. UE_LOG 는 쉬핑에서 꺼지므로 직접 파일에 쓴다.
-// 위치: Saved/Logs/PDRules.log (쉬핑 = %LOCALAPPDATA%/ProjectB/Saved/Logs). 실행할 때마다 새로 쓰고, 지난 실행은 PDRules-prev.log 로.
+// 위치: 에디터 = 프로젝트 Saved/Logs/PDRules.log, 패키지 = 게임 폴더(ProjectB.exe 옆) Logs/PDRules.log (D-372, 예전엔 %LOCALAPPDATA%).
+// 실행할 때마다 새로 쓰고, 지난 실행은 PDRules-prev.log 로. tools\package_shipping.bat 가 새로 말 때 지운다.
 // 남기는 것: 룰 사건(놓기 · 족보 · 합성 · 조커 · 먹이기 · 판매 · 웨이브 · 보상 · 레벨 · 보스 기술), 거절 소리, 조커 만들기 고르기 과정.
 // 버그를 잡는 동안만 쓰는 장치라 나중에 빼거나 끈다
 #include "PDBoardDraw.h"
 
 namespace
 {
-FString PDRuleLogPath() { return FPaths::ProjectSavedDir() / TEXT("Logs") / TEXT("PDRules.log"); }
+FString PDRuleLogPath()
+{
+#if WITH_EDITOR
+	return FPaths::ProjectSavedDir() / TEXT("Logs") / TEXT("PDRules.log");
+#else
+	return FPaths::ConvertRelativePathToFull(FPaths::RootDir()) / TEXT("Logs") / TEXT("PDRules.log"); // 패키지 뿌리 = ProjectB.exe 가 있는 폴더 (D-372)
+#endif
+}
 const TCHAR* PDPhaseName(EPDPhase P)
 {
 	switch (P)
