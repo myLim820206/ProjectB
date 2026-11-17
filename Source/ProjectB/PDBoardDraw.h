@@ -748,8 +748,8 @@ inline const TCHAR* MenuItemName(int I)
 // 설정 창 (D-110): 줄마다 이름 + 버튼
 enum class ESetRow : uint8_t { Lang, Window, CardTheme, Frame, VSync, WorldFx, Shake, Cine, Sound, Volume, Music, Track, Help, Count }; // 닫기 줄은 뺐다 → 오른쪽 위 ⓧ 버튼 (D-384) // Track: 주크박스 곡 ◀ 이름 ▶ (D-319) // Cine: 완성 연출 전부/조커만/끔 (D-314) // Help: 도움말 켜기·처음부터 (D-217)
 constexpr float SetW = 560.f, SetRowH = 33.f, SetRowGap = 2.f, SetLabelW = 200.f, SetBtnH = 30.f;
-// D-395: 제목 아래 · 맨 아래에 여백 (38 → 33 → 23씩). 창 윗변은 35 (전구 가로대 윗변 8, 칠판 아랫변 681)
-constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 159.f; // 첫 줄 (D-159 140 → D-394 150 → D-395 159)
+// D-395: 제목 아래 · 맨 아래에 여백 (38 → 33 → 23씩). D-396: 전구 가로대 윗변 ~ 칠판 아랫변(높이 673)이 화면 위아래 가운데 (23 ~ 696)
+constexpr float SetX = DesignW / 2.f - SetW / 2.f, SetY0 = 174.f; // 첫 줄 (D-159 140 → D-394 150 → D-395 159 → D-396 174)
 constexpr float SetBoxX = SetX - 40.f, SetBoxY = SetY0 - 124.f, SetBoxW = SetW + 80.f; // 창 윗변 35 (D-392 · D-394 49 에서 14 올림), 양옆 10씩 넓힘 (D-395)
 constexpr float SetBoxH = (int)ESetRow::Count * (SetRowH + SetRowGap) + 191.f;
 inline float SetRowY(int Row) { return SetY0 + Row * (SetRowH + SetRowGap); }
