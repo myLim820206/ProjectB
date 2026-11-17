@@ -2107,7 +2107,6 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const FLinearColor Col = SuitColor(Card.Suit);
 		C.Box(X, Y, CardW, CardH, Hex(TEXT("06060b"), 0.7f));
 		C.Glow(FCanvas::RoundRectPoints(X, Y, CardW, CardH, RadPanel), bSel ? Hex(TEXT("ff6aaa")) : Col, bSel ? 2.4f : 1.4f, bSel ? 1.2f : 0.6f);
-		if (bSel) C.Shape(EPDSuit::Heart, X + CardW / 2.f, Y - 12.f, 6.f, Hex(TEXT("ff6aaa")), 1.3f, 0.5f); // 고른 카드 하트 (D-275)
 		C.CardShape(Card, X + CardW / 2.f, Y + CardH / 2.f - 6.f, 30.f, 1.f, bSel, Pulse, false);
 		C.TextCentered(SuitName(Card.Suit), X + CardW / 2.f, Y + CardH - 12.f, Col, 10.f, false, CardW - 6.f);
 		C.Text(FString::FromInt(I + 1), X + 7.f, Y + 14.f, Dim, 10.f);
@@ -3071,7 +3070,6 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			C.Lines(FCanvas::CirclePoints(FVector2f(Bx, P.Y + TitleBtnH / 2.f), 2.2f, 10), Hex(TEXT("787d8c"), 0.7f), 1.f);
 		const FLinearColor TxC = bSel ? FLinearColor(FMath::Min(1.f, Col.R * 1.15f + 0.08f), FMath::Min(1.f, Col.G * 1.15f + 0.08f), FMath::Min(1.f, Col.B * 1.15f + 0.08f), 1.f) : WithAlpha(Col, 0.78f); // 흰색으로 바뀌지 않고 같은 색이 밝아진다
 		C.TextCentered(Labels[I], P.X + TitleBtnW / 2.f, P.Y + TitleBtnH / 2.f, TxC, 18.f, true);
-		if (bSel) C.Shape(EPDSuit::Heart, P.X - 22.f, P.Y + TitleBtnH / 2.f, 8.f, Col, 1.4f, 0.8f);
 		if (I == (int32)ETitleItem::Unlock && bCanBuy) // 살 게 있으면 반짝이는 점 (D-321 ③)
 		{
 			const FVector2f Dp(P.X + TitleBtnW - 10.f, P.Y + 4.f);
@@ -3121,7 +3119,6 @@ void SPDBoardWidget::PaintModeSel(FCanvas& C) const
 			C.Glow(FCanvas::RoundRectPoints(LX0 - 12.f, P.Y + 50.f, 24.f, 18.f, 3.f), Dim, 1.4f, 0.3f);
 			C.Lines({FVector2f(LX0 - 7.f, P.Y + 50.f), FVector2f(LX0 - 7.f, P.Y + 42.f), FVector2f(LX0, P.Y + 36.f), FVector2f(LX0 + 7.f, P.Y + 42.f), FVector2f(LX0 + 7.f, P.Y + 50.f)}, Dim, 1.4f);
 		}
-		if (bSel && bOpen) C.Shape(EPDSuit::Heart, P.X + ModeCardW / 2.f, P.Y - 14.f, 7.f, PinkM, 1.4f, 0.6f);
 		NeonText(C, Big[M], P.X + ModeCardW / 2.f, P.Y + 108.f, bOpen ? Col : Dim, 48.f, 1, bOpen ? 1.f : 0.45f);
 		C.TextCentered(Sub[M], P.X + ModeCardW / 2.f, P.Y + 128.f, bOpen ? Fg : Dim, 13.f, false, ModeCardW - 16.f);
 		if (!bOpen)
@@ -3279,7 +3276,6 @@ void SPDBoardWidget::TubeBtn(FCanvas& C, float X, float Y, float W, float H, con
 	C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.35f * B), 0.6f);
 	C.Glow(Ri, FLinearColor(Cc.R * B * 0.8f, Cc.G * B * 0.8f, Cc.B * B * 0.8f, 1.f), 1.2f, 0.5f * B);
 	C.TextCentered(S, X + W / 2.f, Y + H / 2.f, bOn ? HotCol(Cc) : WithAlpha(Cc, 0.85f), Px, true, W - 30.f); // 글자도 버튼 색 (D-382)
-	if (bOn) C.Shape(EPDSuit::Heart, X - 20.f, Y + H / 2.f, 7.f, Cc, 1.4f, 0.6f);
 }
 
 float SPDBoardWidget::Receipt(FCanvas& C, float CX, float Y, const TArray<TPair<FString, FString>>& RcRows, const FString& Total, const FString& Sub)
@@ -3915,9 +3911,8 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			if (Id == FeedFilterId && bOn && !bHov) C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(JokerPink, 0.02f + 0.08f * Fl));
 			if (bHov) { C.Box(X0 - 8.f, Y, XR - X0 + 14.f, HandMenuRowH, WithAlpha(PinkH, 0.1f)); C.Glow(FCanvas::RoundRectPoints(X0 - 10.f, Y, XR - X0 + 18.f, HandMenuRowH, RadSmall), PinkH, 1.5f, 0.6f); }
 			else if (bFilt) C.Glow(FCanvas::RoundRectPoints(X0 - 10.f, Y, XR - X0 + 18.f, HandMenuRowH, RadSmall), HC, 1.5f, 0.7f + 0.3f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-			// 이름 앞 색 칸 (마우스를 올린 줄은 하트)
-			if (bHov) C.Shape(EPDSuit::Heart, X0 + 1.f, NY - 4.f, 4.5f, PinkH, 1.2f, 0.4f);
-			else C.Box(X0 - 2.f, NY - 8.f, 5.f, 8.f, WithAlpha(HC, bOn ? 0.9f : 0.35f));
+			// 이름 앞 색 칸 (마우스를 올린 줄도 색 칸, 더 밝게 — D-386: 하트 뺌)
+			C.Box(X0 - 2.f, NY - 8.f, 5.f, 8.f, WithAlpha(HC, bHov ? 1.f : bOn ? 0.9f : 0.35f));
 			const float NX = X0 + 10.f;
 			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수
 			FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
@@ -4043,7 +4038,7 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 	{
 		const float Y = SetRowY(Row);
 		const bool bRowSel = Row == SetSel;
-		if (bRowSel) C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(BtnColDefault(), 0.06f)); // 고른 줄은 옅은 띠만 (D-385: 하트 뺌)
+		if (bRowSel) C.Box(SetX - 10.f, Y, SetW + 20.f, SetRowH, WithAlpha(BtnColDefault(), 0.06f)); // 고른 줄은 옅은 띠만 (D-386: 하트 뺌)
 		C.Text(Labels[Row], SetX, Y + SetRowH / 2.f + 5.f, bRowSel ? HotCol(Fg) : Fg, 14.f, 0, true, SetLabelW - 10.f);
 		switch ((ESetRow)Row)
 		{
