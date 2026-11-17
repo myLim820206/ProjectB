@@ -570,7 +570,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 %s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)	Make %s: %d materials picked · click a candidate = add (Best = the game's pick)	%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)	制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)	製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)	PDBoardPaint.cpp
 레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로	Recipe complete: click a picked tile = Joker there · right-click = remove material · Esc = back to list	レシピ完成: 選んだ素材マスをクリック = そこにジョーカー · 右クリック = 素材を外す · Esc = リストへ	配方完成: 点击已选素材格 = 小丑放那里 · 右键 = 移除素材 · Esc = 返回列表	配方完成: 點擊已選素材格 = 小丑放那裡 · 右鍵 = 移除素材 · Esc = 返回列表	PDBoardPaint.cpp
 고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로	Click a picked material = remove · right-click elsewhere / Esc = back to list	選んだ素材をクリック = 外す · ほかを右クリック / Esc = リストへ	点击已选素材 = 移除 · 右键别处 / Esc = 返回列表	點擊已選素材 = 移除 · 右鍵別處 / Esc = 返回列表	PDBoardPaint.cpp
-%s 합성: 합쳐질 칸을 클릭	Fuse %s: click the tile to fuse into	%s 合成: まとめるマスをクリック	合成 %s: 点击要合成到的格子	合成 %s: 點擊要合成到的格子	PDBoardPaint.cpp
 %s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
 상위: %s	Upper: %s	上位: %s	上位: %s	上位: %s	PDBoardPaint.cpp
 상위 조커 ???	Upper Joker ???	上位ジョーカー ???	上位小丑 ???	上位小丑 ???	PDBoardPaint.cpp
@@ -631,13 +630,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 키스톤 %d / %d	Keystones %d / %d	キーストーン %d / %d	基石 %d / %d	基石 %d / %d	PDBoardPaint.cpp
 찍은 노드 %d	Nodes taken %d	取得ノード %d	已点亮节点 %d	已點亮節點 %d	PDBoardPaint.cpp
 이번 판에서만 · 레벨이 오를 때마다 포인트 1	This run only · 1 point per level up	このランのみ · レベルアップごとにポイント 1	仅限本局 · 每次升级获得 1 点	僅限本局 · 每次升級獲得 1 點	PDBoardPaint.cpp
-찍음	Taken	取得済み	已点亮	已點亮	PDBoardPaint.cpp
-찍을 수 있음	Available	取得可能	可点亮	可點亮	PDBoardPaint.cpp
-아직 못 찍음	Locked	まだ取れない	尚不可点亮	尚不可點亮	PDBoardPaint.cpp
-봉인 (짝 키스톤)	Sealed (paired keystone)	封印 (対のキーストーン)	封印 (成对基石)	封印 (成對基石)	PDBoardPaint.cpp
-키스톤은 둘씩 짝: 하나를 찍으면	Keystones come in pairs: take one and	キーストーンは2つで1組: 片方を取ると	基石两两成对: 点亮一个后	基石兩兩成對: 點亮一個後	PDBoardPaint.cpp
-짝은 이 판 동안 봉인 · 판마다 3개까지	its pair is sealed this run · up to 3 per run	対はこの回の間封印 · 1回3つまで	另一个本局封印 · 每局最多3个	另一個本局封印 · 每局最多3個	PDBoardPaint.cpp
 찍을 수 있음 · 남은 포인트 %d	Can take · points left %d	取得可能 · 残りポイント %d	可点亮 · 剩余点数 %d	可點亮 · 剩餘點數 %d	PDBoardPaint.cpp
+찍음	Taken	取得済み	已点亮	已點亮	PDBoardPaint.cpp
 찍은 노드와 이어져야 한다	Must connect to a taken node	取得済みノードとつながっている必要がある	必须与已点亮节点相连	必須與已點亮節點相連	PDBoardPaint.cpp
 짝 키스톤을 찍어서 봉인됨	Sealed: its pair was taken	対のキーストーンを取ったので封印	已点亮成对基石而封印	已點亮成對基石而封印	PDBoardPaint.cpp
 키스톤은 판마다 %d개까지	Up to %d keystones per run	キーストーンは1回 %d個まで	每局最多 %d 个基石	每局最多 %d 個基石	PDBoardPaint.cpp
@@ -809,6 +803,12 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+%s 합성: 합쳐질 칸을 클릭	Fuse %s: click the tile to fuse into	%s 合成: まとめるマスをクリック	合成 %s: 点击要合成到的格子	合成 %s: 點擊要合成到的格子	PDLangTable.inl
+찍을 수 있음	Available	取得可能	可点亮	可點亮	PDLangTable.inl
+아직 못 찍음	Locked	まだ取れない	尚不可点亮	尚不可點亮	PDLangTable.inl
+봉인 (짝 키스톤)	Sealed (paired keystone)	封印 (対のキーストーン)	封印 (成对基石)	封印 (成對基石)	PDLangTable.inl
+키스톤은 둘씩 짝: 하나를 찍으면	Keystones come in pairs: take one and	キーストーンは2つで1組: 片方を取ると	基石两两成对: 点亮一个后	基石兩兩成對: 點亮一個後	PDLangTable.inl
+짝은 이 판 동안 봉인 · 판마다 3개까지	its pair is sealed this run · up to 3 per run	対はこの回の間封印 · 1回3つまで	另一个本局封印 · 每局最多3个	另一個本局封印 · 每局最多3個	PDLangTable.inl
 %s 합성: 합쳐질 칸을 클릭 · 족보 목록 다시 클릭 / Esc / 오른쪽 클릭: 끄기	Fuse %s: click the tile to fuse into · click the list again / Esc / right-click: off	%s 合成: まとめるマスをクリック · リストをもう一度クリック / Esc / 右クリック: やめる	合成 %s: 点击要合成到的格子 · 再点列表 / Esc / 右键: 关闭	合成 %s: 點擊要合成到的格子 · 再點列表 / Esc / 右鍵: 關閉	PDLangTable.inl
 잔에 마우스: 이름 · 설명	Hover a glass: name · effect	グラスにカーソル: 名前 · 説明	悬停酒杯: 名称 · 说明	懸停酒杯: 名稱 · 說明	PDLangTable.inl
 보스 웨이브 · %s	Boss wave · %s	ボスウェーブ · %s	首领波次 · %s	首領波次 · %s	PDLangTable.inl
