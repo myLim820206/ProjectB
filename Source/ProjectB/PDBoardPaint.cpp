@@ -419,6 +419,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	if (bSettings) PaintSettings(C);
 	if (bRanking) PaintRanking(C);
 	if (LoadT > 0.f) PaintLoading(C);
+	if (bSplash) PaintSplash(C); // 회사 로고 (D-374): 맨 위
 	// 디버그 표시 (D-133, F3): 맨 위 왼쪽 아래 구석에
 	if (GPDDebug.bShow)
 	{
@@ -3539,6 +3540,89 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 	C.Text(TEXT("도움말 끄기"), Off.X, Off.Y + 9.f, HintOffRect.IsInside(Mouse) ? Fg : Dim, 9.f, 0, false, 90.f);
 }
 
+// 회사 로고 부트 스플래시 (D-374, 시안 tools/neon/logo_jollybaldy_type.py 의 K · k_frame 과 같은 타이밍): 평면 로고라 네온 화풍 예외
+// 0.3 눈 뜸 → 0.7 JOLLY BALDY 가 한 글자씩 튀어나와 웃는 입 곡선 → 1.85 깜빡 → 2.1 정수리 광 '띵' → 3.6 부터 사라지며 시작 화면
+namespace
+{
+float SplClamp(float V) { return FMath::Clamp(V, 0.f, 1.f); }
+float SplBack(float V, float K = 1.9f) { V -= 1.f; return 1.f + (K + 1.f) * V * V * V + K * V * V; }
+float SplOut(float V) { return 1.f - (1.f - V) * (1.f - V) * (1.f - V); }
+TArray<FVector2f> SplEllipse(FVector2f C, float Rx, float Ry, float A0 = 0.f, float A1 = TwoPi, int32 N = 32)
+{
+	TArray<FVector2f> P;
+	for (int32 K = 0; K <= N; ++K) { const float A = A0 + (A1 - A0) * K / N; P.Add(C + FVector2f(FMath::Cos(A) * Rx, FMath::Sin(A) * Ry)); }
+	return P;
+}
+TArray<FVector2f> SplStar(FVector2f C, float R, float Rot)
+{
+	TArray<FVector2f> P;
+	for (int32 K = 0; K < 8; ++K) { const float A = FMath::DegreesToRadians(-90.f + K * 45.f + Rot), Rr = K % 2 ? R * 0.25f : R; P.Add(C + FVector2f(FMath::Cos(A), FMath::Sin(A)) * Rr); }
+	return P;
+}
+}
+void SPDBoardWidget::PaintSplash(FCanvas& C) const
+{
+	const float T = SplashT, Fade = 1.f - SplClamp((T - SplashHold) / (SplashLen - SplashHold));
+	if (Fade <= 0.f) return;
+	const FLinearColor Bg = Hex(TEXT("101018")), Yellow = Hex(TEXT("ffc93c")), Cream = Hex(TEXT("ffecc8")), White = FLinearColor::White;
+	C.Box(0.f, 0.f, DesignW, DesignH, WithAlpha(Bg, Fade));
+	const float CX = DesignW / 2.f, CY = 40.f, R = 520.f; // 웃는 입 곡선: 가운데가 화면 위 바깥인 큰 원의 아래 호
+	// 1) 눈
+	const float Eo = SplBack(SplClamp((T - 0.3f) / 0.35f), 1.4f), Blink = SplClamp(1.f - FMath::Abs(T - 1.85f) / 0.1f);
+	if (T > 0.3f)
+	{
+		const float Eh = FMath::Max(0.f, Eo) * (1.f - Blink * 0.85f) * 45.f;
+		const FLinearColor Ec = WithAlpha(Cream, SplClamp(Eo) * Fade);
+		for (const float Sg : {-1.f, 1.f})
+		{
+			const FVector2f E(CX + Sg * 150.f, 305.f);
+			if (Eh < 4.f) C.Lines({E + FVector2f(-46.f, -2.f), E + FVector2f(46.f, -2.f)}, Ec, 16.f);
+			else C.Lines(SplEllipse(E, 50.f, Eh, FMath::DegreesToRadians(200.f), FMath::DegreesToRadians(340.f), 20), Ec, 16.f);
+		}
+	}
+	// 2) 글자: 원의 아래 호를 따라 왼쪽→오른쪽, 글자 위가 원 가운데 쪽
+	{
+		const FString Word = TEXT("JOLLY BALDY");
+		const float Px = 64.f, Gap = Px * 0.04f;
+		const FSlateFontInfo F = FCanvas::Font(Px, true);
+		TArray<float> Ws;
+		float Tot = 0.f;
+		for (int32 I = 0; I < Word.Len(); ++I) { Ws.Add(FCanvas::Measure(Word.Mid(I, 1), F).X); Tot += Ws.Last() + (I ? Gap : 0.f); }
+		const float H = FCanvas::Measure(TEXT("J"), F).Y;
+		float A = HALF_PI + Tot / R / 2.f;
+		for (int32 I = 0; I < Word.Len(); ++I)
+		{
+			const float Am = A - Ws[I] / 2.f / R;
+			A -= (Ws[I] + Gap) / R;
+			const float Lt = SplClamp((T - 0.7f - I * 0.065f) / 0.32f);
+			if (Lt <= 0.f || Word[I] == TEXT(' ')) continue;
+			const float Sc = FMath::Max(0.05f, SplBack(Lt)), Rr = R - (1.f - SplOut(Lt)) * 40.f + H * 0.5f * 0.82f; // 글자 가운데 = 호에서 바깥으로 반 높이
+			const FVector2f P(CX + FMath::Cos(Am) * Rr, CY + FMath::Sin(Am) * Rr);
+			C.TextRot(Word.Mid(I, 1), P.X, P.Y, WithAlpha(Yellow, SplClamp(Lt * 2.5f) * Fade), Px, true, Am - HALF_PI, Sc);
+		}
+	}
+	// 3) 정수리 광: 타원 + 돌며 번쩍하는 네 갈래 별 + 빛줄 넷
+	const float Gt = SplClamp((T - 2.1f) / 0.25f);
+	if (Gt > 0.f)
+	{
+		const float Ga = SplOut(Gt);
+		C.FillPoly(SplEllipse(FVector2f(CX - 175.f, 136.f), 35.f * Ga, 16.f * Ga), WithAlpha(White, Fade));
+		const float St = SplClamp((T - 2.2f) / 0.45f);
+		if (St > 0.f)
+		{
+			const float Big = St < 0.77f ? 1.f + 2.2f * FMath::Sin(PI * FMath::Min(1.f, St * 1.3f)) : 1.f;
+			const FVector2f S(CX - 108.f, 118.f);
+			C.FillPoly(SplStar(S, 18.f * Big, (1.f - SplOut(St)) * 90.f), WithAlpha(White, Fade), 0.35f);
+			if (St < 0.8f)
+				for (int32 K = 0; K < 4; ++K)
+				{
+					const FVector2f D(FMath::Cos(FMath::DegreesToRadians(45.f + K * 90.f)), FMath::Sin(FMath::DegreesToRadians(45.f + K * 90.f)));
+					C.Lines({S + D * 26.f, S + D * (26.f + 60.f * SplOut(St / 0.8f))}, WithAlpha(White, (1.f - St / 0.8f) * Fade), 4.f);
+				}
+		}
+	}
+}
+
 // 합성 모드 커서 꼬리표 (D-373, 미리보기 tools/neon/rclick_hint_mock.py): 커서 오른쪽 아래 어두운 둥근 상자에 마우스(오른쪽 버튼만 금빛) + "취소".
 // 판 위에서만 (오른쪽 클릭 취소는 판 칸에서만 먹는다). 오른쪽 클릭으로 RClickTagUntil 번 꺼 보면 거둔다. 헛클릭하면 버튼이 빨갛게 번쩍 (거둔 뒤에도)
 void SPDBoardWidget::PaintFuseCursorTag(FCanvas& C) const
@@ -4030,6 +4114,5 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 		default: break;
 		}
 	}
-	if (GIsEditor) C.TextCentered(TEXT("화면 모드는 패키지 빌드에서만 바뀐다 (에디터에서는 저장만)"), DesignW / 2.f, SetBoxY + SetBoxH - 38.f, Dim, 10.f, false);
-	C.TextCentered(TEXT("↑↓ 고르기 · ←→ 바꾸기 · Enter 켜기/끄기 · Esc 메뉴로"), DesignW / 2.f, SetBoxY + SetBoxH - 18.f, Dim, 11.f, false);
+	// 아래 안내 두 줄(에디터 화면 모드 · 키 조작)은 뺌 (D-383)
 }
