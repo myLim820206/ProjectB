@@ -211,10 +211,12 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 		C.TextCentered(Top, CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 15.f, bH ? FLinearColor::White : Bc, 15.f, true, CdxBuyW - 16.f);
 		if (!It.bOpen && It.bMat && !It.bGoal) C.TextCentered(bCan ? FString(Tr(TEXT("클릭해서 열기"))) : FString(Tr(TEXT("칩이 모자란다"))), CdxBuyX + CdxBuyW / 2.f, CdxBuyY + 31.f, bCan ? Pink : Dim, 10.f, true);
 	};
-	float Y = CdxBY + 320.f; // 그림 아래 (이름 기준선)
+	// 상점의 조커 쪽은 레시피 밑 안내문이 [열기] 버튼에 겹치지 않게 그림부터 위로 올린다 (D-368)
+	const float Lift = V.Tab == 1 && CdxShop() ? 26.f : 0.f;
+	float Y = CdxBY + 320.f - Lift; // 그림 아래 (이름 기준선)
 	if (V.Tab == 0) Glass(V.Pick % 3, CX, CdxBY + 270.f, 2.f, Hex(CdxCockCol[V.Pick % 5]), It.bKnown ? 1.f : 0.4f);
 	else if (V.Tab == 3) Boss(V.Pick, CX, CdxBY + 120.f, 48.f, It.bKnown ? 1.f : 0.25f);
-	else C.JokerTower(V.Tab == 1 ? V.Pick : UpperBase + V.Pick, CX, CdxBY + 180.f, 54.f, It.bKnown ? 1.f : 0.35f, 0.5f + 0.5f * FMath::Sin(Clock * 3.f));
+	else C.JokerTower(V.Tab == 1 ? V.Pick : UpperBase + V.Pick, CX, CdxBY + 180.f - Lift, 54.f, It.bKnown ? 1.f : 0.35f, 0.5f + 0.5f * FMath::Sin(Clock * 3.f));
 	NeonText(C, It.Name, CX, Y, Big, 30.f, 1, It.bKnown ? 1.f : 0.5f);
 	Y += 26.f;
 	if (V.Tab == 1) // 조커: 대장 · 위력, 지휘, 레시피 알약 (D-115)
