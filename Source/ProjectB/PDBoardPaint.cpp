@@ -2842,15 +2842,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 			if (bOwn) C.Box(P.X - 13.f, P.Y - 13.f, 26.f, 26.f, WithAlpha(Col, 0.12f + 0.06f * Pulse));
 			C.Glow(O, Ca, Th + 0.6f, Gk);
 			C.Lines(FCanvas::CirclePoints(P, 15.f, 24), WithAlpha(Col, Al * 0.45f), 0.8f);
-			{ // 이름: 트리 가운데에서 먼 쪽에, 어두운 판 위 (D-290)
-				const FString KN = KeystoneName(N.Fx[0].Param);
-				const float KW = FCanvas::Measure(TrS(KN), FCanvas::Font(11.f, true)).X + 14.f;
-				const float Dx = P.X - 640.f, Dy = P.Y - 392.f;
-				const FVector2f LP = FMath::Abs(Dy) > FMath::Abs(Dx) * 0.6f ? FVector2f(P.X, P.Y + (Dy > 0.f ? 36.f : -32.f)) : FVector2f(P.X + (Dx > 0.f ? 1.f : -1.f) * (28.f + KW / 2.f), P.Y);
-				C.Box(LP.X - KW / 2.f, LP.Y - 9.f, KW, 18.f, Hex(TEXT("08080e"), 0.95f));
-				C.Lines(FCanvas::RoundRectPoints(LP.X - KW / 2.f, LP.Y - 9.f, KW, 18.f, RadPill(18.f)), WithAlpha(Col, bOwn ? 0.7f : 0.4f), 1.f);
-				C.TextCentered(KN, LP.X, LP.Y, WithAlpha(Col, bOwn ? 1.f : bSealed ? 0.7f : 0.85f), 11.f, true);
-			}
+			// 이름 알약(D-290)은 뺌 (D-377): 옆 노드를 가렸고, 이름은 마우스를 올리면 설명 상자에 나온다
 			break;
 		}
 		case EPDNode::Joker:
