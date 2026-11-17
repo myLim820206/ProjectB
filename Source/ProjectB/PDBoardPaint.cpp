@@ -3726,7 +3726,15 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 				float X = LX + 18.f;
 				const float Ty = Y + 31.f;
 				int32 Slot = 0;
-				for (EPDHand H : JokerRecipe((EPDJoker)E.J))
+				// 3개 · 2개 레시피 중 고른 재료가 더 많이 맞는 쪽을 보여 준다 (D-370): 2개 레시피로 완성됐는데 3개 레시피에 빈 칸이 보여 헷갈리던 것
+				auto Matched = [&Have](auto const& Rec) { std::vector<int> Hv = Have; int32 M = 0; for (EPDHand H : Rec) { auto Mi = std::find(Hv.begin(), Hv.end(), (int)H); if (Mi != Hv.end()) { Hv.erase(Mi); ++M; } } return M; };
+				const auto& R3 = JokerRecipe((EPDJoker)E.J);
+				const auto& R2 = JokerRecipe2((EPDJoker)E.J);
+				const int32 M3 = Matched(R3), M2 = Matched(R2);
+				const bool bUse2 = M3 < 3 && (M2 == 2 || M2 > M3);
+				std::vector<EPDHand> Rec = bUse2 ? std::vector<EPDHand>(R2.begin(), R2.end()) : std::vector<EPDHand>(R3.begin(), R3.end());
+				if (bUse2) { C.Text(TEXT("2개"), X, Ty, Dim, 9.f); X += FCanvas::Measure(TrS(TEXT("2개")), Fn).X + 5.f; } // 레시피 창의 '2개' 줄 머리와 같은 글자
+				for (EPDHand H : Rec)
 				{
 					if (Slot++ > 0) { C.Text(TEXT(" · "), X, Ty, Dim, 9.f); X += FCanvas::Measure(TEXT(" · "), Fn).X; }
 					auto It = std::find(Have.begin(), Have.end(), (int)H);
