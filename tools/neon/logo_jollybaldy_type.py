@@ -230,9 +230,123 @@ def logo_F():
     return img.resize((W, H), Image.LANCZOS)
 
 
+MONO = next((p for p in ['C:/Windows/Fonts/consolab.ttf', 'C:/Windows/Fonts/consola.ttf', 'C:/Windows/Fonts/courbd.ttf'] if os.path.exists(p)), FONT)
+
+
+def logo_G():
+    """아스키 아트: 머리 윤곽 · 눈 · 입 · 광을 JOLLYBALDY 글자를 차례로 늘어놓아 그림"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    cx, cy, R = 640, 300, 235
+    cw, chh = 11, 14                                # 글자 칸 (설계 px)
+    # 선 그림 (칸 크기 굵기): 여기에 걸리는 칸에 글자를 놓는다
+    line = Image.new('L', (W, H), 0)
+    ld = ImageDraw.Draw(line)
+    pts = []
+    for k in range(121):
+        t = k / 120 * 2 * math.pi
+        s = math.sin(t)
+        pts.append((cx + math.cos(t) * R * (0.84 if s < 0 else 0.84 - 0.08 * s), cy + s * R * (1.0 if s < 0 else 0.9)))
+    ld.line(pts, fill=255, width=18, joint='curve')
+    for sg in (-1, 1):
+        ld.arc([cx + sg * R * 0.86 - R * 0.13, cy + R * 0.12 - R * 0.17, cx + sg * R * 0.86 + R * 0.13, cy + R * 0.12 + R * 0.17],
+               90 if sg < 0 else -90, 270 if sg < 0 else 90, fill=255, width=16)
+        ex, ey = cx + sg * R * 0.33, cy - R * 0.08
+        ld.arc([ex - R * 0.2, ey - R * 0.16, ex + R * 0.2, ey + R * 0.24], 195, 345, fill=255, width=20)
+    ld.chord([cx - R * 0.48, cy + R * 0.1, cx + R * 0.48, cy + R * 0.8], 0, 180, fill=255)
+    hl = Image.new('L', (W, H), 0)                    # 광 (흰 글자)
+    hd = ImageDraw.Draw(hl)
+    hd.ellipse([cx - R * 0.56, cy - R * 0.86, cx - R * 0.24, cy - R * 0.62], fill=255)
+    hd.polygon(sparkle(cx - R * 0.08, cy - R * 0.8, R * 0.14, 0.3), fill=255)
+    f = ImageFont.truetype(MONO, int(14 * S))
+    word, i = 'JOLLYBALDY', 0
+    for y in range(cy - R - 30, cy + R + 10, chh):
+        for x in range(cx - R - 50, cx + R + 50, cw):
+            box = (x + 2, y + 2, x + cw - 2, y + chh - 2)   # 칸 안쪽 대부분이 선에 걸리면
+            on = sum(1 for v in line.crop(box).getdata() if v) > (cw - 4) * (chh - 4) * 0.35
+            white = sum(1 for v in hl.crop(box).getdata() if v) > (cw - 4) * (chh - 4) * 0.35
+            if on or white:
+                col = WHITE if white else (YELLOW if (i // 10) % 2 == 0 else CREAM)
+                d.text((x * S, (y + chh - 3) * S), word[i % 10], font=f, fill=col, anchor='ls')
+                i += 1
+    bw = text_w('JOLLY BALDY', 58, 12)
+    draw_text(d, 640 - bw / 2, 670, 'JOLLY BALDY', 58, YELLOW, 12)
+    return img.resize((W, H), Image.LANCZOS)
+
+
+def logo_H():
+    """반짝이는 대머리 글자: 글자마다 정수리에 광 (하얀 타원 + 작은 별)"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    for row, (s, px, y, col) in enumerate((('JOLLY', 170, 360, YELLOW), ('BALDY', 170, 560, CREAM))):
+        f = F(px)
+        track = 12
+        x = 640 - text_w(s, px, track) / 2
+        for c in s:
+            d.text((x * S, y * S), c, font=f, fill=col, anchor='ls')
+            bb = f.getbbox(c, anchor='ls')
+            l, t, r_ = x + bb[0] / S, y + bb[1] / S, x + bb[2] / S
+            gw = (r_ - l)
+            # 광은 글자 획 안에만 (글자 모양으로 잘라 냄): 왼쪽 위 어깨에 비스듬한 하얀 줄
+            glyph = Image.new('L', img.size, 0)
+            ImageDraw.Draw(glyph).text((x * S, y * S), c, font=f, fill=255, anchor='ls')
+            gl = Image.new('L', img.size, 0)
+            gd = ImageDraw.Draw(gl)
+            gx, gy = l + px * 0.05, t + px * 0.05
+            gd.ellipse(sc([(gx, gy), (gx + px * 0.17, gy + px * 0.1)]), fill=255)
+            gd.ellipse(sc([(gx + px * 0.21, gy + px * 0.005), (gx + px * 0.27, gy + px * 0.045)]), fill=255)
+            img.paste(WHITE, mask=ImageChops.multiply(glyph, gl))
+            x += f.getlength(c) / S + track
+    return img.resize((W, H), Image.LANCZOS)
+
+
+def put_char(img, c, cx, cy, px, col, rot=0.0, sx=1.0, sy=1.0, font=None):
+    """글자 하나를 가운데 (cx, cy) 에, 회전 · 늘이기"""
+    f = ImageFont.truetype(font or FONT, int(px * S))
+    tile = Image.new('L', (int(px * 2 * S), int(px * 2 * S)), 0)
+    ImageDraw.Draw(tile).text((tile.width / 2, tile.height / 2), c, font=f, fill=255, anchor='mm')
+    if sx != 1.0 or sy != 1.0:
+        tile = tile.resize((max(1, int(tile.width * sx)), max(1, int(tile.height * sy))), Image.LANCZOS)
+    if rot:
+        tile = tile.rotate(rot, resample=Image.BICUBIC, expand=True)
+    img.paste(Image.new('RGB', tile.size, col), (int(cx * S - tile.width / 2), int(cy * S - tile.height / 2)), tile)
+
+
+def logo_I():
+    """글자로 만든 얼굴: 누운 D = 대머리 정수리, ( ) = 귀, ^ ^ = 눈, J = 코, U = 입"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    """누운 D 가 머리 전체: 둥근 쪽이 정수리, 평평한 쪽이 턱, 속 빈칸이 얼굴"""
+    cx, cy = 640, 290
+    put_char(img, 'D', cx, cy, 520, YELLOW, rot=90, sx=1.0, sy=1.0)
+    row = int((cy + 140) * S)                                            # 머리 가운데 x 재기 (회전하면 조금 밀린다)
+    xs = [x for x in range(W * S) if img.getpixel((x, row))[0] > 200]
+    hx0, hx1 = xs[0] / S, xs[-1] / S
+    cx = (hx0 + hx1) / 2
+    put_char(img, '(', hx0 - 55, cy + 40, 150, YELLOW)
+    put_char(img, ')', hx1 + 55, cy + 40, 150, YELLOW)
+    # D 속 빈칸 자리 재기: 가운데 세로줄에서 노랑 → 바탕 → 노랑
+    col = [img.getpixel((cx * S, y)) for y in range(0, H * S)]
+    yel = [p[0] > 200 and p[1] > 150 for p in col]
+    top = yel.index(True)
+    h0 = next(y for y in range(top, len(yel)) if not yel[y])
+    h1 = next(y for y in range(h0, len(yel)) if yel[y])
+    bot = max(y for y in range(len(yel)) if yel[y])
+    hy0, hy1, by = h0 / S, h1 / S, bot / S
+    ty = top / S                                                         # 정수리 광: 돔 왼쪽 위
+    d.ellipse(sc([(cx - 115, ty + 34), (cx - 55, ty + 62)]), fill=WHITE)
+    d.polygon(sc(sparkle(cx - 28, ty + 34, 16)), fill=WHITE)
+    for sg in (-1, 1):   # 눈은 빈칸 안에
+        put_char(img, '^', cx + sg * 50, (hy0 + hy1) / 2 + 22, 100, CREAM)
+    put_char(img, 'U', cx, (hy1 + by) / 2 + 4, 96, INK, sx=1.6, sy=0.8)   # 입은 노란 턱 위에
+    bw = text_w('JOLLY BALDY', 58, 12)
+    draw_text(d, 640 - bw / 2, 660, 'JOLLY BALDY', 58, YELLOW, 12)
+    return img.resize((W, H), Image.LANCZOS)
+
+
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    for group, names, fns in (('', 'ABC', (logo_A, logo_B, logo_C)), ('2', 'DEF', (logo_D, logo_E, logo_F))):
+    for group, names, fns in (('', 'ABC', (logo_A, logo_B, logo_C)), ('2', 'DEF', (logo_D, logo_E, logo_F)), ('3', 'GHI', (logo_G, logo_H, logo_I))):
         sheet = Image.new('RGB', (1920, 360))
         for i, (n, fn) in enumerate(zip(names, fns)):
             im = fn()
