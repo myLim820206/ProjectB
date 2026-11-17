@@ -430,6 +430,9 @@ void SPDBoardWidget::LoadUserData()
 	if (!bHadAch) for (int32 I = 0; I < (int32)EPDAch::Count; ++I) if (AchMet((EPDAch)I, GoalStats)) AchBits |= 1u << I; // 도전 과제 전 저장: 이미 이룬 것은 알림 없이 (스팀에는 다음 저장 때 SyncAchievements)
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("pdunlock"))) ModesCleared = 0xF; // 시험용: 모드 모두 열기
+#if !UE_BUILD_SHIPPING
+	if (FParse::Param(FCommandLine::Get(), TEXT("pdsettings"))) bSettings = true; // 시험용: 환경 설정 창을 연 채 시작 (화면 찍어 보기, D-393)
+#endif
 #endif
 }
 

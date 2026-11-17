@@ -3989,31 +3989,32 @@ void SPDBoardWidget::PaintSettings(FCanvas& C) const
 {
 	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Fg = Hex(TEXT("cfd8e6")), Dim = Hex(TEXT("5f6878")), Good = Hex(TEXT("9cffb0")), Grey = Hex(TEXT("8a94a6"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-	// 설정 = 주크박스 (D-293): 위가 둥근 아치 + 전구, 'JUKEBOX', 선택지는 알약 튜브 (켜진 것 분홍)
+	// 설정 = 칠판 간판 (D-393, 시안 tools/neon/settings_board_mock.py B 에서 다리 · 아래 선 뺌): 위 손잡이 가로대에 전구 줄, 아래 핫핑크 두 겹 테 칠판(아주 어두운 초록 바탕)
 	const FLinearColor PinkS = Hex(TEXT("ff6aaa")), LavS = Hex(TEXT("a896e1"));
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 0.75f));
 	{
-		const float X0 = SetBoxX, X1 = SetBoxX + SetBoxW, Top = SetBoxY - 30.f, Shoulder = SetBoxY + 40.f, Bot = SetBoxY + SetBoxH, MidX = (X0 + X1) / 2.f, Rx = (X1 - X0) / 2.f;
-		auto Arch = [&](float In)
-		{
-			TArray<FVector2f> P = {FVector2f(X0 + In, Bot - In), FVector2f(X0 + In, Shoulder)};
-			for (int32 K = 0; K <= 30; ++K) { const float A = PI * (1.f - K / 30.f); P.Add(FVector2f(MidX + FMath::Cos(A) * (Rx - In), Shoulder - FMath::Sin(A) * (Shoulder - Top - In))); }
-			P.Add(FVector2f(X1 - In, Bot - In)); P.Add(FVector2f(X0 + In, Bot - In));
-			return P;
-		};
-		C.Box(X0, Shoulder, X1 - X0, Bot - Shoulder, Hex(TEXT("06060b"), 0.95f));
-		// 아치 테: 핫핑크 (D-389: D-384 의 연보라를 사용자 요청으로 되돌림 — 창 테두리는 버튼 색 규칙과 따로)
-		C.Glow(Arch(0.f), PinkS, 2.4f, 0.9f);
-		C.Lines(Arch(0.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
-		C.Glow(Arch(8.f), WithAlpha(PinkS, 0.6f), 1.f, 0.35f);
+		const float X0 = SetBoxX, X1 = SetBoxX + SetBoxW, MidX = (X0 + X1) / 2.f, Bot = SetBoxY + SetBoxH;
+		const float BarY = SetBoxY - 27.f, BarH = 34.f, BoardY = SetBoxY + 15.f; // 가로대 22 ~ 56, 칠판 64 ~
+		// 칠판: 바탕 + 두 겹 테 (핫핑크, D-389)
+		C.Box(X0, BoardY, X1 - X0, Bot - BoardY, Hex(TEXT("0a1511"), 0.97f));
+		const TArray<FVector2f> Bo = FCanvas::RoundRectPoints(X0, BoardY, X1 - X0, Bot - BoardY, 6.f);
+		C.Glow(Bo, PinkS, 2.4f, 0.9f);
+		C.Lines(Bo, FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
+		C.Glow(FCanvas::RoundRectPoints(X0 + 10.f, BoardY + 10.f, X1 - X0 - 20.f, Bot - BoardY - 20.f, 3.f), WithAlpha(PinkS, 0.6f), 1.f, 0.35f);
+		// 위 가로대: 손잡이 구멍 + 양쪽 전구 줄
+		C.Box(X0 - 6.f, BarY, X1 - X0 + 12.f, BarH, Hex(TEXT("06060b"), 0.97f));
+		const TArray<FVector2f> Ba = FCanvas::RoundRectPoints(X0 - 6.f, BarY, X1 - X0 + 12.f, BarH, 10.f);
+		C.Glow(Ba, PinkS, 2.2f, 0.9f);
+		C.Lines(Ba, FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
+		C.Glow(FCanvas::RoundRectPoints(MidX - 34.f, BarY + 9.f, 68.f, 16.f, 8.f), WithAlpha(PinkS, 0.7f), 1.f, 0.4f); // 손잡이 구멍
 		const int32 Ph = FMath::FloorToInt(Clock * 8.f) % 3;
-		for (int32 K = 1; K < 20; ++K) // 아치를 따라 전구
-		{
-			const float A = PI * (1.f - K / 20.f);
-			const FVector2f Q(MidX + FMath::Cos(A) * (Rx - 24.f), Shoulder - FMath::Sin(A) * (Shoulder - Top - 20.f));
-			Bulb(C, Q, 3.f, (K + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
-		}
-		NeonText(C, Tr(TEXT("환경 설정")), MidX, SetBoxY + 30.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 간판 = 창 이름 (D-384, 예전 'JUKEBOX' + 작은 '설정')
+		for (int32 Side = 0; Side < 2; ++Side)
+			for (int32 K = 0; K < 9; ++K)
+			{
+				const float Xa = Side ? MidX + 52.f : X0 + 18.f, Xb = Side ? X1 - 18.f : MidX - 52.f;
+				Bulb(C, FVector2f(FMath::Lerp(Xa, Xb, K / 8.f), BarY + BarH / 2.f), 3.f, (K + Side * 9 + Ph) % 3 != 0, Hex(TEXT("ffe196"))); // 동그란 전구 (D-294)
+			}
+		NeonText(C, Tr(TEXT("환경 설정")), MidX, BoardY + 34.f, Hex(TEXT("ffd26e")), 24.f, 1, 1.f); // 칠판 맨 위 제목 (D-384 간판 글자)
 		// 닫기 ⓧ (D-384): 맨 아래 '닫기' 줄 대신. 동그라미 안 X, 마우스 올림 = 같은 색 밝게
 		C.CloseX(FVector2f(SetCloseCX, SetCloseCY), SetCloseR, FVector2f::Distance(Mouse, FVector2f(SetCloseCX, SetCloseCY)) <= SetCloseR + 4.f); // 공통 ⓧ (D-388)
 	}
