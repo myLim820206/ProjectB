@@ -158,14 +158,87 @@ def logo_C():
     return img.resize((W, H), Image.LANCZOS)
 
 
+def logo_D():
+    """엄지 척 이모티콘 b(^▽^)d: b 와 d 가 엄지, 가운데 대머리"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    px, base, r = 230, 400, 92
+    f = F(px)
+    wb, wd = f.getlength('b') / S, f.getlength('d') / S
+    gap = 14
+    x0 = 640 - (wb + gap * 2 + r * 2 + wd) / 2
+    d.text((x0 * S, base * S), 'b', font=f, fill=CREAM, anchor='ls')
+    cx, cy = x0 + wb + gap + r, base - r * 0.95
+    d.ellipse(sc([(cx - r, cy - r), (cx + r, cy + r)]), fill=YELLOW)
+    face(d, cx, cy, r, INK)
+    d.text(((cx + r + gap) * S, base * S), 'd', font=f, fill=CREAM, anchor='ls')
+    bw = text_w('JOLLY BALDY', 64, 12)
+    draw_text(d, 640 - bw / 2, 560, 'JOLLY BALDY', 64, YELLOW, 12)
+    return img.resize((W, H), Image.LANCZOS)
+
+
+def logo_E():
+    """j 의 점이 반짝이는 대머리"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    s, px, base = 'jolly baldy', 150, 440
+    f = F(px)
+    tw = f.getlength(s) / S
+    x0 = 640 - tw / 2
+    d.text((x0 * S, base * S), s, font=f, fill=CREAM, anchor='ls')
+    xh = -f.getbbox('x', anchor='ls')[1] / S          # x 높이
+    jb = f.getbbox('j', anchor='ls')
+    jx0, jx1 = x0 + jb[0] / S, x0 + jb[2] / S
+    d.rectangle(sc([(jx0 - 4, base - px * 1.2), (jx1 + 4, base - xh - 6)]), fill=BG)   # j 의 점 지우기
+    r = px * 0.2
+    cx, cy = (jx0 + jx1) / 2 + 6, base - xh - r - 16
+    d.ellipse(sc([(cx - r, cy - r), (cx + r, cy + r)]), fill=YELLOW)
+    face(d, cx, cy, r, INK)
+    return img.resize((W, H), Image.LANCZOS)
+
+
+def arc_text_bottom(img, s, cx, cy, R, px, col, gap_k=0.06):
+    """원 아래 호를 따라 왼쪽→오른쪽 (글자 위가 원 가운데 쪽): 웃는 입처럼"""
+    f = F(px)
+    widths = [f.getlength(c) / S for c in s]
+    gap = px * gap_k
+    tot = sum(widths) + gap * (len(s) - 1)
+    a = 90 + math.degrees(tot / R) / 2
+    for c, w in zip(s, widths):
+        am = a - math.degrees((w / 2) / R)
+        tile = Image.new('L', (int(px * 2 * S), int(px * 2 * S)), 0)
+        ImageDraw.Draw(tile).text((tile.width / 2, tile.height / 2), c, font=f, fill=255, anchor='mt')
+        tile = tile.rotate(-(am - 90), resample=Image.BICUBIC)
+        x, y = cx + math.cos(math.radians(am)) * R, cy + math.sin(math.radians(am)) * R
+        img.paste(Image.new('RGB', tile.size, col), (int(x * S - tile.width / 2), int(y * S - tile.height / 2)), tile)
+        a -= math.degrees((w + gap) / R)
+
+
+def logo_F():
+    """글자 고리 얼굴: 위 호 BALDY = 정수리, 아래 호 JOLLY = 웃는 입, 가운데 ^ ^"""
+    img = Image.new('RGB', (W * S, H * S), BG)
+    d = ImageDraw.Draw(img)
+    cx, cy, R = 640, 360, 205
+    arc_text(img, 'BALDY', cx, cy, R, 104, YELLOW)
+    arc_text_bottom(img, 'JOLLY', cx, cy, R - 10, 96, CREAM)
+    for sg in (-1, 1):   # 귀 (양옆 점)
+        d.ellipse(sc([(cx + sg * (R + 40) - 16, cy - 22), (cx + sg * (R + 40) + 16, cy + 22)]), fill=YELLOW)
+    f = F(170)
+    for sg in (-1, 1):
+        d.text(((cx + sg * 70) * S, (cy + 92) * S), '^', font=f, fill=CREAM, anchor='ms')
+    d.polygon(sc(sparkle(cx - 120, cy - 112, 22)), fill=WHITE)
+    return img.resize((W, H), Image.LANCZOS)
+
+
 def main(outdir):
     os.makedirs(outdir, exist_ok=True)
-    ims = [logo_A(), logo_B(), logo_C()]
-    sheet = Image.new('RGB', (1920, 360))
-    for i, (n, im) in enumerate(zip('ABC', ims)):
-        im.save(os.path.join(outdir, 'type_%s.png' % n))
-        sheet.paste(im.resize((640, 360), Image.LANCZOS), (i * 640, 0))
-    sheet.save(os.path.join(outdir, 'type_sheet.png'))
+    for group, names, fns in (('', 'ABC', (logo_A, logo_B, logo_C)), ('2', 'DEF', (logo_D, logo_E, logo_F))):
+        sheet = Image.new('RGB', (1920, 360))
+        for i, (n, fn) in enumerate(zip(names, fns)):
+            im = fn()
+            im.save(os.path.join(outdir, 'type_%s.png' % n))
+            sheet.paste(im.resize((640, 360), Image.LANCZOS), (i * 640, 0))
+        sheet.save(os.path.join(outdir, 'type_sheet%s.png' % group))
     print('ok')
 
 
