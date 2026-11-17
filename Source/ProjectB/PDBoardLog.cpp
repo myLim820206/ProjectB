@@ -65,3 +65,54 @@ void SPDBoardWidget::RuleLogNodes(const TCHAR* Why) const
 	for (const FJokerEntry& E : JokerList) if (E.bMake) Mk += E.Upper >= 0 ? FString::Printf(TEXT("U%d "), E.Upper) : FString::Printf(TEXT("J%d "), E.J);
 	RuleLog(TEXT("  makeable: ") + Mk);
 }
+
+// ---------------------------------------------------------------- 레이아웃 검사 (D-365, F2)
+// 모은 자리(GPDLayout)를 판정해 Saved/Logs/PDLayout.log 에 쓰고(켤 때마다 새로), 찾은 곳을 빨간 테두리로 그린다.
+// 화면을 돌아다니면 화면마다 새로 찾은 것이 쌓인다. 언어를 바꿔 가며 보면 긴 번역이 넘치는 곳도 나온다
+FString SPDBoardWidget::LayoutTag() const
+{
+	static const TCHAR* LangCode[] = {TEXT("ko"), TEXT("en"), TEXT("ja"), TEXT("zh-Hans"), TEXT("zh-Hant")};
+	FString S = PDPhaseName(Game.Phase);
+	auto Add = [&](bool b, const TCHAR* N) { if (b) { S += TEXT("+"); S += N; } };
+	Add(bMenu, TEXT("Menu")); Add(bSettings, TEXT("Settings")); Add(bModeSel, TEXT("ModeSel")); Add(bRanking, TEXT("Ranking")); Add(bUnlock, TEXT("Unlock"));
+	Add(bCodex, bCodexUpper ? TEXT("Codex/Upper") : bCodexCharm ? TEXT("Codex/Charm") : TEXT("Codex")); Add(bTree, TEXT("Tree")); Add(bUpg, TEXT("Upg"));
+	Add(bPickJoker, TEXT("PickJoker")); Add(bPaused, TEXT("Paused"));
+	return S + TEXT(" ") + LangCode[FMath::Clamp(GPDLang, 0, 4)];
+}
+
+void SPDBoardWidget::LayoutCheckEnd(FCanvas& C) const
+{
+	static bool bFresh = true; // 켠 뒤 첫 기록이면 파일을 새로
+	if (GPDLayout.bCap)
+	{
+		GPDLayout.bCap = false;
+		GPDLayout.Analyze(LayoutTag());
+		const FString P = FPaths::ProjectSavedDir() / TEXT("Logs") / TEXT("PDLayout.log");
+		if (bFresh)
+		{
+			bFresh = false;
+			GPDLayout.Logged.Reset();
+			GPDLayout.Found = 0;
+			IFileManager::Get().MakeDirectory(*FPaths::GetPath(P), true);
+			FFileHelper::SaveStringToFile(FString::Printf(TEXT("==== PDLayout %s · build %s %s · coords in design units 1280x720 (x,y WxH) ====\r\n"), *FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S")), TEXT(__DATE__), TEXT(__TIME__)),
+				*P, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+		}
+		if (GPDLayout.NewLines.Num())
+		{
+			FFileHelper::SaveStringToFile(FString::Join(GPDLayout.NewLines, TEXT("\r\n")) + TEXT("\r\n"), *P, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM, &IFileManager::Get(), FILEWRITE_Append);
+			for (const FString& L : GPDLayout.NewLines) UE_LOG(LogTemp, Warning, TEXT("PDLAYOUT %s"), *L);
+			GPDLayout.NewLines.Reset();
+		}
+	}
+	if (!GPDLayout.bOn) { bFresh = true; return; }
+	// 찾은 곳: 빨간 테두리 (둘이 부딪히면 둘 다, 사이를 잇는 선)
+	const FLinearColor Red(1.f, 0.15f, 0.2f, 0.95f);
+	for (const FPDLayoutCheck::FHit& H : GPDLayout.Hits)
+	{
+		C.Lines(FCanvas::RectPoints(H.A.X0 - 1.f, H.A.Y0 - 1.f, H.A.W() + 2.f, H.A.H() + 2.f), Red, 1.5f);
+		if (!H.bTwo) continue;
+		C.Lines(FCanvas::RectPoints(H.B.X0 - 1.f, H.B.Y0 - 1.f, H.B.W() + 2.f, H.B.H() + 2.f), WithAlpha(Red, 0.6f), 1.f);
+	}
+	C.Box(8.f, DesignH - 30.f, 470.f, 22.f, FLinearColor(0.f, 0.f, 0.f, 0.85f));
+	C.Text(FString::Printf(TEXT("LAYOUT CHECK  now %d  logged %d  ·  F2 off  ·  Saved/Logs/PDLayout.log"), GPDLayout.Hits.Num(), GPDLayout.Found), 14.f, DesignH - 14.f, Red, 11.f, 0, true);
+}

@@ -272,7 +272,12 @@ int32 SPDBoardWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	}
 	const double T0 = FPlatformTime::Seconds();
 	GPDDebug.Lines = GPDDebug.Points = GPDDebug.Boxes = 0;
+	// 레이아웃 검사 (D-365, F2): 켜 두면 0.5초마다 한 프레임의 글자 · 상자 · 선 자리를 모은다
+	GPDLayout.bCap = GPDLayout.bOn && T0 >= GPDLayout.NextAt;
+	if (GPDLayout.bCap) { GPDLayout.Begin(); GPDLayout.NextAt = T0 + 0.5; }
+	C.bRec = F.bRec = GPDLayout.bCap;
 	PaintAll(C, F);
+	if (GPDLayout.bOn) LayoutCheckEnd(C);
 	GPDDebug.PaintMs = FMath::Lerp(GPDDebug.PaintMs, (float)((FPlatformTime::Seconds() - T0) * 1000.0), 0.1f);
 	return Layer;
 }
@@ -2743,7 +2748,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 	Pill(160.f, TrF(TEXT("남은 포인트 %d"), G.PointsLeft()), G.PointsLeft() > 0 ? Green : Grey);
 	Pill(280.f, TrF(TEXT("키스톤 %d / %d"), G.KeystoneCount(), KeystoneMax), Gold);
 	Pill(860.f, TrF(TEXT("찍은 노드 %d"), G.Points), Fg);
-	C.TextCentered(TEXT("이번 판에서만 · 레벨이 오를 때마다 포인트 1"), DesignW / 2.f, DesignH - 12.f, Dim, 10.f, false);
+	C.Text(TEXT("이번 판에서만 · 레벨이 오를 때마다 포인트 1"), 42.f, 66.f, Dim, 10.f, 0, false, 350.f); // 정보 알약 밑 (D-365: 바닥 가운데는 맨 아래 키스톤 이름 알약과 겹쳤다)
 	PaintCloseButton(C, Purple);
 	// 연결선: 노드 테두리에서 끊는다 (아이콘을 가로지르지 않게)
 	auto NodeR = [](int32 Id) { switch (TreeNode(Id).Kind) { case EPDNode::Start: return 14.f; case EPDNode::Small: return 11.f; case EPDNode::Notable: return 16.f; case EPDNode::Keystone: return 21.f; default: return 17.f; } };

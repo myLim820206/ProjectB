@@ -276,11 +276,11 @@ void SPDBoardWidget::PaintJukebox(FCanvas& C) const
 		const FVector2f Q = P(CX - (JazzTrackCount - 1) * 4.5f + I * 9.f - 3.f, 62.f + 5.f);
 		C.Glow(FCanvas::RoundRectPoints(Q.X, Q.Y, 6.f * K, 6.f * K, 1.5f * K), I == JukeTrack ? Gold : WithAlpha(Lav, 0.5f), 1.f, I == JukeTrack ? 0.9f : 0.2f);
 	}
-	// 스피커 그릴: 박자에 맞춰 살짝 떨림
+	// 스피커 그릴: 박자에 맞춰 살짝 떨림. 선곡 버튼(설계 y 64 ~ 78) 밑 빈자리(y 81.5 ~ 87)에서만 — 예전엔 위로 올라와 버튼 · 번호 칸을 뚫었다 (D-365)
 	for (int32 I = 0; I < 9; ++I)
 	{
-		const float SX = CX - 32.f + I * 8.f, Lh = 8.f + 3.f * Beat * (I % 2 ? 1.f : 0.6f);
-		C.Lines({P(SX, Bot - 11.f - Lh), P(SX, Bot - 11.f)}, WithAlpha(Lav, 0.5f + 0.3f * Beat), 1.f);
+		const float SX = CX - 32.f + I * 8.f, Lh = 4.f + 1.5f * Beat * (I % 2 ? 1.f : 0.6f);
+		C.Lines({P(SX, Bot - 7.f - Lh), P(SX, Bot - 7.f)}, WithAlpha(Lav, 0.5f + 0.3f * Beat), 1.f);
 	}
 }
 

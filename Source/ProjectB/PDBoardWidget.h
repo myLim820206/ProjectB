@@ -390,6 +390,8 @@ private:
 	mutable bool bRuleLogOpen = false;
 	void RuleLog(const FString& S) const;  // 한 줄 쌓기 (틱 끝에 파일로)
 	void FlushRuleLog() const;
+	FString LayoutTag() const;                // 레이아웃 검사 (D-365): 지금 화면 이름 (단계 · 열린 창 · 언어)
+	void LayoutCheckEnd(FCanvas& C) const;    // 모은 자리를 판정해 로그에 쓰고, 찾은 곳을 빨간 테두리로
 	void RuleLogNodes(const TCHAR* Why) const; // 조커 재료 후보 · 고른 재료 · 만들 수 있는 조커를 통째로
 	bool bCodex = false;                   // 조커 도감 화면
 	// 도감 책자 (D-354, PDBoardCodex.cpp): 왼쪽 쪽 = 고른 항목 크게, 오른쪽 쪽 = 12줄 목록, 오른쪽 옆면 탭 넷(칵테일 · 조커 · 상위 조커 · 보스). 쪽 · 탭을 바꾸면 장이 휘며 넘어간다

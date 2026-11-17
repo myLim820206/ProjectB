@@ -59,7 +59,7 @@ class FGeometry
 public:
 	FGeometry() = default;
 	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& LayoutTransform) const { (void)InLocalSize; (void)LayoutTransform; return *this; }
-	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& RenderTransform, const UE::Slate::FDeprecateVector2DParameter& RenderTransformPivot) const { (void)InLocalSize; (void)LayoutTransform; (void)RenderTransform; (void)RenderTransformPivot; return *this; }
+	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& LayoutTransform, const FSlateRenderTransform& InRenderTransform, const UE::Slate::FDeprecateVector2DParameter& RenderTransformPivot) const { (void)InLocalSize; (void)LayoutTransform; (void)InRenderTransform; (void)RenderTransformPivot; return *this; }
 	FGeometry MakeChild(const UE::Slate::FDeprecateVector2DParameter& ChildOffset, const UE::Slate::FDeprecateVector2DParameter& InLocalSize, float ChildScale = 1.f) const { (void)ChildOffset; (void)InLocalSize; (void)ChildScale; return *this; }
 	FPaintGeometry ToPaintGeometry() const { return FPaintGeometry(); }
 	FPaintGeometry ToPaintGeometry(const UE::Slate::FDeprecateVector2DParameter& InLocalSize, const FSlateLayoutTransform& InLayoutTransform) const { (void)InLocalSize; (void)InLayoutTransform; return FPaintGeometry(); }

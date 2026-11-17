@@ -1985,6 +1985,9 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	const FKey K = InKeyEvent.GetKey();
 	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
 	if (K == EKeys::F6) { GPDDebug.bNoAtlas = !GPDDebug.bNoAtlas; return FReply::Handled(); } // 구운 그림 ↔ 선 비교
+#if !UE_BUILD_SHIPPING
+	if (K == EKeys::F2) { GPDLayout.bOn = !GPDLayout.bOn; GPDLayout.NextAt = 0.0; GPDLayout.Hits.Reset(); return FReply::Handled(); } // 레이아웃 검사 (D-365): 겹치는 글자 · 선 찾기
+#endif
 #if WITH_EDITOR
 #if WITH_EDITOR
 	if (K == EKeys::F7 && Game.Phase != EPDPhase::Title) { LevelUpFrom = Game.Level; LevelUpTo = Game.Level + 1; LevelUpPts = 1; LevelUpAt = Clock; return FReply::Handled(); } // 레벨업 이펙트 미리 보기 (에디터, D-273)

@@ -815,6 +815,142 @@ struct FPDDebugStats
 	}
 };
 inline FPDDebugStats GPDDebug;
+// 레이아웃 검사 (D-365, F2): 한 프레임 동안 그린 글자 · 판(불투명 상자) · 버튼 · 선의 자리를 모아 서로 부딪히는 곳을 찾는다.
+//   글자 ↔ 글자 겹침 · 선이 글자를 지나감 · 글자가 판/버튼 테두리에 걸침 · 선이 버튼을 가로지름 · 글자가 화면 밖 · 칸이 좁아 "…"로 잘림
+// 켜 두면 0.5초마다 다시 찾는다. 찾은 곳은 화면에 빨간 테두리, Saved/Logs/PDLayout.log 에 화면 이름과 함께 (같은 것은 한 번만).
+// 흐린 장식 선(벽돌 · 격자 등, 밝기 × 알파 < 0.35)과 굵은 번짐 띠, 거의 안 보이는 글자(알파 < 0.15)는 보지 않는다. 위젯 헤더를 덜 건드리려고 전역
+struct FPDLayoutCheck
+{
+	struct FR { float X0 = 0.f, Y0 = 0.f, X1 = 0.f, Y1 = 0.f; float W() const { return X1 - X0; } float H() const { return Y1 - Y0; } };
+	struct FTxt { FR B, G; FString S; bool bCut = false; }; // B = 글자 몸통 (글자끼리 · 선), G = 글자 칸 거의 전부 (판 테두리에 닿는지)
+	struct FPanel { FR B; bool bBtn = false; };
+	struct FSeg { FVector2f A, B; };
+	struct FHit { FR A, B; bool bTwo = false; };
+	bool bOn = false, bCap = false;
+	double NextAt = 0.0;
+	TArray<FTxt> Texts;
+	TArray<FPanel> Panels;
+	TArray<FSeg> Segs;
+	TArray<FR> Clip;
+	TArray<FHit> Hits;        // 마지막으로 찾은 것 (화면에 빨갛게)
+	TArray<FString> Logged;   // 이미 로그에 쓴 것 (같은 것은 한 번만)
+	TArray<FString> NewLines; // 이번에 새로 찾은 것 (로그 파일로)
+	int32 Found = 0;          // 켠 뒤 로그에 쓴 개수
+
+	void Begin() { Texts.Reset(); Panels.Reset(); Segs.Reset(); Clip.Reset(); }
+	static bool Inter(const FR& A, const FR& B, FR& O)
+	{
+		O = {FMath::Max(A.X0, B.X0), FMath::Max(A.Y0, B.Y0), FMath::Min(A.X1, B.X1), FMath::Min(A.Y1, B.Y1)};
+		return O.X1 > O.X0 && O.Y1 > O.Y0;
+	}
+	static bool Inside(const FR& In, const FR& Out, float Tol) { return In.X0 >= Out.X0 - Tol && In.Y0 >= Out.Y0 - Tol && In.X1 <= Out.X1 + Tol && In.Y1 <= Out.Y1 + Tol; }
+	static FR Inset(const FR& R, float D) { return {R.X0 + D, R.Y0 + D, R.X1 - D, R.Y1 - D}; }
+	// 선분이 사각 안을 지나는 길이 (리앙-바스키 자르기)
+	static float SegIn(const FVector2f& A, const FVector2f& B, const FR& R)
+	{
+		float T0 = 0.f, T1 = 1.f;
+		const float Dx = B.X - A.X, Dy = B.Y - A.Y;
+		const float P[4] = {-Dx, Dx, -Dy, Dy}, Q[4] = {A.X - R.X0, R.X1 - A.X, A.Y - R.Y0, R.Y1 - A.Y};
+		for (int32 K = 0; K < 4; ++K)
+		{
+			if (FMath::Abs(P[K]) < 1e-6f) { if (Q[K] < 0.f) return 0.f; continue; }
+			const float T = Q[K] / P[K];
+			if (P[K] < 0.f) T0 = FMath::Max(T0, T); else T1 = FMath::Min(T1, T);
+			if (T0 >= T1) return 0.f;
+		}
+		return (T1 - T0) * FMath::Sqrt(Dx * Dx + Dy * Dy);
+	}
+	// 글자: 잰 상자(줄 높이)에서 몸통(위 20% · 아래 15% 여백을 뺌)과 거의 전부(위아래 8%만 뺌)
+	void AddText(const FString& S, float L, float T, float W, float H, bool bCut, float Alpha)
+	{
+		if (Alpha < 0.15f || S.IsEmpty()) return;
+		FR B{L + 0.5f, T + 0.2f * H, L + W - 0.5f, T + 0.85f * H}, G{L, T + 0.08f * H, L + W, T + 0.92f * H};
+		if (Clip.Num() && (!Inter(B, Clip.Last(), B) || !Inter(G, Clip.Last(), G))) return;
+		Texts.Add({B, G, S, bCut});
+	}
+	void AddPanel(float X, float Y, float W, float H, float Alpha, bool bBtn)
+	{
+		if (W < 10.f || H < 8.f || (!bBtn && Alpha < 0.5f) || (W > DesignW * 0.8f && H > DesignH * 0.8f)) return; // 화면 전체 어둡게 깔기는 빼고
+		FR B{X, Y, X + W, Y + H};
+		if (Clip.Num() && !Inter(B, Clip.Last(), B)) return;
+		Panels.Add({B, bBtn});
+	}
+	void AddLines(const TArray<FVector2f>& P, const FLinearColor& Col, float Thick)
+	{
+		if (Thick > 3.f || FMath::Max3(Col.R, Col.G, Col.B) * Col.A < 0.35f) return; // 번짐 띠 · 흐린 장식 선은 빼고
+		for (int32 I = 0; I + 1 < P.Num(); ++I)
+		{
+			if (Clip.Num())
+			{
+				const FR& C = Clip.Last();
+				if (FMath::Max(P[I].X, P[I + 1].X) < C.X0 || FMath::Min(P[I].X, P[I + 1].X) > C.X1 || FMath::Max(P[I].Y, P[I + 1].Y) < C.Y0 || FMath::Min(P[I].Y, P[I + 1].Y) > C.Y1) continue;
+			}
+			Segs.Add({P[I], P[I + 1]});
+		}
+	}
+	void Analyze(const FString& Tag)
+	{
+		Hits.Reset();
+		auto Rs = [](const FR& R) { return FString::Printf(TEXT("(%.0f,%.0f %.0fx%.0f)"), R.X0, R.Y0, R.W(), R.H()); };
+		auto Q = [](const FString& S) { return TEXT("'") + (S.Len() > 28 ? S.Left(28) + TEXT("…") : S) + TEXT("'"); };
+		auto Note = [&](const TCHAR* Kind, const FString& What, const FR& A, const FR* B)
+		{
+			if (Hits.Num() < 300) Hits.Add({A, B ? *B : A, B != nullptr});
+			const FString Key = FString::Printf(TEXT("%s|%s|%d|%d"), Kind, *What, FMath::RoundToInt(A.X0 / 8.f), FMath::RoundToInt(A.Y0 / 8.f)); // 움직이는 것은 8px 단위로 같은 것
+			if (Logged.Contains(Key) || Logged.Num() > 2000) return;
+			Logged.Add(Key);
+			++Found;
+			NewLines.Add(FString::Printf(TEXT("[%s] %s: %s %s%s"), *Tag, Kind, *What, *Rs(A), B ? *(TEXT(" ↔ ") + Rs(*B)) : TEXT("")));
+		};
+		const FR Screen{0.f, 0.f, DesignW, DesignH};
+		for (int32 I = 0; I < Texts.Num(); ++I)
+		{
+			const FTxt& A = Texts[I];
+			if (!Inside(A.B, Screen, 1.f)) Note(TEXT("TEXT off screen"), Q(A.S), A.B, nullptr);
+			if (A.bCut) Note(TEXT("TEXT cut to fit (…)"), Q(A.S), A.B, nullptr);
+			// 글자 ↔ 글자 (같은 글자가 거의 같은 자리 = 번짐 · 네온 겹침이라 뺀다)
+			for (int32 J = I + 1; J < Texts.Num(); ++J)
+			{
+				const FTxt& B = Texts[J];
+				FR O;
+				if (!Inter(A.B, B.B, O) || O.W() < 1.5f || O.H() < 1.5f) continue;
+				if (A.S == B.S && FMath::Abs(A.B.X0 - B.B.X0) < 5.f && FMath::Abs(A.B.Y0 - B.B.Y0) < 5.f) continue;
+				Note(TEXT("TEXT overlaps TEXT"), Q(A.S) + TEXT(" ↔ ") + Q(B.S), A.B, &B.B);
+			}
+			// 선이 글자 몸통을 3px 넘게 지나감
+			const FR In = Inset(A.B, 1.f);
+			for (const FSeg& S : Segs)
+				if (SegIn(S.A, S.B, In) >= 3.f)
+				{
+					const FR L{FMath::Min(S.A.X, S.B.X), FMath::Min(S.A.Y, S.B.Y), FMath::Max(S.A.X, S.B.X) + 1.f, FMath::Max(S.A.Y, S.B.Y) + 1.f};
+					Note(TEXT("LINE through TEXT"), Q(A.S), A.B, &L);
+					break;
+				}
+			// 글자가 판 · 버튼 테두리에 걸치거나 닿음 (일부만 안에). 테두리 선 두께만큼 판을 1px 넓혀 본다
+			for (const FPanel& P : Panels)
+			{
+				FR O;
+				if (Inside(A.G, P.B, 1.f) || !Inter(A.G, Inset(P.B, -1.f), O) || O.W() < 1.f || O.H() < 0.5f) continue;
+				Note(P.bBtn ? TEXT("TEXT on BUTTON edge") : TEXT("TEXT on PANEL edge"), Q(A.S), A.B, &P.B);
+			}
+		}
+		// 선이 버튼을 가로지름: 일부는 버튼 안(가장자리 1px 안쪽으로 1.5px 넘게), 일부는 밖 (버튼 속 아이콘 · 테두리는 다 안이라 괜찮다)
+		for (const FPanel& P : Panels)
+		{
+			if (!P.bBtn) continue;
+			const FR In = Inset(P.B, 1.f);
+			for (const FSeg& S : Segs)
+			{
+				const FR L{FMath::Min(S.A.X, S.B.X), FMath::Min(S.A.Y, S.B.Y), FMath::Max(S.A.X, S.B.X), FMath::Max(S.A.Y, S.B.Y)};
+				if (Inside(L, P.B, 0.5f) || SegIn(S.A, S.B, In) < 1.5f) continue;
+				const FR L1{L.X0, L.Y0, L.X1 + 1.f, L.Y1 + 1.f};
+				Note(TEXT("LINE across BUTTON"), TEXT("button"), P.B, &L1);
+				break;
+			}
+		}
+	}
+};
+inline FPDLayoutCheck GPDLayout;
 // 스프라이트 아틀라스 (D-140): 칸 하나 = 설계 좌표 AtlasCell px, 텍스처엔 AtlasK 배로 굽는다 (화면 확대에도 또렷하게)
 // 타워 카드: 카드 53종(2~A × 무늬 4 + 와일드) × 레벨 4 × 족보 듦 2 = 424, 조커 10 → 434칸 (23 × 19줄 = 3344px)
 constexpr float AtlasCell = 88.f, AtlasK = 2.f;
@@ -991,6 +1127,8 @@ struct SPDBoardWidget::FCanvas
 	float HaloK = 1.f; // 번짐 배율 (이펙트가 많으면 0 = 심만, D-138)
 	const FSlateBrush* LineAA = nullptr; // 있으면 선을 선 스프라이트로 찍는다 (D-146). 굽는 붓에선 없음 (진짜 선으로 굽는다)
 	float PxToDesign = 1.f;              // 화면 픽셀 → 설계 좌표 (선 굵기는 화면 픽셀 기준이라)
+	bool bRec = false;  // 레이아웃 검사 (D-365): 이 판에 그리는 글자 · 상자 · 선의 자리를 GPDLayout 에 모은다 (화면 판 C · F 만, 굽기 판은 아님)
+	bool Rec() const { return bRec && GPDLayout.bCap && !PW && !Warp.bOn; }
 	float ThickK = 1.f; // 선 굵기 배율: Slate 선 굵기는 화면 픽셀이라 배율을 따라가지 않는다. 2배로 굽는 그림은 2 (D-143)
 
 	// 띠 묶음 (D-147): 같은 층의 띠는 꼭짓점 묶음 하나로 모아 Slate 요소 하나로 넘긴다
@@ -1079,6 +1217,7 @@ struct SPDBoardWidget::FCanvas
 			Warp.bOn = true;
 			return;
 		}
+		if (Rec()) GPDLayout.AddLines(P, FadeC(Col), Thick);
 		if (LineAA) // 선 스프라이트 (D-146): 마디마다 띠 하나를 늘이고 돌려 찍는다. 같은 층이라 한 번에 그려진다
 		{
 			// Slate 선은 굵기 + 2px (양쪽 1px 거르기) 너비로 그리고 셰이더가 가장자리를 깎는다. 같은 너비로 찍고, 굵기에 가장 가까운 띠를 쓴다
@@ -1311,6 +1450,7 @@ struct SPDBoardWidget::FCanvas
 	}
 	void Box(float X, float Y, float W, float H, const FLinearColor& Col)
 	{
+		if (Rec()) GPDLayout.AddPanel(X, Y, W, H, Col.A * FadeK, false);
 		BoxAt(NextLayer(), X, Y, W, H, Col);
 		NextLayer();
 	}
@@ -1328,7 +1468,7 @@ struct SPDBoardWidget::FCanvas
 		NextLayer();
 	}
 	// 눌리는 버튼 바탕 (D-328 ②): 평소 옅게, 마우스를 올리면 더 진하게
-	void BtnFill(float X, float Y, float W, float H, float R, const FLinearColor& Col, bool bHot) { RoundFill(X, Y, W, H, R, FLinearColor(Col.R, Col.G, Col.B, bHot ? 0.16f : 0.07f)); }
+	void BtnFill(float X, float Y, float W, float H, float R, const FLinearColor& Col, bool bHot) { if (Rec()) GPDLayout.AddPanel(X, Y, W, H, 1.f, true); RoundFill(X, Y, W, H, R, FLinearColor(Col.R, Col.G, Col.B, bHot ? 0.16f : 0.07f)); }
 	// 같은 층에 여러 개를 그리면 한 번에 묶여 빠르다 (파티클)
 	void BoxAt(int32 L, float X, float Y, float W, float H, const FLinearColor& Col)
 	{
@@ -1394,6 +1534,7 @@ struct SPDBoardWidget::FCanvas
 		FitText(S, F, Sz, Px, bBold, MaxW);
 		const float Left = Align == 1 ? X - Sz.X / 2.f : Align == 2 ? X - Sz.X : X;
 		const float Top = Y - Sz.Y * 0.8f;
+		if (Rec()) GPDLayout.AddText(S, Left, Top, Sz.X, Sz.Y, S.EndsWith(TEXT("…")) && !InS.EndsWith(TEXT("…")), Col.A * FadeK);
 		FSlateDrawElement::MakeText(Out, NextLayer(), PG(Left, Top, Sz.X, Sz.Y), S, F, ESlateDrawEffect::None, FadeC(Col));
 		NextLayer();
 	}
@@ -1403,13 +1544,14 @@ struct SPDBoardWidget::FCanvas
 		FSlateFontInfo F = Font(Px, bBold);
 		FVector2f Sz = Measure(S, F);
 		FitText(S, F, Sz, Px, bBold, MaxW);
+		if (Rec()) GPDLayout.AddText(S, CX - Sz.X / 2.f, CY - Sz.Y / 2.f, Sz.X, Sz.Y, S.EndsWith(TEXT("…")) && !InS.EndsWith(TEXT("…")), Col.A * FadeK);
 		FSlateDrawElement::MakeText(Out, NextLayer(), PG(CX - Sz.X / 2.f, CY - Sz.Y / 2.f, Sz.X, Sz.Y), S, F,
 			ESlateDrawEffect::None, FadeC(Col));
 		NextLayer();
 	}
 	// 사각 클리핑: PushClip ~ PopClip 사이에 그린 것은 이 사각 밖으로 나가지 않는다 (흐르는 글자 등)
-	void PushClip(float X, float Y, float W, float H) { Out.PushClip(FSlateClippingZone(Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))))); }
-	void PopClip() { Out.PopClip(); }
+	void PushClip(float X, float Y, float W, float H) { if (Rec()) GPDLayout.Clip.Add({X, Y, X + W, Y + H}); Out.PushClip(FSlateClippingZone(Geo.ToPaintGeometry(FVector2f(W, H), FSlateLayoutTransform(FVector2f(X, Y))))); }
+	void PopClip() { if (Rec() && GPDLayout.Clip.Num()) GPDLayout.Clip.Pop(); Out.PopClip(); }
 	void Panel(float X, float Y, float W, float H) { Lines(RectPoints(X, Y, W, H), Hex(TEXT("7fd6ff"), 0.3f), 1.f); }
 
 	// 무늬 도형: ♠ 삼각형, ♥ 원, ♦ 마름모, ♣ 사각형
