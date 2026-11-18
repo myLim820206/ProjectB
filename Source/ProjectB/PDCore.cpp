@@ -1630,7 +1630,7 @@ FPDGame::EFuseBlock FPDGame::FuseBlock(int SynergyIdx) const
 	FPDSynergy S;
 	if (!FuseSynergy(SynergyIdx, S)) return EFuseBlock::Joker;
 	const int Lv = Towers.at(S.Cells[0]).Level;
-	if (Lv >= MaxLevel) return EFuseBlock::MaxLevel;
+	if (Lv >= MaxLevel) return EFuseBlock::TopLevel;
 	if (Mods.Key(EPDKeystone::ClownPath) && Lv >= 2) return EFuseBlock::ClownPath; // 광대의 길: 합성은 레벨 2까지
 	return EFuseBlock::None;
 }

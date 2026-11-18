@@ -1,7 +1,7 @@
 // 포커 디펜스 규칙 코어 시험 (언리얼 없이 실행)
 //   ./Tests/run.sh [봇 판 수]
 // 족보·연쇄·길·설치·적·부적·발사체·합성·조커·스킬 트리·골드 강화를 확인하고, 봇으로 밸런스를 본다.
-//   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만
+//   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만, ./Tests/run.sh N level [모드] 는 레벨 곡선
 #include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
@@ -1349,7 +1349,7 @@ static void UnitTests()
 		Expect(!G.CanFuse(0) && std::abs(G.JokerMult() - 1.6f) < 1e-4f, "광대의 길: 레벨 2는 더 합성 못 함, 조커 배율 1.6");
 		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::ClownPath, "합성 막힌 까닭 = 광대의 길 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = MaxLevel;
-		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::MaxLevel, "합성 막힌 까닭 = 최고 레벨 (D-371)");
+		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::TopLevel, "합성 막힌 까닭 = 최고 레벨 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = 1;
 		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::None && G.CanFuse(0), "레벨 1 은 광대의 길이어도 합성 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = 2; // 뒤 시험은 레벨 2 그대로
@@ -1512,6 +1512,10 @@ static void BotSpend(FPDGame& G, bool bTree)
 static EPDMode GBotMode = EPDMode::Endless; // 봇 판의 모드 (D-229)
 static int GBotClears = 0;
 static int GBotUpgLv = 10;   // bUpg 일 때 영구 강화 레벨 (D-322 판당 칩 표)
+// 레벨 곡선 (D-397, ./Tests/run.sh N level [모드]): 웨이브를 막은 뒤마다 레벨 · 번 경험치 · 시간을 모은다
+struct FLvRow { int N = 0; double Lv = 0, Xp = 0, Time = 0, Ups = 0; };
+static bool GLvTrack = false;
+static std::map<int, FLvRow> GLvRows;
 static int GBotContent = 0;  // 0 = 규칙 기본(기본 조커 전부 · 칵테일 기본 18), 1 = 처음 상태(조커 4종 · 상위 조커 맛보기 2종 · 칵테일 18), 2 = 전부 열림
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
@@ -1533,6 +1537,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		G.RebuildMods();
 		G.bMuted = true;
 		std::mt19937 R(77 + Run);
+		int LvBefore = G.Level;
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
 			// 상위 조커 (D-231): 판 위력이 오르면 합친다
@@ -1686,6 +1691,12 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				for (int I = 0; I < (int)G.Rewards.size() && Pick < 0 && !bNoReward; ++I) if (!G.Rewards[I].bCharm && G.Rewards[I].Id == (int)EPDInstant::Repair) Pick = I;
 				G.TakeReward(Pick);
 			}
+			if (GLvTrack && G.Phase != EPDPhase::Over)
+			{
+				FLvRow& Row = GLvRows[G.Wave];
+				Row.N++; Row.Lv += G.Level; Row.Xp += G.XpEarned; Row.Time += G.Time; Row.Ups += G.Level - LvBefore;
+				LvBefore = G.Level;
+			}
 			G.Events.clear();
 		}
 		{ int Mx = 0; for (auto& KV : G.Towers) if (KV.second.IsJoker()) Mx = std::max(Mx, KV.second.JLevel); JLvSum += Mx; }
@@ -1729,6 +1740,23 @@ int main(int Argc, char** Argv)
 				std::printf("   → %s 모드%s 클리어 %d / %d판\n", Names[M], U ? " (영구 강화 10레벨)" : "", GBotClears, Runs);
 			}
 		GBotMode = EPDMode::Endless;
+	}
+	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "level") // 레벨 곡선 (D-397): level [모드 0=30 1=60 2=100 3=무한, 기본 0] — 트리까지 쓰는 봇
+	{
+		GBotMode = (EPDMode)(Argc > 3 ? std::atoi(Argv[3]) : 0);
+		GLvTrack = true; GLvRows.clear(); GBotClears = 0;
+		BotTest(Runs, false, false, true, true, true);
+		std::printf("\n[레벨 곡선] 웨이브를 막은 직후 평균 (살아남은 판만)\n 웨이브  판수   레벨  이번 웨이브 레벨업  번 경험치  다음 레벨까지   시간(분)\n");
+		for (auto& KV : GLvRows)
+		{
+			const FLvRow& Row = KV.second;
+			if (KV.first > 30 && KV.first % 5 != 0) continue; // 30 넘으면 5웨이브마다
+			FPDGame Probe(1);
+			Probe.Level = (int)std::lround(Row.Lv / Row.N);
+			std::printf(" %5d  %4d  %5.1f  %15.2f  %9.0f  %12d  %8.1f\n", KV.first, Row.N, Row.Lv / Row.N, Row.Ups / Row.N, Row.Xp / Row.N, Probe.XpToNext(), Row.Time / Row.N / 60.0);
+		}
+		std::printf("   → 클리어 %d / %d판\n", GBotClears, Runs);
+		GLvTrack = false; GBotMode = EPDMode::Endless;
 	}
 	else if (Runs > 0 && Argc > 5 && std::string(Argv[2]) == "chips") // 판당 칩 표 (D-322): chips <모드 0=30 1=60 2=100 3=무한> <강화 레벨> <해금 0/1/2>
 	{
