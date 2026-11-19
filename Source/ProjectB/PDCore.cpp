@@ -2009,6 +2009,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 			Tips += Mods.Up(T.Joker) ? 1 : 0;
 			Lv = std::max(Lv, T.JLevel);
 			if (T.Joker == (int)EPDJoker::Harlequin) JS = T.JSuit; // 할리퀸의 무늬를 이어받음
+			J.Level = std::max(J.Level, T.Level); // 타워 레벨(사거리)은 큰 쪽 — 같은 조커 합치기 · 조커 만들기와 같게 (D-399: 예전엔 고른 칸의 레벨이라 칸에 따라 사거리가 달랐다)
 			J.TDmg = std::max(J.TDmg, T.TDmg);
 			J.TRate = std::max(J.TRate, T.TRate);
 			J.TRange = std::max(J.TRange, T.TRange);

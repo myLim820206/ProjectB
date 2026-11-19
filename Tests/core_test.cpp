@@ -1458,6 +1458,7 @@ static int FindSyn(const FPDGame& G, EPDHand Kind, int Level = -1)
 	return -1;
 }
 static bool Near(float A, float B) { return std::fabs(A - B) < 1e-4f; }
+static int PDCellDistT(int A, int B) { return std::abs(A % Cols - B % Cols) + std::abs(A / Cols - B / Cols); }
 static void FuseRuleTests()
 {
 	auto FindKey = [](EPDKeystone K) { for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind == EPDNode::Keystone && TreeNode(I).Fx[0].Param == (int)K) return I; return -1; };
@@ -1822,6 +1823,296 @@ static void FuseRuleTests()
 	}
 }
 
+// ---------------------------------------------------------------- 조커 합치기 · 상위 조커 상황별 (D-399)
+static void PutJ(FPDTowerMap& M, int X, int Y, EPDJoker J, int JLevel = 1, float Mult = 1.f, int Level = 1)
+{
+	FPDTower T;
+	T.X = X; T.Y = Y;
+	T.Card = {0, EPDSuit::Wild};
+	T.Joker = (int)J;
+	T.JLevel = JLevel;
+	T.Mult = Mult;
+	T.Level = Level;
+	M[CellKey(X, Y)] = T;
+}
+static int FindMerge(const std::vector<FPDJokerMerge>& L, int Joker)
+{
+	for (int I = 0; I < (int)L.size(); ++I) if (L[I].Joker == Joker) return I;
+	return -1;
+}
+static void JokerMergeTests()
+{
+	std::printf("\n[조커 합치기 · 상위 조커 상황별]\n");
+	auto Board = []() { FPDGame G = FuseBoard(); G.UpperUnlocked = 0x3FFFFFFFu; return G; };
+	{ // 1. 레시피 표: 30개, 서로 다른 기본 조커 둘, 겹치는 짝 없음, 조커마다 6개, 순서 무관
+		std::set<std::pair<int, int>> Pairs;
+		int Per[(int)EPDJoker::Count] = {}, Star = 0;
+		bool bOk = true;
+		for (int U = 0; U < UpperJokerCount; ++U)
+		{
+			const FPDUpperDef& D = UpperDef(U);
+			bOk = bOk && D.A != D.B && (int)D.A < (int)EPDJoker::Count && (int)D.B < (int)EPDJoker::Count;
+			Pairs.insert({std::min((int)D.A, (int)D.B), std::max((int)D.A, (int)D.B)});
+			Per[(int)D.A]++; Per[(int)D.B]++;
+			bOk = bOk && UpperOf(D.A, D.B) == U && UpperOf(D.B, D.A) == U;
+			Star += D.Special != EPDUpperSpecial::None;
+		}
+		for (int J = 0; J < (int)EPDJoker::Count; ++J) bOk = bOk && Per[J] == 6;
+		const bool bStarter = UpperDef(11).Special == EPDUpperSpecial::None && UpperDef(18).Special == EPDUpperSpecial::None; // 맛보기 2종은 일반 (D-333)
+		Expect(bOk && Pairs.size() == 30 && bStarter && UpperOf(EPDJoker::Clown, EPDJoker::Mask) < 0 && UpperOf(EPDJoker::Clown, EPDJoker::Clown) < 0,
+			"레시피 30개: 짝 겹침 없음 · 조커마다 6개 · 순서 무관 · 맛보기 2종은 일반 (★ " + std::to_string(Star) + "종)");
+	}
+	{ // 2. 같은 조커 둘: 위력 합 × 1.3, 조커 레벨은 높은 쪽(경험치도 그쪽), 타워 레벨 · 특성은 큰 쪽
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Jack, 4, 3.f, 1); PutJ(G.Towers, 1, Row, EPDJoker::Jack, 7, 5.f, 3);
+		G.Towers.at(CellKey(1, Row)).JXp = 12.f; G.Towers.at(CellKey(0, Row)).TRate = 1.5f;
+		Refresh(G);
+		const auto L = G.JokerMerges();
+		const int I = FindMerge(L, (int)EPDJoker::Jack);
+		const bool bOk = I >= 0 && L[I].Upper < 0 && G.MergeJokers(I, CellKey(0, Row));
+		const FPDTower F = bOk ? G.Towers.at(CellKey(0, Row)) : FPDTower{};
+		Expect(bOk && G.Towers.size() == 1 && Near(F.Mult, 8.f * JokerMergeBonus) && F.JLevel == 7 && Near(F.JXp, 12.f) && F.Level == 3 && Near(F.TRate, 1.5f) && F.Joker == (int)EPDJoker::Jack,
+			"같은 잭 둘: 위력 (3+5)×1.3, 조커 레벨 7·경험치 12, 타워 레벨 3, 연사 특성 1.5");
+	}
+	{ // 3. 같은 조커 셋 ㄱ자 → 한 묶음, 대각선은 안 이어짐
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6), Row2 = Row + 1 < Rows && G.Buildable(1, Row + 1) && G.Buildable(3, Row + 1) ? Row + 1 : -1;
+		PutJ(G.Towers, 0, Row, EPDJoker::Bell); PutJ(G.Towers, 1, Row, EPDJoker::Bell);
+		if (Row2 >= 0) { PutJ(G.Towers, 1, Row2, EPDJoker::Bell); PutJ(G.Towers, 3, Row, EPDJoker::Bell); PutJ(G.Towers, 4, Row2, EPDJoker::Bell); }
+		Refresh(G);
+		const auto L = G.JokerMerges();
+		size_t Three = 0; int Groups = 0;
+		for (const auto& M : L) if (M.Upper < 0) { Groups++; Three = std::max(Three, M.Cells.size()); }
+		const bool bMerge = Row2 >= 0 && G.MergeJokers(FindMerge(L, (int)EPDJoker::Bell));
+		Expect(Row2 >= 0 && Groups == 1 && Three == 3 && bMerge && G.Towers.size() == 3 && G.JokerMerges().empty(), "방울 ㄱ자 셋은 한 묶음 (위력 ×1.3 한 번), 대각선 방울 둘은 안 합쳐짐");
+	}
+	{ // 4. 레시피 없는 짝 · 같은 칸 아닌 곳 · 이상한 번호
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Clown); PutJ(G.Towers, 1, Row, EPDJoker::Mask);
+		PutJ(G.Towers, 3, Row, EPDJoker::Jack); PutJ(G.Towers, 4, Row, EPDJoker::Jack);
+		Refresh(G);
+		const auto L = G.JokerMerges();
+		const bool bBad = G.MergeJokers(-1) || G.MergeJokers((int)L.size()) || G.MergeJokers(0, CellKey(0, Row));
+		Expect(L.size() == 1 && L[0].Joker == (int)EPDJoker::Jack && !bBad && G.Towers.size() == 4, "광대 + 웃는 가면은 레시피 없음, 범위 밖 번호 · 재료 밖 칸은 실패");
+	}
+	{ // 5. 일반 상위 조커(험프티 덤프티 = 가면 + 희비극): 레벨 조건 없이, 위력 합 × 1.3, 조커 레벨 높은 쪽, 경험치 0, 도감에 남음
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Mask, 1, 2.f); PutJ(G.Towers, 1, Row, EPDJoker::Comedy, 3, 4.f);
+		G.Towers.at(CellKey(1, Row)).JXp = 9.f;
+		G.UpperFound = 0;
+		Refresh(G);
+		const auto L = G.JokerMerges();
+		const int U = UpperOf(EPDJoker::Mask, EPDJoker::Comedy);
+		const int I = FindMerge(L, UpperBase + U);
+		const bool bOk = I >= 0 && L[I].Upper == U && G.MergeJokers(I, CellKey(1, Row));
+		const FPDTower F = bOk ? G.Towers.at(CellKey(1, Row)) : FPDTower{};
+		Expect(bOk && U == 11 && F.Joker == UpperBase + U && Near(F.Mult, 6.f * UpperBonusPlain) && F.JLevel == 3 && F.JXp == 0.f && (G.UpperFound & (1u << U)) && IsUpperJoker(F.Joker),
+			"험프티 덤프티: 레벨 1·3 그대로 합쳐짐, 위력 (2+4)×1.3, 조커 레벨 3, 도감에 남음");
+	}
+	{ // 6. ★ 상위 조커(미친 다과회 = 모자 장수 + 체셔): 둘 다 조커 레벨 10, 위력 × 1.5
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		const int U = UpperOf(EPDJoker::Hatter, EPDJoker::Cheshire);
+		PutJ(G.Towers, 0, Row, EPDJoker::Hatter, 10, 2.f); PutJ(G.Towers, 1, Row, EPDJoker::Cheshire, 9, 2.f);
+		Refresh(G);
+		const bool b9 = FindMerge(G.JokerMerges(), UpperBase + U) < 0;
+		G.Towers.at(CellKey(1, Row)).JLevel = 10;
+		const int I = FindMerge(G.JokerMerges(), UpperBase + U);
+		const bool bOk = I >= 0 && G.MergeJokers(I);
+		const FPDTower F = bOk ? G.Towers.begin()->second : FPDTower{};
+		Expect(UpperDef(U).Special == EPDUpperSpecial::MadTea && b9 && bOk && Near(F.Mult, 4.f * UpperBonus), "미친 다과회(★): 레벨 10·9 는 안 되고 10·10 이면 위력 (2+2)×1.5");
+	}
+	{ // 7. 트리 끝자락(조커 강화) 재료는 조건 레벨 5 · 하나마다 +25%, 다과회 초대장은 조건 7 · +15%
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		const int U = UpperOf(EPDJoker::Hatter, EPDJoker::Cheshire);
+		PutJ(G.Towers, 0, Row, EPDJoker::Hatter, 5, 2.f); PutJ(G.Towers, 1, Row, EPDJoker::Cheshire, 10, 2.f);
+		Refresh(G);
+		const bool bNo = FindMerge(G.JokerMerges(), UpperBase + U) < 0;
+		G.Mods.JokerUp = 1u << (int)EPDJoker::Hatter;
+		const int I = FindMerge(G.JokerMerges(), UpperBase + U);
+		const bool bTip = I >= 0 && G.MergeJokers(I) && Near(G.Towers.begin()->second.Mult, 4.f * UpperBonus * (1.f + UpperTipBonus));
+		FPDGame H = Board();
+		PutJ(H.Towers, 0, Row, EPDJoker::Hatter, 7, 2.f); PutJ(H.Towers, 1, Row, EPDJoker::Cheshire, 7, 2.f);
+		Refresh(H);
+		const bool bNo7 = FindMerge(H.JokerMerges(), UpperBase + U) < 0;
+		H.Mods.UpperPrep = 0.15f;
+		const int I7 = FindMerge(H.JokerMerges(), UpperBase + U);
+		const bool bPrep = I7 >= 0 && H.MergeJokers(I7) && Near(H.Towers.begin()->second.Mult, 4.f * UpperBonus * 1.15f);
+		Expect(bNo && bTip && bNo7 && bPrep, "끝자락 찍은 모자 장수 Lv5 + 체셔 Lv10 → 다과회 (+25%), 다과회 초대장이면 Lv7 둘로 (+15%)");
+	}
+	{ // 8. 왕관의 무게 ×2.2 (일반 · ★ 모두), 서커스면 상위 조커 못 만들고 같은 조커 합치기는 됨, 잠긴 상위 조커는 안 뜸
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 8);
+		PutJ(G.Towers, 0, Row, EPDJoker::Mask, 1, 2.f); PutJ(G.Towers, 1, Row, EPDJoker::Comedy, 1, 2.f);
+		PutJ(G.Towers, 4, Row, EPDJoker::Jack); PutJ(G.Towers, 5, Row, EPDJoker::Jack);
+		Refresh(G);
+		G.Mods.Keys = 1u << (int)EPDKeystone::Crown;
+		const int I = FindMerge(G.JokerMerges(), UpperBase + 11);
+		const bool bCrown = I >= 0 && G.MergeJokers(I, CellKey(0, Row)) && Near(G.Towers.at(CellKey(0, Row)).Mult, 4.f * 2.2f);
+		FPDGame H = Board();
+		PutJ(H.Towers, 0, Row, EPDJoker::Mask); PutJ(H.Towers, 1, Row, EPDJoker::Comedy);
+		PutJ(H.Towers, 4, Row, EPDJoker::Jack); PutJ(H.Towers, 5, Row, EPDJoker::Jack);
+		Refresh(H);
+		H.Mods.Keys = 1u << (int)EPDKeystone::Circus;
+		const auto LC = H.JokerMerges();
+		const bool bCircus = LC.size() == 1 && LC[0].Upper < 0;
+		H.Mods.Keys = 0;
+		H.UpperUnlocked = ~(1u << 11);
+		const auto LL = H.JokerMerges();
+		const bool bLocked = LL.size() == 1 && LL[0].Upper < 0;
+		Expect(bCrown && bCircus && bLocked, "왕관의 무게: 험프티 위력 4×2.2, 서커스: 같은 잭 합치기만, 잠긴 험프티는 안 뜸");
+	}
+	{ // 9. 상위 조커는 최종형: 기본 조커와 맞닿아도 상위 조커 안 됨, 할리퀸이 들면 할리퀸 무늬를 이어받음
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Hatter); PutJ(G.Towers, 1, Row, EPDJoker::Harlequin);
+		G.Towers.at(CellKey(1, Row)).JSuit = EPDSuit::Club; G.Towers.at(CellKey(0, Row)).JSuit = EPDSuit::Heart;
+		Refresh(G);
+		const int U = UpperOf(EPDJoker::Hatter, EPDJoker::Harlequin);
+		const int I = FindMerge(G.JokerMerges(), UpperBase + U);
+		const bool bOk = I >= 0 && G.MergeJokers(I, CellKey(0, Row));
+		const bool bSuit = bOk && G.Towers.at(CellKey(0, Row)).JSuit == EPDSuit::Club;
+		PutJ(G.Towers, 1, Row, EPDJoker::Jack); // 하트 왕(모자 장수+할리퀸) 옆에 잭: 모자 장수 + 잭 = 하트 잭 레시피가 있어도 안 됨
+		Refresh(G);
+		Expect(bSuit && G.JokerMerges().empty(), "하트 왕: 할리퀸 ♣ 무늬를 이어받음, 상위 조커 옆 잭은 합칠 것 없음");
+	}
+	{ // 10. 상위 조커 결과 칸에 따라 타워 레벨(사거리)이 달라지면 안 된다 — 같은 조커 합치기 · 조커 만들기는 큰 쪽
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Mask, 1, 1.f, 3); PutJ(G.Towers, 1, Row, EPDJoker::Comedy, 1, 1.f, 1);
+		Refresh(G);
+		FPDGame H = G;
+		const bool bA = G.MergeJokers(FindMerge(G.JokerMerges(), UpperBase + 11), CellKey(0, Row));
+		const bool bB = H.MergeJokers(FindMerge(H.JokerMerges(), UpperBase + 11), CellKey(1, Row));
+		const int LA = bA ? G.Towers.at(CellKey(0, Row)).Level : -1, LB = bB ? H.Towers.at(CellKey(1, Row)).Level : -1;
+		Expect(bA && bB && LA == LB && LA == 3, "상위 조커 타워 레벨: 어느 칸에 합쳐도 큰 쪽 (가면 Lv3 + 희비극 Lv1 → " + std::to_string(LA) + " / " + std::to_string(LB) + ")");
+	}
+	{ // 11. 같은 조커 합치기와 상위 조커가 한 조커를 같이 노릴 때: 하나를 하면 목록이 새로 짜인다
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Mask, 1, 2.f); PutJ(G.Towers, 1, Row, EPDJoker::Mask, 1, 2.f); PutJ(G.Towers, 2, Row, EPDJoker::Comedy, 1, 2.f);
+		Refresh(G);
+		const auto L = G.JokerMerges();
+		const bool bBoth = L.size() == 2 && FindMerge(L, (int)EPDJoker::Mask) >= 0 && FindMerge(L, UpperBase + 11) >= 0;
+		const bool bSame = G.MergeJokers(FindMerge(L, (int)EPDJoker::Mask), CellKey(1, Row));
+		const auto L2 = G.JokerMerges();
+		const int I = FindMerge(L2, UpperBase + 11);
+		const bool bUp = L2.size() == 1 && I >= 0 && G.MergeJokers(I, CellKey(1, Row));
+		Expect(bBoth && bSame && bUp && G.Towers.size() == 1 && Near(G.Towers.begin()->second.Mult, (2.f * 2.f * JokerMergeBonus + 2.f) * UpperBonusPlain),
+			"가면 · 가면 · 희비극: 가면 둘 합치고 → 희비극 옆이면 험프티, 위력 ((2+2)×1.3 + 2)×1.3");
+	}
+	{ // 12. 단계: 준비 · 웨이브 중엔 되고 게임 오버 · 보상 창에선 목록이 비고 합치기 실패
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		auto Setup = [&](FPDGame& X) { X.Towers.clear(); PutJ(X.Towers, 0, Row, EPDJoker::Jack); PutJ(X.Towers, 1, Row, EPDJoker::Jack); Refresh(X); };
+		Setup(G); G.Phase = EPDPhase::Wave;
+		const bool bWave = G.MergeJokers(0);
+		Setup(G); G.Phase = EPDPhase::Over;
+		const bool bOver = !G.JokerMerges().empty() || G.MergeJokers(0);
+		Setup(G); G.Phase = EPDPhase::Reward;
+		const bool bReward = !G.JokerMerges().empty() || G.MergeJokers(0);
+		Expect(bWave && !bOver && !bReward, "웨이브 중 합치기 됨, 게임 오버 · 보상 창에선 안 됨");
+	}
+	{ // 13. 저장 · 불러오기: 상위 조커 번호 · 위력 · 조커 레벨 · 무늬가 그대로, 같은 상위 조커 둘은 맞닿으면 같은 조커 합치기
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Harlequin, 12, 3.f); PutJ(G.Towers, 1, Row, EPDJoker::Jack, 11, 2.f);
+		G.Towers.at(CellKey(0, Row)).JSuit = EPDSuit::Diamond;
+		Refresh(G);
+		const int U = UpperOf(EPDJoker::Harlequin, EPDJoker::Jack);
+		const bool bQ = G.MergeJokers(FindMerge(G.JokerMerges(), UpperBase + U), CellKey(0, Row));
+		const FPDTower Before = G.Towers.at(CellKey(0, Row));
+		FPDGame L(1);
+		const bool bLoad = bQ && L.LoadRun(G.SaveRun());
+		const auto It = L.Towers.find(CellKey(0, Row));
+		const bool bSame = bLoad && It != L.Towers.end() && It->second.Joker == Before.Joker && Near(It->second.Mult, Before.Mult) && It->second.JLevel == 12 && It->second.JSuit == EPDSuit::Diamond;
+		Expect(UpperDef(U).Special == EPDUpperSpecial::QueenHearts && bSame, "하트 여왕 저장 → 불러오기: 번호 · 위력 · 조커 레벨 12 · ♦ 그대로");
+	}
+	{ // 14. 무작위 판 3,000개: 조커만 놓고 아무 합치기나 해도 규칙이 깨지지 않는다
+		std::mt19937 Rng(399);
+		int Done = 0, Ups = 0, Bad = 0;
+		std::string FirstBad;
+		auto Fail = [&](const std::string& Why) { if (Bad++ == 0) FirstBad = Why; };
+		for (int Board_ = 0; Board_ < 3000; ++Board_)
+		{
+			FPDGame G = Board();
+			const int Key = (int)(Rng() % 6);
+			if (Key == 1) G.Mods.Keys = 1u << (int)EPDKeystone::Crown;
+			if (Key == 2) G.Mods.Keys = 1u << (int)EPDKeystone::Circus;
+			if (Key == 3) G.Mods.JokerUp = (uint32_t)(Rng() & 0x3FF);
+			if (Key == 4) G.Mods.UpperPrep = 0.15f;
+			if (Rng() % 4 == 0) G.UpperUnlocked = (uint32_t)Rng() & 0x3FFFFFFFu;
+			for (int Y = 0; Y < 3; ++Y)
+				for (int X = 0; X < 4; ++X)
+				{
+					if (!G.Buildable(X, Y) || Rng() % 4 == 0) continue;
+					PutJ(G.Towers, X, Y, (EPDJoker)(Rng() % 4 == 0 ? 6 : Rng() % (int)EPDJoker::Count), Rng() % 3 == 0 ? 10 + (int)(Rng() % 5) : 1 + (int)(Rng() % 10), 1.f + (float)(Rng() % 8), 1 + (int)(Rng() % 3));
+				}
+			Refresh(G);
+			for (int Step = 0; Step < 8; ++Step)
+			{
+				const auto L = G.JokerMerges();
+				// 목록이 규칙대로인지
+				for (const auto& M : L)
+				{
+					if (M.Upper < 0)
+					{
+						if (M.Cells.size() < 2) Fail("같은 조커 묶음이 하나뿐");
+						for (int K : M.Cells) if (!G.Towers.count(K) || G.Towers.at(K).Joker != M.Joker) Fail("같은 조커 묶음에 다른 조커");
+					}
+					else
+					{
+						if (M.Cells.size() != 2 || PDCellDistT(M.Cells[0], M.Cells[1]) != 1) Fail("상위 조커 재료가 맞닿은 둘이 아님");
+						const FPDTower& A = G.Towers.at(M.Cells[0]); const FPDTower& B = G.Towers.at(M.Cells[1]);
+						if (IsUpperJoker(A.Joker) || IsUpperJoker(B.Joker) || A.Joker == B.Joker) Fail("상위 조커 재료가 기본 조커 둘이 아님");
+						if (UpperOf((EPDJoker)A.Joker, (EPDJoker)B.Joker) != M.Upper || M.Joker != UpperBase + M.Upper) Fail("레시피와 다른 상위 조커");
+						if (!G.UpperOpen(M.Upper)) Fail("잠긴 상위 조커가 뜸");
+						if (G.Mods.Key(EPDKeystone::Circus)) Fail("서커스인데 상위 조커가 뜸");
+						if (A.JLevel < G.UpperNeedFor(M.Upper, A) || B.JLevel < G.UpperNeedFor(M.Upper, B)) Fail("조건 레벨 미달인데 뜸");
+					}
+				}
+				if (L.empty()) break;
+				const int I = (int)(Rng() % L.size());
+				const FPDJokerMerge M = L[I];
+				const int Target = Rng() % 3 == 0 ? -1 : M.Cells[Rng() % M.Cells.size()];
+				float Sum = 0.f; int Tips = 0, Lv = 0;
+				for (int K : M.Cells) { Sum += G.Towers.at(K).Mult; Tips += G.Mods.Up(G.Towers.at(K).Joker); Lv = std::max(Lv, G.Towers.at(K).JLevel); }
+				const size_t Before = G.Towers.size();
+				const FPDTowerMap Snap = G.Towers;
+				if (!G.MergeJokers(I, Target)) { Fail("목록에 있는 합치기가 실패"); break; }
+				++Done;
+				const int At = Target >= 0 ? Target : DefaultFuseCell(M.Cells);
+				if (G.Towers.size() != Before - M.Cells.size() + 1 || !G.Towers.count(At)) { Fail("타워 수 · 결과 칸이 맞지 않음"); break; }
+				const FPDTower& F = G.Towers.at(At);
+				float Want = Sum * JokerMergeBonus;
+				if (M.Upper >= 0)
+				{
+					++Ups;
+					const float Bonus = G.Mods.Key(EPDKeystone::Crown) ? 2.2f : UpperDef(M.Upper).Special == EPDUpperSpecial::None ? UpperBonusPlain : UpperBonus;
+					Want = Sum * Bonus * (1.f + UpperTipBonus * Tips + G.Mods.UpperPrep);
+					if (F.Joker != UpperBase + M.Upper || F.JXp != 0.f) Fail("상위 조커 번호 · 경험치");
+				}
+				else if (F.Joker != M.Joker) Fail("같은 조커 합치기 결과 종류가 바뀜");
+				if (std::fabs(F.Mult - Want) > 1e-3f * std::max(1.f, Want)) Fail("위력이 식과 다름");
+				if (F.JLevel != Lv) Fail("조커 레벨이 가장 높은 것이 아님");
+				int TopLv = 0; for (int K : M.Cells) TopLv = std::max(TopLv, Snap.at(K).Level);
+				if (F.Level != TopLv) Fail("타워 레벨이 가장 높은 것이 아님");
+				for (const auto& KV : Snap)
+				{
+					const bool bMat = std::find(M.Cells.begin(), M.Cells.end(), KV.first) != M.Cells.end();
+					if (!bMat && (!G.Towers.count(KV.first) || G.Towers.at(KV.first).Joker != KV.second.Joker || !Near(G.Towers.at(KV.first).Mult, KV.second.Mult))) Fail("재료 아닌 조커가 바뀜");
+					if (bMat && KV.first != At && G.Towers.count(KV.first)) Fail("재료 칸이 안 비워짐");
+				}
+			}
+		}
+		Expect(Bad == 0 && Done > 3000 && Ups > 300, "무작위 조커 판 3,000개 · 합치기 " + std::to_string(Done) + "번 (상위 조커 " + std::to_string(Ups) + "번): 규칙 어긋남 " + std::to_string(Bad) + (Bad ? " (처음: " + FirstBad + ")" : ""));
+	}
+}
+
 // ---------------------------------------------------------------- 봇 (웹 프로토타입 test.js 의 평가에서 시작)
 static int Coverage(const FPDGame& G, int X, int Y, float Range)
 {
@@ -2112,6 +2403,7 @@ int main(int Argc, char** Argv)
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
 	FuseRuleTests();
+	JokerMergeTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
 	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "base") BotTest(Runs, false, false, true, true);
 	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
