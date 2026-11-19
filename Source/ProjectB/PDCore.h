@@ -20,7 +20,8 @@ namespace PD
 {
 constexpr int Cols = 16;
 constexpr int Rows = 10;
-constexpr int HandMaxBase = 10; // D-397: 7 → 10 (새 UI 시안, 손패 10장 한 줄)
+constexpr int HandMaxBase = 7;
+constexpr int HandMaxCap = 10; // D-397: 칵테일 · 스킬 덤을 다 더해도 손패는 10장까지 (예전 최대 11)
 constexpr int CharmMax = 5;
 constexpr int NumWaves = 15; // 1회차 (보스 3종이 한 바퀴). 진행은 무한이고 목숨이 0이 되면 끝. 이 뒤로는 적 체력이 더 천천히 오른다
 constexpr int StartLives = 20;
@@ -638,7 +639,7 @@ public:
 	std::vector<FPDReward> RollRewards();
 	FPDCharmBits CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
-	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.HandAdd; }
+	int HandMax() const { const int N = HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.HandAdd; return N < HandMaxCap ? N : HandMaxCap; }
 	// 스킬 트리
 	enum class EBuy : uint8_t { Ok, Owned, NotLinked, Sealed, KeyCap, NoPoint, Closed };
 	// 레벨 (D-228): 적을 잡아 경험치 → 레벨업마다 트리 포인트 1. 다음 레벨까지 = 예전 n번째 포인트 골드 값 (20 × 1.22^(레벨-1))
