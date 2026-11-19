@@ -20,7 +20,7 @@ namespace PD
 {
 constexpr int Cols = 16;
 constexpr int Rows = 10;
-constexpr int HandMaxBase = 7;
+constexpr int HandMaxBase = 10; // D-397: 7 → 10 (새 UI 시안, 손패 10장 한 줄)
 constexpr int CharmMax = 5;
 constexpr int NumWaves = 15; // 1회차 (보스 3종이 한 바퀴). 진행은 무한이고 목숨이 0이 되면 끝. 이 뒤로는 적 체력이 더 천천히 오른다
 constexpr int StartLives = 20;

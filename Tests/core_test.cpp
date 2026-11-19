@@ -288,7 +288,7 @@ static void UnitTests()
 		for (auto& R : R2) bAllInst = bAllInst && !R.bCharm;
 		Expect(R1.size() == 3 && (J1 == 3 || (J1 == 2 && W1 == 1)) && bAllInst && R2.size() == 3, "부적 창: 부적 3 (와일드면 부적 2 + 와일드), 부적 칸이 차면 즉시만");
 		G.Charms = {EPDCharm::BigHand};
-		Expect(G.HandMax() == 9, "큰 손: 손패 최대 9");
+		Expect(G.HandMax() == 12, "큰 손: 손패 최대 12 (기본 10 + 2, D-397)");
 		G.Phase = EPDPhase::Reward;
 		G.Rewards = {{false, (int)EPDInstant::Wild}};
 		G.TakeReward(0);
