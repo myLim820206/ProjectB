@@ -246,24 +246,68 @@ void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>
 	for (int S = 0; S < 4; ++S) M.UpgSuit[S] = UpgradeStep((EPDUpgrade)((int)EPDUpgrade::Spade + S)) * Lv[(int)EPDUpgrade::Spade + S];
 }
 
+static std::vector<EPDHand> PDClassifyHandRaw(const std::vector<FPDCard>& Cards);
+// 족보 판정은 카드 순서와 무관하다 (스트레이트 순서는 PDOrderedStraight 가 따로 본다). 정렬한 카드 묶음을 키로 결과를 기억한다 (D-398):
+// 와일드(조커)가 W 장이면 숫자·무늬를 다 넣어 보는 재귀가 (13 × 무늬)^W 번이라, 조커 4장 덩어리에서 족보 찾기가 127ms 걸리던 것
 std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 {
-	// 와일드 카드: 가능한 숫자·무늬를 다 넣어 보고 나오는 족보를 모두 모은다
-	for (size_t W = 0; W < Cards.size(); ++W)
+	if (Cards.size() > 8) return PDClassifyHandRaw(Cards);
+	uint8_t Code[8];
+	const int N = (int)Cards.size();
+	for (int I = 0; I < N; ++I) Code[I] = (uint8_t)((Cards[I].IsWild() ? 15 : Cards[I].Rank) << 3 | (Cards[I].IsWild() ? 7 : (int)Cards[I].Suit));
+	std::sort(Code, Code + N);
+	uint64_t Key = (uint64_t)N;
+	for (int I = 0; I < N; ++I) Key = Key << 7 | Code[I];
+	static std::unordered_map<uint64_t, std::vector<EPDHand>> GHandMemo;
+	if (auto It = GHandMemo.find(Key); It != GHandMemo.end()) return It->second;
+	std::vector<EPDHand> Out = PDClassifyHandRaw(Cards);
+	if (GHandMemo.size() > 400000) GHandMemo.clear();
+	GHandMemo.emplace(Key, Out);
+	return Out;
+}
+
+static std::vector<EPDHand> PDClassifyHandRaw(const std::vector<FPDCard>& Cards)
+{
+	// 와일드 카드 (D-398): 예전엔 와일드마다 숫자 2~14 · 판의 무늬를 다 넣어 보고 나온 족보를 모았다. 같은 결과를 바로 구한다
+	//  와일드 무늬는 와일드 아닌 카드의 무늬 중에서만 고르므로(없으면 스페이드) 플러시 = 나머지 무늬가 모두 같음
+	int W = 0;
+	for (const FPDCard& C : Cards) W += C.IsWild();
+	if (W > 0)
 	{
-		if (!Cards[W].IsWild()) continue;
-		std::vector<EPDSuit> Suits;
-		for (const FPDCard& C : Cards) if (!C.IsWild() && std::find(Suits.begin(), Suits.end(), C.Suit) == Suits.end()) Suits.push_back(C.Suit);
-		if (Suits.empty()) Suits.push_back(EPDSuit::Spade);
-		std::set<EPDHand> All;
-		std::vector<FPDCard> Try = Cards;
-		for (int R = 2; R <= 14; ++R)
-			for (EPDSuit Su : Suits)
-			{
-				Try[W] = {R, Su};
-				for (EPDHand H : ClassifyHand(Try)) All.insert(H);
-			}
-		return std::vector<EPDHand>(All.begin(), All.end());
+		const int N = (int)Cards.size(), M = N - W;
+		std::map<int, int> Cnt;
+		bool bSuit = true;
+		int Suit = -1, MaxCnt = 0, HiMin = 99, HiMax = 0, LoMin = 99, LoMax = 0;
+		for (const FPDCard& C : Cards)
+		{
+			if (C.IsWild()) continue;
+			MaxCnt = std::max(MaxCnt, ++Cnt[C.Rank]);
+			if (Suit < 0) Suit = (int)C.Suit; else bSuit = bSuit && Suit == (int)C.Suit;
+			const int Lo = C.Rank == 14 ? 1 : C.Rank;
+			HiMin = std::min(HiMin, C.Rank); HiMax = std::max(HiMax, C.Rank);
+			LoMin = std::min(LoMin, Lo); LoMax = std::max(LoMax, Lo);
+		}
+		const int D = (int)Cnt.size();
+		// 스트레이트: 숫자가 모두 다르고, N 칸 창(2~14, 또는 A = 1 로 1~13)에 다 들어간다
+		bool bStraight = false;
+		if (N >= 2 && D == M)
+		{
+			if (M == 0) bStraight = N <= 13;
+			else bStraight = (HiMax - HiMin < N && std::max(2, HiMax - N + 1) + N - 1 <= 14) || (LoMax - LoMin < N && std::max(1, LoMax - N + 1) + N - 1 <= 13);
+		}
+		const bool bRoyal = N == 5 && bSuit && D == M && (M == 0 || HiMin >= 10);
+		std::vector<EPDHand> Out; // 예전처럼 족보 번호 순서 (std::set)
+		if (bRoyal) Out.push_back(EPDHand::RoyalFlush);
+		if (N == 5 && D <= 1) Out.push_back(EPDHand::Five);
+		if (N == 5 && bSuit && bStraight) Out.push_back(EPDHand::StraightFlush);
+		if (N == 4 && D <= 1) Out.push_back(EPDHand::Four);
+		if (N == 5 && D <= 2 && MaxCnt <= 3) Out.push_back(EPDHand::FullHouse);
+		if (N >= 3 && bSuit) Out.push_back(EPDHand::Flush);
+		if (bStraight) Out.push_back(EPDHand::Straight);
+		if (N == 3 && D <= 1) Out.push_back(EPDHand::Triple);
+		if (N == 4 && D <= 2 && MaxCnt <= 2) Out.push_back(EPDHand::TwoPair);
+		if (N == 2 && D <= 1) Out.push_back(EPDHand::Pair);
+		return Out;
 	}
 	const int N = (int)Cards.size();
 	std::map<int, int> Cnt;
@@ -2095,7 +2139,7 @@ bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 {
 	if (!CanFuse(SynergyIdx)) return false;
 	FPDSynergy S;
-	FuseSynergy(SynergyIdx, S); // 조커가 들었으면 조커를 뺀 칸들 (D-128)
+	FuseSynergy(SynergyIdx, S); // 조커가 낀 족보는 CanFuse 에서 이미 걸렀다 (D-200)
 	// 합쳐질 칸: 고른 칸 (재료 칸 중 하나), 안 골랐으면 족보 가운데에 가장 가까운 칸
 	const int Target = PDFuseTarget(S.Cells, TargetCell);
 	if (Target < 0) return false;

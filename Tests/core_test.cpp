@@ -2,6 +2,8 @@
 //   ./Tests/run.sh [봇 판 수]
 // 족보·연쇄·길·설치·적·부적·발사체·합성·조커·스킬 트리·골드 강화를 확인하고, 봇으로 밸런스를 본다.
 //   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만, ./Tests/run.sh N level [모드] 는 레벨 곡선
+#include <chrono>
+#include <cstdlib>
 #include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
@@ -1438,6 +1440,388 @@ static void UnitTests()
 	}
 }
 
+// ---------------------------------------------------------------- 합성 규칙 상황별 (D-398)
+static FPDGame FuseBoard()
+{
+	FPDGame G(42);
+	G.NewGame(true);
+	G.bMuted = true;
+	G.Towers.clear();
+	G.Synergies.clear();
+	return G;
+}
+static void Refresh(FPDGame& G) { G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods); }
+static int FindSyn(const FPDGame& G, EPDHand Kind, int Level = -1)
+{
+	for (int I = 0; I < (int)G.Synergies.size(); ++I)
+		if (G.Synergies[I].Kind == Kind && (Level < 0 || G.Towers.at(G.Synergies[I].Cells[0]).Level == Level)) return I;
+	return -1;
+}
+static bool Near(float A, float B) { return std::fabs(A - B) < 1e-4f; }
+static void FuseRuleTests()
+{
+	auto FindKey = [](EPDKeystone K) { for (int I = 0; I < TreeNodeCount(); ++I) if (TreeNode(I).Kind == EPDNode::Keystone && TreeNode(I).Fx[0].Param == (int)K) return I; return -1; };
+	auto Bits = [](std::initializer_list<int> Ids) { FPDTreeBits B(1); for (int I : Ids) B.set(I); return B; };
+	std::printf("\n[합성 규칙 상황별]\n");
+	{ // 1. 다시 합성하면 특성이 곱해지고 위력 배율도 (합 × 1.5)
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(9)); Put(G.Towers, 1, Row, C(9, EPDSuit::Heart));
+		Refresh(G);
+		const bool bA = G.Fuse(FindSyn(G, EPDHand::Pair, 1), CellKey(1, Row));
+		// Lv2 9 옆에 Lv1 9 두 장: 레벨이 달라 Lv1 페어만 잡힌다 → Lv2 9 옆 칸으로 합성
+		Put(G.Towers, 2, Row, C(9, EPDSuit::Diamond)); Put(G.Towers, 3, Row, C(9, EPDSuit::Club));
+		Refresh(G);
+		const bool bB = G.Synergies.size() == 1 && G.Fuse(FindSyn(G, EPDHand::Pair, 1), CellKey(2, Row));
+		const int P2 = FindSyn(G, EPDHand::Pair, 2);
+		const bool bC = P2 >= 0 && G.Fuse(P2, CellKey(1, Row));
+		const FPDTower& F = G.Towers.at(CellKey(1, Row));
+		Expect(bA && bB && bC && G.Towers.size() == 1 && F.Level == 3 && Near(F.Mult, (3.f + 3.f) * FuseBonus) && Near(F.TDmg, 1.5f * 1.5f),
+			"Lv2 페어 둘 → Lv3: 위력 (3+3)×1.5 = 9, 공격력 특성 1.5×1.5");
+	}
+	{ // 2. 서로 다른 특성을 가진 Lv2 둘을 합성: 특성은 종류마다 큰 쪽 × 새 족보, 범위는 큰 쪽, 기억 족보는 높은 쪽
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 8);
+		FPDTower A; A.Card = C(7); A.Level = 2; A.Mult = 4.5f; A.TSplash = 1.25f; A.FuseHand = (int)EPDHand::Flush; A.X = 0; A.Y = Row;
+		FPDTower B; B.Card = C(7, EPDSuit::Heart); B.Level = 2; B.Mult = 4.5f; B.TRate = 1.5f; B.FuseHand = (int)EPDHand::Straight; B.X = 1; B.Y = Row;
+		G.Towers[CellKey(0, Row)] = A; G.Towers[CellKey(1, Row)] = B;
+		Refresh(G);
+		const bool bOk = G.Fuse(FindSyn(G, EPDHand::Pair, 2), CellKey(0, Row));
+		const FPDTower& F = G.Towers.at(CellKey(0, Row));
+		Expect(bOk && F.Level == 3 && Near(F.TDmg, 1.5f) && Near(F.TRate, 1.5f) && Near(F.TSplash, 1.25f) && F.FuseHand == (int)EPDHand::Flush && Near(F.Mult, 9.f * FuseBonus),
+			"플러시 Lv2 + 스트레이트 Lv2 페어 → Lv3: 연사·범위 물려받고 공격력 ×1.5, 기억은 플러시");
+	}
+	{ // 3. Lv3 → Lv4, Lv4 끼리는 족보는 되지만 합성은 막힘 (최고 레벨)
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(5), 3); Put(G.Towers, 1, Row, C(5, EPDSuit::Heart), 3);
+		Refresh(G);
+		const bool b4 = G.Fuse(0, CellKey(0, Row));
+		const bool bLv4 = b4 && G.Towers.at(CellKey(0, Row)).Level == MaxLevel;
+		Put(G.Towers, 1, Row, C(5, EPDSuit::Diamond), MaxLevel);
+		Refresh(G);
+		const int P = FindSyn(G, EPDHand::Pair, MaxLevel);
+		Expect(bLv4 && P >= 0 && G.FuseBlock(P) == FPDGame::EFuseBlock::TopLevel && !G.Fuse(P) && G.Towers.size() == 2,
+			"Lv3 페어 → Lv4, Lv4 페어는 족보로 남고 합성은 '최고 레벨'로 막힘");
+	}
+	{ // 4. 레벨이 섞인 줄: Lv1 · Lv2 · Lv1 은 족보 없음, Lv2 옆 Lv1 둘은 Lv1 페어만
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(8)); Put(G.Towers, 1, Row, C(8, EPDSuit::Heart), 2); Put(G.Towers, 2, Row, C(8, EPDSuit::Diamond));
+		Refresh(G);
+		const bool bNone = G.Synergies.empty();
+		Put(G.Towers, 3, Row, C(8, EPDSuit::Club));
+		Refresh(G);
+		bool bOnlyLv1 = G.Synergies.size() == 1 && G.Synergies[0].Kind == EPDHand::Pair;
+		for (int K : G.Synergies.empty() ? std::vector<int>{} : G.Synergies[0].Cells) bOnlyLv1 = bOnlyLv1 && G.Towers.at(K).Level == 1;
+		Expect(bNone && bOnlyLv1, "Lv1·Lv2·Lv1 줄은 족보 없음, 오른쪽에 Lv1 하나 더 → Lv1 페어만 (Lv2 는 안 낌)");
+	}
+	{ // 5. 같은 칸·카드에서 레벨만 바뀌어도 족보를 다시 찾는다 (덩어리 캐시 D-142)
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(10)); Put(G.Towers, 1, Row, C(10, EPDSuit::Heart));
+		Refresh(G);
+		const bool bLv1 = G.Synergies.size() == 1;
+		G.Towers.at(CellKey(1, Row)).Level = 2;
+		Refresh(G);
+		const bool bMixed = G.Synergies.empty();
+		G.Towers.at(CellKey(0, Row)).Level = 2;
+		Refresh(G);
+		const bool bLv2 = G.Synergies.size() == 1 && G.Towers.at(G.Synergies[0].Cells[0]).Level == 2;
+		Expect(bLv1 && bMixed && bLv2, "캐시: 같은 칸·카드라도 Lv1 페어 → 레벨 섞임 없음 → Lv2 페어");
+	}
+	{ // 6. 조커가 서로 다른 레벨을 잇는다: 레벨이 섞인 족보는 생기지 않고, 조커 족보는 합성 불가
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(6)); Put(G.Towers, 2, Row, C(6, EPDSuit::Heart), 2);
+		FPDTower J; J.Joker = (int)EPDJoker::Clown; J.X = 1; J.Y = Row; J.Card = {0, EPDSuit::Wild};
+		G.Towers[CellKey(1, Row)] = J;
+		Refresh(G);
+		bool bNoMix = !G.Synergies.empty(), bNoFuse = true;
+		for (int I = 0; I < (int)G.Synergies.size(); ++I)
+		{
+			int L = -1;
+			for (int K : G.Synergies[I].Cells)
+			{
+				const FPDTower& T = G.Towers.at(K);
+				if (T.IsJoker()) continue;
+				if (L < 0) L = T.Level; else bNoMix = bNoMix && L == T.Level;
+			}
+			bNoFuse = bNoFuse && !G.CanFuse(I) && G.FuseBlock(I) == FPDGame::EFuseBlock::Joker;
+		}
+		Expect(bNoMix && bNoFuse && !G.Fuse(0) && G.Towers.size() == 3, "Lv1 6 · 조커 · Lv2 6: 족보마다 레벨 하나, 조커 족보는 합성 막힘 (까닭 = 조커)");
+	}
+	{ // 7. 카드를 나눠 쓰는 족보 (D-097): 5 6 7 + 7 → 스트레이트를 합성하면 남은 7 은 혼자 Lv1
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(5)); Put(G.Towers, 1, Row, C(6, EPDSuit::Heart)); Put(G.Towers, 2, Row, C(7)); Put(G.Towers, 3, Row, C(7, EPDSuit::Heart));
+		Refresh(G);
+		const int St = FindSyn(G, EPDHand::Straight), Pr = FindSyn(G, EPDHand::Pair);
+		const bool bBoth = St >= 0 && Pr >= 0;
+		const bool bOk = bBoth && G.Fuse(St, CellKey(2, Row));
+		const FPDTower& F = G.Towers.at(CellKey(2, Row));
+		Expect(bOk && G.Towers.size() == 2 && F.Level == 2 && F.Card == C(7) && Near(F.TRate, 1.5f) && G.Towers.at(CellKey(3, Row)).Level == 1 && G.Synergies.empty(),
+			"5 6 7 + 7: 스트레이트를 7 칸에 합성 → Lv2 7(연사 ×1.5), 옆 Lv1 7 과는 족보 아님");
+		FPDGame H = FuseBoard();
+		Put(H.Towers, 0, Row, C(5)); Put(H.Towers, 1, Row, C(6, EPDSuit::Heart)); Put(H.Towers, 2, Row, C(7)); Put(H.Towers, 3, Row, C(7, EPDSuit::Heart));
+		Refresh(H);
+		const bool bP = H.Fuse(FindSyn(H, EPDHand::Pair), CellKey(2, Row));
+		Expect(bP && H.Towers.size() == 3 && H.Towers.at(CellKey(2, Row)).Level == 2 && H.Synergies.size() == 1 && H.Synergies[0].Kind == EPDHand::Straight && H.Synergies[0].N == 2,
+			"5 6 7 + 7: 페어를 7 칸에 합성 → 5 6 은 2장 스트레이트로 줄고 Lv2 7 은 안 낌");
+	}
+	{ // 8. 와일드끼리 합성하면 와일드 Lv2, 그 와일드 Lv2 는 Lv2 와 족보가 되고 합치면 숫자는 표결
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, {0, EPDSuit::Wild}); Put(G.Towers, 1, Row, {0, EPDSuit::Wild});
+		Refresh(G);
+		const bool bSyn = !G.Synergies.empty();
+		const bool bW = bSyn && G.Fuse(0, CellKey(0, Row));
+		const bool bWild = bW && G.Towers.at(CellKey(0, Row)).Card.IsWild() && G.Towers.at(CellKey(0, Row)).Level == 2;
+		Put(G.Towers, 1, Row, C(12, EPDSuit::Club), 2);
+		Refresh(G);
+		const bool bPair = FindSyn(G, EPDHand::Pair, 2) >= 0;
+		const bool bF = bPair && G.Fuse(FindSyn(G, EPDHand::Pair, 2), CellKey(0, Row));
+		const FPDCard Got = bF ? G.Towers.at(CellKey(0, Row)).Card : FPDCard{};
+		Expect(bWild && bF && Got == C(12, EPDSuit::Club) && G.Towers.at(CellKey(0, Row)).Level == 3, "와일드 둘 → 와일드 Lv2, + Q♣ Lv2 를 와일드 칸에 합성 → Q♣ Lv3");
+	}
+	{ // 9. 웨이브 중에도 합성, 게임 오버 · 제목에서는 안 됨
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		auto Setup = [&](FPDGame& X) { X.Towers.clear(); Put(X.Towers, 0, Row, C(4)); Put(X.Towers, 1, Row, C(4, EPDSuit::Heart)); Refresh(X); };
+		Setup(G); G.Phase = EPDPhase::Wave;
+		const bool bWave = G.Fuse(0);
+		Setup(G); G.Phase = EPDPhase::Over;
+		const bool bOver = G.Fuse(0) || G.CanFuse(0) || G.FuseBlock(0) != FPDGame::EFuseBlock::NotInPlay;
+		Setup(G); G.Phase = EPDPhase::Reward;
+		const bool bReward = G.Fuse(0);
+		Expect(bWave && !bOver && !bReward, "웨이브 중 합성 됨, 게임 오버·보상 창에선 안 됨");
+	}
+	{ // 10. 이상한 번호 · 칸
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(4)); Put(G.Towers, 1, Row, C(4, EPDSuit::Heart));
+		Refresh(G);
+		FPDSynergy S;
+		const bool bBad = G.Fuse(-1) || G.Fuse(1) || G.Fuse(99) || G.CanFuse(-1) || G.FuseSynergy(5, S) || G.Fuse(0, CellKey(4, Row));
+		Expect(!bBad && G.Towers.size() == 2 && G.FuseBlock(-1) == FPDGame::EFuseBlock::NotInPlay, "음수·범위 밖 번호, 재료 밖 칸은 모두 실패하고 판 그대로");
+	}
+	{ // 11. 저장 · 불러오기에 합성 타워(레벨·위력·특성·기억 족보)가 그대로
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(3)); Put(G.Towers, 1, Row, C(4)); Put(G.Towers, 2, Row, C(5)); Put(G.Towers, 3, Row, C(6)); Put(G.Towers, 4, Row, C(7));
+		Refresh(G);
+		const int Fl = FindSyn(G, EPDHand::StraightFlush); // 스트레이트 플러시는 5장
+		const bool bF = Fl >= 0 && G.Fuse(Fl, CellKey(1, Row));
+		const FPDTower Before = G.Towers.at(CellKey(1, Row));
+		FPDGame L(1);
+		const bool bLoad = bF && L.LoadRun(G.SaveRun());
+		const auto It = L.Towers.find(CellKey(1, Row));
+		const bool bSame = bLoad && It != L.Towers.end() && It->second.Level == Before.Level && Near(It->second.Mult, Before.Mult) && Near(It->second.TDmg, Before.TDmg)
+			&& Near(It->second.TRate, Before.TRate) && Near(It->second.TSplash, Before.TSplash) && It->second.FuseHand == Before.FuseHand && It->second.Card == Before.Card;
+		Expect(bSame && Before.FuseHand == (int)EPDHand::StraightFlush, "스트레이트 플러시 합성 타워 저장 → 불러오기: 레벨·위력·특성·기억 족보 같음");
+	}
+	{ // 12. 자리바꿈으로 옮긴 합성 타워는 레벨 그대로, 같은 레벨 옆으로 가면 족보
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 8);
+		Put(G.Towers, 0, Row, C(11), 2); Put(G.Towers, 4, Row, C(11, EPDSuit::Heart), 2); Put(G.Towers, 6, Row, C(11, EPDSuit::Club));
+		G.Towers.at(CellKey(0, Row)).Mult = 3.f;
+		Refresh(G);
+		G.Swaps = 1;
+		const bool bEmpty = G.Synergies.empty();
+		const bool bSw = G.SwapTowers(CellKey(0, Row), CellKey(5, Row));
+		const auto It = G.Towers.find(CellKey(5, Row));
+		Expect(bEmpty && bSw && It != G.Towers.end() && It->second.Level == 2 && Near(It->second.Mult, 3.f) && FindSyn(G, EPDHand::Pair, 2) >= 0 && FindSyn(G, EPDHand::Pair, 1) < 0,
+			"자리바꿈: Lv2 J 를 Lv2 J 옆으로 → Lv2 페어 (옆 Lv1 J 는 안 낌)");
+	}
+	{ // 13. 합성 타워 위에는 카드를 못 놓고, 보스 무늬 바꾸기는 Lv4 를 건너뛴다
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(2), 2); Put(G.Towers, 1, Row, C(2), MaxLevel);
+		Refresh(G);
+		G.SuitSwaps.clear();
+		G.DealSuits(5);
+		bool bLv4Kept = true;
+		for (const FPDGame::FPDSuitSwap& Sw : G.SuitSwaps) bLv4Kept = bLv4Kept && Sw.Cell != CellKey(1, Row);
+		Expect(!G.CanPlace(0, Row) && !G.CanPlace(1, Row) && bLv4Kept, "Lv2·Lv4 위에는 카드 못 놓음, 보스 무늬 바꾸기는 Lv4 제외");
+	}
+	{ // 14. 다섯 장 족보 합성: 스트레이트 5장 → 연사 ×2, 위력 5 × 1.5 / 플러시 5장 → 범위 1.75
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(3, EPDSuit::Heart)); Put(G.Towers, 2, Row, C(4)); Put(G.Towers, 3, Row, C(5, EPDSuit::Heart)); Put(G.Towers, 4, Row, C(6));
+		Refresh(G);
+		const int St = FindSyn(G, EPDHand::Straight);
+		const bool bS = St >= 0 && G.Synergies[St].N == 5 && G.Fuse(St, CellKey(2, Row));
+		const FPDTower FS = bS ? G.Towers.at(CellKey(2, Row)) : FPDTower{};
+		G.Towers.clear();
+		Put(G.Towers, 0, Row, C(2, EPDSuit::Club)); Put(G.Towers, 1, Row, C(9, EPDSuit::Club)); Put(G.Towers, 2, Row, C(4, EPDSuit::Club)); Put(G.Towers, 3, Row, C(12, EPDSuit::Club)); Put(G.Towers, 4, Row, C(6, EPDSuit::Club));
+		Refresh(G);
+		const int Fl = FindSyn(G, EPDHand::Flush);
+		const bool bF = Fl >= 0 && G.Synergies[Fl].N == 5 && G.Fuse(Fl, CellKey(2, Row));
+		const FPDTower FF = bF ? G.Towers.at(CellKey(2, Row)) : FPDTower{};
+		Expect(bS && Near(FS.TRate, 2.f) && Near(FS.Mult, 5.f * FuseBonus) && bF && Near(FF.TSplash, 1.75f) && FF.Card == C(4, EPDSuit::Club),
+			"스트레이트 5장 → 연사 ×2 · 위력 7.5, 플러시 5장 → 범위 1.75 · 대표 카드 4♣");
+	}
+	{ // 15. 대장장이 합성 배율 2.0 이 실제 합성에 걸린다, 광대의 길은 Lv2 → Lv3 를 막는다
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		G.TreeOwned = Bits({FindKey(EPDKeystone::Smith)});
+		G.RebuildMods();
+		Put(G.Towers, 0, Row, C(4)); Put(G.Towers, 1, Row, C(4, EPDSuit::Heart));
+		Refresh(G);
+		const bool bSm = G.Fuse(0) && Near(G.Towers.begin()->second.Mult, 2.f * 2.f);
+		FPDGame H = FuseBoard();
+		H.TreeOwned = Bits({FindKey(EPDKeystone::ClownPath)});
+		H.RebuildMods();
+		Put(H.Towers, 0, Row, C(4)); Put(H.Towers, 1, Row, C(4, EPDSuit::Heart));
+		Refresh(H);
+		const bool bL1 = H.Fuse(0, CellKey(0, Row));
+		Put(H.Towers, 1, Row, C(4, EPDSuit::Diamond), 2);
+		Refresh(H);
+		const int P2 = FindSyn(H, EPDHand::Pair, 2);
+		Expect(bSm && bL1 && P2 >= 0 && !H.Fuse(P2) && H.FuseBlock(P2) == FPDGame::EFuseBlock::ClownPath, "대장장이: 페어 합성 위력 2×2.0, 광대의 길: Lv1 → Lv2 는 되고 Lv2 → Lv3 는 막힘");
+	}
+	{ // 16. 합성 타워의 실제 세기: 사거리는 레벨마다 +10%, 공격력에 위력 배율과 특성이 곱해진다
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(9)); Put(G.Towers, 1, Row, C(9, EPDSuit::Heart));
+		Refresh(G);
+		FPDTower Lone = G.Towers.at(CellKey(0, Row));
+		Lone.Eff = FPDEffects();
+		const FPDTowerStats S1 = TowerStats(Lone);
+		G.Fuse(0, CellKey(0, Row));
+		FPDTower F = G.Towers.at(CellKey(0, Row));
+		F.Eff = FPDEffects();
+		const FPDTowerStats S2 = TowerStats(F);
+		Expect(Near(S2.Range, S1.Range * (1.f + LevelRange)) && Near(S2.Dmg, S1.Dmg * 2.f * FuseBonus * 1.5f), "Lv2 9: 사거리 ×1.1, 공격력 = 카드 × 위력 3 × 특성 1.5");
+	}
+	{ // 17. 합성 타워가 같은 레벨 카드와 더 큰 족보를 만들고, 그걸 다시 합성: 위력·특성이 모두 이어진다
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 8);
+		Put(G.Towers, 0, Row, C(8)); Put(G.Towers, 1, Row, C(8, EPDSuit::Heart));
+		Put(G.Towers, 3, Row, C(2), 2); Put(G.Towers, 4, Row, C(2, EPDSuit::Heart), 2);
+		Refresh(G);
+		const bool bTwo = G.Synergies.size() == 2;
+		const bool bF = G.Fuse(FindSyn(G, EPDHand::Pair, 1), CellKey(1, Row));
+		Put(G.Towers, 2, Row, C(8, EPDSuit::Club), 2);
+		Refresh(G);
+		const int Tp = FindSyn(G, EPDHand::TwoPair, 2);
+		const bool bTp = Tp >= 0 && G.Synergies[Tp].N == 4 && G.Fuse(Tp, CellKey(2, Row));
+		const FPDTower F = bTp ? G.Towers.at(CellKey(2, Row)) : FPDTower{};
+		Expect(bTwo && bF && bTp && G.Towers.size() == 1 && F.Level == 3 && Near(F.Mult, (3.f + 1.f + 1.f + 1.f) * FuseBonus) && Near(F.TDmg, 1.5f * 1.5f) && Near(F.TRange, 1.25f) && F.FuseHand == (int)EPDHand::TwoPair && F.Card == C(8, EPDSuit::Club),
+			"Lv2 8(합성) · Lv2 8 · Lv2 2 2 → 투 페어 → Lv3 8♣: 위력 6×1.5, 공격력 1.5×1.5, 사거리 1.25, 기억 투 페어");
+	}
+	{ // 18. 무작위 판 2,000개: 아무 족보나 아무 칸에 합성해도 규칙이 깨지지 않는다
+		std::mt19937 Rng(2026);
+		int Tried = 0, Done = 0, Bad = 0;
+		std::string FirstBad;
+		auto Fail = [&](const std::string& Why) { if (Bad++ == 0) FirstBad = Why; };
+		for (int Board = 0; Board < 2000; ++Board)
+		{
+			FPDGame G = FuseBoard();
+			if (Board % 3 == 1) { G.TreeOwned = Bits({FindKey(EPDKeystone::Smith)}); G.RebuildMods(); }
+			if (Board % 3 == 2) { G.TreeOwned = Bits({FindKey(EPDKeystone::ClownPath)}); G.RebuildMods(); }
+			// 5×4 칸에 카드 (작은 숫자 범위 · 무늬 2개로 족보가 잘 나오게), 레벨 1~4 섞어서, 가끔 와일드 · 조커
+			for (int Y = 0; Y < 4; ++Y)
+				for (int X = 0; X < 5; ++X)
+				{
+					if (!G.Buildable(X, Y) || Rng() % 5 == 0) continue;
+					const int Roll = (int)(Rng() % 40);
+					FPDCard Cd{2 + (int)(Rng() % 5), (EPDSuit)(Rng() % 2)};
+					if (Roll == 0) Cd = {0, EPDSuit::Wild};
+					const int Lv = Rng() % 3 == 0 ? 1 + (int)(Rng() % MaxLevel) : 1;
+					Put(G.Towers, X, Y, Cd, Lv);
+					if (Roll == 1) { FPDTower& T = G.Towers.at(CellKey(X, Y)); T.Joker = (int)EPDJoker::Clown; T.Card = {0, EPDSuit::Wild}; T.Level = 1; }
+				}
+			Refresh(G);
+			for (int Step = 0; Step < 6 && !G.Synergies.empty(); ++Step)
+			{
+				// 족보마다: 조커 아닌 칸은 레벨이 하나
+				for (const FPDSynergy& S : G.Synergies)
+				{
+					int L = -1;
+					for (int K : S.Cells) { const FPDTower& T = G.Towers.at(K); if (T.IsJoker()) continue; if (L < 0) L = T.Level; else if (L != T.Level) Fail("레벨이 섞인 족보"); }
+				}
+				const int I = (int)(Rng() % G.Synergies.size());
+				const FPDSynergy S = G.Synergies[I];
+				const FPDGame::EFuseBlock Why = G.FuseBlock(I);
+				bool bJoker = false;
+				for (int K : S.Cells) bJoker = bJoker || G.Towers.at(K).IsJoker();
+				const int Lv = bJoker ? -1 : G.Towers.at(S.Cells[0]).Level;
+				const FPDGame::EFuseBlock Want = bJoker ? FPDGame::EFuseBlock::Joker : Lv >= MaxLevel ? FPDGame::EFuseBlock::TopLevel
+					: (G.Mods.Key(EPDKeystone::ClownPath) && Lv >= 2) ? FPDGame::EFuseBlock::ClownPath : FPDGame::EFuseBlock::None;
+				if (Why != Want) Fail("막힌 까닭이 다름 (족보 " + std::to_string((int)S.Kind) + ")");
+				const int Target = Rng() % 4 == 0 ? -1 : S.Cells[Rng() % S.Cells.size()];
+				float SumMult = 0.f;
+				int MaxFH = (int)S.Kind;
+				for (int K : S.Cells) { SumMult += G.Towers.at(K).Mult; const int FH = G.Towers.at(K).FuseHand; if (FH >= 0 && HandBaseValue((EPDHand)FH) > HandBaseValue((EPDHand)MaxFH)) MaxFH = FH; }
+				const size_t Before = G.Towers.size();
+				const FPDTowerMap Snapshot = G.Towers;
+				++Tried;
+				const bool bOk = G.Fuse(I, Target);
+				if (bOk != (Want == FPDGame::EFuseBlock::None)) { Fail("합성 됨/안 됨이 까닭과 다름"); break; }
+				if (!bOk)
+				{
+					if (G.Towers.size() != Before) Fail("실패한 합성이 판을 바꿈");
+					break;
+				}
+				++Done;
+				const int At = Target >= 0 ? Target : DefaultFuseCell(S.Cells);
+				auto It = G.Towers.find(At);
+				if (G.Towers.size() != Before - S.Cells.size() + 1) Fail("타워 수가 맞지 않음");
+				if (It == G.Towers.end()) { Fail("합쳐질 칸에 타워가 없음"); break; }
+				const FPDTower& F = It->second;
+				if (F.Level != Lv + 1 || F.Level > MaxLevel) Fail("레벨이 +1 이 아님");
+				if (!Near(F.Mult, SumMult * G.FuseMult())) Fail("위력 배율 ≠ 합 × 합성 배율");
+				if (F.FuseHand != MaxFH) Fail("기억 족보가 가장 높은 족보가 아님");
+				if (F.IsJoker()) Fail("합성 결과가 조커");
+				const FPDTower& Src = Snapshot.at(At);
+				if (!Src.Card.IsWild() && !(F.Card == Src.Card)) Fail("대표 카드가 고른 칸 카드가 아님");
+				for (const auto& KV : Snapshot)
+				{
+					const bool bMat = std::find(S.Cells.begin(), S.Cells.end(), KV.first) != S.Cells.end();
+					if (!bMat && (!G.Towers.count(KV.first) || G.Towers.at(KV.first).Level != KV.second.Level || !(G.Towers.at(KV.first).Card == KV.second.Card))) Fail("재료 아닌 타워가 바뀜");
+					if (bMat && KV.first != At && G.Towers.count(KV.first)) Fail("재료 칸이 안 비워짐");
+				}
+				const std::vector<FPDSynergy> Fresh = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
+				if (Fresh.size() != G.Synergies.size()) Fail("합성 뒤 족보 목록이 다시 찾은 것과 다름");
+			}
+		}
+		Expect(Bad == 0 && Done > 1000, "무작위 판 2,000개 · 합성 " + std::to_string(Done) + "번 성공 / " + std::to_string(Tried) + "번 시도: 규칙 어긋남 " + std::to_string(Bad) + (Bad ? " (처음: " + FirstBad + ")" : ""));
+	}
+	{ // 19. 와일드 족보 판정 (D-398): 바로 구한 값 = 예전처럼 와일드마다 숫자·무늬를 다 넣어 본 값 (무작위 20,000 묶음)
+		struct FOracle
+		{
+			static std::vector<EPDHand> Run(const std::vector<FPDCard>& Cards)
+			{
+				for (size_t W = 0; W < Cards.size(); ++W)
+				{
+					if (!Cards[W].IsWild()) continue;
+					std::vector<EPDSuit> Suits;
+					for (const FPDCard& Cd : Cards) if (!Cd.IsWild() && std::find(Suits.begin(), Suits.end(), Cd.Suit) == Suits.end()) Suits.push_back(Cd.Suit);
+					if (Suits.empty()) Suits.push_back(EPDSuit::Spade);
+					std::set<EPDHand> All;
+					std::vector<FPDCard> Try = Cards;
+					for (int R = 2; R <= 14; ++R) for (EPDSuit Su : Suits) { Try[W] = {R, Su}; for (EPDHand H : Run(Try)) All.insert(H); }
+					return std::vector<EPDHand>(All.begin(), All.end());
+				}
+				return ClassifyHand(Cards);
+			}
+		};
+		std::mt19937 Rng(398);
+		int Diff = 0;
+		for (int I = 0; I < 20000; ++I)
+		{
+			const int N = 2 + (int)(Rng() % 4), W = 1 + (int)(Rng() % std::min(N, 3));
+			std::vector<FPDCard> Cards;
+			const int Lo = 2 + (int)(Rng() % 9); // 숫자를 좁게 몰아 족보가 잘 나오게
+			for (int K = 0; K < N - W; ++K) Cards.push_back({Rng() % 6 == 0 ? 14 : Lo + (int)(Rng() % 5), (EPDSuit)(Rng() % (Rng() % 2 ? 1 : 4))});
+			for (int K = 0; K < W; ++K) Cards.insert(Cards.begin() + Rng() % (Cards.size() + 1), FPDCard{0, EPDSuit::Wild});
+			Diff += ClassifyHand(Cards) != FOracle::Run(Cards);
+		}
+		Expect(Diff == 0, "와일드 든 족보 판정 20,000 묶음: 예전 방식과 다름 " + std::to_string(Diff));
+	}
+}
+
 // ---------------------------------------------------------------- 봇 (웹 프로토타입 test.js 의 평가에서 시작)
 static int Coverage(const FPDGame& G, int X, int Y, float Range)
 {
@@ -1528,6 +1912,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	long Feeds = 0, JLvSum = 0, UppersMade = 0;
 	for (int Run = 0; Run < Runs; ++Run)
 	{
+		const auto RunT0 = std::chrono::steady_clock::now();
 		FPDGame G(1000 + Run);
 		G.Mode = GBotMode;
 		if (bUpg) for (int& U : G.Upg) U = GBotUpgLv; // 영구 강화 흉내: 8종 모두 같은 레벨 (기본 10)
@@ -1699,6 +2084,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			}
 			G.Events.clear();
 		}
+		if (std::getenv("PD_BOT_VERBOSE")) std::fprintf(stderr, "  [판 %d] 시드 %d · 웨이브 %d · %s · %.1f초\n", Run, 1000 + Run, G.Wave, G.Phase == EPDPhase::Clear ? "클리어" : G.Phase == EPDPhase::Over ? "패배" : "멈춤(Guard)", std::chrono::duration<double>(std::chrono::steady_clock::now() - RunT0).count());
 		{ int Mx = 0; for (auto& KV : G.Towers) if (KV.second.IsJoker()) Mx = std::max(Mx, KV.second.JLevel); JLvSum += Mx; }
 		Hist[G.Wave]++;
 		GBotClears += G.Phase == EPDPhase::Clear;
@@ -1725,6 +2111,7 @@ int main(int Argc, char** Argv)
 {
 	std::printf("[규칙 단위 시험]\n");
 	UnitTests();
+	FuseRuleTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
 	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "base") BotTest(Runs, false, false, true, true);
 	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
