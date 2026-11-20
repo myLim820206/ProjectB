@@ -2982,9 +2982,13 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 // BAR Alice 간판 (D-440 ~ D-452, D-453 에서 함수로): 따라 그린 Alice · 잔 획(PDTitleLogo.inl) + 예전 블록 글자 BAR.
 // TX, TY = 원본 그림(1139 × 546)의 왼쪽 위, TW = 그릴 너비. NB · PB · CB = 글자 묶음 밝기(깜빡임). Wall = 벽빛 세기 (시작 화면 1, 인게임 0)
 // 관 굵기 · 번짐은 너비에 비례 (시작 화면 580 기준)
-void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB, float Wall)
+void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB, float Wall, float AngleDeg)
 {
 	const float K = TW / PDTitleLogo::SrcW, Sc = TW / 580.f;
+	// 기울이기 (D-454): 간판 가운데를 축으로 모든 점을 돌린다 (둥근 빛은 돌려도 같아 점만 돌리면 된다)
+	const FVector2f Piv(TX + TW / 2.f, TY + PDTitleLogo::SrcH * K / 2.f);
+	const float Ca = FMath::Cos(FMath::DegreesToRadians(AngleDeg)), Sa = FMath::Sin(FMath::DegreesToRadians(AngleDeg));
+	auto Rot = [&](FVector2f V) { if (AngleDeg == 0.f) return V; const FVector2f D = V - Piv; return Piv + FVector2f(D.X * Ca - D.Y * Sa, D.X * Sa + D.Y * Ca); };
 	static const TCHAR* Edge[3] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714")}; // 원본에서 잰 관 바깥 테
 	static const TCHAR* Core[3] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5")}; // 관 가운데 파스텔
 	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
@@ -3012,7 +3016,7 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 			const FLinearColor Ec = Hex(Edge[St.Color]), Cc = Hex(Core[St.Color]);
 			const float Th = PDTitleLogo::Tube[St.Color] * K * 0.8f;
 			Pts.Reset();
-			for (int32 Q = 0; Q < St.N; ++Q) Pts.Add(FVector2f(TX + St.P[Q * 2] * K, TY + St.P[Q * 2 + 1] * K));
+			for (int32 Q = 0; Q < St.N; ++Q) Pts.Add(Rot(FVector2f(TX + St.P[Q * 2] * K, TY + St.P[Q * 2 + 1] * K)));
 			if (Pass == 0) { WallSpill(Pts, Ec, Th, B, 0.13f, 0.08f); continue; } // 벽빛 (D-302 · D-449)
 			if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
 			TubeGlow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, B);
@@ -3032,7 +3036,7 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 			for (int32 J2 = 0; J2 < N; ++J2)
 			{
 				TArray<FVector2f> BP;
-				for (int32 Q = 0; Q < Ps[J2].N; ++Q) BP.Add(FVector2f(X0 + (I * PDLogo::BlockAdv + Ps[J2].P[Q * 2] * 0.8f) * BKn, Base + Ps[J2].P[Q * 2 + 1] * BKn));
+				for (int32 Q = 0; Q < Ps[J2].N; ++Q) BP.Add(Rot(FVector2f(X0 + (I * PDLogo::BlockAdv + Ps[J2].P[Q * 2] * 0.8f) * BKn, Base + Ps[J2].P[Q * 2 + 1] * BKn)));
 				const float B = NB[I];
 				if (Pass == 0) { WallSpill(BP, BarC, BarTh, B, 0.22f, 0.13f); continue; }
 				if (B <= 0.25f) { C.Lines(BP, FLinearColor(BarC.R * 0.28f, BarC.G * 0.28f, BarC.B * 0.28f, 1.f), BarTh * 0.8f); continue; }
@@ -3864,7 +3868,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		static const float AllOn[PDLogo::ScriptLetters > PDLogo::BlockLetters ? PDLogo::ScriptLetters : PDLogo::BlockLetters] = {1.f, 1.f, 1.f, 1.f, 1.f};
 		constexpr float LogoH = 40.f, LogoW = LogoH * PDTitleLogo::SrcW / PDTitleLogo::SrcH;
 		C.NextLayer();
-		PaintAliceSign(C, 20.5f + 94.7f / 2.f - LogoW / 2.f, 17.3f + 36.5f / 2.f - LogoH / 2.f, LogoW, AllOn, AllOn, 1.f, 0.f);
+		PaintAliceSign(C, 20.5f + 94.7f / 2.f - LogoW / 2.f, 17.3f + 36.5f / 2.f - LogoH / 2.f, LogoW, AllOn, AllOn, 1.f, 0.f, -8.f); // 예전 로고처럼 오른쪽이 올라가게 살짝 기울임 (D-454)
 	}
 	if (bMenuBoard)
 	{
