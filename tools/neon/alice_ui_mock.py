@@ -25,11 +25,12 @@ import ingame_mock as G  # noqa: E402
 from ingame_mock import Bar, soldier, hx, circle, rr_pts  # noqa: E402
 from ingame_mock import KO, KOR, BLOCK, WHITE  # noqa: E402
 from neon import bez, suit  # noqa: E402
-from logo_alice import ALICE, catmull  # noqa: E402
+from logo_strokes import catmull  # noqa: E402
 
 W, H = G.W, G.H
 COND = 'COND'   # 숫자 글꼴: Bahnschrift Bold Condensed (시안 카드 숫자)
 BOLD = 'BOLD'   # Bahnschrift Bold
+BLACK = 'C:/Windows/Fonts/seguibl.ttf'  # '3/20' (시안의 둥글고 두꺼운 숫자)
 
 # ---------------------------------------------------------------- 시안 색
 NAVY = (6, 9, 21)
@@ -144,6 +145,120 @@ def ref_tower(M, cx, cy, CS_, rank, sk, lvl, b=1.0, col=None):
 G.tower = ref_tower
 
 
+# ---------------------------------------------------------------- 시안을 따라 그린 네온 그림 (좌표는 시안 확대 조각에서 읽음)
+def rot(pts, cx, cy, deg):
+    a = math.radians(deg); ca, sa = math.cos(a), math.sin(a)
+    return [(cx + (x - cx) * ca - (y - cy) * sa, cy + (x - cx) * sa + (y - cy) * ca) for x, y in pts]
+
+
+def tube_ln(M, pts, c, wd, b=1.0, core=False, glow=True):
+    M.ln(pts, c, wd * 1.45, b, glow=glow, core=core)
+
+
+def logo(M):
+    """BAR 각진 꼬리표(하늘) + Alice 필기체(분홍, 밑줄) + 마티니(노랑, 하늘 술 · 분홍 꼬치 · 반짝 선 셋). 시안 (20~180, 10~100) × 6 조각 좌표"""
+    L = lambda P: [(12.8 + x * 0.1067, 6.4 + y * 0.1067) for x, y in P]
+    cx, cy, w, h, ch = 182, 205, 250, 100, 26
+    tag = [(cx - w / 2 + ch, cy - h / 2), (cx + w / 2 - ch, cy - h / 2), (cx + w / 2, cy - h / 2 + ch), (cx + w / 2, cy + h / 2 - ch),
+           (cx + w / 2 - ch, cy + h / 2), (cx - w / 2 + ch, cy + h / 2), (cx - w / 2, cy + h / 2 - ch), (cx - w / 2, cy - h / 2 + ch)]
+    tag.append(tag[0])
+    tube_ln(M, L(rot(tag, cx, cy, -9)), CYANN, 1.5)
+    letters = [
+        [(100, 178), (100, 233)], [(100, 178), (130, 178), (142, 186), (142, 198), (130, 205), (100, 205)],
+        [(100, 205), (134, 205), (147, 214), (147, 225), (134, 233), (100, 233)],
+        [(160, 233), (185, 178), (210, 233)], [(168, 215), (202, 215)],
+        [(225, 233), (225, 178)], [(225, 178), (255, 178), (267, 187), (267, 198), (255, 206), (225, 206)], [(245, 206), (270, 233)]]
+    for st in letters:
+        tube_ln(M, L(rot([(x + 2, y) for x, y in st], cx, cy, -9)), CYANN, 1.2)
+    alice = [
+        [(195, 392), (150, 408), (128, 438), (150, 446), (200, 402), (262, 310), (322, 222), (372, 176)],
+        [(372, 176), (356, 250), (341, 320), (329, 376)],
+        [(222, 322), (290, 312), (352, 300)],
+        [(329, 376), (366, 318), (420, 238), (456, 188), (448, 172), (428, 190), (400, 270), (386, 340), (396, 372), (420, 362), (450, 330)],
+        [(450, 330), (434, 368), (446, 376), (476, 350), (505, 335)],
+        [(505, 335), (520, 300), (548, 262), (566, 262), (562, 252), (528, 262), (504, 302), (500, 346), (524, 370), (562, 356), (600, 330)],
+        [(600, 330), (640, 286), (646, 256), (626, 248), (596, 280), (586, 330), (600, 366), (640, 362), (690, 336)],
+        [(268, 442), (450, 382), (676, 314)]]
+    for st in alice:
+        tube_ln(M, L(catmull(st)), PINKN, 1.5)
+    tube_ln(M, L([(468, 262), (474, 254)]), PINKN, 1.6)        # i 점
+    gy = (240, 220, 90)
+    tube_ln(M, L([(655, 158), (840, 120), (752, 255), (655, 158)]), gy, 1.4)
+    tube_ln(M, L([(752, 255), (752, 302)]), gy, 1.3)
+    tube_ln(M, L([(752, 302), (705, 322), (805, 316), (752, 302)]), gy, 1.3)
+    tube_ln(M, L([(688, 170), (802, 148)]), CYANN, 1.1)
+    tube_ln(M, L([(755, 175), (765, 185), (755, 195), (745, 185), (755, 175)]), CYANN, 1.1)
+    tube_ln(M, L([(765, 192), (800, 100)]), PINKN, 1.0)
+    for st in ([(795, 72), (810, 42)], [(820, 82), (852, 60)], [(838, 104), (872, 98)]):
+        tube_ln(M, L(st), gy, 1.2)
+
+
+def palm(M):
+    """야자수: 사다리 줄기(주황) + 톱니 잎 넷(초록). 시안 (405~700, 0~135) × 3 조각 좌표"""
+    P = lambda Q: [(259.2 + x * 0.2133, y * 0.2133) for x, y in Q]
+    trunk_l = catmull([(142, 360), (150, 282), (165, 212), (192, 165)])
+    trunk_r = catmull([(214, 352), (202, 282), (196, 220), (210, 170)])
+    tube_ln(M, P(trunk_l), ORANGEN, 1.4); tube_ln(M, P(trunk_r), ORANGEN, 1.4)
+    for (y0, y1, x0, x1) in ((330, 322, 146, 207), (296, 288, 149, 203), (262, 254, 153, 199), (228, 222, 160, 197), (198, 194, 172, 199)):
+        tube_ln(M, P([(x0, y0), (x1, y1)]), ORANGEN, 1.2)
+    fronds = [
+        [(200, 160), (180, 100), (140, 62), (84, 50), (120, 84), (130, 72), (152, 104), (162, 92), (196, 158)],
+        [(205, 160), (232, 102), (285, 92), (340, 132), (300, 120), (296, 108), (270, 124), (262, 114), (212, 162)],
+        [(195, 164), (150, 118), (100, 122), (46, 190), (76, 166), (96, 172), (116, 150), (128, 160), (194, 170)],
+        [(210, 166), (268, 140), (312, 176), (335, 246), (306, 202), (290, 216), (276, 186), (260, 196), (212, 172)]]
+    for f in fronds:
+        tube_ln(M, P(catmull(f[:4]) + f[4:]), GREENN, 1.4)
+
+
+def wave_sign(M, wave=3, goal=20):
+    palm(M)
+    S = lambda Q: [(396.8 + x * 0.32, y * 0.32) for x, y in Q]
+    # 분홍 줄: 야자수 밑에서 타원 왼쪽 아래로 휘어 들어감
+    tube_ln(M, [(307, 59.3), (412, 59.3)] + bez((412, 59.3), (418, 59.3), (420, 53), 6)[1:], PINKN, 2.0)
+    for (x0, x1) in ((313.6, 379.7), (391, 418)):
+        tube_ln(M, [(x0, 67.8), (x1, 67.8)], (255, 230, 60), 2.0)
+    for (x0, x1) in ((323, 344), (355, 433)):
+        tube_ln(M, [(x0, 75), (x1, 75)], CYANN, 1.6)
+    cx, cy, rx, ry = 489, 41.6, 79.4, 37.8
+
+    def ell(r1, r2, a0, a1):
+        return rot([(cx + math.cos(math.radians(a)) * r1, cy + math.sin(math.radians(a)) * r2) for a in range(a0, a1 + 1, 4)], cx, cy, -5)
+    tube_ln(M, ell(rx, ry, 0, 360), PINKN, 2.2)
+    tube_ln(M, ell(rx + 7, ry + 7, 168, 252), BLUEN, 1.8)
+    tube_ln(M, ell(rx + 6, ry + 6, -40, 22), BLUEN, 1.8)
+    # WAVE: 기운 한 줄 네온 글자 (하늘)
+    word = [[(122, 55), (112, 140), (106, 182), (118, 196), (140, 170), (163, 118), (166, 168), (180, 196), (200, 180), (222, 120), (240, 55)],
+            [(232, 196), (262, 120), (292, 66), (310, 58), (318, 90), (320, 196)], [(262, 150), (318, 145)],
+            [(338, 58), (350, 140), (360, 190), (376, 178), (408, 110), (432, 55)],
+            [(482, 58), (446, 56), (436, 80), (422, 170), (426, 194), (464, 192)], [(432, 124), (470, 121)]]
+    for st in word:
+        tube_ln(M, S(catmull(st)), (80, 225, 245), 3.8, core=True)
+    M.rr(560, 10, 192, 70, 3, (60, 150, 255), 2.4, 1.0)
+
+
+def cocktail(M, i, on):
+    """마티니 잔: 분홍 V 잔 · 다리 · 받침, 반쪽 오렌지 조각, 분홍 꼬치 + 구슬, 파란 술 물결, 얼음 둘. 시안 (1630~1980, 745~845) × 3 조각 좌표"""
+    gx = (115, 320, 525, 725, 925)[i]
+    P = lambda Q: [(1043.2 + (gx + x) * 0.2133, 476.8 + y * 0.2133) for x, y in Q]
+    b = 1.0 if on else 0.42
+    pk = (255, 90, 200) if on else (110, 45, 110)
+    org = (255, 150, 50) if on else (115, 70, 40)
+    bl = (110, 175, 255) if on else (60, 60, 120)
+    tube_ln(M, P([(-52, 85), (70, 77), (0, 170), (-52, 85)]), pk, 1.4, b, core=on, glow=on)
+    tube_ln(M, P([(0, 170), (0, 235)]), pk, 1.3, b, core=on, glow=on)
+    tube_ln(M, P([(0, 235), (-33, 248), (35, 248), (0, 235)]), pk, 1.3, b, core=on, glow=on)
+    sx, sy = -40, 82
+    arc = rot([(sx + math.cos(math.radians(a)) * 32, sy + math.sin(math.radians(a)) * 32) for a in range(180, 361, 12)], sx, sy, -15)
+    tube_ln(M, P(arc + [arc[0]]), org, 1.3, b, core=on, glow=on)
+    for a in (225, 270, 315):
+        tube_ln(M, P(rot([(sx, sy), (sx + math.cos(math.radians(a)) * 26, sy + math.sin(math.radians(a)) * 26)], sx, sy, -15)), org, 0.9, b, core=False, glow=False)
+    tube_ln(M, P([(15, 130), (45, 62)]), pk, 1.1, b, core=on, glow=on)
+    tube_ln(M, P(circle(47, 55, 9, 16)), pk, 1.1, b, core=on, glow=on)
+    tube_ln(M, P(catmull([(-40, 105), (-20, 98), (0, 106), (20, 98), (40, 104), (62, 98)])), bl, 1.1, b, core=False, glow=on)
+    for (qx, qy) in ((-10, 125), (12, 142)):
+        tube_ln(M, P(rot([(qx - 8, qy - 8), (qx + 8, qy - 8), (qx + 8, qy + 8), (qx - 8, qy + 8), (qx - 8, qy - 8)], qx, qy, 20)), bl, 1.0, b, core=False, glow=on)
+
+
 # ---------------------------------------------------------------- 왼쪽 패널
 def menu_row(M, x, y, w, key):
     n, mult, desc, bar = HANDS[key]
@@ -173,18 +288,7 @@ def group_head(M, cx, y, title):
 def left_panel(M):
     grad_rr(M, 12, 10, 243, 699, 14, PANEL_TOP, PANEL_BOT, layer=0)
     M.rr(12, 10, 243, 699, 14, PURPLE, 2.0, 0.9, core=True)
-    # 로고: 기운 BAR 알약 + Alice + 칵테일 잔
-    M.rr(19, 22, 30, 13, 6.5, PINKN, 1.4, 1.0)
-    M.t(34, 32, 'BAR', CYANN, 8.5, 'ms', BOLD)
-    for letter in ALICE:  # Alice 필기체 (굵고 밝게)
-        for st in letter:
-            M.ln([(46 + px * 0.27, 46 + py * 0.27) for px, py in catmull(st)], PINKN, 1.8, 1.0, core=True)
-    gx, gy = 104, 24
-    M.ln([(gx - 9, gy - 6), (gx + 9, gy - 6), (gx, gy + 4), (gx - 9, gy - 6)], CYANN, 1.5, 1.0)
-    M.ln([(gx, gy + 4), (gx, gy + 12)], CYANN, 1.3, 1.0)
-    M.ln([(gx - 5, gy + 12), (gx + 5, gy + 12)], CYANN, 1.3, 1.0)
-    M.ln(circle(gx + 8, gy - 9, 4, 14), ORANGEN, 1.3, 1.0)
-    M.ln([(gx - 2, gy - 6), (gx + 4, gy - 16)], YEL, 1.0, 1.0)
+    if not USE_REF: logo(M)
     M.small_glow = 1.0
     M.t(133, 76, '족보 메뉴', YEL, 25, 'ms', KO, glow=True)
     for title, hy, ry, keys in GROUPS:
@@ -196,54 +300,6 @@ def left_panel(M):
 
 
 # ---------------------------------------------------------------- 위: 야자수 WAVE 간판
-def palm(M):
-    base, top = (278, 77), (300, 22)
-    L = bez(base, (294, 54), top, 16)
-    R = [(px + 7, py + 1) for px, py in bez((285, 77), (302, 54), (303, 24), 16)]
-    M.ln(L, ORANGEN, 2.0, 1.0, core=True); M.ln(R, ORANGEN, 2.0, 1.0, core=True)
-    for i in range(2, 15, 3): M.ln([L[i], R[i]], ORANGEN, 1.4, 0.9)
-    tx, ty = 304, 21
-    leaves = ((-30, 14, -16, -12, -22, 4), (-24, -12, -10, -16, -14, -6), (4, -16, 0, -18, 2, -10),
-              (30, -8, 16, -18, 18, -4), (30, 20, 22, -4, 16, 8))
-    for (ex, ey, cx, cy, ix, iy) in leaves:
-        outer = bez((tx, ty), (tx + cx, ty + cy), (tx + ex, ty + ey), 14)
-        inner = bez((tx + ex, ty + ey), (tx + ix, ty + iy + 4), (tx, ty + 2), 14)
-        M.ln(outer + inner, GREENN, 1.8, 1.0, core=True)
-
-
-def wave_sign(M, wave=3, goal=20):
-    palm(M)
-    M.ln([(328, 50), (408, 50)], PINKN, 2.2, 1.0, core=True)
-    for (x0, x1) in ((314, 381), (390, 420)): M.ln([(x0, 64), (x1, 64)], YEL, 2.4, 1.0, core=True)
-    for (x0, x1) in ((322, 344), (352, 420)): M.ln([(x0, 74), (x1, 74)], CYANN, 1.8, 0.9)
-    cx, cy = 485, 42
-    M.ln(circle(cx, cy, 35, 64, sx=2.3), PINKN, 3.0, 1.0, core=True)
-    M.ln([(cx + math.cos(math.radians(a)) * 92, cy + math.sin(math.radians(a)) * 42) for a in range(195, 262, 6)], BLUEN, 2.0, 0.9)
-    M.ln([(cx + math.cos(math.radians(a)) * 92, cy + math.sin(math.radians(a)) * 42) for a in range(15, 80, 6)], BLUEN, 2.0, 0.6)
-    M.rr(562, 9, 191, 72, 4, BLUEN, 2.6, 1.0, core=True)
-
-
-def wave_word(img):
-    """'WAVE': 하늘색 굵은 기운 글자 + 넓은 빛 (시안처럼 이탤릭)"""
-    S2 = 2
-    big = img.resize((W * S2, H * S2), Image.BICUBIC)
-    lay = Image.new('RGBA', (220 * S2, 90 * S2), (0, 0, 0, 0))
-    d = ImageDraw.Draw(lay)
-    f = ImageFont.truetype(BLOCK, 44 * S2); f.set_variation_by_name('Bold')
-    d.text((110 * S2, 48 * S2), 'WAVE', font=f, anchor='mm', fill=(170, 245, 255, 255), stroke_width=3 * S2, stroke_fill=(170, 245, 255, 255))
-    d.text((110 * S2, 48 * S2), 'WAVE', font=f, anchor='mm', fill=(60, 195, 245, 255))
-    sh = 0.28
-    lay = lay.transform(lay.size, Image.AFFINE, (1, sh, -sh * lay.size[1] / 2, 0, 1, 0), Image.BICUBIC)
-    ox, oy = (485 - 110) * S2, (42 - 46) * S2
-    glow = Image.new('RGB', big.size, (0, 0, 0))
-    gl = Image.new('RGB', lay.size, (40, 200, 255))
-    glow.paste(gl, (ox, oy), lay.split()[3])
-    big = ImageChops.add(big, glow.filter(ImageFilter.GaussianBlur(9 * S2)).point(lambda v: int(v * 0.8)))
-    big = ImageChops.add(big, glow.filter(ImageFilter.GaussianBlur(3 * S2)).point(lambda v: int(v * 0.5)))
-    big.paste(lay.convert('RGB'), (ox, oy), lay.split()[3])
-    return big.resize((W, H), Image.LANCZOS)
-
-
 def decal(img, text, cx, cy, fp, px, fill, stroke, sw, glowc, shear=0.0):
     """글꼴 글자를 굵은 테두리 + 채움 + 넓은 빛으로 (시안의 '3/20': 속은 검고 테두리만 파랗게 빛남)"""
     S2 = 2
@@ -318,19 +374,6 @@ def tv(M):
     return (SX, SY, SW, SH)
 
 
-def cocktail(M, cx, cy, on):
-    c = (255, 90, 190) if on else (95, 45, 100)
-    o = ORANGEN if on else (110, 60, 60)
-    b = 1.0 if on else 0.75
-    M.ln([(cx - 15, cy - 18), (cx + 15, cy - 18), (cx + 2, cy), (cx - 2, cy), (cx - 15, cy - 18)], c, 1.7, b, glow=on)
-    M.ln([(cx, cy), (cx, cy + 16)], c, 1.5, b, glow=on)
-    M.ln([(cx - 9, cy + 16), (cx + 9, cy + 16)], c, 1.7, b, glow=on)
-    if on: M.fill([(cx - 12, cy - 15), (cx + 12, cy - 15), (cx + 2, cy - 2), (cx - 2, cy - 2)], (255, 120, 60), 0.55, layer=3)
-    M.fill(circle(cx - 9, cy - 21, 6, 16), o, 0.8 if on else 0.4, layer=3)
-    M.ln(circle(cx - 9, cy - 21, 6, 16), (255, 200, 90) if on else o, 1.2, b, glow=on)
-    M.ln([(cx + 2, cy - 18), (cx + 9, cy - 30)], c, 1.2, b, glow=on)
-
-
 def right_column(M):
     scr = tv(M)
     for yy, c in ((410, PINKN), (418, PURPLE)): M.ln([(1038, yy), (1270, yy)], c, 1.8, 0.9, core=True)
@@ -340,7 +383,7 @@ def right_column(M):
     M.ln([(1187, 443), (1254, 443)], (150, 130, 160), 1.0, 0.7, glow=False)
     M.t(1254, 465, '3웨이브 후 획득', TXT, 8.5, 'rs', KO, 0.9)
     for i, x in enumerate((1067, 1110, 1154, 1197, 1240)):
-        cocktail(M, x, 508, i < 2)
+        if not USE_REF: cocktail(M, i, i < 2)
     M.ln([(1043, 534), (1265, 534)], BLUEN, 2.0, 1.0, core=True)
     for yy, c in ((552, PINKN), (561, BLUEN)): M.ln([(1038, yy), (1270, yy)], c, 1.8, 0.9, core=True)
     # 스킬
@@ -416,20 +459,37 @@ def static(img, box):
     return img
 
 
+REF = os.path.join(os.path.dirname(__file__), '..', '..', 'docs', 'images', 'ui-1120', 'reference.webp')
+USE_REF = os.path.exists(REF)   # 시안 그림이 있으면 간판 · 로고 · 칵테일은 시안에서 잘라 그대로 붙인다 (사용자: 이미지 그대로)
+REF_CUTS = [(262, 0, 760, 84),      # 야자수 + 네온 줄 + WAVE 타원 + 3/20 상자
+            (16, 13, 120, 58),      # BAR Alice 로고 + 마티니
+            (1041, 470, 1269, 540)]  # 칵테일 잔 다섯 + 선반 줄
+
+
+def paste_ref(img):
+    ref = Image.open(REF).convert('RGB').resize((W, H), Image.LANCZOS)
+    for (x0, y0, x1, y1) in REF_CUTS:
+        part = ref.crop((x0, y0, x1, y1))
+        m = Image.new('L', part.size, 0)
+        ImageDraw.Draw(m).rectangle([3, 3, part.size[0] - 4, part.size[1] - 4], fill=255)
+        img.paste(part, (x0, y0), m.filter(ImageFilter.GaussianBlur(2)))
+    return img
+
+
 def mock():
     M = Bar(gk=0.6)
     left_panel(M)
-    wave_sign(M)
+    if not USE_REF: wave_sign(M)
     G.board(M, FX, FY, CS, frame_c=TEAL, frame_b=0.9, path_style='dash', ghost=False)
     M.fill_rr(FX - 4, FY - 4, 16 * CS + 8, 10 * CS + 8, 10, (0, 0, 0), 0.75, layer=0)
     burst(M, 360, 166)
     scr = right_column(M)
     img = static(M.draw(), scr)
-    img = wave_word(img)
-    img = decal(img, '3/20', 657, 46, BOLD, 58, (6, 10, 24), (40, 140, 255), 4, (40, 130, 255))
+    if not USE_REF: img = decal(img, '3/20', 656, 45, BLACK, 60, (6, 10, 24), (40, 140, 255), 4, (40, 130, 255))
     P = Bar(gk=0.6)
     bottom(P)
-    return P.draw(img)
+    img = P.draw(img)
+    return paste_ref(img) if USE_REF else img
 
 
 def main(outdir):
