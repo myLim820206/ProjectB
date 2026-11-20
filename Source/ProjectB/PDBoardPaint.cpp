@@ -3008,6 +3008,8 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	static const float PatN[] = {0.1f, 1.f, 0.08f, 0.08f, 0.7f, 0.08f, 1.f, 1.f, 0.5f, 1.f, 1.f, 1.f};
 	static const float PatP[] = {0.1f, 1.f, 0.08f, 0.6f, 0.08f, 0.08f, 1.f, 0.4f, 1.f, 1.f, 1.f, 1.f};
 	int32 SpWhich = -1, SpLetter = 0, SpK = 0, SpSeed = 0;
+	FVector2f SparkBar[PDLogo::BlockLetters], SparkScript[PDLogo::ScriptLetters]; // 빠직 불티 자리 (D-444: 새 간판 글자 자리)
+	bool bSparkSet = false;
 	if (T > 2.5f)
 	{
 		const float U0 = T - 2.5f;
@@ -3079,6 +3081,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			for (int32 Si = 0; Si < PDTitleLogo::NumStrokes; ++Si)
 			{
 				const PDTitleLogo::FStroke& St = PDTitleLogo::Strokes[Si];
+				if (St.Color == 0) continue; // BAR 는 예전 블록 글자로 (D-442, 아래)
 				const float B = Bright(St);
 				const FLinearColor Ec = Hex(Edge[St.Color]), Cc = Hex(Core[St.Color]);
 				const float Th = PDTitleLogo::Tube[St.Color] * K * 0.8f;
@@ -3093,12 +3096,64 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 					continue;
 				}
 				if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
-				C.Glow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, 1.1f * B);
+				// 번짐 띠는 30° 넘게 꺾이는 점에서 끊어 조각마다 둥근 마개로 (D-445): 한 띠로 이어 찍으면 모서리 바깥 꼭짓점이 멀리 벌어지며
+				// 가는 빛 줄이 대각선으로 삐져나왔다 (잔 받침 · 잔 테두리 모서리). 조각 끝 반원 마개끼리 겹쳐 모서리가 둥글게 빛난다
+				{
+					const FLinearColor Gc(Ec.R * B, Ec.G * B, Ec.B * B, 1.f);
+					TArray<FVector2f> Piece;
+					for (int32 Q = 0; Q < Pts.Num(); ++Q)
+					{
+						Piece.Add(Pts[Q]);
+						if (Q == 0 || Q == Pts.Num() - 1) continue;
+						const FVector2f DI = (Pts[Q] - Pts[Q - 1]).GetSafeNormal(), DO = (Pts[Q + 1] - Pts[Q]).GetSafeNormal();
+						if (FVector2f::DotProduct(DI, DO) < 0.866f) { C.Glow(Piece, Gc, Th, 1.1f * B); Piece.Reset(); Piece.Add(Pts[Q]); }
+					}
+					C.Glow(Piece, Gc, Th, 1.1f * B);
+				}
 				C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f);
 			}
-		SpWhich = -1; // 글자 하나씩 빠직하던 불티는 예전 글자 자리라 끈다
+		// BAR (D-442, 사용자: 예전 모양으로): 틀 없는 하늘색 블록 글자 B · A · R (PDLogo, 글자마다 NB 로 깜빡임). 새 간판의 BAR 꼬리표 글자 자리(원본 218, 142 가운데)에 같은 크기로
+		{
+			const float BKn = 0.8525f; // 예전 배율 0.55 × 1.55
+			const float Cx = TX + 218.f * K, Cy = TY + 142.f * K;
+			const float X0 = Cx - PDLogo::BlockW * BKn / 2.f, Base = Cy + 30.f * BKn;
+			const FLinearColor BarC = Hex(TEXT("6edcff"));
+			PDLogo::FPoly Ps[3];
+			for (int32 Pass = 0; Pass < 2; ++Pass)
+			{
+				bSpill = Pass == 0;
+				for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
+				{
+					const int32 N = PDLogo::BlockPolys(I, Ps);
+					for (int32 J2 = 0; J2 < N; ++J2)
+					{
+						TArray<FVector2f> BP;
+						for (int32 Q = 0; Q < Ps[J2].N; ++Q) BP.Add(FVector2f(X0 + (I * PDLogo::BlockAdv + Ps[J2].P[Q * 2] * 0.8f) * BKn, Base + Ps[J2].P[Q * 2 + 1] * BKn));
+						Tube(BP, BarC, 2.6f, NB[I]);
+					}
+				}
+			}
+			bSpill = false;
+		}
+		// 빠직 불티 자리 (D-444): BAR 는 글자 위끝, Alice 는 글자 묶음마다 가장 높은 점
+		{
+			const float BKn = 0.8525f, X0 = TX + 218.f * K - PDLogo::BlockW * BKn / 2.f, Top = TY + 142.f * K + 30.f * BKn - 60.f * BKn;
+			for (int32 I = 0; I < PDLogo::BlockLetters; ++I) SparkBar[I] = FVector2f(X0 + (I * PDLogo::BlockAdv + 35.f) * BKn, Top + 6.f * BKn);
+			for (int32 G = 0; G < PDLogo::ScriptLetters; ++G) SparkScript[G] = FVector2f(TX + 300.f * K, TY + 200.f * K);
+			float BestY[PDLogo::ScriptLetters];
+			for (float& V : BestY) V = 1e9f;
+			for (int32 Si = 0; Si < PDTitleLogo::NumStrokes; ++Si)
+			{
+				const PDTitleLogo::FStroke& St = PDTitleLogo::Strokes[Si];
+				if (St.Color != 1) continue;
+				const int32 G = FMath::Clamp(St.Group, 0, PDLogo::ScriptLetters - 1);
+				for (int32 Q = 0; Q < St.N; ++Q)
+					if (St.P[Q * 2 + 1] < BestY[G]) { BestY[G] = St.P[Q * 2 + 1]; SparkScript[G] = FVector2f(TX + St.P[Q * 2] * K, TY + St.P[Q * 2 + 1] * K); }
+			}
+			bSparkSet = true;
+		}
 	}
-	(void)Logo; (void)bSpill; // 예전 코드 간판 (D-309 ~ D-427): 따라 그린 간판(D-440)으로 바뀌어 안 쓴다
+	(void)Logo; // 예전 코드 간판 (D-309 ~ D-427): 따라 그린 간판(D-440)으로 바뀌어 안 쓴다
 	// 부제 (D-311): 금색 가는 선 + LATE NIGHT POKER (작은 글자는 Slate 글꼴, 마티니 잔과 같이 켜짐)
 	if (CB > 0.25f)
 	{
@@ -3108,7 +3163,8 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	// 빠직: 작은 섬광 + 짧은 번개, 불티가 튀어 떨어지며 꺼진다
 	if (SpWhich >= 0)
 	{
-		const FVector2f O = SpWhich == 0 ? FVector2f(NX0 + (SpLetter * PDLogo::BlockAdv + 35.f) * BK, BY0 + 6.f * BK)
+		const FVector2f O = bSparkSet ? (SpWhich == 0 ? SparkBar[SpLetter] : SparkScript[SpLetter])
+			: SpWhich == 0 ? FVector2f(NX0 + (SpLetter * PDLogo::BlockAdv + 35.f) * BK, BY0 + 6.f * BK)
 			: PO + FVector2f(PDLogo::ScriptSpark[SpLetter][0], PDLogo::ScriptSpark[SpLetter][1]) * SK;
 		FRandomStream Rs(SpSeed * 7919 + 13);
 		const FLinearColor Hot(1.f, 0.96f, 0.82f, 1.f), Warm(1.f, 0.88f, 0.59f, 1.f);
