@@ -1,5 +1,6 @@
 ﻿// 포커 디펜스 화면 그리기: 판, 적, 발사체, 이펙트, 버튼, 패널, 창 (화풍 docs/15-art-style.md)
 #include "PDBoardDraw.h"
+#include "PDTitleLogo.inl" // 시작 화면 간판 획 (D-440)
 #include "PDLogo.h"
 #include "Misc/ScopeExit.h"
 #include "Misc/CommandLine.h"
@@ -3065,25 +3066,39 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		Tube(Sp, Pink, 1.6f, CB);
 		Tube({Map(FVector2f(CX + R * 0.1f, CY - R * 0.3f)), Map(FVector2f(CX + R * 0.62f, CY - R * 1.25f))}, Hex(TEXT("787d8c")), 1.2f, CB);
 	};
-	if (const FSlateBrush* TL = Art(EUiArt::TitleLogo)) // 시작 화면 간판 그림 (D-428, 사용자가 준 BAR Alice 네온 간판): 글자마다 켜지던 빛을 평균해 간판 전체 밝기로
-	{
-		float Sum = 0.f;
-		for (const float V : NB) Sum += V;
-		for (const float V : PB) Sum += V;
-		const float LB = FMath::Clamp(Sum / (PDLogo::BlockLetters + PDLogo::ScriptLetters), 0.f, 1.f);
-		constexpr float TW = 580.f, TH = TW * 546.f / 1139.f; // 그림 1139 × 546
+	{ // 시작 화면 간판 (D-440): 사용자가 준 BAR Alice 네온 간판을 따라 그린 획(PDTitleLogo.inl, tools/ui_art/trace_logo.py)을 네온 관으로.
+	  // 글자마다 깜빡이며 켜진다: 하늘 = BAR 글자 NB, 분홍 = A·l · i · c · e PB, 노랑 = 잔 CB. 벽빛 한 바퀴 먼저
+		constexpr float TW = 580.f, TH = TW * PDTitleLogo::SrcH / PDTitleLogo::SrcW;
 		const float TX = LgX - TW / 2.f, TY = LY + 168.f * LK - TH - 4.f; // 부제 선(LY + 178LK) 바로 위에 바닥
-		C.SoftDisc(FVector2f(LgX, TY + TH * 0.55f), TW * 0.6f, TH * 0.75f, Hex(TEXT("ff5ac8")), 0.16f * LB); // 벽에 비치는 빛
-		C.Image(C.NextLayer(), TL, TX, TY, TW, TH, FLinearColor(1.f, 1.f, 1.f, FMath::Max(0.12f, LB)));
+		const float K = TW / PDTitleLogo::SrcW;
+		static const TCHAR* Edge[3] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714")}; // 원본에서 잰 관 바깥 테
+		static const TCHAR* Core[3] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5")}; // 관 가운데 파스텔
+		auto Bright = [&](const PDTitleLogo::FStroke& St) { return St.Color == 0 ? NB[FMath::Clamp(St.Group, 0, PDLogo::BlockLetters - 1)] : St.Color == 1 ? PB[FMath::Clamp(St.Group, 0, PDLogo::ScriptLetters - 1)] : CB; };
+		TArray<FVector2f> Pts;
+		for (int32 Pass = 0; Pass < 2; ++Pass)
+			for (int32 Si = 0; Si < PDTitleLogo::NumStrokes; ++Si)
+			{
+				const PDTitleLogo::FStroke& St = PDTitleLogo::Strokes[Si];
+				const float B = Bright(St);
+				const FLinearColor Ec = Hex(Edge[St.Color]), Cc = Hex(Core[St.Color]);
+				const float Th = PDTitleLogo::Tube[St.Color] * K * 0.8f;
+				Pts.Reset();
+				for (int32 Q = 0; Q < St.N; ++Q) Pts.Add(FVector2f(TX + St.P[Q * 2] * K, TY + St.P[Q * 2 + 1] * K));
+				if (Pass == 0) // 벽빛 (D-302): 켜진 관 뒤 벽에 은은하게
+				{
+					if (B <= 0.25f) continue;
+					const float ST = FMath::Min(Th, 4.5f);
+					C.Spill(Pts, Ec, ST * 16.f, 0.22f * B);
+					C.Spill(Pts, Ec, ST * 44.f, 0.13f * B);
+					continue;
+				}
+				if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
+				C.Glow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, 1.1f * B);
+				C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f);
+			}
 		SpWhich = -1; // 글자 하나씩 빠직하던 불티는 예전 글자 자리라 끈다
 	}
-	else
-	{
-		bSpill = true;
-		Logo();
-		bSpill = false;
-		Logo();
-	}
+	(void)Logo; (void)bSpill; // 예전 코드 간판 (D-309 ~ D-427): 따라 그린 간판(D-440)으로 바뀌어 안 쓴다
 	// 부제 (D-311): 금색 가는 선 + LATE NIGHT POKER (작은 글자는 Slate 글꼴, 마티니 잔과 같이 켜짐)
 	if (CB > 0.25f)
 	{
