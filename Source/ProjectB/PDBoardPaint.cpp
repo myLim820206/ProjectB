@@ -222,17 +222,18 @@ int32 SPDBoardWidget::PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWind
 	FCanvas F{OutDrawElements, G2, &Layer, &WhiteBrush};
 	F.ThickK = AtlasK / (Atlas.IsValid() ? Atlas->BakedScale : 1.f);
 	const FPDGame& G = Game;
+	F.Box(FX, FY, Cols * CS, Rows * CS, Hex(TEXT("000000"))); // 판 바닥 = 검정 (D-455: 사용자 참고 그림 색표, 길 띠는 그 위 #060a0d)
 	for (int Y = 0; Y < Rows; ++Y)
 		for (int X = 0; X < Cols; ++X)
 		{
 			const FVector2f P = CellPx((float)X, (float)Y);
 			if (G.Path.IsPath(X, Y)) F.Box(P.X, P.Y, CS, CS, Hex(TEXT("7fd6ff"), 0.05f));
-			else F.Lines(FCanvas::RectPoints(P.X + 0.5f, P.Y + 0.5f, CS - 1.f, CS - 1.f), Hex(TEXT("788cb4"), 0.07f), 1.f);
+			else F.Lines(FCanvas::RectPoints(P.X + 0.5f, P.Y + 0.5f, CS - 1.f, CS - 1.f), Hex(TEXT("788cb4"), 0.04f), 1.f); // 격자는 거의 안 보이게 (D-455)
 		}
 	TArray<FVector2f> PathPts;
 	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
 	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
-	F.Glow(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("46c8e6"), 0.85f), 1.6f, 0.5f); // 하늘빛 틀을 판에 붙여 (Alice 시안 D-410: 262 ~ 1030 × 86 ~ 566)
+	F.Glow(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("5fa6ad"), 0.8f), 1.6f, 0.5f); // D-455: 참고 그림의 차분한 청록 틀 (예전 46c8e6) // 하늘빛 틀을 판에 붙여 (Alice 시안 D-410: 262 ~ 1030 × 86 ~ 566)
 	return Layer;
 }
 
@@ -338,7 +339,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 #else
 	const bool bNoFx = false;
 #endif
-	if (Game.Phase != EPDPhase::Title) C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06091a"))); // Alice 시안 (D-413): 벽돌 벽 · 바닥선 없이 거의 검은 남색 바탕 (예전 PaintBarBack, D-274)
+	if (Game.Phase != EPDPhase::Title) C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("020916"))); // D-455: 사용자 참고 그림 색 (예전 06091a) // Alice 시안 (D-413): 벽돌 벽 · 바닥선 없이 거의 검은 남색 바탕 (예전 PaintBarBack, D-274)
 	PaintField(F, true);
 	PaintField(F, false); Part(0);
 	PaintShots(F); Part(1);
