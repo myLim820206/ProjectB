@@ -361,6 +361,7 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 		GConfig->GetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("RClickCancels"), RClickCancels, GGameUserSettingsIni); // 합성 취소 꼬리표 (D-373)
+		GConfig->GetBool(PDSetSection, TEXT("HandsFolded"), bHandsFolded, GGameUserSettingsIni); // 족보 메뉴 접힘 (D-421)
 	}
 	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
 	if (Settings.Lang < 0 || Settings.Lang >= (int32)EPDLang::Count) Settings.Lang = LangFromSystem(); // 처음 켜면 시스템 언어 (D-159)
@@ -455,6 +456,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("RClickCancels"), RClickCancels, GGameUserSettingsIni);
+	GConfig->SetBool(PDSetSection, TEXT("HandsFolded"), bHandsFolded, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -1222,7 +1224,9 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 		for (int K : Cs) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); Mn = FVector2f(FMath::Min(Mn.X, C0.X), FMath::Min(Mn.Y, C0.Y)); Mx = FVector2f(FMath::Max(Mx.X, C0.X + CS), FMath::Max(Mx.Y, C0.Y + CS)); }
 		Out = FBox2f(Mn, Mx);
 		return true; };
-	auto Row = [&](int32 R) { Out = FBox2f(FVector2f(LX + 8.f, HandMenuTop(R)), FVector2f(LX + LW - 8.f, HandMenuTop(R) + HandMenuRowH)); return true; }; // 족보 메뉴판 줄 (D-263)
+	auto Row = [&](int32 R) {
+		if (HandsFolded()) { Out = FBox2f(FVector2f(UnfoldBtnX, UnfoldBtnY), FVector2f(UnfoldBtnX + UnfoldBtnW, UnfoldBtnY + UnfoldBtnH)); return true; } // 접혀 있으면 펼치기 단추를 가리킨다 (D-421)
+		Out = FBox2f(FVector2f(LX + 8.f, HandMenuTop(R)), FVector2f(LX + LW - 8.f, HandMenuTop(R) + HandMenuRowH)); return true; }; // 족보 메뉴판 줄 (D-263)
 	switch ((EHint)H)
 	{
 	case EHint::Place: case EHint::HandFull: Out = FBox2f(FVector2f(FX + 92.f, HandY - 14.f), FVector2f(FX + Cols * CS, HandY + CardH + 2.f)); return true;
@@ -1561,7 +1565,15 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	// 족보 필터 (D-148): 왼쪽 족보 목록 한 줄 클릭 = 그 족보만 보기, 다시 클릭 = 끄기
-	if (!bRight && HandMenuAt(P.X, P.Y) >= 0) // 족보 메뉴판 줄 (D-263)
+	// 족보 메뉴 접기 · 펼치기 (D-421)
+	if (!bRight && HandFilter < 0 && (bHandsFolded ? InRect(P, LX, HandPanelY, HandStripW, DesignH - 1.f - HandPanelY) : InRect(P, FoldBtnX, FoldBtnY, FoldBtnW, FoldBtnH)))
+	{
+		bHandsFolded = !bHandsFolded;
+		UiSound(EPDSound::Move);
+		SaveSettings();
+		return;
+	}
+	if (!bRight && !HandsFolded() && HandMenuAt(P.X, P.Y) >= 0) // 족보 메뉴판 줄 (D-263)
 	{
 		const int32 Hi = HandMenuAt(P.X, P.Y);
 		const bool bAny = Hi == JokerFilterId ? !JGroups.empty() : std::any_of(Game.Synergies.begin(), Game.Synergies.end(), [Hi](const FPDSynergy& S) { return (int32)S.Kind == Hi; });

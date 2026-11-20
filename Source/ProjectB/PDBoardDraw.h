@@ -46,6 +46,10 @@ constexpr float HandMenuY0 = 78.4f, HandMenuRowH = 37.4f, HandMenuGroupH = 44.6f
 inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
 inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
 inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
+// 족보 메뉴 접기 (D-421, 시안 C): 접으면 왼쪽 좁은 띠. 펼친 패널 오른쪽 위 ◂ 단추, 접힌 띠의 ▸ 단추
+constexpr float HandStripW = 56.f;
+constexpr float FoldBtnX = LX + LW - 34.f, FoldBtnY = HandPanelY + 10.f, FoldBtnW = 24.f, FoldBtnH = 20.f;
+constexpr float UnfoldBtnX = LX + 12.f, UnfoldBtnY = 66.f, UnfoldBtnW = 32.f, UnfoldBtnH = 24.f;
 constexpr float HandMenuEndY = HandMenuY0 + 3.f * HandMenuGroupH + HandRowsN * HandMenuRowH;
 constexpr float HandY = 596.f; // Alice 시안 (D-403)
 constexpr float SwapBtnX = FX + 14.f, SwapBtnY = HandY + 82.f, SwapBtnW = 84.f, SwapBtnH = 20.f; // Alice 시안 (D-403): 덱 글자 아래 작게. 예전 // 자리바꿈 버튼 (D-149, 덱 글자 아래)
