@@ -270,7 +270,8 @@ def straighten_crossings(strokes, wd, margin=8, self_gap=60.0):
                     for t in range(0, len(Q), 2):
                         if abs(cum[i][t] - cum[i][k]) > self_gap and math.dist(Q[t], q) < wd * 0.9: near[k] = True; break
                 else:
-                    for t in range(0, len(Q), 2):
+                    # 다른 선의 끝 가까이(40px)는 빼고 본다: 그건 엇갈림이 아니라 끝이 와 닿는 T 자 이음이라, 곧게 펴면 닿을 자리가 비켜 끊긴다 (D-437)
+                    for t in range(min(20, len(Q)), max(0, len(Q) - 20), 2):
                         if math.dist(Q[t], q) < wd * 0.9: near[k] = True; break
                 if near[k]: break
         P2 = list(P)
