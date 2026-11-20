@@ -327,7 +327,8 @@ def soldier(M, x, y, kind, hp, s=1.0):
     M.ln([(x - bw / 2, by), (x - bw / 2 + bw * hp, by)], GREEN if hp > 0.5 else ORANGE if hp > 0.25 else RED, 2.0, 0.9, glow=False)
 
 
-def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False):
+def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False, path_style='chev', enemies=True, ghost=True):
+    """path_style: 'chev' = 옅은 채움 + 벽 + 꺾쇠, 'dash' = 어두운 띠 + 가운데 점선 + 꺾이는 곳 점 (참고 화면, ingame_ref_mock)"""
     BW, BH = 16 * CS, 10 * CS
     cen = lambda c: (FX + (c[0] + 0.5) * CS, FY + (c[1] + 0.5) * CS)
     M.fill_rr(FX - 8, FY - 8, BW + 16, BH + 16, 14, BG, 0.92, layer=0)
@@ -340,8 +341,9 @@ def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False):
     for j in range(1, 10): M.bg([(FX, FY + j * CS), (FX + BW, FY + j * CS)], GRID, 0.07)
     # 적 길: 옅은 채움 + 벽 + 방향 꺾쇠
     pc = path_cells()
-    for (x, y) in pc: M.fill([(FX + x * CS, FY + y * CS), (FX + (x + 1) * CS, FY + y * CS), (FX + (x + 1) * CS, FY + (y + 1) * CS), (FX + x * CS, FY + (y + 1) * CS)], CYAN, 0.045, layer=1)
-    for sg in outline_segs(pc, FX, FY, CS, 3): M.ln(sg, FRAME, 1.0, 0.32)
+    for (x, y) in pc: M.fill([(FX + x * CS, FY + y * CS), (FX + (x + 1) * CS, FY + y * CS), (FX + (x + 1) * CS, FY + (y + 1) * CS), (FX + x * CS, FY + (y + 1) * CS)], CYAN, 0.045 if path_style == 'chev' else 0.03, layer=1)
+    if path_style == 'chev':
+        for sg in outline_segs(pc, FX, FY, CS, 3): M.ln(sg, FRAME, 1.0, 0.32)
     poly = [(FX + (x + 0.5) * CS, FY + (y + 0.5) * CS) for x, y in PATH_WP]
     poly[0] = (FX - 2, poly[0][1]); poly[-1] = (FX + BW + 2, poly[-1][1])
     Ls = [0.0]
@@ -355,7 +357,16 @@ def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False):
                 p, q = poly[i - 1], poly[i]
                 return (p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u), (q[0] - p[0], q[1] - p[1])
         return poly[-1], (1, 0)
-    k = 0.02
+    if path_style == 'dash':
+        for i in range(1, len(poly)):
+            p, q = poly[i - 1], poly[i]
+            L = math.dist(p, q); n = int(L // 9)
+            for j in range(n):
+                if j % 2: continue
+                u0, u1 = j / n, min(1.0, (j + 1) / n)
+                M.ln([(p[0] + (q[0] - p[0]) * u0, p[1] + (q[1] - p[1]) * u0), (p[0] + (q[0] - p[0]) * u1, p[1] + (q[1] - p[1]) * u1)], CYAN, 1.0, 0.4, glow=False)
+        for (x, y) in poly[1:-1]: M.ln(circle(x, y, 2.4, 10), CYAN, 1.4, 0.75)
+    k = 0.02 if path_style == 'chev' else 9.0
     while k < 1.0:
         (x, y), (dx, dy) = at(k)
         n = math.hypot(dx, dy) or 1
@@ -377,20 +388,22 @@ def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False):
     M.ln([(zx - CS * 0.5, zy), (zx - CS * 0.3, zy - 4), (zx - CS * 0.1, zy + 4), (zx + CS * 0.1, zy - 4), (zx + CS * 0.3, zy + 4), (zx + CS * 0.5, zy)], (255, 240, 200), 1.1, 0.85)
     # 사거리 고리 + 놓을 자리 미리보기 (고른 카드 = 분홍)
     gx, gy = cen(GHOST)
-    M.ln(circle(gx, gy, CS * 2.6, 72), PINK, 1.0, 0.3, glow=False)
-    M.fill(circle(gx, gy, CS * 2.6, 72), PINK, 0.025, layer=1)
+    if ghost: M.ln(circle(gx, gy, CS * 2.6, 72), PINK, 1.0, 0.3, glow=False)
     h = CS * 0.4
-    pts = rr_pts(gx - h, gy - h, 2 * h, 2 * h, h * 0.22)
-    for i in range(0, len(pts) - 1, 2): M.ln([pts[i], pts[i + 1]], PINK, 1.5, 0.9)
-    M.t(gx, gy + CS * 0.06, 'Q', PINK, CS * 0.34, 'ms', BLOCK, 0.7)
-    suit_shape(M, 'heart', gx, gy + h * 0.55, CS * 0.085, PINK, 1.1, 0.7)
+    if ghost:
+        M.fill(circle(gx, gy, CS * 2.6, 72), PINK, 0.025, layer=1)
+        pts = rr_pts(gx - h, gy - h, 2 * h, 2 * h, h * 0.22)
+        for i in range(0, len(pts) - 1, 2): M.ln([pts[i], pts[i + 1]], PINK, 1.5, 0.9)
+        M.t(gx, gy + CS * 0.06, 'Q', PINK, CS * 0.34, 'ms', BLOCK, 0.7)
+        suit_shape(M, 'heart', gx, gy + h * 0.55, CS * 0.085, PINK, 1.1, 0.7)
     # 타워
     for (c, (r, sk, lv)) in TOWERS.items():
         x, y = cen(c)
         tower(M, x, y, CS, r, sk, lv)
-    joker_tower(M, *cen(JOKER), CS)
+    if JOKER: joker_tower(M, *cen(JOKER), CS)
     # 적
     pos = []
+    if not enemies: return cen
     for (t, kind, hp) in ENEMIES:
         (x, y), _ = at(t)
         soldier(M, x, y, kind, hp, CS / 48)
@@ -408,8 +421,9 @@ def board(M, FX, FY, CS, frame_c=FRAME, frame_b=0.55, show_speed=False):
         px, py = sx + (ex - sx) * u, sy + (ey - sy) * u
         dx, dy = (ex - sx), (ey - sy); n = math.hypot(dx, dy) or 1
         M.ln([(px - dx / n * 4, py - dy / n * 4), (px + dx / n * 4, py + dy / n * 4)], SUITC['diamond'], 1.6, 1.0)
-    sx, sy = cen(JOKER); ex, ey = nearest(JOKER)
-    M.ln([(sx, sy), (ex, ey)], JPINK, 1.3, 0.9)
+    if JOKER:
+        sx, sy = cen(JOKER); ex, ey = nearest(JOKER)
+        M.ln([(sx, sy), (ex, ey)], JPINK, 1.3, 0.9)
     if show_speed:  # 배속 표시 (판 오른쪽 위)
         rx, yb = FX + BW - 16, FY + 34
         w = M.t(rx, yb, '×2 배속', CYAN, 24, 'rs', KO, 0.55, glow=True)
