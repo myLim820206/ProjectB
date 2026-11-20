@@ -3028,6 +3028,14 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	const float NX0 = LgX - 190.f * LK;
 	const FVector2f PO(LgX - PDLogo::ScriptW / 2.f * SK, LY + 150.f * LK);
 	bool bSpill = false; // 벽빛 먼저 한 바퀴 (D-302): 켜진 튜브 뒤 벽돌에 은은하게 비치는 빛. 깜빡여 꺼지면 같이 꺼진다
+	// 간판 관 번짐 (D-446): 띠 스프라이트(Glow) 대신 둥근 빛을 선을 따라 촘촘히 찍는다. 띠는 끝 마개 · 꺾임 이음과 맞닿는 가장자리가
+	// 가는 점선 빛 줄로 보여 모서리 · 선 끝에서 삐져나갔다. 둥근 빛 사슬은 이음매가 없다. 넓은 겹 + 좁은 겹 + 색 관
+	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
+	{
+		C.Spill(Pts, Gc, Th * 8.f, 0.24f * B);
+		C.Spill(Pts, Gc, Th * 3.4f, 0.36f * B);
+		C.Lines(Pts, Gc, Th * 0.8f);
+	};
 	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B)
 	{
 		if (bSpill)
@@ -3039,7 +3047,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			return;
 		}
 		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
-		C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B);
+		TubeGlow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, B);
 		C.Lines(Pts, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), Th * 0.25f); // 튜브 가운데 흰 심
 	};
 	auto Logo = [&]()
@@ -3096,20 +3104,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 					continue;
 				}
 				if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
-				// 번짐 띠는 30° 넘게 꺾이는 점에서 끊어 조각마다 둥근 마개로 (D-445): 한 띠로 이어 찍으면 모서리 바깥 꼭짓점이 멀리 벌어지며
-				// 가는 빛 줄이 대각선으로 삐져나왔다 (잔 받침 · 잔 테두리 모서리). 조각 끝 반원 마개끼리 겹쳐 모서리가 둥글게 빛난다
-				{
-					const FLinearColor Gc(Ec.R * B, Ec.G * B, Ec.B * B, 1.f);
-					TArray<FVector2f> Piece;
-					for (int32 Q = 0; Q < Pts.Num(); ++Q)
-					{
-						Piece.Add(Pts[Q]);
-						if (Q == 0 || Q == Pts.Num() - 1) continue;
-						const FVector2f DI = (Pts[Q] - Pts[Q - 1]).GetSafeNormal(), DO = (Pts[Q + 1] - Pts[Q]).GetSafeNormal();
-						if (FVector2f::DotProduct(DI, DO) < 0.866f) { C.Glow(Piece, Gc, Th, 1.1f * B); Piece.Reset(); Piece.Add(Pts[Q]); }
-					}
-					C.Glow(Piece, Gc, Th, 1.1f * B);
-				}
+				TubeGlow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, B); // D-446 (D-445 끊어 찍기 대신)
 				C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f);
 			}
 		// BAR (D-442, 사용자: 예전 모양으로): 틀 없는 하늘색 블록 글자 B · A · R (PDLogo, 글자마다 NB 로 깜빡임). 새 간판의 BAR 꼬리표 글자 자리(원본 218, 142 가운데)에 같은 크기로
