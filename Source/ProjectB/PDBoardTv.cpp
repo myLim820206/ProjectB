@@ -21,48 +21,49 @@ void SPDBoardWidget::TvDial()
 void SPDBoardWidget::PaintTv(FCanvas& C) const
 {
 	const FPDGame& G = Game;
-	const FLinearColor LavP = Hex(TEXT("a896e1")), Mono = Hex(TEXT("dee8f5"));
+	const FLinearColor Mono = Hex(TEXT("dee8f5"));
 	auto MonoA = [&](float A) { return FLinearColor(Mono.R, Mono.G, Mono.B, A); };
-	auto Frame2 = [&](float X, float Y, float W, float H, float R, const FLinearColor& Col, float B)
-	{
-		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, W, H, R), Ri = FCanvas::RoundRectPoints(X + 5.f, Y + 5.f, W - 10.f, H - 10.f, FMath::Max(2.f, R - 5.f));
-		C.Glow(Ro, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), 2.f, 1.f * B);
-		C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.3f * B), 0.6f);
-		C.Glow(Ri, FLinearColor(Col.R * B * 0.8f, Col.G * B * 0.8f, Col.B * B * 0.8f, 1.f), 1.1f, 0.45f * B);
-	};
-	// TV 빛 (D-303 ~ D-305)
+	// Alice 시안 (D-403): 흰 토끼 귀 안테나 + 보랏빛 몸통(보라 두 겹 테) 위쪽에 화면, 화면 아래 회색 ×2 · ×4 배속 버튼 · 분홍 채널 다이얼 · 보라 스피커 줄
+	const FLinearColor Pur = Hex(TEXT("be73ff")), PinkN = Hex(TEXT("ff46be"));
 	const float TvFl = 0.9f + 0.06f * FMath::Sin(Clock * 7.3f) + 0.04f * FMath::Sin(Clock * 23.1f);
 	const FLinearColor TvLight = Hex(TEXT("9cc6ff"));
-	C.Spill(FCanvas::RoundRectPoints(RX + 8.f, FY + 8.f, PW - 16.f, PowCardH - 16.f, 16.f), TvLight, 60.f, 0.5f * TvFl);
-	C.SoftDisc(FVector2f(RX + PW * 0.45f, FY + PowCardH * 0.5f), PW * 0.95f, PowCardH * 0.85f, TvLight, 0.3f * TvFl);
-	// 틀 · 안테나 · 스피커 · 손잡이(위 = 채널 다이얼)
-	C.Box(RX, FY, PW, PowCardH, Hex(TEXT("06060b"), 0.85f));
-	Frame2(RX, FY, PW, PowCardH, 16.f, LavP, 0.8f);
-	const float SX = RX + 12.f, SY = FY + 12.f, SW = PW - 52.f, SH = PowCardH - 24.f;
-	C.Box(SX + 4.f, SY + 4.f, SW - 8.f, SH - 8.f, Hex(TEXT("0b0d14"), 1.f));
-	C.SoftDisc(FVector2f(SX + SW * 0.5f, SY + SH * 0.5f), SW * 0.55f, SH * 0.55f, TvLight, 0.42f * TvFl);
-	C.Glow(FCanvas::RoundRectPoints(SX + 4.f, SY + 4.f, SW - 8.f, SH - 8.f, 18.f), WithAlpha(TvLight, 0.4f * TvFl), 2.f, 0.9f * TvFl);
-	C.Glow(FCanvas::RoundRectPoints(SX, SY, SW, SH, 22.f), WithAlpha(LavP, 0.85f), 1.5f, 0.5f);
+	C.Spill(FCanvas::RoundRectPoints(RX + 8.f, TvY + 8.f, PW - 16.f, TvH - 16.f, 16.f), Pur, 50.f, 0.35f * TvFl); // 몸통 둘레 벽빛 (D-303 ~ D-305)
+	for (const FVector2f Tip : {FVector2f(1188.f, 5.f), FVector2f(1218.f, 5.f)}) C.Glow({FVector2f(1203.f, TvY + 1.f), Tip}, Hex(TEXT("d7d7e6")), 2.4f, 0.6f); // 안테나
+	C.Box(1186.f, TvY - 9.f, 34.f, 12.f, Hex(TEXT("3c3250"), 1.f));
+	for (int32 K = 0; K < 10; ++K) C.Box(RX + 2.f, TvY + 2.f + K * (TvH - 4.f) / 10.f, PW - 4.f, (TvH - 4.f) / 10.f + 0.5f, FLinearColor(0.14f - K * 0.006f, 0.055f - K * 0.0015f, 0.21f - K * 0.006f, 1.f));
+	C.Glow(FCanvas::RoundRectPoints(RX, TvY, PW, TvH, 16.f), Pur, 2.6f, 1.f);
+	C.Lines(FCanvas::RoundRectPoints(RX, TvY, PW, TvH, 16.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
+	C.Lines(FCanvas::RoundRectPoints(RX + 5.f, TvY + 5.f, PW - 10.f, TvH - 10.f, 12.f), WithAlpha(Pur, 0.45f), 1.f);
+	const float SX = TvScrX, SY = TvScrY, SW = TvScrW, SH = TvScrH;
+	C.Box(SX + 2.f, SY + 2.f, SW - 4.f, SH - 4.f, Hex(TEXT("070f14"), 1.f));
+	C.SoftDisc(FVector2f(SX + SW * 0.5f, SY + SH * 0.5f), SW * 0.55f, SH * 0.55f, TvLight, 0.18f * TvFl);
+	C.Glow(FCanvas::RoundRectPoints(SX, SY, SW, SH, 10.f), Hex(TEXT("c896ff")), 1.6f, 0.6f);
+	// 배속 버튼 ×2 · ×4 (누르면 그 배속, 다시 누르면 ×1)
+	for (int32 K = 0; K < 2; ++K)
 	{
-		const float BX = RX + PW - 54.f, BY = FY;
-		C.Glow({FVector2f(BX - 10.f, BY), FVector2f(BX + 10.f, BY), FVector2f(BX + 6.f, BY - 6.f), FVector2f(BX - 6.f, BY - 6.f), FVector2f(BX - 10.f, BY)}, LavP, 1.3f, 0.5f);
-		C.Glow({FVector2f(BX - 3.f, BY - 6.f), FVector2f(BX - 18.f, BY - 22.f)}, LavP, 1.1f, 0.5f);
-		C.Glow({FVector2f(BX + 3.f, BY - 6.f), FVector2f(BX + 20.f, BY - 21.f)}, LavP, 1.1f, 0.5f);
+		const int32 Sp = K == 0 ? 2 : 4;
+		const float BX = SpdBtnX + K * SpdBtnGap;
+		const bool bOn = G.Speed == Sp, bHov = InRect(Mouse, BX, SpdBtnY, SpdBtnW, SpdBtnH);
+		C.Box(BX, SpdBtnY, SpdBtnW, SpdBtnH, bOn ? Hex(TEXT("4b5a64")) : Hex(TEXT("343a3c")));
+		C.Glow(FCanvas::RoundRectPoints(BX, SpdBtnY, SpdBtnW, SpdBtnH, 4.f), bOn ? Hex(TEXT("8fe9ff")) : Hex(TEXT("b9bec3")), bOn ? 2.f : 1.6f, bOn || bHov ? 0.9f : 0.35f);
+		const FLinearColor Tc = bOn || bHov ? FLinearColor::White : Hex(TEXT("ebebf2"));
+		C.TextCentered(FString::Printf(TEXT("x%d"), Sp), BX + SpdBtnW / 2.f, SpdBtnY + 17.f, Tc, 11.f, true);
+		for (int32 J = 0; J < 2; ++J)
+		{
+			const float Ax = BX + 11.f + J * 6.f;
+			C.FillPoly({FVector2f(Ax, SpdBtnY + 27.f), FVector2f(Ax + 6.f, SpdBtnY + 31.5f), FVector2f(Ax, SpdBtnY + 36.f)}, Tc);
+		}
 	}
-	for (int32 K = 0; K < 4; ++K) C.Lines({FVector2f(RX + PW - 30.f + K * 5.f, FY + 30.f), FVector2f(RX + PW - 30.f + K * 5.f, FY + 70.f)}, WithAlpha(LavP, 0.4f), 1.f);
-	C.TextCentered(TEXT("CH"), RX + PW - 22.f, FY + 88.f, WithAlpha(LavP, 0.8f), 7.f, true);
-	C.TextCentered(TvChannel == 3 ? FString(TEXT("??")) : FString::Printf(TEXT("%02d"), TvChannel + 1), RX + PW - 22.f, FY + 100.f, Mono, 9.f, true);
 	{
 		const FVector2f Kc = TvDialPos();
 		const bool bHov = FVector2f::Distance(Mouse, Kc) <= TvDialR + 3.f;
-		C.BtnFill(Kc.X - TvDialR, Kc.Y - TvDialR, TvDialR * 2.f, TvDialR * 2.f, TvDialR, LavP, bHov); // 누르는 다이얼 (D-328 ②)
-		C.Glow(FCanvas::CirclePoints(Kc, TvDialR - 3.f, 20), bHov ? HotCol(LavP) : LavP, bHov ? 1.6f : 1.2f, bHov ? 0.8f : 0.4f);
+		C.FillPoly(FCanvas::CirclePoints(Kc, TvDialR, 32), Hex(TEXT("2d0c22"), 1.f));
+		C.Glow(FCanvas::CirclePoints(Kc, TvDialR, 40), bHov ? HotCol(PinkN) : PinkN, 2.6f, bHov ? 1.1f : 0.8f);
+		C.Lines(FCanvas::CirclePoints(Kc, TvDialR - 7.f, 32), WithAlpha(PinkN, 0.55f), 1.f);
 		const float A = FMath::DegreesToRadians(-150.f + TvChannel * 60.f); // 채널마다 돌아간 다이얼
-		C.Lines({Kc, Kc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * (TvDialR - 4.f)}, bHov ? HotCol(LavP) : LavP, 1.4f);
-		const FVector2f K2 = Kc + FVector2f(0.f, 26.f); // 아래 손잡이 = 장식 (소리 크기)
-		C.Glow(FCanvas::CirclePoints(K2, 8.f, 20), LavP, 1.2f, 0.4f);
-		C.Lines({K2, K2 + FVector2f(FMath::Cos(0.8f), FMath::Sin(0.8f)) * 6.f}, LavP, 1.2f);
+		C.Glow({Kc, Kc + FVector2f(FMath::Cos(A), FMath::Sin(A)) * (TvDialR - 6.f)}, PinkN, 2.2f, 0.6f);
 	}
+	for (int32 K = 0; K < 6; ++K) C.Glow({FVector2f(RX + 180.f, TvY + 262.f + K * 8.f), FVector2f(RX + 216.f, TvY + 262.f + K * 8.f)}, Pur, 1.4f, 0.4f);
 	// 방송 자막 띠 (D-318): 모든 채널 아래 같은 띠. 전구 16개(남은 비율 / 자동 시작까지 초록으로 차오름) + 글 + 처치 · 놓침
 	const float TkH = 34.f, TkY = SY + SH - 6.f - TkH, CX0 = SX + 10.f, CW = SW - 20.f, ContentBot = TkY - 4.f;
 	auto Ticker = [&]()

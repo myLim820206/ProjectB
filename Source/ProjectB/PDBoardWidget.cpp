@@ -303,6 +303,7 @@ void SPDBoardWidget::Construct(const FArguments& InArgs)
 {
 	SetCanTick(true);
 	LoadUserData();
+	LoadUiArt(); // 시안 그림 조각 (D-403)
 	if (FParse::Param(FCommandLine::Get(), TEXT("pdnosplash")) || FParse::Param(FCommandLine::Get(), TEXT("pdbakeatlas"))) bSplash = false; // 회사 로고 건너뛰기 (D-385)
 }
 
@@ -1232,7 +1233,7 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 	case EHint::Joker: return Row(JokerFilterId);
 	case EHint::Feed: return Row(FeedFilterId);
 	case EHint::Swap: Out = FBox2f(FVector2f(SwapBtnX, SwapBtnY), FVector2f(SwapBtnX + SwapBtnW, SwapBtnY + SwapBtnH)); return true;
-	case EHint::Boss: Out = FBox2f(FVector2f(HudPanX + 6.f, HudPanY + 6.f), FVector2f(HudDivLf - 6.f, HudPanY + HudPanH - 6.f)); return true; // 윗줄 계기판의 WAVE 칸 (D-351: 다음 보스 줄은 뺐다)
+	case EHint::Boss: Out = FBox2f(FVector2f(WaveBoxX, WaveBoxY), FVector2f(WaveBoxX + WaveBoxW, WaveBoxY + WaveBoxH)); return true; // WAVE 숫자 상자 (Alice 시안 D-403)
 	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + RBtnW, TreeBtnY + TreeBtnH)); return true;
 	case EHint::Sell: for (const auto& KV : Game.Towers) if (!KV.second.IsJoker()) return Cells({KV.first}); return false;
 	case EHint::UpperHow: return Row(JokerFilterId);
@@ -1573,11 +1574,10 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (!bRight && FVector2f::Distance(P, TvDialPos()) <= TvDialR + 3.f) { TvDial(); return; } // 채널 TV 다이얼 (D-316)
-	for (int32 Dir = -1; Dir <= 1; Dir += 2) if (!bRight && InRect(P, JukeBtnX(Dir), JukeBtnY, JukeBtnS, JukeBtnS)) { JukeStep(Dir); return; } // 주크박스 간판 ◀ ▶ (D-319)
+	for (int32 K = 0; K < 2; ++K) // TV 아래 배속 버튼 ×2 · ×4 (Alice 시안 D-403): 그 배속, 이미 그 배속이면 ×1
+		if (!bRight && InRect(P, SpdBtnX + K * SpdBtnGap, SpdBtnY, SpdBtnW, SpdBtnH)) { const int32 Sp = K == 0 ? 2 : 4; Game.Speed = Game.Speed == Sp ? 1 : Sp; UiSound(EPDSound::Move); return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
-	// 위쪽 띠 버튼 (D-119): 속도, 일시정지, 톱니바퀴 = 메뉴 (D-349: 설정 · 도감은 메뉴 안에서)
-	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
-	if (!bRight && InRect(P, PauseBtnX, HudBtnY, HudBtnS, HudBtnS) && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { bPaused = !bPaused; UiSound(EPDSound::Move); return; } // 일시정지 (D-169)
+	// 오른쪽 위 '?' = 메뉴 (Alice 시안 D-403, 예전 톱니바퀴 D-349). 일시정지는 P 키
 	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bMenu = true; MenuSel = 0; Sel = -1; UiSound(EPDSound::Move); return; }
 	// 먹이기 목록 (D-213): 판 칸 클릭 = 먹이기 / 조커 고르기, 오른쪽 클릭 = 풀기 → 끄기
 	if (InFeed())

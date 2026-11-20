@@ -27,9 +27,9 @@ namespace PDDraw
 constexpr float DesignW = 1280.f;
 constexpr float DesignH = 720.f;
 // 화면 세 칸: 왼쪽 족보 패널 | 가운데 판과 손패 | 오른쪽 상태 패널
-constexpr float LX = 16.f, LW = 232.f; // 왼쪽 족보 패널
+constexpr float LX = 12.f, LW = 240.f; // 왼쪽 족보 패널 (Alice 시안 D-403: 12 ~ 252)
 constexpr float CS = 48.f;          // 칸 크기
-constexpr float FX = LX + LW + 14.f; // 판 왼쪽 위
+constexpr float FX = 262.f; // 판 왼쪽 위 (예전 LX + LW + 14 = 262 그대로)
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
 constexpr float FY = 98.f; // 인게임 시안 B (D-274): 위에 걸린 간판 자리만큼 판을 내림 (예전 74, FX + FY 는 12 의 배수)
 constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
@@ -41,23 +41,26 @@ constexpr int32 HandRowsN = (int32)EPDHand::Count + 2;
 // 조커 · 먹이기 목록(D-210/213)은 예전 자리(HandRowY0, HandRowH)를 그대로 쓴다
 // 레터보드 족보 (D-263 → D-276): 패널은 화면 아래까지 (손패가 왼쪽까지 안 오므로), 줄 36
 constexpr int32 HandMenuOrder[HandRowsN] = {0, 1, 2, 4, 5, 6, 3, 7, 8, 9, JokerFilterId, FeedFilterId};
-constexpr float HandPanelY = 66.f; // 왼쪽 패널 윗선 (판보다 위, 로고 배지 아래)
-constexpr float HandMenuY0 = HandPanelY + 72.f, HandMenuRowH = 36.f, HandMenuGroupH = 26.f; // 묶음 사이 여백 18 → 26 + 구분선 (D-328 ④), 머리 설명 글을 빼서 위를 12 당김 (D-328 ⑤)
+constexpr float HandPanelY = 10.f; // 왼쪽 패널 윗선 (Alice 시안 D-403: 화면 위 끝까지, 맨 위에 BAR Alice 로고)
+constexpr float HandMenuY0 = 78.4f, HandMenuRowH = 37.4f, HandMenuGroupH = 44.6f; // Alice 시안 (D-403): 머리글 104 · 374 · 568, 첫 줄 123 · 392 · 586, 줄 간격 37.4. 예전 // 묶음 사이 여백 18 → 26 + 구분선 (D-328 ④), 머리 설명 글을 빼서 위를 12 당김 (D-328 ⑤)
 inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
 inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
 inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
 constexpr float HandMenuEndY = HandMenuY0 + 3.f * HandMenuGroupH + HandRowsN * HandMenuRowH;
-constexpr float HandY = FY + Rows * CS + 14.f;
-constexpr float SwapBtnX = FX, SwapBtnY = HandY + 54.f, SwapBtnW = 86.f, SwapBtnH = 28.f; // 자리바꿈 버튼 (D-149, 덱 글자 아래)
+constexpr float HandY = FY + Rows * CS + 18.f; // 596 (Alice 시안 D-403)
+constexpr float SwapBtnX = FX + 14.f, SwapBtnY = HandY + 82.f, SwapBtnW = 84.f, SwapBtnH = 20.f; // Alice 시안 (D-403): 덱 글자 아래 작게. 예전 // 자리바꿈 버튼 (D-149, 덱 글자 아래)
 constexpr float CraftBtnX = FX, CraftBtnY = SwapBtnY + SwapBtnH + 6.f, CraftBtnW = 86.f, CraftBtnH = 28.f; // 조커 만들기 버튼 (D-195, 자리바꿈 아래)
-constexpr float CardW = 70.f, CardH = 98.f;
-constexpr float RX = FX + Cols * CS + 14.f; // 오른쪽 패널
-constexpr float PW = DesignW - RX - 16.f;   // 오른쪽 패널 너비
+constexpr float CardW = 59.f, CardH = 97.f; // Alice 시안 (D-403): 10장이 판 폭에 63 간격으로
+constexpr float RX = 1038.f; // 오른쪽 패널 (Alice 시안 D-403, 예전 FX + Cols * CS + 14 = 1044)
+constexpr float PW = 232.f;   // 오른쪽 패널 너비 (1038 ~ 1270)
 constexpr float RBtnX = RX, RBtnW = PW;     // 오른쪽 패널 버튼 줄
 constexpr float PowCardH = 226.f;           // 판 위력 카드 (오른쪽 맨 위). 딜러 7위까지 (D-164: 부적 칸을 줄이고 늘림)
 constexpr int32 PowTopN = 7;
-constexpr float StartBtnY = FY + PowCardH + 10.f, StartBtnH = 52.f; // 마키 버튼 (D-274): 위 가장자리에 전구
-constexpr float SpeedBtnX = 1184.f, SetOpenX = 1222.f, HudBtnY = 38.f, HudBtnS = 30.f; // 위쪽 띠 오른쪽 끝 버튼
+constexpr float TvY = 83.f, TvH = 317.f; // 채널 TV 몸통 (Alice 시안 D-403): 화면 아래에 배속 버튼 · 다이얼 · 스피커
+constexpr float TvScrX = RX + 15.f, TvScrY = TvY + 19.f, TvScrW = 201.f, TvScrH = 228.f;
+constexpr float SpdBtnX = RX + 15.f, SpdBtnY = TvY + 259.f, SpdBtnW = 35.f, SpdBtnH = 45.f, SpdBtnGap = 43.f; // ×2 · ×4
+constexpr float StartBtnY = 636.f, StartBtnH = 73.f; // Alice 시안 (D-403): 맨 아래 초록 시작 버튼. 예전 // 마키 버튼 (D-274): 위 가장자리에 전구
+constexpr float SpeedBtnX = -100.f, SetOpenX = 1237.f, HudBtnY = 31.f, HudBtnS = 28.f; // Alice 시안 (D-403): 오른쪽 위 '?' 하나 (누르면 메뉴, 올리면 키 안내). 배속은 TV 아래로, 일시정지는 P 키만 // 위쪽 띠 오른쪽 끝 버튼
 constexpr float PauseBtnX = SpeedBtnX - HudBtnS - 8.f; // 일시정지 (D-169, P)
 constexpr float HelpX = DesignW - 110.f, HelpY = DesignH - 22.f, HelpW = 94.f, HelpH = 18.f; // "? 도움말" (마우스를 올리면 키 안내)
 constexpr float TwoPi = 6.2831853f;
@@ -86,7 +89,7 @@ inline FLinearColor SuitColor(EPDSuit S)
 	{
 	case EPDSuit::Heart: return Hex(TEXT("ff6a8a"));
 	case EPDSuit::Diamond: return Hex(TEXT("ffd96a"));
-	case EPDSuit::Club: return Hex(TEXT("8fe9ff")); // ♣ 서리 = 얼음 하늘색 (D-181, 예전 초록은 독처럼 보였다)
+	case EPDSuit::Club: return Hex(TEXT("46a0ff")); // ♣ 둔화 = 파랑 (Alice 시안 D-403, 예전 얼음 하늘색 8fe9ff D-181)
 	case EPDSuit::Wild: return Hex(TEXT("ffffff"));
 	default: return Hex(TEXT("e8eeff")); // ♠ 저격 = 흰빛 (D-181)
 	}
@@ -224,8 +227,8 @@ FString EpisodeTitle(const FPDGame& G, int W, const TArray<TMix>& Mix)
 	}
 }
 // 채널 TV 다이얼 (D-316): TV 오른쪽 아래 손잡이 중 위의 것
-constexpr float TvDialR = 11.f;
-inline FVector2f TvDialPos() { return FVector2f(RX + PW - 22.f, FY + PowCardH - 50.f); }
+constexpr float TvDialR = 22.f;
+inline FVector2f TvDialPos() { return FVector2f(RX + 137.f, TvY + 282.f); } // Alice 시안 (D-403): 화면 아래 분홍 다이얼
 // 적 이름 (보스는 BossName)
 inline const TCHAR* EnemyName(EPDEnemy T)
 {
@@ -646,9 +649,9 @@ inline FVector2f UpgButtonPos(int Row, int K) { const FVector2f C0 = UpgCardPos(
 // 웨이브 시작 버튼 아래 버튼 한 줄 (D-119): 트리 K · 강화 U. 도감 · 메뉴 버튼은 뺐다 (D-349): 위 톱니바퀴 = 메뉴, 도감은 메뉴 안 (J 키는 그대로)
 // 오른쪽 패널 아래 셋 크기 맞춤 (D-353, 시안 B tools/neon/rpanel_mock.py): 웨이브 시작 · 스킬 트리 둘 다 높이 52 · 모서리 12, 사이는 모두 10
 constexpr float RBtnR = 12.f; // 웨이브 시작 · 스킬 트리 버튼 모서리
-constexpr float TreeBtnX = RBtnX, TreeBtnY = StartBtnY + StartBtnH + 10.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = StartBtnH;
+constexpr float TreeBtnX = RBtnX, TreeBtnY = 575.f, TreeBtnW = (RBtnW - 8.f) / 2.f, TreeBtnH = 51.f; // Alice 시안 (D-403): 시작 버튼 위 파란 스킬 버튼
 constexpr float UpgOpenX = RBtnX + TreeBtnW + 8.f, UpgOpenY = TreeBtnY, UpgOpenW = TreeBtnW, UpgOpenH = TreeBtnH;
-constexpr float CharmY = TreeBtnY + TreeBtnH + 10.f; // 부적 칸 (바닥선까지)
+constexpr float CharmY = 425.f, CharmH = 112.f; // 칵테일 선반 (Alice 시안 D-403: TV 와 스킬 버튼 사이)
 // 위에 걸린 간판 (D-274, 인게임 시안 B)
 constexpr float SignEnX = 270.f, SignEnY = 20.f, SignEnW = 182.f, SignEnH = 68.f;   // 남은 적 (전구 줄)
 // 주크박스 간판 (D-319): 예전 남은 적 간판 자리 (SignEn). ◀ ▶ 곡 넘기기
@@ -659,10 +662,11 @@ constexpr float JukeX0 = 346.f - JukeW / 2.f, JukeY0 = 2.f;
 constexpr float JukeBtnS = 16.f * JukeK, JukeBtnY = JukeY0 + 62.f * JukeK;
 inline float JukeBtnX(int Dir) { return JukeX0 + JukeW / 2.f + Dir * 30.f * JukeK - JukeBtnS / 2.f; }
 // 윗줄 한 장 계기판 (D-351, 시안 B tools/neon/topbar_mock.py): 주크박스 오른쪽 긴 판 하나 + 세로 구분선 둘 → WAVE | 목숨 | 레벨. 머리글 · 다음 보스 줄은 뺐다
-constexpr float HudPanX = 430.f, HudPanY = 16.f, HudPanW = 706.f, HudPanH = 68.f;
-constexpr float HudDivLf = 800.f, HudDivLv = 930.f; // 목숨 칸 · 레벨 칸 왼쪽 구분선
+constexpr float WaveBoxX = 560.f, WaveBoxY = 10.f, WaveBoxW = 192.f, WaveBoxH = 70.f; // Alice 시안 (D-403): 야자수 · WAVE 간판 그림 오른쪽 파란 상자 (숫자는 코드)
+constexpr float HudPanX = 772.f, HudPanY = 22.f, HudPanW = 250.f, HudPanH = 52.f; // 목숨 | 레벨 (시안에 없어 WAVE 상자 오른쪽 빈자리에). 예전 430 · 16 · 706 · 68
+constexpr float HudDivLf = HudPanX, HudDivLv = HudPanX + 98.f; // 목숨 칸 · 레벨 칸 왼쪽 구분선
 // 레벨 칸 (사용자 2026-11-16): 마름모 · 숫자는 목숨 칸과 같은 자리 · 글자, 경험치 막대는 숫자 오른쪽에 두껍게 (가운데 높이 LvBarY, % 는 막대 안)
-constexpr float LvBarX = HudDivLv + 116.f, LvBarH = 24.f /* 숫자 글자 크기와 같은 높이 (시안 B tools/neon/lvbar_mock.py) */, LvBarY = HudPanY + HudPanH / 2.f, LvBarW = HudPanX + HudPanW - 12.f - LvBarX; // 경험치 막대 (LvBarY = 막대 가운데)
+constexpr float LvBarX = HudDivLv + 62.f, LvBarH = 24.f /* 숫자 글자 크기와 같은 높이 (시안 B tools/neon/lvbar_mock.py) */, LvBarY = HudPanY + HudPanH / 2.f, LvBarW = HudPanX + HudPanW - 12.f - LvBarX; // 경험치 막대 (LvBarY = 막대 가운데)
 constexpr float LvSignCX = (HudDivLv + HudPanX + HudPanW) / 2.f; // 레벨 칸 가운데 (레벨업 간판이 날아가 매달리는 자리)
 constexpr float FloorY = FY + Rows * CS + 8.f;                                      // 바닥선 (손패가 그 아래)
 // 조커 도감 (D-119): 카드 5×2 + 오른쪽 크게 보기
@@ -777,9 +781,9 @@ inline FVector2f SetBtnPos(int Row, int Idx) // 왼쪽 위
 // 손패 카드 왼쪽 X. 카드가 많으면 판 너비 안에 들어오게 간격을 좁힌다
 inline float HandCardX(int I, int N)
 {
-	const float Avail = Cols * CS - 96.f - CardW;
-	const float Step = N > 1 ? FMath::Min(CardW + 10.f, Avail / (N - 1)) : 0.f;
-	return FX + 96.f + I * Step;
+	const float Avail = Cols * CS - 126.f - CardW - 16.f; // Alice 시안 (D-403): 왼쪽에 큰 덱 글자, 10장이면 63 간격
+	const float Step = N > 1 ? FMath::Min(CardW + 4.f, Avail / (N - 1)) : 0.f;
+	return FX + 126.f + I * Step;
 }
 // 모서리 둥글기 세 단계 (D-328 ①): 버튼 = 알약(높이의 절반), 큰 창 · 판 · 카드 = RadPanel (두 겹 틀 안쪽 선 = RadSmall), 작은 것(줄 강조 · 툴팁 · 칸 · 작은 알약 표) = RadSmall
 constexpr float RadPanel = 14.f, RadSmall = 8.f;
@@ -1103,7 +1107,7 @@ constexpr float LineAAW = 60.f, LineAAH = LineBandH * LineBands; // 띠 크기 (
 constexpr int32 HaloBands = 8;
 constexpr float HaloBandT[HaloBands] = {0.5f, 0.75f, 1.f, 1.5f, 2.f, 3.f, 4.f, 6.f}; // 네온 선 굵기 (화면 px)
 constexpr float HaloGain = 4.f;
-constexpr int32 AtlasVersion = 12; // 12: 마우스 아이콘 칸 둘 (D-373), 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335), 11: 카드병정을 둘째 텍스처 T_PDAtlasSoldier 로, 12프레임 (D-338)
+constexpr int32 AtlasVersion = 13; // 13: ♣ 색 파랑 (D-403). // 12: 마우스 아이콘 칸 둘 (D-373), 8: 카드병정 부드러운 흐느적 12프레임 (D-184), 9: 방어력 방패 칸 (D-186), 10: 새 보스 9종 · 걷기 8프레임 (D-335), 11: 카드병정을 둘째 텍스처 T_PDAtlasSoldier 로, 12프레임 (D-338)
 constexpr int32 AtlasVersionPrev = 11; // 5: 카드 칸 흰색 (D-154), 6: 카드병정 적 (D-175), 7: 보스 13종·족보 타워 칸 없앰 (D-176) // 아틀라스 칸이 바뀌면 올린다: 옛 에셋(T_PDAtlas_v1…)은 쓰지 않고 F8 로 새로 만든다
 constexpr float HatchStep = 12.f; // 빗금 간격: 칸 48 의 약수라 칸마다 같은 무늬 (판 왼쪽 위 FX + FY 도 12 의 배수)
 constexpr float BracketPad = 6.f, LineHalf = 36.f, LineH = 14.f; // 꺾쇠 칸은 칸보다 6px 크게, 빛선은 길이 72 × 높이 14
