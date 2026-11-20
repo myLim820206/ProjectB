@@ -31,7 +31,7 @@ constexpr float LX = 12.f, LW = 240.f; // 왼쪽 족보 패널 (Alice 시안 D-4
 constexpr float CS = 48.f;          // 칸 크기
 constexpr float FX = 262.f; // 판 왼쪽 위 (예전 LX + LW + 14 = 262 그대로)
 constexpr float HudY = 12.f, HudH = 50.f;  // 위쪽 상태 띠 (D-119): 웨이브·남은 적·목숨·골드·판 위력·속도·설정
-constexpr float FY = 98.f; // 인게임 시안 B (D-274): 위에 걸린 간판 자리만큼 판을 내림 (예전 74, FX + FY 는 12 의 배수)
+constexpr float FY = 86.f; // Alice 시안 (D-410): 판 위끝 86 (FX + FY = 348, 12 의 배수). 예전 98 — // 인게임 시안 B (D-274): 위에 걸린 간판 자리만큼 판을 내림 (예전 74, FX + FY 는 12 의 배수)
 constexpr float HandRowH = 38.f, HandRowY0 = FY + 36.f; // 왼쪽 족보 목록 한 줄 (D-148: 클릭하면 필터)
 constexpr float BoardCardK = 0.74f; // 판 위 카드·조커 그림 크기 (D-167): 칸 테두리·족보 테두리와 겹치지 않게 조금 작게
 constexpr int32 JokerFilterId = (int32)EPDHand::Count;   // 족보 목록 맨 아래 '조커' 줄 (D-152): 조커 합성 버튼을 모두 펼친다
@@ -47,7 +47,7 @@ inline int HandMenuGroup(int Slot) { return Slot < 6 ? 0 : Slot < 10 ? 1 : 2; }
 inline float HandMenuTop(int Id) { int Slot = 0; for (int K = 0; K < HandRowsN; ++K) if (HandMenuOrder[K] == Id) Slot = K; return HandMenuY0 + (HandMenuGroup(Slot) + 1) * HandMenuGroupH + Slot * HandMenuRowH; }
 inline int HandMenuAt(float X, float Y) { if (X < LX + 8.f || X > LX + LW - 8.f) return -1; for (int K = 0; K < HandRowsN; ++K) { const float T = HandMenuTop(HandMenuOrder[K]); if (Y >= T && Y < T + HandMenuRowH) return HandMenuOrder[K]; } return -1; }
 constexpr float HandMenuEndY = HandMenuY0 + 3.f * HandMenuGroupH + HandRowsN * HandMenuRowH;
-constexpr float HandY = FY + Rows * CS + 18.f; // 596 (Alice 시안 D-403)
+constexpr float HandY = 596.f; // Alice 시안 (D-403)
 constexpr float SwapBtnX = FX + 14.f, SwapBtnY = HandY + 82.f, SwapBtnW = 84.f, SwapBtnH = 20.f; // Alice 시안 (D-403): 덱 글자 아래 작게. 예전 // 자리바꿈 버튼 (D-149, 덱 글자 아래)
 constexpr float CraftBtnX = FX, CraftBtnY = SwapBtnY + SwapBtnH + 6.f, CraftBtnW = 86.f, CraftBtnH = 28.f; // 조커 만들기 버튼 (D-195, 자리바꿈 아래)
 constexpr float CardW = 59.f, CardH = 97.f; // Alice 시안 (D-403): 10장이 판 폭에 63 간격으로
@@ -1695,6 +1695,16 @@ struct SPDBoardWidget::FCanvas
 		if (Rec()) GPDLayout.AddText(S, CX - Sz.X / 2.f, CY - Sz.Y / 2.f, Sz.X, Sz.Y, S.EndsWith(TEXT("…")) && !InS.EndsWith(TEXT("…")), Col.A * FadeK);
 		FSlateDrawElement::MakeText(Out, NextLayer(), PG(CX - Sz.X / 2.f, CY - Sz.Y / 2.f, Sz.X, Sz.Y), S, F,
 			ESlateDrawEffect::None, FadeC(Col));
+		NextLayer();
+	}
+	// 글꼴을 정해 가운데 맞춰 쓰기 (D-412): 언어팩을 거치지 않는다 (숫자 등). Typeface = 엔진 기본 글꼴의 굵기 이름 ("Black" = Roboto Black)
+	static FSlateFontInfo FontFace(const char* Typeface, float Px) { return FCoreStyle::GetDefaultFontStyle(Typeface, FMath::Max(1, FMath::RoundToInt(Px * 0.75f))); }
+	void TextFace(const FString& S, float CX, float CY, const FLinearColor& Col, const FSlateFontInfo& F, float ScaleX = 1.f) // ScaleX: 가로로 늘이기 (가운데 기준)
+	{
+		const FVector2f Sz = Measure(S, F);
+		const FPaintGeometry G = ScaleX == 1.f ? PG(CX - Sz.X / 2.f, CY - Sz.Y / 2.f, Sz.X, Sz.Y)
+			: Geo.MakeChild(Sz, FSlateLayoutTransform(FVector2f(CX - Sz.X / 2.f, CY - Sz.Y / 2.f)), FSlateRenderTransform(FMatrix2x2f(ScaleX, 0.f, 0.f, 1.f)), FVector2f(0.5f, 0.5f)).ToPaintGeometry();
+		FSlateDrawElement::MakeText(Out, NextLayer(), G, S, F, ESlateDrawEffect::None, FadeC(Col));
 		NextLayer();
 	}
 	// 사각 클리핑: PushClip ~ PopClip 사이에 그린 것은 이 사각 밖으로 나가지 않는다 (흐르는 글자 등)

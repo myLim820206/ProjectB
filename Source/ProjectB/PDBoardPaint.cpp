@@ -231,7 +231,7 @@ int32 SPDBoardWidget::PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWind
 	TArray<FVector2f> PathPts;
 	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
 	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
-	F.Glow(FCanvas::RoundRectPoints(FX - 6.f, FY - 6.f, Cols * CS + 12.f, Rows * CS + 12.f, RadPanel), Hex(TEXT("a896e1"), 0.5f), 1.4f, 0.4f); // 연보라 틀 (D-274)
+	F.Glow(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("46c8e6"), 0.85f), 1.6f, 0.5f); // 하늘빛 틀을 판에 붙여 (Alice 시안 D-410: 262 ~ 1030 × 86 ~ 566)
 	return Layer;
 }
 
@@ -337,7 +337,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 #else
 	const bool bNoFx = false;
 #endif
-	if (Game.Phase != EPDPhase::Title) PaintBarBack(C); // 벽돌 벽 + 바닥선 (D-274)
+	if (Game.Phase != EPDPhase::Title) C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06091a"))); // Alice 시안 (D-413): 벽돌 벽 · 바닥선 없이 거의 검은 남색 바탕 (예전 PaintBarBack, D-274)
 	PaintField(F, true);
 	PaintField(F, false); Part(0);
 	PaintShots(F); Part(1);
@@ -458,7 +458,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 	TArray<FVector2f> PathPts;
 	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
 	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
-	F.Glow(FCanvas::RoundRectPoints(FX - 6.f, FY - 6.f, Cols * CS + 12.f, Rows * CS + 12.f, RadPanel), Hex(TEXT("a896e1"), 0.5f), 1.4f, 0.4f); // 연보라 틀 (D-274)
+	F.Glow(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("46c8e6"), 0.85f), 1.6f, 0.5f); // 하늘빛 틀을 판에 붙여 (Alice 시안 D-410: 262 ~ 1030 × 86 ~ 566)
 	}
 	if (!bStatic) // 길 위를 흐르는 에너지 (움직이는 층)
 	{
@@ -1999,20 +1999,34 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 	// 윗줄 (Alice 시안 D-403): 야자수 · 네온 줄 · 분홍 타원 'WAVE' 는 시안 그림 조각, 오른쪽 파란 상자 안 웨이브 숫자는 코드 (속이 검고 테두리만 파랗게 빛남).
 	// 시안에 없는 목숨 · 레벨은 상자 오른쪽 빈자리에 작은 판 하나. 오른쪽 위 '?' = 메뉴 (올리면 키 안내). 배속은 TV 아래, 일시정지는 P 키
 	const FPDGame& G = Game;
-	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Red = Hex(TEXT("ff6a6a")), Blue = Hex(TEXT("3c96ff")), Fg = Hex(TEXT("cfd8e6"));
+	const FLinearColor Gold = Hex(TEXT("ffd26e")), Pink = Hex(TEXT("ff6aaa")), Red = Hex(TEXT("ff6a6a"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
-	if (const FSlateBrush* Sign = Art(EUiArt::Sign)) C.Image(C.NextLayer(), Sign, 259.2f, 0.f, 298.2f, 80.6f, FLinearColor::White);
+	// 간판 그림 (D-407): 야자수 · 네온 줄 · 분홍 타원 WAVE · 왼쪽이 열린 파란 상자(위 · 오른쪽 · 아래 테)까지 시안 그림 그대로. 상자 안 숫자만 코드
+	const FSlateBrush* Sign = Art(EUiArt::Sign);
+	if (Sign) C.Image(C.NextLayer(), Sign, 259.2f, 0.f, 499.2f, 81.9f, FLinearColor::White);
 	else NeonText(C, TEXT("WAVE"), 485.f, 58.f, Hex(TEXT("50e1f5")), 38.f, 1, 1.f);
-	// 파란 상자 + 숫자
+	// 숫자 (D-406, 시안대로): 크게 — 속은 검고 두꺼운 파란 테가 빛난다. 보스 웨이브 중이면 빨강
 	{
 		const bool bNow = G.Phase == EPDPhase::Wave && G.NextBossWave() == G.Wave;
-		const FLinearColor Bc = bNow ? Red : Blue;
-		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(WaveBoxX, WaveBoxY, WaveBoxW, WaveBoxH, 3.f);
-		C.Glow(Ro, Bc, 2.2f, 1.f);
-		C.Lines(Ro, FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
+		const FLinearColor Bc = bNow ? Red : Hex(TEXT("1eaaff"));
+		if (!Sign) // 그림이 없을 때만 상자를 코드로
+		{
+			const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(WaveBoxX, WaveBoxY, WaveBoxW, WaveBoxH, 4.f);
+			C.FillPoly(Ro, Hex(TEXT("06091a")));
+			C.Glow(Ro, Bc, 2.2f, 1.f);
+		}
 		const FString Wv = G.Goal() > 0 ? FString::Printf(TEXT("%d/%d"), G.Wave, G.Goal()) : FString::FromInt(G.Wave);
-		const float Px = Wv.Len() <= 4 ? 46.f : Wv.Len() <= 6 ? 36.f : 28.f;
-		NeonText(C, Wv, WaveBoxX + WaveBoxW / 2.f, WaveBoxY + WaveBoxH / 2.f + Px * 0.36f, Bc, Px, 1, 1.f);
+		// 시안 (D-412): 두껍고 둥근 숫자(Roboto Black), 글자 높이 40 · '3/20' 폭 140. 속은 검고 두꺼운 파란 테 + 넓은 빛
+		float Px = 46.f; // 4자리(9999)까지 같은 크기, 길면 상자에 맞게 줄임 (D-416, 예전 60). Roboto Black 은 시안 글꼴보다 좁아 가로로 1.12배 (D-415)
+		FSlateFontInfo F = FCanvas::FontFace("Black", Px);
+		while (Px > 24.f && FCanvas::Measure(Wv, F).X * 1.12f > 168.f) { Px -= 2.f; F = FCanvas::FontFace("Black", Px); }
+		const float TX = 655.4f, TY = 45.4f; // 시안 상자 속 가운데 (x 875 ~ 1174, y 17 ~ 125 × 0.64)
+		const FLinearColor Edge = Hex(TEXT("8cdcff"));
+		for (int32 K = 0; K < 16; ++K) { const float A = K * TwoPi / 16.f; C.TextFace(Wv, TX + FMath::Cos(A) * 7.f, TY + FMath::Sin(A) * 8.f, WithAlpha(Bc, 0.1f), F, 1.12f); }
+		for (int32 K = 0; K < 16; ++K) { const float A = K * TwoPi / 16.f; C.TextFace(Wv, TX + FMath::Cos(A) * 4.5f, TY + FMath::Sin(A) * 5.5f, WithAlpha(Bc, 0.22f), F, 1.12f); }
+		for (int32 K = 0; K < 20; ++K) { const float A = K * TwoPi / 20.f; C.TextFace(Wv, TX + FMath::Cos(A) * 3.8f, TY + FMath::Sin(A) * 3.8f, Bc, F, 1.12f); }
+		for (int32 K = 0; K < 12; ++K) { const float A = K * TwoPi / 12.f; C.TextFace(Wv, TX + FMath::Cos(A) * 2.2f, TY + FMath::Sin(A) * 2.2f, Edge, F, 1.12f); }
+		C.TextFace(Wv, TX, TY, Hex(TEXT("020409")), F, 1.12f);
 	}
 	// 목숨 | 레벨 (작은 판 하나)
 	{
@@ -2096,7 +2110,90 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 
 	PaintTv(C); // 채널 TV (D-316, PDBoardTv.cpp): 예전 판 위력 TV 자리
 
+	// ---- 오른쪽 아래 (D-414): 위아래 네온 줄 · 칵테일 칸 · 스킬 · 시작 버튼은 시안 그림 그대로 (한국어면 글자까지, 다른 언어는 글자를 지운 그림 + 번역 글자).
+	// 그림 위에 잔 다섯(가진 만큼 켜짐) · 'N웨이브 후 획득' · 포인트 꼬리표 · 마우스 · 웨이브 중 표시를 코드로
+	const bool bKoArt = GPDLang == (int32)EPDLang::Ko;
+	const FSlateBrush* RPArt = Art(bKoArt ? EUiArt::RPanelKo : EUiArt::RPanel);
+	if (RPArt)
+	{
+		constexpr float AX = 1035.5f, AY = 404.5f, AW = 239.4f, AH = 309.1f; // 시안 (1618, 632) ~ (1992, 1115) × 0.64
+		C.Box(AX, AY, AW, AH, Hex(TEXT("0a141d"))); // 그림을 자른 바탕색(가장자리 중앙값 0a 14 1d) 위에 찍어야 시안 색 그대로 나온다
+		C.Image(C.NextLayer(), RPArt, AX, AY, AW, AH, FLinearColor::White);
+		const FLinearColor Head = Hex(TEXT("f0e2be")), GrT = Hex(TEXT("82f08c")), Tx = Hex(TEXT("82cdff"));
+		if (!bKoArt) // 다른 언어: 글자 자리를 지운 그림 위에 번역 글자
+		{
+			C.TextCentered(Tr(TEXT("칵테일")), 1153.3f, 441.6f, Head, 14.f, true);
+			C.TextCentered(Tr(TEXT("스 킬")), 1161.6f, 599.7f, Tx, 22.f, true, 150.f);
+		}
+		// 칵테일: 잔 다섯 + 다음 칵테일까지
+		const int32 N = (int32)G.Charms.size();
+		const FSlateBrush* GOn = Art(EUiArt::GlassOn);
+		const FSlateBrush* GOff = Art(EUiArt::GlassOff);
+		for (int32 I = 0; I < CharmMax; ++I)
+			if (const FSlateBrush* B = I < N ? GOn : GOff) C.Image(C.NextLayer(), B, 1045.8f + I * 43.7f, 478.7f, 43.5f, 51.8f, FLinearColor::White);
+		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
+		const int32 Next = (W0 + CharmEvery - 1) / CharmEvery * CharmEvery;
+		if (N < CharmMax) C.Text(TrF(TEXT("%d웨이브 후 획득"), FMath::Max(0, Next - G.Wave)), 1255.7f, 463.5f, Hex(TEXT("c8c4be")), 8.5f, 2);
+		for (int32 I = 0; I < N; ++I) // 잔 툴팁 (D-275)
+		{
+			const float GX = 1045.8f + I * 43.7f, GY = 478.7f;
+			if (!InRect(Mouse, GX, GY, 43.5f, 51.8f)) continue;
+			const float TW = 260.f, TH = 52.f, TX = FMath::Max(8.f, FMath::Min(GX - 40.f, DesignW - 8.f - TW) - 140.f), TY = GY - TH - 6.f;
+			C.Box(TX, TY, TW, TH, Hex(TEXT("0a0910"), 0.97f));
+			C.Glow(FCanvas::RoundRectPoints(TX, TY, TW, TH, RadSmall), Hex(TEXT("ffd26e")), 1.2f, 0.4f);
+			C.Text(CharmName((int)G.Charms[I]), TX + 12.f, TY + 20.f, UiValue, 12.f, 0, true, TW - 24.f);
+			C.Text(CharmDesc((int)G.Charms[I]), TX + 12.f, TY + 40.f, Fg, 10.f, 0, false, TW - 24.f);
+		}
+		// 스킬: 마우스 · 남은 포인트
+		{
+			const bool bHot = G.Phase != EPDPhase::Title && G.PointsLeft() > 0, bHov = InRect(Mouse, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH);
+			const float Fl = bHot ? FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f)) : 0.f;
+			if (bHov || bHot) C.Box(RX + 3.f, TreeBtnY + 3.f, PW - 6.f, TreeBtnH - 6.f, FLinearColor(0.6f, 0.85f, 1.f, bHov ? 0.08f : 0.03f + 0.05f * Fl));
+			if (bHot)
+			{
+				const FString Pt = TrF(TEXT("포인트 %d"), G.PointsLeft());
+				const FLinearColor Gold2 = Hex(TEXT("ffd26e"));
+				const float TW2 = FCanvas::Measure(TrS(Pt), FCanvas::Font(9.f, true)).X + 14.f, TX = RX + PW - TW2 - 10.f, TY = TreeBtnY - 9.f;
+				C.Box(TX, TY, TW2, 18.f, Hex(TEXT("06060b"), 0.95f));
+				C.Glow(FCanvas::RoundRectPoints(TX, TY, TW2, 18.f, RadPill(18.f)), Gold2, 1.2f, 0.6f + 0.3f * Fl);
+				C.TextCentered(Pt, TX + TW2 / 2.f, TY + 9.f, Gold2, 9.f, true);
+			}
+		}
+		// 시작: 준비 중이면 그림 그대로 (+ 마우스 · 자동 시작), 웨이브 중이면 글자를 지운 그림을 어둡게 + '웨이브 N 진행 중'
+		{
+			const bool bBuild = G.Phase == EPDPhase::Build, bHov = InRect(Mouse, RBtnX, StartBtnY, RBtnW, StartBtnH);
+			constexpr float SY0 = 353.f / 483.f; // 그림 안 시작 버튼 자리 (시안 y 985 ~ 1115)
+			const float BY = AY + AH * SY0, BH = AH * (1.f - SY0);
+			if (!bBuild || !bKoArt)
+				if (const FSlateBrush* Blank = Art(EUiArt::RPanel))
+				{
+					FSlateBrush Sub = *Blank;
+					Sub.SetUVRegion(FBox2f(FVector2f(0.f, SY0), FVector2f(1.f, 1.f)));
+					C.Image(C.NextLayer(), &Sub, AX, BY, AW, BH, FLinearColor::White);
+				}
+			if (bBuild)
+			{
+				if (!bKoArt) C.TextCentered(Tr(TEXT("시 작")), 1164.8f, 672.f, GrT, 36.f, true, 150.f);
+				if (bHov) C.Box(RX + 3.f, StartBtnY + 3.f, PW - 6.f, StartBtnH - 6.f, FLinearColor(0.7f, 1.f, 0.7f, 0.07f));
+				if (G.AutoStartT >= 0.f)
+				{
+					C.TextCentered(TrF(TEXT("%d초 뒤 자동"), FMath::CeilToInt(G.AutoStartT)), 1164.8f, StartBtnY + StartBtnH - 11.f, WithAlpha(GrT, 0.85f), 9.f, false);
+					if (G.AutoStartT <= 3.f) // 마지막 3초는 판 위에 크게
+					{
+						const float Fr = FMath::Frac(G.AutoStartT);
+						C.TextCentered(FString::FromInt(FMath::CeilToInt(G.AutoStartT)), FX + Cols * CS / 2.f, FY + 60.f, WithAlpha(GrT, 0.35f + 0.5f * Fr), 28.f + 14.f * Fr, true);
+					}
+				}
+			}
+			else
+			{
+				C.Box(RX + 2.f, StartBtnY + 2.f, PW - 4.f, StartBtnH - 4.f, FLinearColor(0.f, 0.f, 0.f, 0.5f));
+				C.TextCentered(G.Phase == EPDPhase::Wave ? TrF(TEXT("웨이브 %d 진행 중"), G.Wave) : FString(Tr(TEXT("웨이브 시작"))), 1164.8f, 672.f, WithAlpha(GrT, 0.75f), 15.f, true, 150.f);
+			}
+		}
+	}
 	// ---- 웨이브 시작 (Space): Alice 시안 (D-403) 맨 아래 큰 초록 버튼 (진한 초록 채움 + 밝은 초록 테 + 재생 삼각형 + '시 작')
+	if (!RPArt)
 	{
 		const bool bHov = InRect(Mouse, RBtnX, StartBtnY, RBtnW, StartBtnH);
 		const bool bBuild = G.Phase == EPDPhase::Build;
@@ -2145,6 +2242,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Text(TEXT("F: 배속 바꾸기"), RXb, Yb + 18.f, WithAlpha(SC, 0.5f), 10.f, 2);
 	}
 	// ---- 스킬 트리 버튼: Alice 시안 (D-403) 진한 파랑 채움 + 밝은 파랑 테 + 노드 아이콘 + '스 킬', 남은 포인트는 금색 꼬리표
+	if (!RPArt)
 	{
 		const bool bPlay = G.Phase != EPDPhase::Title;
 		const bool bHot = bPlay && G.PointsLeft() > 0, bHov = InRect(Mouse, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH);
@@ -2172,6 +2270,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		}
 	}
 	// ---- 칵테일 선반 (Alice 시안 D-403): 위아래 네온 줄 사이 보랏빛 칸, '칵테일' 머리글 + 'N웨이브 후 획득', 잔 다섯 (시안 그림 조각: 가진 만큼 켜짐)
+	if (!RPArt)
 	{
 		const int32 N = (int32)G.Charms.size();
 		const FLinearColor PinkN = Hex(TEXT("ff46be")), PurN = Hex(TEXT("be73ff")), BlueN = Hex(TEXT("2d8cff")), Head = Hex(TEXT("ffe6be"));
@@ -3650,7 +3749,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	for (const FPDSynergy& S : G.Synergies) ++Count[(int)S.Kind];
 	const float PH = DesignH - 1.f - HandPanelY; // 화면 아래까지 (Alice 시안 D-403: 10 ~ 709)
 	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
-	const FLinearColor Cream = Hex(TEXT("ebebf2")), Lav = Hex(TEXT("be73ff")), PinkH = Hex(TEXT("f5e66e"));
+	const FLinearColor Lav = Hex(TEXT("be73ff"));
 	// Alice 시안 (D-403): 보랏빛 세로 그라데이션 판 + 연보라 테, 맨 위 BAR Alice 로고(시안 그림 조각) + 금색 '족보 메뉴'
 	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f)); // 시안 패널 안쪽에서 잰 sRGB 10 0a 20 → 0b 07 1a (D-405)
 	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), WithAlpha(Lav, 0.9f), 1.8f, 0.3f); // 번짐이 판 안을 보랏빛으로 물들이지 않게 (D-405)
@@ -3658,7 +3757,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	if (const FSlateBrush* Logo = Art(EUiArt::Logo)) C.Image(C.NextLayer(), Logo, 20.5f, 17.3f, 94.7f, 36.5f, FLinearColor::White);
 	if (bMenuBoard)
 	{
-		const FLinearColor TitleGold = Hex(TEXT("ffe16e"));
+		const FLinearColor TitleGold = Hex(TEXT("f0e28c")); // 시안: 연한 금빛 (D-409)
 		C.SoftDisc(FVector2f(LX + LW / 2.f + 4.f, 66.f), 70.f, 18.f, TitleGold, 0.12f);
 		C.TextCentered(TEXT("족보 메뉴"), LX + LW / 2.f + 4.f, 66.f, TitleGold, 24.f, true);
 	}
@@ -3803,28 +3902,16 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		// 족보 메뉴판 (D-263, 레터보드): 묶음 머리글, 줄 = [색 칸] 이름 [판 N 꼬리표] ····· ×배수, 아래 작은 설명, 합성 · 먹이는 추천 꼬리표
 		const float X0 = LX + 18.f, XR = LX + LW - 18.f;
 		const int32 HovId = HandMenuAt(Mouse.X, Mouse.Y);
-		const FSlateFontInfo NameFn = FCanvas::Font(11.5f, true), PriceFn = FCanvas::Font(12.f, true), TagFn = FCanvas::Font(9.f, true);
-		// 가격표 꼬리표 (왼쪽이 뾰족, 구멍 하나). bRec = 추천 (작은 별). 돌려준 값 = 너비
-		auto PriceTag = [&](float X, float Y, const FString& S, const FLinearColor& Col, bool bRec)
-		{
-			const float W = FCanvas::Measure(TrS(S), TagFn).X + (bRec ? 24.f : 16.f);
-			if (bRec) C.Box(X + 6.f, Y - 7.5f, W - 6.f, 15.f, WithAlpha(Col, 0.12f));
-			C.Lines({FVector2f(X, Y), FVector2f(X + 6.f, Y - 7.5f), FVector2f(X + W, Y - 7.5f), FVector2f(X + W, Y + 7.5f), FVector2f(X + 6.f, Y + 7.5f), FVector2f(X, Y)}, WithAlpha(Col, 0.85f), 1.f);
-			C.Lines(FCanvas::CirclePoints(FVector2f(X + 5.f, Y), 1.2f, 8), WithAlpha(Col, 0.8f), 0.8f);
-			float TX = X + 10.f;
-			if (bRec) { C.Shape(EPDSuit::Wild, X + 14.f, Y, 3.6f, Col, 0.9f, 0.f); TX += 9.f; }
-			C.Text(S, TX, Y + 3.5f, Col, 9.f, 0, true);
-			return W;
-		};
+		const FSlateFontInfo TagFn = FCanvas::Font(9.f, true);
 		static const TCHAR* GroupName[3] = {TEXT("5장"), TEXT("2~4장"), TEXT("조커/먹이")};
 		for (int32 Gp = 0; Gp < 3; ++Gp)
 		{
 			const int32 FirstSlot = Gp == 0 ? 0 : Gp == 1 ? 6 : 10;
 			const float GY = HandMenuTop(HandMenuOrder[FirstSlot]) - 19.f; // 머리글 104 · 374 · 568 (Alice 시안 D-403)
 			const FString GN = Tr(GroupName[Gp]);
-			const float GW = FCanvas::Measure(GN, FCanvas::Font(13.f, true)).X, CX = LX + LW / 2.f + 1.f;
-			C.TextCentered(GN, CX, GY, Cream, 13.f, true);
-			for (const float Sg : {-1.f, 1.f}) C.Glow({FVector2f(CX + Sg * (GW / 2.f + 10.f), GY), FVector2f(CX + Sg * 100.f, GY)}, Hex(TEXT("beaa50")), 1.4f, 0.3f);
+			const float GW = FCanvas::Measure(GN, FCanvas::Font(13.f, false)).X, CX = LX + LW / 2.f + 1.f;
+			C.TextCentered(GN, CX, GY, Hex(TEXT("e6e2c8")), 13.f, false); // 시안: 크림색 보통 굵기 (D-409)
+			for (const float Sg : {-1.f, 1.f}) C.Glow({FVector2f(CX + Sg * (GW / 2.f + 10.f), GY), FVector2f(CX + Sg * 100.f, GY)}, Hex(TEXT("a08c50")), 1.6f, 0.25f);
 		}
 		for (int32 Slot = 0; Slot < HandRowsN; ++Slot)
 		{
@@ -3842,13 +3929,13 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			const float RX0 = LX + 12.f, RW = LW - 22.f, RH = HandMenuRowH - 6.4f;
 			const TArray<FVector2f> RB = FCanvas::RoundRectPoints(RX0, Y, RW, RH, 6.f);
 			const bool bGoldRow = bHov || bPv;
-			C.FillPoly(RB, bGoldRow ? Hex(TEXT("585230")) : Hex(TEXT("161022")));
+			C.FillPoly(RB, bGoldRow ? Hex(TEXT("555245")) : Hex(TEXT("130e20"))); // 시안에서 잰 색 (D-409): 선택 = 칙칙한 올리브, 보통 = 거의 검은 남보라
 			if (Fz > 0 && HandFilter < 0 && !bGoldRow) C.FillPoly(RB, WithAlpha(Gold, 0.03f + 0.08f * Fl));
 			if (Id == FeedFilterId && bOn && !bGoldRow) C.FillPoly(RB, WithAlpha(JokerPink, 0.03f + 0.08f * Fl));
-			if (bGoldRow) C.Glow(RB, PinkH, 2.f, 0.8f);
-			else if (bFilt) C.Glow(RB, HC, 1.8f, 0.7f + 0.3f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-			else C.Lines(RB, Hex(TEXT("9691a5"), 0.75f), 1.2f);
-			C.Box(RX0 + 4.f, Y + 6.f, 3.f, RH - 12.f, WithAlpha(HC, bOn || bGoldRow ? 1.f : 0.7f)); // 왼쪽 족보 색 막대
+			if (bGoldRow) { C.Glow(RB, Hex(TEXT("d7d080")), 1.6f, 0.45f); C.Lines(RB, Hex(TEXT("e6e09a")), 1.2f); } // 연한 노란 테 (얇게)
+			else if (bFilt) C.Glow(RB, HC, 1.6f, 0.6f + 0.3f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
+			else { C.Glow(RB, Hex(TEXT("78736e")), 1.1f, 0.2f); C.Lines(RB, Hex(TEXT("8c8782")), 1.1f); } // 베이지빛 회색 테
+			C.Box(RX0 + 4.f, Y + 6.f, 3.f, RH - 12.f, SrgbDim(HC, 0.55f)); // 왼쪽 족보 색 막대 (시안: 바랜 색)
 			const float NX = X0 + 10.f;
 			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수
 			FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
@@ -3858,15 +3945,14 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			FString Price;
 			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);
 			else { int32 XI = INDEX_NONE; if (Eff.FindChar(TEXT('×'), XI)) { int32 E2 = XI + 1; while (E2 < Eff.Len() && (FChar::IsDigit(Eff[E2]) || Eff[E2] == TEXT('.'))) ++E2; if (E2 > XI + 1) Price = Eff.Mid(XI, E2 - XI); } }
-			const FLinearColor PC = bHov ? HotCol(Cream) : Cream; // D-382
-			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, PriceFn).X;
-			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, PC, 12.f, 2, true);
-			const FLinearColor NameCol = bHov || bPv ? FLinearColor::White : (bOn ? Cream : WithAlpha(Cream, 0.8f));
+			Price.ReplaceInline(TEXT("×"), TEXT("x")); // 시안: 'x2.5'
+			const FLinearColor TextC = bGoldRow ? Hex(TEXT("f0eed2")) : Hex(TEXT("e4e0cd")); // 시안: 이름 · 배수는 크림색 보통 굵기 (D-409)
+			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, FCanvas::Font(12.f, false)).X;
+			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, TextC, 12.f, 2, false);
 			const float NMax = XR - NX - PrW - 44.f;
-			C.Text(Name, NX, NY + 1.f, NameCol, 11.5f, 0, true, NMax);
-			float TX = NX + FMath::Min(NMax, FCanvas::Measure(TrS(Name), NameFn).X) + 6.f;
-			if (bHand && bOn && Fz == 0) TX += PriceTag(TX, NY - 3.f, TrF(TEXT("판 %d"), Cnt), HC, false) + 4.f;
-			for (float DX = TX + 2.f; DX < XR - PrW - 5.f; DX += 5.f) C.Box(DX, NY - 1.5f, 1.3f, 1.f, WithAlpha(Cream, 0.4f)); // 점선 리더
+			C.Text(Name, NX, NY + 1.f, TextC, 11.5f, 0, false, NMax);
+			const float TX = NX + FMath::Min(NMax, FCanvas::Measure(TrS(Name), FCanvas::Font(11.5f, false)).X) + 6.f;
+			for (float DX = TX + 2.f; DX < XR - PrW - 6.f; DX += 7.f) C.Box(DX, NY - 2.f, 1.6f, 1.6f, WithAlpha(TextC, 0.7f)); // 점선 리더 (시안: 7 간격 동그란 점)
 			float TagW = 0.f;
 			if (Fz > 0 || bFilt) // 합성 버튼 (D-328 ⑤): 예전 머리글 '클릭: 그 족보 합성' 대신 줄 오른쪽 알약 버튼. 합성 중이면 '취소'
 			{
@@ -3887,13 +3973,14 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), JokerPink, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
 				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(JokerPink) : JokerPink, 9.f, true);
 			}
-			const FLinearColor DC = bHov || bPv ? Hex(TEXT("fff0c0")) : Hex(TEXT("a5a0b4")); // 설명 (Alice 시안 D-403)
-			C.Text(Eff, NX, DY, DC, 8.5f, 0, false, XR - NX - (TagW > 0.f ? TagW + 5.f : 0.f));
+			const FLinearColor DC = bGoldRow ? Hex(TEXT("cac6bb")) : Hex(TEXT("a5a0b4")); // 설명 (시안에서 잰 색, D-409)
+			FString EffS = TrS(Eff); EffS.ReplaceInline(TEXT("×"), TEXT("x")); EffS.ReplaceInline(TEXT(" · "), TEXT(" / ")); // 시안: 'x2.5 / 연사 x2.5'
+			C.Text(EffS, NX, DY, DC, 8.5f, 0, false, XR - NX - (TagW > 0.f ? TagW + 5.f : 0.f));
 		}
 	}
 	if (!bMenuBoard) return; // 조커 · 먹이기 목록은 바닥선까지 쓴다
 	const float FootY = 690.f; // 연쇄 한 줄 (Alice 시안 D-403, 무늬 줄은 뺐다: 카드에 공격 방식이 적혀 있다)
-	C.Text(TEXT("연쇄"), LX + 16.f, FootY, FLinearColor::White, 11.5f, 0, true);
+	C.Text(TEXT("연쇄"), LX + 16.f, FootY, Hex(TEXT("e4e0cd")), 11.5f, 0, true);
 	C.Text(TrF(TEXT("족보끼리 맞닿을 경우, 개당 +%d%%"), G.Has(EPDCharm::ChainLink) ? 45 : 25), LX + 48.f, FootY, Hex(TEXT("a5a0b4")), 9.f, 0, false, LW - 60.f);
 }
 
