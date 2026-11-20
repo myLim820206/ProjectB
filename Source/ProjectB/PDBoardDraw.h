@@ -1449,7 +1449,7 @@ struct SPDBoardWidget::FCanvas
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	// 둥근 광원 (D-304): 가운데서 바깥으로 매끈하게 옅어지는 타원. 꼭짓점 색으로 옅어짐을 주고 글자는 선 띠의 꽉 찬 가운데 한 점만 쓴다
 	// (예전엔 번짐 띠 무늬를 돌려 찍어서 두 겹 띠의 경계가 원판 테두리처럼 보였다). 옅어짐 = (1 - t)², 고리 8겹
-	void SoftDisc(const FVector2f& O, float Rx, float Ry, const FLinearColor& Col, float Peak)
+	void SoftDisc(const FVector2f& O, float Rx, float Ry, const FLinearColor& Col, float Peak, int32 DiscRings = 8, int32 Segs = 32) // 고리 · 조각 수 (D-448: 촘촘히 겹쳐 찍는 빛 사슬은 4 · 16 으로 가볍게)
 	{
 		if (!LineAA || Peak <= 0.f || Rx <= 0.f || Ry <= 0.f) return;
 		const FSlateBrush* Band = LineAA + LineBands - 1;
@@ -1457,7 +1457,6 @@ struct SPDBoardWidget::FCanvas
 		if (QV.Num() == 0) { QLayer = *Layer; QBrush = Band; RT = Geo.GetAccumulatedRenderTransform(); }
 		const FBox2f UV = Band->GetUVRegion();
 		const FVector2f UVc(0.5f * (UV.Min.X + UV.Max.X), 0.5f * (UV.Min.Y + UV.Max.Y));
-		constexpr int32 DiscRings = 8, Segs = 32;
 		const SlateIndex C0 = (SlateIndex)QV.Num();
 		QV.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(RT, O, UVc, PM(WithAlpha(Col, FMath::Min(1.f, Peak))).ToFColor(true)));
 		for (int32 R = 1; R <= DiscRings; ++R)
@@ -1484,18 +1483,19 @@ struct SPDBoardWidget::FCanvas
 	}
 	// 벽에 비치는 은은한 빛 (D-302): 선을 따라 둥근 광원을 반지름 절반 간격으로 촘촘히 찍는다 (넓은 띠를 꺾은선에 늘이면 각진 모서리에서 별처럼 뻗었다)
 	// Width = 빛 너비(설계 좌표), Peak = 선 위 밝기. 겹침 합 ≈ 4/3 장이라 한 장은 Peak 의 0.75배
-	void Spill(const TArray<FVector2f>& P, const FLinearColor& Col, float Width, float Peak)
+	void Spill(const TArray<FVector2f>& P, const FLinearColor& Col, float Width, float Peak, bool bLite = false)
 	{
 		if (!LineAA || Peak <= 0.f || P.Num() < 2) return;
 		const float R = Width * 0.5f, Step = R * 0.5f, A1 = Peak * 0.75f;
+		const int32 Rg = bLite ? 4 : 8, Sg = bLite ? 16 : 32; // 가벼운 빛 사슬 (D-448): 꼭짓점 257 → 65
 		float Carry = 0.f; // 다음 점까지 남은 길이 (선이 꺾여도 간격이 고르게)
-		SoftDisc(P[0], R, R, Col, A1);
+		SoftDisc(P[0], R, R, Col, A1, Rg, Sg);
 		for (int32 K = 0; K + 1 < P.Num(); ++K)
 		{
 			const FVector2f A = P[K], D = P[K + 1] - P[K];
 			const float L = D.Size();
 			float T = Step - Carry;
-			while (T <= L) { SoftDisc(A + D * (T / FMath::Max(L, 1e-4f)), R, R, Col, A1); T += Step; }
+			while (T <= L) { SoftDisc(A + D * (T / FMath::Max(L, 1e-4f)), R, R, Col, A1, Rg, Sg); T += Step; }
 			Carry = L - (T - Step);
 		}
 	}
