@@ -52,7 +52,7 @@ void SPDBoardWidget::PaintAliceTvBody(FCanvas& C) const
 		Tube({RP(1871.f, 116.f), RP(1906.f, 9.f)}, 1.9f);
 	}
 	// 배속 버튼 두 개 (D-457: 시안 확대해서 다시 맞춤): 1646 ~ 1700 · 1714 ~ 1768 × 536 ~ 604, 밝은 회색 바깥 테 + 4 안쪽 어두운 회녹 테,
-	// 'x2' 글자는 버튼 높이의 1/3 쯤 크게(가운데 553), ▶▶ 는 그 아래(571 ~ 585)
+	// 'x2' 글자는 가운데 559, ▶▶ 는 그 아래(573 ~ 588)
 	for (int32 K = 0; K < 2; ++K)
 	{
 		const float X0 = 1646.f + K * 68.f, X1 = X0 + 54.f, Cx = X0 + 27.f;
@@ -62,11 +62,12 @@ void SPDBoardWidget::PaintAliceTvBody(FCanvas& C) const
 		C.Lines(Ro, Hex(TEXT("aab4b0")), 1.4f);
 		C.Lines(RR(X0 + 4.f, 540.f, X1 - 4.f, 600.f, 3.f), Hex(TEXT("5f6e69")), 1.f);
 		const FLinearColor Tc = Hex(TEXT("aab1ae"));
-		C.TextCentered(K == 0 ? TEXT("x2") : TEXT("x4"), Cx * RefK, 554.f * RefK, Tc, 14.f, false);
+		// D-459: 시안 확대본에서 글자는 553 ~ 565 (가운데 559, 폭 20), ▶▶ 는 573 ~ 588 에 폭 9 삼각형 둘을 8 간격으로 겹쳐 폭 17
+		C.TextCentered(K == 0 ? TEXT("x2") : TEXT("x4"), Cx * RefK, 557.8f * RefK, Tc, 12.5f, true); // 시안 글자는 굵은 편
 		for (int32 J = 0; J < 2; ++J) // ▶▶
 		{
-			const float Ax = Cx - 11.f + J * 10.f;
-			C.FillPoly({RP(Ax, 569.f), RP(Ax + 11.f, 577.f), RP(Ax, 585.f)}, Tc);
+			const float Ax = Cx - 8.5f + J * 8.f;
+			C.FillPoly({RP(Ax, 573.f), RP(Ax + 9.f, 580.5f), RP(Ax, 588.f)}, Tc);
 		}
 	}
 	// 채널 다이얼 (D-458: 시안 픽셀을 각도별로 재서 다시 맞춤): 가운데 (1837, 571), 바깥 고리 34 · 안 고리 29 둘 다 거의 온 고리,
