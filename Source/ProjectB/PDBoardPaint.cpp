@@ -3117,7 +3117,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	}
 
 	// ---- 튜브 버튼 (D-381): 색 규칙 = 시작 · 이어하기 초록, 종료 분홍, 나머지 하늘색. 고른 것은 같은 색으로 밝아지고 밑에 같은 모양 빛 판, 왼쪽 하트도 그 색
-	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("게임 시작"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
+	static const TCHAR* Labels[] = {TEXT("이어하기"), TEXT("새 게임"), TEXT("영구 강화"), TEXT("잠금 해제"), TEXT("환경 설정"), TEXT("게임 종료")};
 	const bool bCanBuy = AffordableNames().Num() > 0;
 	float LastBtnBot = 0.f;
 	for (int32 I = 0; I < (int32)ETitleItem::Count; ++I)
@@ -3126,7 +3126,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		const FVector2f P = TitleBtnPos(I, bHasRunSave);
 		LastBtnBot = P.Y + TitleBtnH;
 		const bool bSel = TitleSel == I;
-		const int32 PrimaryI = bHasRunSave ? (int32)ETitleItem::Continue : (int32)ETitleItem::Start; // 초록 강조는 하나만: 이어할 판이 있으면 이어하기, 없으면 게임 시작
+		const int32 PrimaryI = bHasRunSave ? (int32)ETitleItem::Continue : (int32)ETitleItem::Start; // 초록 강조는 하나만: 이어할 판이 있으면 이어하기, 없으면 새 게임 (D-426: 예전 이름 게임 시작)
 		const FLinearColor Col = I == PrimaryI ? BtnColPrimary() : I == (int32)ETitleItem::Quit ? BtnColExit() : BtnColDefault();
 		// 네온 간판 버튼 (D-254, D-255): 불이 들어온 튜브 두 겹 (로고와 같은 흰 심 튜브)
 		TArray<FVector2f> Rr = FCanvas::RoundRectPoints(P.X, P.Y, TitleBtnW, TitleBtnH, TitleBtnH / 2.f);
