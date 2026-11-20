@@ -371,6 +371,7 @@ inline const TCHAR* UpperSpecialText(EPDUpperSpecial S)
 	case EPDUpperSpecial::Mirror: return Tr(TEXT("판 전체 피해의 무늬가 번갈아: ♥ 차례 위력 ×2, ♣ 차례 판 전체 둔화"));
 	case EPDUpperSpecial::RedQueen: return Tr(TEXT("판 위 같은 무늬 중 가장 강한 타워를 따라 함"));
 	case EPDUpperSpecial::MockTurtle: return Tr(TEXT("주변에서 가장 빠른 타워를 따라 함"));
+	case EPDUpperSpecial::Walrus: return Tr(TEXT("굴 잔치: 처치할 때마다 주변 8칸 연사 +10% (최대 +50%, 웨이브마다 처음부터)"));
 	default: return TEXT("");
 	}
 }

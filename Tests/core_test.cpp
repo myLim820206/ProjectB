@@ -1859,7 +1859,7 @@ static void JokerMergeTests()
 		}
 		for (int J = 0; J < (int)EPDJoker::Count; ++J) bOk = bOk && Per[J] == 6;
 		const bool bStarter = UpperDef(11).Special == EPDUpperSpecial::None && UpperDef(18).Special == EPDUpperSpecial::None; // 맛보기 2종은 일반 (D-333)
-		Expect(bOk && Pairs.size() == 30 && bStarter && UpperOf(EPDJoker::Clown, EPDJoker::Mask) < 0 && UpperOf(EPDJoker::Clown, EPDJoker::Clown) < 0,
+		Expect(bOk && Pairs.size() == 30 && bStarter && Star == 11 && UpperOf(EPDJoker::Clown, EPDJoker::Mask) < 0 && UpperOf(EPDJoker::Clown, EPDJoker::Clown) < 0,
 			"레시피 30개: 짝 겹침 없음 · 조커마다 6개 · 순서 무관 · 맛보기 2종은 일반 (★ " + std::to_string(Star) + "종)");
 	}
 	{ // 2. 같은 조커 둘: 위력 합 × 1.3, 조커 레벨은 높은 쪽(경험치도 그쪽), 타워 레벨 · 특성은 큰 쪽
@@ -2031,6 +2031,47 @@ static void JokerMergeTests()
 		const auto It = L.Towers.find(CellKey(0, Row));
 		const bool bSame = bLoad && It != L.Towers.end() && It->second.Joker == Before.Joker && Near(It->second.Mult, Before.Mult) && It->second.JLevel == 12 && It->second.JSuit == EPDSuit::Diamond;
 		Expect(UpperDef(U).Special == EPDUpperSpecial::QueenHearts && bSame, "하트 여왕 저장 → 불러오기: 번호 · 위력 · 조커 레벨 12 · ♦ 그대로");
+	}
+	{ // 15. 바다코끼리와 목수는 ★ (D-400): 둘 다 조커 레벨 10, 위력 × 1.5
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		const int U = UpperOf(EPDJoker::Comedy, EPDJoker::Baton);
+		PutJ(G.Towers, 0, Row, EPDJoker::Comedy, 9, 2.f); PutJ(G.Towers, 1, Row, EPDJoker::Baton, 10, 2.f);
+		Refresh(G);
+		const bool b9 = FindMerge(G.JokerMerges(), UpperBase + U) < 0;
+		G.Towers.at(CellKey(0, Row)).JLevel = 10;
+		const int I = FindMerge(G.JokerMerges(), UpperBase + U);
+		const bool bOk = I >= 0 && G.MergeJokers(I);
+		Expect(UpperDef(U).Special == EPDUpperSpecial::Walrus && b9 && bOk && Near(G.Towers.begin()->second.Mult, 4.f * UpperBonus), "바다코끼리와 목수(★): 레벨 9·10 은 안 되고 10·10 이면 위력 (2+2)×1.5");
+	}
+	{ // 16. 굴 잔치: 처치 수만큼 주변 8칸 연사 +10% (최대 5번), 주변 밖은 그대로
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 1, Row, EPDJoker::Comedy); G.Towers.at(CellKey(1, Row)).Joker = UpperBase + UpperOf(EPDJoker::Comedy, EPDJoker::Baton);
+		Put(G.Towers, 0, Row, C(9)); Put(G.Towers, 4, Row, C(3, EPDSuit::Heart));
+		auto Rate = [&](int X) { Refresh(G); return G.Towers.at(CellKey(X, Row)).Eff.Rate; };
+		const float R0 = Rate(0), Far0 = Rate(4);
+		bool bSteps = true;
+		for (int F = 1; F <= 7; ++F) { G.Towers.at(CellKey(1, Row)).Feast = std::min(F, WalrusFeastMax); bSteps = bSteps && Near(Rate(0), R0 * (1.f + WalrusFeastStep * std::min(F, WalrusFeastMax))); }
+		Expect(bSteps && Near(Rate(4), Far0) && Near(R0, 1.7f), "굴 잔치: 옆 타워 연사 ×1.7 → 처치 5번에 ×1.7×1.5, 더 처치해도 그대로, 주변 밖은 안 바뀜");
+	}
+	{ // 17. 실제 웨이브: 바다코끼리와 목수가 처치하면 쌓이고(최대 5), 웨이브가 끝나면 0 으로
+		FPDGame G = Board();
+		int JX, JY; float NearD;
+		NearPathCell(G, JX, JY, NearD);
+		PutJ(G.Towers, JX, JY, EPDJoker::Comedy, 10, 400.f); G.Towers.at(CellKey(JX, JY)).Joker = UpperBase + UpperOf(EPDJoker::Comedy, EPDJoker::Baton);
+		Refresh(G);
+		G.StartWave();
+		int MaxFeast = 0; bool bRateOk = true;
+		for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K)
+		{
+			G.Update(0.05f);
+			const auto It = G.Towers.find(CellKey(JX, JY));
+			if (It != G.Towers.end()) MaxFeast = std::max(MaxFeast, It->second.Feast);
+			bRateOk = bRateOk && (It == G.Towers.end() || It->second.Feast <= WalrusFeastMax);
+		}
+		const auto It = G.Towers.find(CellKey(JX, JY));
+		Expect(G.Phase != EPDPhase::Wave && MaxFeast == WalrusFeastMax && bRateOk && It != G.Towers.end() && It->second.Feast == 0, "웨이브 1: 굴 잔치가 " + std::to_string(MaxFeast) + "까지 쌓이고 웨이브가 끝나면 0");
 	}
 	{ // 14. 무작위 판 3,000개: 조커만 놓고 아무 합치기나 해도 규칙이 깨지지 않는다
 		std::mt19937 Rng(399);

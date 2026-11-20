@@ -332,6 +332,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("판 전체 피해의 무늬가 번갈아: ♥ 차례 위력 ×2, ♣ 차례 판 전체 둔화"), TEXT("Board-wide hits cycle suits: ♥ turn power ×2, ♣ turn slows the whole board"), TEXT("盤面全体攻撃のスートが交代: ♥ の番は威力 ×2、♣ の番は盤面全体を減速"), TEXT("全场伤害的花色轮换: ♥ 轮威力 ×2，♣ 轮全场减速"), TEXT("全場傷害的花色輪換: ♥ 輪威力 ×2，♣ 輪全場減速")},
 	{TEXT("판 위 같은 무늬 중 가장 강한 타워를 따라 함"), TEXT("Copies the strongest tower of the same suit on the board"), TEXT("盤面の同じスートで最も強いタワーをまねる"), TEXT("模仿场上同花色中最强的塔"), TEXT("模仿場上同花色中最強的塔")},
 	{TEXT("주변에서 가장 빠른 타워를 따라 함"), TEXT("Copies the fastest tower nearby"), TEXT("周囲で最も速いタワーをまねる"), TEXT("模仿周围最快的塔"), TEXT("模仿周圍最快的塔")},
+	{TEXT("굴 잔치: 처치할 때마다 주변 8칸 연사 +10% (최대 +50%, 웨이브마다 처음부터)"), TEXT("Oyster Feast: each kill adds +10% to fire rate in the 8 cells around (max +50%, resets every wave)"), TEXT("牡蠣の宴：倒すたびに周囲8マスの連射 +10%（最大 +50%、ウェーブごとにリセット）"), TEXT("牡蛎盛宴：每次击杀使周围8格射速 +10%（最多 +50%，每波重置）"), TEXT("牡蠣盛宴：每次擊殺使周圍8格射速 +10%（最多 +50%，每波重置）")},
 	{TEXT("광대"), TEXT("Jester"), TEXT("道化師"), TEXT("小丑"), TEXT("小丑")},
 	{TEXT("모자 장수"), TEXT("Hatter"), TEXT("帽子屋"), TEXT("帽匠"), TEXT("帽匠")},
 	{TEXT("웃는 가면"), TEXT("Smiling Mask"), TEXT("笑う仮面"), TEXT("笑面具"), TEXT("笑面具")},
@@ -1021,4 +1022,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 };
-static const int32 PDLangRowCount = 1020;
+static const int32 PDLangRowCount = 1021;

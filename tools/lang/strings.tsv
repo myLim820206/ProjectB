@@ -331,6 +331,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 판 전체 피해의 무늬가 번갈아: ♥ 차례 위력 ×2, ♣ 차례 판 전체 둔화	Board-wide hits cycle suits: ♥ turn power ×2, ♣ turn slows the whole board	盤面全体攻撃のスートが交代: ♥ の番は威力 ×2、♣ の番は盤面全体を減速	全场伤害的花色轮换: ♥ 轮威力 ×2，♣ 轮全场减速	全場傷害的花色輪換: ♥ 輪威力 ×2，♣ 輪全場減速	PDBoardDraw.h
 판 위 같은 무늬 중 가장 강한 타워를 따라 함	Copies the strongest tower of the same suit on the board	盤面の同じスートで最も強いタワーをまねる	模仿场上同花色中最强的塔	模仿場上同花色中最強的塔	PDBoardDraw.h
 주변에서 가장 빠른 타워를 따라 함	Copies the fastest tower nearby	周囲で最も速いタワーをまねる	模仿周围最快的塔	模仿周圍最快的塔	PDBoardDraw.h
+굴 잔치: 처치할 때마다 주변 8칸 연사 +10% (최대 +50%, 웨이브마다 처음부터)	Oyster Feast: each kill adds +10% to fire rate in the 8 cells around (max +50%, resets every wave)	牡蠣の宴：倒すたびに周囲8マスの連射 +10%（最大 +50%、ウェーブごとにリセット）	牡蛎盛宴：每次击杀使周围8格射速 +10%（最多 +50%，每波重置）	牡蠣盛宴：每次擊殺使周圍8格射速 +10%（最多 +50%，每波重置）	PDBoardDraw.h
 광대	Jester	道化師	小丑	小丑	PDBoardDraw.h
 모자 장수	Hatter	帽子屋	帽匠	帽匠	PDBoardDraw.h
 웃는 가면	Smiling Mask	笑う仮面	笑面具	笑面具	PDBoardDraw.h

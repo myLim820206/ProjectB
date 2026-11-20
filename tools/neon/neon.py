@@ -799,6 +799,18 @@ def jk_star(cx, cy, R):             # 스타: 큰 별 혜성
     return suit('wild')(cx + R * .4, cy, R * .3) + [[(cx + R * .15, cy + d * R * .1), (cx - R, cy + d * R * .25)] for d in (-1, 0, 1)]
 
 
+def oyster(cx, cy, R):              # 바다코끼리와 목수(★) 연출 소품 (D-400): 벌어진 굴 껍데기 + 진주
+    bowl = [(cx + math.cos(math.pi * k / 12) * R, cy + math.sin(math.pi * k / 12) * R * .5) for k in range(13)]
+    a = math.radians(32)             # 뚜껑: 오른쪽 경첩에서 위로 살짝 열림 (껍데기와 같은 크기, 낮은 돔)
+    lid = []
+    for k in range(13):
+        b = math.pi * k / 12
+        x, y = -R + math.cos(b) * R, -math.sin(b) * R * .3
+        lid.append((cx + R + x * math.cos(a) - y * math.sin(a), cy + x * math.sin(a) + y * math.cos(a)))
+    ribs = [[(cx + d * R * .45, cy + R * .2), (cx + d * R * .5, cy + R * .4)] for d in (-1, 1)]
+    return [bowl + [bowl[0]], lid] + ribs + [circle(cx, cy - R * .08, R * .2, 14)]
+
+
 SHOTS_LEVEL = [(level_shot(k, lv), k if k != 'wild' else 'white') for k in ['spade', 'heart', 'diamond', 'club', 'wild'] for lv in range(1, 5)]
 SHOTS_LEVEL = [SHOTS_LEVEL[k * 4 + lv] for lv in range(4) for k in range(5)]  # 줄 = 레벨, 칸 = 무늬
 SHOTS_HAND = [(hand_arrows, 'cyan'), (hand_arc, 'pink'), (hand_cluster, 'orange'), (hand_shell, 'red'), (hand_comet, 'pink'), (hand_nova, 'gold'), (hand_crown, 'white')]
@@ -810,6 +822,7 @@ SHAPES = {
     'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
+    'oyster': [(oyster, 'ice')],   # 바다코끼리와 목수 연출 소품 (D-400)
     # 무늬 색 줄이기 비교 (줄마다): 지금 4색 / 2색 (♥♦ 빨강, ♠♣ 흰빛, 와일드 금색)
     'suitcolors': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white'),
                    (tower('spade', '9'), 'ice'), (tower('heart', 'A'), 'red'), (tower('diamond', '10'), 'red'), (tower('club', 'K'), 'ice'), (tower('wild', ''), 'gold')],

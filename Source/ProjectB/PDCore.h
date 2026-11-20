@@ -235,6 +235,7 @@ struct FPDTower
 	int JLevel = 1;                 // 조커 레벨 (족보 먹이기·처치 경험치로 오름, 최대 JokerMaxLevel)
 	float StunT = 0.f;              // 파괴자 보스에게 기절한 남은 시간 (D-112)
 	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
+	int Feast = 0;                  // 바다코끼리와 목수: 이번 웨이브에 처치한 수 (굴 잔치, 최대 WalrusFeastMax, D-400). 웨이브가 끝나면 0 이라 저장하지 않는다
 	bool IsJoker() const { return Joker >= 0; }
 };
 // 조커 레벨 (D-098): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +15% (D-191), 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
@@ -274,7 +275,9 @@ struct FPDJokerMerge
 constexpr int UpperBase = 10, UpperJokerCount = 30;
 constexpr int UpperNeedLevel = 10, UpperNeedLevelTip = 5;
 constexpr float UpperBonus = 1.5f, UpperBonusPlain = 1.3f, UpperTipBonus = 0.25f; // ★ 대표 11종 ×1.5, 일반 19종 ×1.3 (D-333)
-enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle };
+enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle, Walrus };
+constexpr int WalrusFeastMax = 5;          // 바다코끼리와 목수 '굴 잔치' (D-400): 처치할 때마다 주변 연사 +10%, 최대 5번, 웨이브마다 초기화
+constexpr float WalrusFeastStep = 0.1f;
 struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
 int UpperPrice(int U);                       // 잠금 해제 값 (D-241 → D-320): (300 + 재료 둘 값의 평균) / 2, 50 단위 → 150~400. 재료 조커가 둘 다 열려 있어야 살 수 있다

@@ -141,7 +141,7 @@ static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Mask, EPDJoker::Jack, EPDUpperSpecial::None},           // 그리핀
 	{EPDJoker::Mask, EPDJoker::Cheshire, EPDUpperSpecial::GrinOnly},   // 웃음만 남은 고양이: 판 전체에서 가장 강한 타워를 따라 함
 	{EPDJoker::Comedy, EPDJoker::Harlequin, EPDUpperSpecial::None},    // 하얀 여왕
-	{EPDJoker::Comedy, EPDJoker::Baton, EPDUpperSpecial::None},        // 바다코끼리와 목수
+	{EPDJoker::Comedy, EPDJoker::Baton, EPDUpperSpecial::Walrus},      // 바다코끼리와 목수: 굴 잔치 — 처치할 때마다 주변 연사 +10% (최대 +50%, 웨이브마다 초기화, D-400)
 	{EPDJoker::Comedy, EPDJoker::Jack, EPDUpperSpecial::None},         // 하얀 기사
 	{EPDJoker::Comedy, EPDJoker::Star, EPDUpperSpecial::None},         // 말하는 꽃들
 	{EPDJoker::Harlequin, EPDJoker::Jack, EPDUpperSpecial::QueenHearts}, // 하트 여왕: 체력 15% 이하 즉시 처치 (보스 제외)
@@ -674,7 +674,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, c
 			const bool bUp = Tm.Up(J); // 트리 조커 강화 또는 조커 레벨 10+
 			const int Reach = (JokerHas(Kind, EPDJoker::Hatter) && bUp) ? 2 : 1;
 			const bool bNear = std::abs(O.X - J.X) <= Reach && std::abs(O.Y - J.Y) <= Reach; // 주변 8칸 (강화한 모자 장수는 24칸)
-			if (JokerHas(Kind, EPDJoker::Baton) && bNear) O.Eff.Rate *= Sp == EPDUpperSpecial::Dormouse ? 1.8f : bUp ? 1.7f : 1.4f;
+			if (JokerHas(Kind, EPDJoker::Baton) && bNear) O.Eff.Rate *= (Sp == EPDUpperSpecial::Dormouse ? 1.8f : bUp ? 1.7f : 1.4f) * (Sp == EPDUpperSpecial::Walrus ? 1.f + WalrusFeastStep * J.Feast : 1.f); // 굴 잔치 (D-400)
 			if (JokerHas(Kind, EPDJoker::Hatter) && bNear) { O.Eff.Dmg *= bUp ? 1.5f : 1.25f; O.Eff.Range *= Sp == EPDUpperSpecial::MadTea ? 30.f : 1.1f; } // 미친 다과회: 주변 사거리 무한
 			if (JokerHas(Kind, EPDJoker::Harlequin) && !O.Card.IsWild() && O.Card.Suit == J.JSuit) O.Eff.Dmg *= bUp ? 1.6f : 1.3f;
 			const bool bCopyable = Sp == EPDUpperSpecial::RedQueen ? (!O.Card.IsWild() && O.Card.Suit == J.JSuit) : (bNear || Sp == EPDUpperSpecial::GrinOnly); // 붉은 여왕: 판 위 같은 무늬, 웃음만 남은 고양이: 판 전체
@@ -1407,6 +1407,9 @@ void FPDGame::EndWave()
 {
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	RestoreSuits(); // 딜러가 바꾼 무늬 · 칩 더미는 웨이브가 끝나면 원래대로 (D-334)
+	bool bFeast = false; // 굴 잔치는 웨이브마다 처음부터 (D-400)
+	for (auto& KV : Towers) if (KV.second.Feast) { KV.second.Feast = 0; bFeast = true; }
+	if (bFeast) Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 	int Got = 0;
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.DrawAdd, &Got);
 	AddXp((5.f + Wave) * (Has(EPDCharm::Sweeper) ? 2.f : 1.f)); // 웨이브 통과 덤 (청소부 ×2, D-234)
@@ -2303,6 +2306,12 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	{
 		auto It = Towers.find(HitSrc);
 		if (It != Towers.end() && It->second.IsJoker()) GainJokerXp(HitSrc, EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp);
+		It = Towers.find(HitSrc); // 굴 잔치 (D-400): 바다코끼리와 목수가 처치하면 주변 연사가 쌓인다
+		if (It != Towers.end() && JokerSpecial(It->second.Joker) == EPDUpperSpecial::Walrus && It->second.Feast < WalrusFeastMax)
+		{
+			It->second.Feast++;
+			bReapply = true; // 효과는 다음 갱신 처음에 (타워를 도는 중일 수 있어서, 조커 레벨업과 같게)
+		}
 	}
 	const FPDPoint P = Path.At(E.D);
 	FPDEvent K;
