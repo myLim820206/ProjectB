@@ -28,10 +28,10 @@ void SPDBoardWidget::PaintTv(FCanvas& C) const
 	const float TvFl = 0.9f + 0.06f * FMath::Sin(Clock * 7.3f) + 0.04f * FMath::Sin(Clock * 23.1f);
 	const FLinearColor TvLight = Hex(TEXT("9cc6ff"));
 	const float SX = TvScrX, SY = TvScrY, SW = TvScrW, SH = TvScrH;
-	if (const FSlateBrush* TvArt = Art(EUiArt::Tv)) // D-408: 안테나 · 몸통 · 테 · 배속 버튼 · 다이얼 · 스피커는 시안 그림 그대로 (화면 안쪽만 비워 둔 그림)
+	if (true) // D-456: 예전 시안 그림 조각(tv.png) 대신 코드 네온 (PDBoardAlicePanel.cpp). D-408: 안테나 · 몸통 · 테 · 배속 버튼 · 다이얼 · 스피커는 시안 그림 그대로 (화면 안쪽만 비워 둔 그림)
 	{
-		C.FillPoly(FCanvas::RoundRectPoints(RX + 2.f, TvY + 2.f, PW - 4.f, TvH - 4.f, 14.f), Hex(TEXT("06091a"))); // 그림 뒤를 시안 바탕색으로 막는다 (D-413: 뒤가 비쳤다)
-		C.Image(C.NextLayer(), TvArt, 1034.2f, 0.f, 242.6f, 404.5f, FLinearColor::White);
+		// (D-456: 몸통을 코드로 그려 뒤 막기는 필요 없다) // 그림 뒤를 시안 바탕색으로 막는다 (D-413: 뒤가 비쳤다)
+		PaintAliceTvBody(C);
 		C.Box(SX + 2.f, SY + 2.f, SW - 4.f, SH - 4.f, Hex(TEXT("070f14"), 1.f)); // 화면 (불투명, 주사선 · 지직 점은 아래에서)
 		C.SoftDisc(FVector2f(SX + SW * 0.5f, SY + SH * 0.5f), SW * 0.55f, SH * 0.55f, TvLight, 0.12f * TvFl);
 		for (int32 K = 0; K < 2; ++K) // 고른 배속 · 마우스만 옅게 표시 (그림 위)

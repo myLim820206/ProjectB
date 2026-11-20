@@ -2125,15 +2125,15 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 
 	// ---- 오른쪽 아래 (D-414): 위아래 네온 줄 · 칵테일 칸 · 스킬 · 시작 버튼은 시안 그림 그대로 (한국어면 글자까지, 다른 언어는 글자를 지운 그림 + 번역 글자).
 	// 그림 위에 잔 다섯(가진 만큼 켜짐) · 'N웨이브 후 획득' · 포인트 꼬리표 · 마우스 · 웨이브 중 표시를 코드로
-	const bool bKoArt = GPDLang == (int32)EPDLang::Ko;
-	const FSlateBrush* RPArt = Art(bKoArt ? EUiArt::RPanelKo : EUiArt::RPanel);
+	const bool bKoArt = GPDLang == (int32)EPDLang::Ko; (void)bKoArt;
+	const bool RPArt = true; // D-456: 예전 시안 그림 조각(rpanel.png) 대신 코드 네온 (PDBoardAlicePanel.cpp)
 	if (RPArt)
 	{
 		constexpr float AX = 1035.5f, AY = 404.5f, AW = 239.4f, AH = 309.1f; // 시안 (1618, 632) ~ (1992, 1115) × 0.64
-		C.Box(AX, AY, AW, AH, Hex(TEXT("0a141d"))); // 그림을 자른 바탕색(가장자리 중앙값 0a 14 1d) 위에 찍어야 시안 색 그대로 나온다
-		C.Image(C.NextLayer(), RPArt, AX, AY, AW, AH, FLinearColor::White);
+		(void)AX; (void)AY; (void)AW; (void)AH;
+		PaintAliceRPanel(C);
 		const FLinearColor Head = Hex(TEXT("f0e2be")), GrT = Hex(TEXT("82f08c")), Tx = Hex(TEXT("82cdff"));
-		if (!bKoArt) // 다른 언어: 글자 자리를 지운 그림 위에 번역 글자
+		// 글자는 언제나 코드로 (D-456)
 		{
 			C.TextCentered(Tr(TEXT("칵테일")), 1153.3f, 441.6f, Head, 14.f, true);
 			C.TextCentered(Tr(TEXT("스 킬")), 1161.6f, 599.7f, Tx, 22.f, true, 150.f);
@@ -2178,19 +2178,9 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		// 시작: 준비 중이면 그림 그대로 (+ 마우스 · 자동 시작), 웨이브 중이면 글자를 지운 그림을 어둡게 + '웨이브 N 진행 중'
 		{
 			const bool bBuild = G.Phase == EPDPhase::Build, bHov = InRect(Mouse, RBtnX, StartBtnY, RBtnW, StartBtnH);
-			constexpr float SY0 = 353.f / 483.f; // 그림 안 시작 버튼 자리 (시안 y 985 ~ 1115)
-			const float BY = AY + AH * SY0, BH = AH * (1.f - SY0);
-			if (!bBuild || !bKoArt)
-				if (const FSlateBrush* Blank = Art(EUiArt::RPanel))
-				{
-					FSlateBrush Sub = *Blank;
-					Sub.SetUVRegion(FBox2f(FVector2f(0.f, SY0), FVector2f(1.f, 1.f)));
-					C.Box(AX, BY, AW, BH, Hex(TEXT("0a141d"))); // 밑의 '시 작' 이 비치지 않게 그림을 자른 바탕색으로 먼저 덮는다 (D-425)
-					C.Image(C.NextLayer(), &Sub, AX, BY, AW, BH, FLinearColor::White);
-				}
 			if (bBuild)
 			{
-				if (!bKoArt) C.TextCentered(Tr(TEXT("시 작")), 1164.8f, 672.f, GrT, 36.f, true, 150.f);
+				C.TextCentered(Tr(TEXT("시 작")), 1164.8f, 672.f, GrT, 36.f, true, 150.f);
 				if (bHov) C.Box(RX + 3.f, StartBtnY + 3.f, PW - 6.f, StartBtnH - 6.f, FLinearColor(0.7f, 1.f, 0.7f, 0.07f));
 				if (G.AutoStartT >= 0.f)
 				{

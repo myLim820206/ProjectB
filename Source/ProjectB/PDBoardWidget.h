@@ -382,6 +382,8 @@ private:
 	float TvTitleAt = -10.f;                 // 제목이 바뀐 때 (한 글자씩 찍힘)
 	void TvDial();
 	void PaintTv(FCanvas& C) const;
+	void PaintAliceTvBody(FCanvas& C) const; // TV 몸통 · 안테나 · 배속 버튼 · 다이얼 · 스피커 (D-456, 예전 tv.png)
+	void PaintAliceRPanel(FCanvas& C) const;  // 오른쪽 아래 줄 · 칵테일 칸 · 스킬 · 시작 버튼 (D-456, 예전 rpanel.png)
 	void PaintJukebox(FCanvas& C) const;     // 주크박스 간판 (D-319): 예전 남은 적 간판 자리
 	// 완성 연출 (D-314, D-315): 합성 · 조커 · 상위 조커 · 조커 레벨 10 · 같은 조커 합치기 · 상위 조커 레벨 10마다. 도는 동안 게임은 멈추고, 클릭하면 바로 건너뛴다
 	enum class ECine : uint8 { Fuse, Joker, Upper, JokerLv, Merge, UpperLv };
