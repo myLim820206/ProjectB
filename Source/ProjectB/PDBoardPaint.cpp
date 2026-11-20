@@ -3850,11 +3850,11 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	for (const FPDSynergy& S : G.Synergies) ++Count[(int)S.Kind];
 	const float PH = DesignH - 1.f - HandPanelY; // 화면 아래까지 (Alice 시안 D-403: 10 ~ 709)
 	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
-	const FLinearColor Lav = Hex(TEXT("be73ff"));
 	// Alice 시안 (D-403): 보랏빛 세로 그라데이션 판 + 연보라 테, 맨 위 BAR Alice 로고(시안 그림 조각) + 금색 '족보 메뉴'
 	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f)); // 시안 패널 안쪽에서 잰 sRGB 10 0a 20 → 0b 07 1a (D-405)
-	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), WithAlpha(Lav, 0.9f), 1.8f, 0.3f); // 번짐이 판 안을 보랏빛으로 물들이지 않게 (D-405)
-	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
+	// 판 테 (D-460: 시안에서 잰 색): 차분한 연보라 심 6f5788 + 양쪽으로 넓게 번지는 보랏빛 (시안은 안쪽도 10 쯤 은은하게 물든다)
+	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), Hex(TEXT("7854a8")), 5.f, 1.f);
+	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), Hex(TEXT("78609a")), 1.1f);
 	{ // 맨 위 BAR Alice 로고 (D-453, 사용자): 시안 그림 조각 대신 시작 화면과 같은 간판(따라 그린 획)을 작게. 예전 그림 칸(20.5, 17.3, 94.7 × 36.5) 가운데에 높이 맞춤
 		static const float AllOn[PDLogo::ScriptLetters > PDLogo::BlockLetters ? PDLogo::ScriptLetters : PDLogo::BlockLetters] = {1.f, 1.f, 1.f, 1.f, 1.f};
 		constexpr float LogoH = 40.f, LogoW = LogoH * PDTitleLogo::SrcW / PDTitleLogo::SrcH;
@@ -3863,7 +3863,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	}
 	if (bMenuBoard)
 	{
-		const FLinearColor TitleGold = Hex(TEXT("f0e28c")); // 시안: 연한 금빛 (D-409)
+		const FLinearColor TitleGold = Hex(TEXT("e4de94")); // 시안: 연한 금빛 (D-409, D-460 다시 잼)
 		C.SoftDisc(FVector2f(LX + LW / 2.f + 4.f, 66.f), 70.f, 18.f, TitleGold, 0.12f);
 		C.TextCentered(TEXT("족보 메뉴"), LX + LW / 2.f + 4.f, 66.f, TitleGold, 24.f, true);
 	}
@@ -4016,8 +4016,13 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			const float GY = HandMenuTop(HandMenuOrder[FirstSlot]) - 19.f; // 머리글 104 · 374 · 568 (Alice 시안 D-403)
 			const FString GN = Tr(GroupName[Gp]);
 			const float GW = FCanvas::Measure(GN, FCanvas::Font(13.f, false)).X, CX = LX + LW / 2.f + 1.f;
-			C.TextCentered(GN, CX, GY, Hex(TEXT("e6e2c8")), 13.f, false); // 시안: 크림색 보통 굵기 (D-409)
-			for (const float Sg : {-1.f, 1.f}) C.Glow({FVector2f(CX + Sg * (GW / 2.f + 10.f), GY), FVector2f(CX + Sg * 100.f, GY)}, Hex(TEXT("a08c50")), 1.6f, 0.25f);
+			C.TextCentered(GN, CX, GY, Hex(TEXT("dddbca")), 13.f, false); // 시안: 크림색 보통 굵기 (D-409)
+			for (const float Sg : {-1.f, 1.f}) // 양옆 선 (D-460): 칙칙한 올리브 심 + 은은한 번짐
+			{
+				const TArray<FVector2f> GL = {FVector2f(CX + Sg * (GW / 2.f + 10.f), GY), FVector2f(CX + Sg * 100.f, GY)};
+				C.Glow(GL, Hex(TEXT("6a5f40")), 3.2f, 1.f);
+				C.Lines(GL, Hex(TEXT("534e3e")), 1.2f);
+			}
 		}
 		for (int32 Slot = 0; Slot < HandRowsN; ++Slot)
 		{
@@ -4035,12 +4040,12 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			const float RX0 = LX + 12.f, RW = LW - 22.f, RH = HandMenuRowH - 6.4f;
 			const TArray<FVector2f> RB = FCanvas::RoundRectPoints(RX0, Y, RW, RH, 6.f);
 			const bool bGoldRow = bHov || bPv;
-			C.FillPoly(RB, bGoldRow ? Hex(TEXT("555245")) : Hex(TEXT("130e20"))); // 시안에서 잰 색 (D-409): 선택 = 칙칙한 올리브, 보통 = 거의 검은 남보라
+			C.FillPoly(RB, bGoldRow ? Hex(TEXT("555245")) : Hex(TEXT("0d081c"))); // 시안에서 잰 색 (D-409, D-460): 선택 = 칙칙한 올리브, 보통 = 거의 검은 남보라
 			if (Fz > 0 && HandFilter < 0 && !bGoldRow) C.FillPoly(RB, WithAlpha(Gold, 0.03f + 0.08f * Fl));
 			if (Id == FeedFilterId && bOn && !bGoldRow) C.FillPoly(RB, WithAlpha(JokerPink, 0.03f + 0.08f * Fl));
 			if (bGoldRow) { C.Glow(RB, Hex(TEXT("d7d080")), 1.6f, 0.45f); C.Lines(RB, Hex(TEXT("e6e09a")), 1.2f); } // 연한 노란 테 (얇게)
 			else if (bFilt) C.Glow(RB, HC, 1.6f, 0.6f + 0.3f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
-			else { C.Glow(RB, Hex(TEXT("78736e")), 1.1f, 0.2f); C.Lines(RB, Hex(TEXT("8c8782")), 1.1f); } // 베이지빛 회색 테
+			else { C.Glow(RB, Hex(TEXT("4c4756")), 3.2f, 1.f); C.Lines(RB, Hex(TEXT("67626f")), 1.f); } // 회보라 테 + 은은한 네온 번짐 (D-460: 시안 심 504b58 ~ 686373, 번짐 3 쯤)
 			C.Box(RX0 + 4.f, Y + 6.f, 3.f, RH - 12.f, SrgbDim(HC, 0.55f)); // 왼쪽 족보 색 막대 (시안: 바랜 색)
 			const float NX = X0 + 10.f;
 			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수
@@ -4052,7 +4057,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);
 			else { int32 XI = INDEX_NONE; if (Eff.FindChar(TEXT('×'), XI)) { int32 E2 = XI + 1; while (E2 < Eff.Len() && (FChar::IsDigit(Eff[E2]) || Eff[E2] == TEXT('.'))) ++E2; if (E2 > XI + 1) Price = Eff.Mid(XI, E2 - XI); } }
 			Price.ReplaceInline(TEXT("×"), TEXT("x")); // 시안: 'x2.5'
-			const FLinearColor TextC = bGoldRow ? Hex(TEXT("f0eed2")) : Hex(TEXT("e4e0cd")); // 시안: 이름 · 배수는 크림색 보통 굵기 (D-409)
+			const FLinearColor TextC = bGoldRow ? Hex(TEXT("f0eed2")) : Hex(TEXT("c2bfb4")); // 시안: 이름 · 배수는 차분한 회크림 보통 굵기 (D-409, D-460)
 			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, FCanvas::Font(12.f, false)).X;
 			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, TextC, 12.f, 2, false);
 			const float NMax = XR - NX - PrW - 44.f;
@@ -4079,7 +4084,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), JokerPink, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
 				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(JokerPink) : JokerPink, 9.f, true);
 			}
-			const FLinearColor DC = bGoldRow ? Hex(TEXT("cac6bb")) : Hex(TEXT("a5a0b4")); // 설명 (시안에서 잰 색, D-409)
+			const FLinearColor DC = bGoldRow ? Hex(TEXT("cac6bb")) : Hex(TEXT("948ea2")); // 설명 (시안에서 잰 색, D-409, D-460)
 			FString EffS = TrS(Eff); EffS.ReplaceInline(TEXT("×"), TEXT("x")); EffS.ReplaceInline(TEXT(" · "), TEXT(" / ")); // 시안: 'x2.5 / 연사 x2.5'
 			C.Text(EffS, NX, DY, DC, 8.5f, 0, false, XR - NX - (TagW > 0.f ? TagW + 5.f : 0.f));
 		}
