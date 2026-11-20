@@ -214,6 +214,89 @@ def merge(strokes, gap=10.0):
     return S
 
 
+def unit(v):
+    n = math.hypot(*v)
+    return (v[0] / n, v[1] / n) if n > 1e-6 else (0.0, 0.0)
+
+
+def merge_collinear(strokes, gap, k=6, cos_min=0.85):
+    """곧게 이어지는 끝끼리 잇기 (D-434): 두 끝이 gap 안에 있고, 두 선의 방향과 끝을 잇는 방향이 모두 거의 같으면 한 줄로.
+    교차점에서 깎기가 선을 끊어, 사선이 가로획을 지나 이어지는 곳(A 왼쪽 다리)이 18px 떨어져 따로 끝나던 것"""
+    S = [list(x) for x in strokes]
+    def d(a, b): return unit((b[0] - a[0], b[1] - a[1]))
+    def dot(u, v): return u[0] * v[0] + u[1] * v[1]
+    changed = True
+    while changed:
+        changed = False
+        best = None
+        for i in range(len(S)):
+            for j in range(len(S)):
+                if i == j or len(S[i]) <= k or len(S[j]) <= k: continue
+                for ri in (False, True):
+                    for rj in (False, True):
+                        A = S[i][::-1] if ri else S[i]
+                        B = S[j][::-1] if rj else S[j]
+                        g = math.dist(A[-1], B[0])
+                        if g > gap or g < 1e-6: continue
+                        vA, vB, vAB = d(A[-1 - k], A[-1]), d(B[0], B[k]), d(A[-1], B[0])
+                        c = dot(vA, vB) if min(dot(vA, vAB), dot(vAB, vB)) >= 0.6 else -1.0  # 두 선은 거의 같은 방향, 잇는 방향은 조금 비껴도 됨 (교차점에서 끊긴 자리는 비껴 있다)
+                        if c >= cos_min and (best is None or g < best[0]): best = (g, i, j, ri, rj)
+        if best:
+            _, i, j, ri, rj = best
+            A = S[i][::-1] if ri else S[i]
+            B = S[j][::-1] if rj else S[j]
+            S[i] = A + B
+            S.pop(j)
+            changed = True
+    return S
+
+
+def straighten_junctions(strokes, tol, m=6, win=14):
+    """교차점에서 곧게 잇기 (D-434): 선 A 의 끝이 선 B 의 가운데에 닿으면, B 를 닿는 둘레(±win 점)에서 A 의 방향과 가장 곧게
+    이어지는 점에서 둘로 나누고, A 와 곧게 이어지는 조각을 A 에 붙인다. A 의 사선이 B 의 가로획을 지나 이어지는 글자(A 왼쪽 다리)가
+    교차점에서 꺾여 따로 떨어지던 것. 점들은 촘촘해야 한다 (2px)"""
+    S = [list(x) for x in strokes]
+    changed = True
+    guard = 0
+    while changed and guard < 50:
+        changed = False; guard += 1
+        for ai in range(len(S)):
+            A = S[ai]
+            if len(A) < m + 2: continue
+            for end in (0, 1):
+                E = A[0] if end == 0 else A[-1]
+                inner = A[min(m, len(A) - 1)] if end == 0 else A[max(0, len(A) - 1 - m)]
+                vA = unit((E[0] - inner[0], E[1] - inner[1]))  # 끝으로 들어가는 방향
+                best = None
+                for bi in range(len(S)):
+                    if bi == ai: continue
+                    B = S[bi]
+                    if len(B) < 2 * m + 2: continue
+                    dists = [math.dist(E, q) for q in B]
+                    k0 = min(range(len(B)), key=lambda q: dists[q])
+                    if dists[k0] > tol or k0 < m or k0 > len(B) - 1 - m: continue  # B 의 끝 근처는 잇기(merge) 몫
+                    for k in range(max(m, k0 - win), min(len(B) - 1 - m, k0 + win) + 1):
+                        if dists[k] > tol * 2.2: continue
+                        v_in = unit((B[k][0] - B[k - m][0], B[k][1] - B[k - m][1]))   # B 앞 조각이 k 로 들어오는 방향
+                        v_out = unit((B[k + m][0] - B[k][0], B[k + m][1] - B[k][1]))  # B 뒤 조각이 k 에서 나가는 방향
+                        # A 가 k 에 들어와 곧게 이어지는 조각: 뒤 조각(같은 방향 v_out) 또는 앞 조각을 거꾸로(-v_in)
+                        for piece, c in (('after', vA[0] * v_out[0] + vA[1] * v_out[1]), ('before', -(vA[0] * v_in[0] + vA[1] * v_in[1]))):
+                            score = c - dists[k] / (tol * 6)
+                            if c > 0.8 and (best is None or score > best[0]): best = (score, bi, k, piece)
+                if best is None: continue
+                _, bi, k, piece = best
+                B = S[bi]
+                before, after = B[:k + 1], B[k:]
+                Ar = A if end == 1 else A[::-1]  # 끝이 맨 뒤로 오게
+                if piece == 'after': joined, rest = Ar + after, before
+                else: joined, rest = Ar + before[::-1], after
+                S[ai] = joined; S[bi] = rest
+                changed = True
+                break
+            if changed: break
+    return S
+
+
 def nearest_on(P, q):
     """꺾은선 P 위에서 q 와 가장 가까운 점과 거리"""
     best, bd = None, 1e9
@@ -306,6 +389,9 @@ def main():
         # 필기체(분홍)는 정말 뾰족한 곳(A 꼭대기)만 모서리, 더 넓게 편다. BAR · 잔은 각진 모서리를 남긴다 (D-433: 급한 곡선을 모서리로 오인해 꺾임이 생겼다)
         kw = dict(corner_deg=120.0, sigma=7.0) if col == 'pink' else dict(corner_deg=55.0, sigma=5.0)
         strokes = [smooth_keep_corners(smooth_keep_corners(s, **kw), **kw) for s in strokes]  # 두 번 펴기
+        strokes = merge_collinear(strokes, max(10.0, wds[col] * 2.0))
+        strokes = straighten_junctions(strokes, max(8.0, wds[col] * 1.6))
+        strokes = [smooth_keep_corners(s, **kw) for s in strokes]  # 이은 자리도 매끈하게
         strokes = [rdp(s, 0.2) for s in strokes]  # 점은 촘촘히 (짧은 직선으로 각지지 않게)
         strokes = [s for s in strokes if min(x for x, y in s) > 20]  # 원본 왼쪽 가장자리의 회색 점(화면 조각) 빼기
         snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
