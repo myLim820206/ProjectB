@@ -2979,6 +2979,69 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 
 // 시작 화면 (D-153 → D-253 대문 시안 B, D-309 바 앨리스): 벽돌 벽에 바 앨리스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
 // 로고는 손으로 그린 네온 선 (PDLogo.h). 켜질 때 글자마다 지직, 그 뒤 몇 초마다 한 글자 옆에서 '빠직' 불티 + 그 글자 깜빡
+// BAR Alice 간판 (D-440 ~ D-452, D-453 에서 함수로): 따라 그린 Alice · 잔 획(PDTitleLogo.inl) + 예전 블록 글자 BAR.
+// TX, TY = 원본 그림(1139 × 546)의 왼쪽 위, TW = 그릴 너비. NB · PB · CB = 글자 묶음 밝기(깜빡임). Wall = 벽빛 세기 (시작 화면 1, 인게임 0)
+// 관 굵기 · 번짐은 너비에 비례 (시작 화면 580 기준)
+void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB, float Wall)
+{
+	const float K = TW / PDTitleLogo::SrcW, Sc = TW / 580.f;
+	static const TCHAR* Edge[3] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714")}; // 원본에서 잰 관 바깥 테
+	static const TCHAR* Core[3] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5")}; // 관 가운데 파스텔
+	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
+	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
+	{
+		C.Spill(Pts, Gc, Th * 11.f, 0.16f * B, true);
+		C.Spill(Pts, Gc, Th * 5.f, 0.55f * B, true);
+		C.Lines(Pts, Gc, Th * 1.0f);
+	};
+	auto WallSpill = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, float A1, float A2)
+	{
+		if (Wall <= 0.f || B <= 0.25f) return;
+		const float ST = FMath::Min(Th, 4.5f * Sc);
+		C.Spill(Pts, Col, ST * 16.f, A1 * B * Wall, true);
+		C.Spill(Pts, Col, ST * 44.f, A2 * B * Wall, true);
+	};
+	auto Bright = [&](const PDTitleLogo::FStroke& St) { return St.Color == 0 ? NB[FMath::Clamp(St.Group, 0, PDLogo::BlockLetters - 1)] : St.Color == 1 ? PB[FMath::Clamp(St.Group, 0, PDLogo::ScriptLetters - 1)] : CB; };
+	TArray<FVector2f> Pts;
+	for (int32 Pass = 0; Pass < 2; ++Pass)
+		for (int32 Si = 0; Si < PDTitleLogo::NumStrokes; ++Si)
+		{
+			const PDTitleLogo::FStroke& St = PDTitleLogo::Strokes[Si];
+			if (St.Color == 0) continue; // BAR 는 예전 블록 글자로 (D-442, 아래)
+			const float B = Bright(St);
+			const FLinearColor Ec = Hex(Edge[St.Color]), Cc = Hex(Core[St.Color]);
+			const float Th = PDTitleLogo::Tube[St.Color] * K * 0.8f;
+			Pts.Reset();
+			for (int32 Q = 0; Q < St.N; ++Q) Pts.Add(FVector2f(TX + St.P[Q * 2] * K, TY + St.P[Q * 2 + 1] * K));
+			if (Pass == 0) { WallSpill(Pts, Ec, Th, B, 0.13f, 0.08f); continue; } // 벽빛 (D-302 · D-449)
+			if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
+			TubeGlow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, B);
+			C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f);
+		}
+	// BAR (D-442): 틀 없는 하늘색 블록 글자 B · A · R (PDLogo, 글자마다 NB 로 깜빡임). 새 간판의 BAR 꼬리표 글자 자리(원본 218, 142 가운데)에
+	const float BKn = 0.8525f * Sc; // 예전 배율 0.55 × 1.55
+	const float Cx = TX + 218.f * K, Cy = TY + 142.f * K;
+	const float X0 = Cx - PDLogo::BlockW * BKn / 2.f, Base = Cy + 30.f * BKn;
+	const FLinearColor BarC = Hex(TEXT("6edcff"));
+	const float BarTh = 2.6f * Sc;
+	PDLogo::FPoly Ps[3];
+	for (int32 Pass = 0; Pass < 2; ++Pass)
+		for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
+		{
+			const int32 N = PDLogo::BlockPolys(I, Ps);
+			for (int32 J2 = 0; J2 < N; ++J2)
+			{
+				TArray<FVector2f> BP;
+				for (int32 Q = 0; Q < Ps[J2].N; ++Q) BP.Add(FVector2f(X0 + (I * PDLogo::BlockAdv + Ps[J2].P[Q * 2] * 0.8f) * BKn, Base + Ps[J2].P[Q * 2 + 1] * BKn));
+				const float B = NB[I];
+				if (Pass == 0) { WallSpill(BP, BarC, BarTh, B, 0.22f, 0.13f); continue; }
+				if (B <= 0.25f) { C.Lines(BP, FLinearColor(BarC.R * 0.28f, BarC.G * 0.28f, BarC.B * 0.28f, 1.f), BarTh * 0.8f); continue; }
+				TubeGlow(BP, FLinearColor(BarC.R * B, BarC.G * B, BarC.B * B, 1.f), BarTh, B);
+				C.Lines(BP, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), BarTh * 0.25f); // 튜브 가운데 흰 심
+			}
+		}
+}
+
 void SPDBoardWidget::PaintTitle(FCanvas& C) const
 {
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
@@ -3028,15 +3091,6 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	const float NX0 = LgX - 190.f * LK;
 	const FVector2f PO(LgX - PDLogo::ScriptW / 2.f * SK, LY + 150.f * LK);
 	bool bSpill = false; // 벽빛 먼저 한 바퀴 (D-302): 켜진 튜브 뒤 벽돌에 은은하게 비치는 빛. 깜빡여 꺼지면 같이 꺼진다
-	// 간판 관 번짐 (D-446): 띠 스프라이트(Glow) 대신 둥근 빛을 선을 따라 촘촘히 찍는다. 띠는 끝 마개 · 꺾임 이음과 맞닿는 가장자리가
-	// 가는 점선 빛 줄로 보여 모서리 · 선 끝에서 삐져나갔다. 둥근 빛 사슬은 이음매가 없다. 넓은 겹 + 좁은 겹 + 색 관
-	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
-	{
-		C.Spill(Pts, Gc, Th * 11.f, 0.16f * B, true); // D-452: 참고 그림처럼 또렷한 캡슐 번짐 (D-449 보다 밝고 넓게)
-		C.Spill(Pts, Gc, Th * 5.f, 0.55f * B, true);
-		C.Lines(Pts, Gc, Th * 1.0f);
-	};
-	bool bDiscGlow = false; // 간판 BAR 만 둥근 빛 사슬 (D-450)
 	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B)
 	{
 		if (bSpill)
@@ -3048,8 +3102,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			return;
 		}
 		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
-		if (bDiscGlow) TubeGlow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, B);
-		else C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B); // 버튼 · 예전 로고는 띠 번짐 (D-450: 가는 버튼 관에 둥근 빛 사슬을 쓰니 2px 마다 원을 찍어 한 프레임 꼭짓점 46만 개, 시작 화면이 16ms 더 걸려 끊겼다)
+		C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B); // 버튼 · 예전 로고는 띠 번짐 (D-450: 가는 버튼 관에 둥근 빛 사슬을 쓰니 2px 마다 원을 찍어 한 프레임 꼭짓점 46만 개, 시작 화면이 16ms 더 걸려 끊겼다)
 		C.Lines(Pts, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), Th * 0.25f); // 튜브 가운데 흰 심
 	};
 	auto Logo = [&]()
@@ -3083,57 +3136,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		constexpr float TW = 580.f, TH = TW * PDTitleLogo::SrcH / PDTitleLogo::SrcW;
 		const float TX = LgX - TW / 2.f, TY = LY + 168.f * LK - TH - 4.f; // 부제 선(LY + 178LK) 바로 위에 바닥
 		const float K = TW / PDTitleLogo::SrcW;
-		static const TCHAR* Edge[3] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714")}; // 원본에서 잰 관 바깥 테
-		static const TCHAR* Core[3] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5")}; // 관 가운데 파스텔
-		auto Bright = [&](const PDTitleLogo::FStroke& St) { return St.Color == 0 ? NB[FMath::Clamp(St.Group, 0, PDLogo::BlockLetters - 1)] : St.Color == 1 ? PB[FMath::Clamp(St.Group, 0, PDLogo::ScriptLetters - 1)] : CB; };
-		TArray<FVector2f> Pts;
-		for (int32 Pass = 0; Pass < 2; ++Pass)
-			for (int32 Si = 0; Si < PDTitleLogo::NumStrokes; ++Si)
-			{
-				const PDTitleLogo::FStroke& St = PDTitleLogo::Strokes[Si];
-				if (St.Color == 0) continue; // BAR 는 예전 블록 글자로 (D-442, 아래)
-				const float B = Bright(St);
-				const FLinearColor Ec = Hex(Edge[St.Color]), Cc = Hex(Core[St.Color]);
-				const float Th = PDTitleLogo::Tube[St.Color] * K * 0.8f;
-				Pts.Reset();
-				for (int32 Q = 0; Q < St.N; ++Q) Pts.Add(FVector2f(TX + St.P[Q * 2] * K, TY + St.P[Q * 2 + 1] * K));
-				if (Pass == 0) // 벽빛 (D-302): 켜진 관 뒤 벽에 은은하게
-				{
-					if (B <= 0.25f) continue;
-					const float ST = FMath::Min(Th, 4.5f);
-					C.Spill(Pts, Ec, ST * 16.f, 0.13f * B, true); // D-449 벽빛도 옅게
-					C.Spill(Pts, Ec, ST * 44.f, 0.08f * B, true);
-					continue;
-				}
-				if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
-				TubeGlow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, B); // D-446 (D-445 끊어 찍기 대신)
-				C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f);
-			}
-		// BAR (D-442, 사용자: 예전 모양으로): 틀 없는 하늘색 블록 글자 B · A · R (PDLogo, 글자마다 NB 로 깜빡임). 새 간판의 BAR 꼬리표 글자 자리(원본 218, 142 가운데)에 같은 크기로
-		{
-			const float BKn = 0.8525f; // 예전 배율 0.55 × 1.55
-			const float Cx = TX + 218.f * K, Cy = TY + 142.f * K;
-			const float X0 = Cx - PDLogo::BlockW * BKn / 2.f, Base = Cy + 30.f * BKn;
-			const FLinearColor BarC = Hex(TEXT("6edcff"));
-			PDLogo::FPoly Ps[3];
-			for (int32 Pass = 0; Pass < 2; ++Pass)
-			{
-				bSpill = Pass == 0;
-				for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
-				{
-					const int32 N = PDLogo::BlockPolys(I, Ps);
-					for (int32 J2 = 0; J2 < N; ++J2)
-					{
-						TArray<FVector2f> BP;
-						for (int32 Q = 0; Q < Ps[J2].N; ++Q) BP.Add(FVector2f(X0 + (I * PDLogo::BlockAdv + Ps[J2].P[Q * 2] * 0.8f) * BKn, Base + Ps[J2].P[Q * 2 + 1] * BKn));
-						bDiscGlow = true;
-					Tube(BP, BarC, 2.6f, NB[I]);
-					bDiscGlow = false;
-					}
-				}
-			}
-			bSpill = false;
-		}
+		PaintAliceSign(C, TX, TY, TW, NB, PB, CB, 1.f); // D-453: 인게임 족보 메뉴판 로고와 같은 그리기
 		// 빠직 불티 자리 (D-444): BAR 는 글자 위끝, Alice 는 글자 묶음마다 가장 높은 점
 		{
 			const float BKn = 0.8525f, X0 = TX + 218.f * K - PDLogo::BlockW * BKn / 2.f, Top = TY + 142.f * K + 30.f * BKn - 60.f * BKn;
@@ -3857,7 +3860,12 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f)); // 시안 패널 안쪽에서 잰 sRGB 10 0a 20 → 0b 07 1a (D-405)
 	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), WithAlpha(Lav, 0.9f), 1.8f, 0.3f); // 번짐이 판 안을 보랏빛으로 물들이지 않게 (D-405)
 	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
-	if (const FSlateBrush* Logo = Art(EUiArt::Logo)) C.Image(C.NextLayer(), Logo, 20.5f, 17.3f, 94.7f, 36.5f, FLinearColor::White);
+	{ // 맨 위 BAR Alice 로고 (D-453, 사용자): 시안 그림 조각 대신 시작 화면과 같은 간판(따라 그린 획)을 작게. 예전 그림 칸(20.5, 17.3, 94.7 × 36.5) 가운데에 높이 맞춤
+		static const float AllOn[PDLogo::ScriptLetters > PDLogo::BlockLetters ? PDLogo::ScriptLetters : PDLogo::BlockLetters] = {1.f, 1.f, 1.f, 1.f, 1.f};
+		constexpr float LogoH = 40.f, LogoW = LogoH * PDTitleLogo::SrcW / PDTitleLogo::SrcH;
+		C.NextLayer();
+		PaintAliceSign(C, 20.5f + 94.7f / 2.f - LogoW / 2.f, 17.3f + 36.5f / 2.f - LogoH / 2.f, LogoW, AllOn, AllOn, 1.f, 0.f);
+	}
 	if (bMenuBoard)
 	{
 		const FLinearColor TitleGold = Hex(TEXT("f0e28c")); // 시안: 연한 금빛 (D-409)
