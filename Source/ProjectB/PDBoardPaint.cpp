@@ -3032,9 +3032,9 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	// 가는 점선 빛 줄로 보여 모서리 · 선 끝에서 삐져나갔다. 둥근 빛 사슬은 이음매가 없다. 넓은 겹 + 좁은 겹 + 색 관
 	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
 	{
-		C.Spill(Pts, Gc, Th * 8.f, 0.24f * B, true);
-		C.Spill(Pts, Gc, Th * 3.4f, 0.36f * B, true);
-		C.Lines(Pts, Gc, Th * 0.8f);
+		C.Spill(Pts, Gc, Th * 8.f, 0.08f * B, true); // D-449: 뿌옇던 것 → 또렷한 관 + 고른 캡슐 번짐 (사용자 참고 그림)
+		C.Spill(Pts, Gc, Th * 4.5f, 0.30f * B, true);
+		C.Lines(Pts, Gc, Th * 1.0f);
 	};
 	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B)
 	{
@@ -3099,8 +3099,8 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 				{
 					if (B <= 0.25f) continue;
 					const float ST = FMath::Min(Th, 4.5f);
-					C.Spill(Pts, Ec, ST * 16.f, 0.22f * B, true);
-					C.Spill(Pts, Ec, ST * 44.f, 0.13f * B, true);
+					C.Spill(Pts, Ec, ST * 16.f, 0.13f * B, true); // D-449 벽빛도 옅게
+					C.Spill(Pts, Ec, ST * 44.f, 0.08f * B, true);
 					continue;
 				}
 				if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
