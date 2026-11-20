@@ -84,7 +84,7 @@ def thin(m):
 NB8 = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
 
 
-def trace(sk, min_len=10):
+def trace(sk, min_len=18):  # 18px 보다 짧은 조각은 잘못 잡힌 잔가지 (A 꼭대기 · 꼬치 아래, D-432)
     """가운데 선 화소를 이어 꺾은선으로: 끝점부터 아직 안 간 이웃을 따라간다 (계단 화소 때문에 생기는 가짜 갈림점에 끊기지 않게,
     갈림점 판정 없이 '간 화소' 로만). 같은 방향으로 이어지는 이웃을 먼저 고른다"""
     pts = set(zip(*np.nonzero(sk)))
@@ -260,26 +260,37 @@ def snap_ends(strokes, tol):
     return out
 
 
-def neon(size, strokes_by_col, wd):
-    """strokes_by_col: 색 → [(점들, [처음 열린 끝, 끝 열린 끝])]. 색 관을 먼저 다 그리고 밝은 심을 나중에 한꺼번에 (겹친 자리에 심이 끊겨 보이지 않게)"""
-    glow = Image.new('RGB', size, (0, 0, 0)); core = Image.new('RGB', size, (0, 0, 0))
+EDGE = {'cyan': (20, 210, 235), 'pink': (255, 45, 205), 'yellow': (255, 215, 20)}   # 관 바깥 테 (원본에서 잰 진한 색)
+CORE = {'cyan': (175, 255, 255), 'pink': (255, 175, 242), 'yellow': (255, 250, 165)}  # 관 가운데 (파스텔)
+
+
+def neon(size, strokes_by_col, wds, ss=3):
+    """strokes_by_col: 색 → [(점들, [처음 열린 끝, 끝 열린 끝])]. ss 배로 크게 그려 줄인다 (가장자리 매끈, D-432).
+    겹: 넓은 빛(진한 테 색) → 테(진한 색, 관 폭) → 가운데(파스텔, 관 폭 0.6). 색 관을 다 그린 뒤 가운데를 한꺼번에"""
+    W, H = size
+    S = (W * ss, H * ss)
+    glow = Image.new('RGB', S, (0, 0, 0)); core = Image.new('RGB', S, (0, 0, 0))
     g, c = ImageDraw.Draw(glow), ImageDraw.Draw(core)
+    def sc(P): return [(x * ss, y * ss) for x, y in P]
     def cap(P, free, col, w):
         for f, p in ((free[0], P[0]), (free[1], P[-1])):
             if f: r = w / 2; c.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=col)
     for col, strokes in strokes_by_col.items():
-        C = COLORS[col]
+        wd = wds[col] * ss
         for P, free in strokes:
-            g.line(P, fill=tuple(int(v * 0.55) for v in C), width=int(wd * 1.8), joint='curve')
-            c.line(P, fill=C, width=int(wd), joint='curve')
-            cap(P, free, C, wd)
+            Q = sc(P)
+            g.line(Q, fill=EDGE[col], width=int(wd * 1.6), joint='curve')
+            c.line(Q, fill=EDGE[col], width=int(wd), joint='curve')
+            cap(Q, free, EDGE[col], wd)
     for col, strokes in strokes_by_col.items():
-        light = tuple(int(v + (255 - v) * 0.55) for v in COLORS[col])
+        wd = wds[col] * ss
         for P, free in strokes:
-            c.line(P, fill=light, width=max(1, int(wd * 0.62)), joint='curve')
-            cap(P, free, light, wd * 0.62)
-    img = ImageChops.add(glow.filter(ImageFilter.GaussianBlur(14)).point(lambda v: int(v * 0.8)), glow.filter(ImageFilter.GaussianBlur(4)).point(lambda v: int(v * 0.35)))
-    return ImageChops.lighter(img, core)
+            Q = sc(P)
+            c.line(Q, fill=CORE[col], width=max(1, int(wd * 0.6)), joint='curve')
+            cap(Q, free, CORE[col], wd * 0.6)
+    img = ImageChops.add(glow.filter(ImageFilter.GaussianBlur(12 * ss)).point(lambda v: int(v * 0.75)), glow.filter(ImageFilter.GaussianBlur(4 * ss)).point(lambda v: int(v * 0.45)))
+    img = ImageChops.lighter(img, core)
+    return img.resize(size, Image.LANCZOS)
 
 
 def main():
@@ -297,9 +308,9 @@ def main():
         snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
         res[col] = [{'pts': [(float(x), float(y)) for x, y in P], 'free': free} for P, free in snapped]
         print(col, 'strokes', len(strokes), 'width', round(wds[col], 1))
-    json.dump({'size': img.size, 'width': wds, 'strokes': res}, open(OUTJ, 'w'), indent=0)
-    wd = float(np.median(list(wds.values()))) * 1.35  # 가운데 흰빛 폭보다 관이 굵다
-    ours = neon(img.size, {k: [([tuple(p) for p in st['pts']], st['free']) for st in v] for k, v in res.items()}, wd)
+    json.dump({'size': img.size, 'width': wds, 'tube': {k: v * 1.55 for k, v in wds.items()}, 'strokes': res}, open(OUTJ, 'w'), indent=0)
+    tube = {k: v * 1.55 for k, v in wds.items()}  # 관 굵기 = 가운데 흰빛 폭 × 1.55 (원본 관 폭에 맞춤, 색마다, D-432)
+    ours = neon(img.size, {k: [([tuple(p) for p in st['pts']], st['free']) for st in v] for k, v in res.items()}, tube)
     W, H = img.size
     sheet = Image.new('RGB', (W, H * 2 + 10), (0, 0, 0))
     sheet.paste(img, (0, 0)); sheet.paste(ours, (0, H + 10))
