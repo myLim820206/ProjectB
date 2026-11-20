@@ -2183,6 +2183,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 				{
 					FSlateBrush Sub = *Blank;
 					Sub.SetUVRegion(FBox2f(FVector2f(0.f, SY0), FVector2f(1.f, 1.f)));
+					C.Box(AX, BY, AW, BH, Hex(TEXT("0a141d"))); // 밑의 '시 작' 이 비치지 않게 그림을 자른 바탕색으로 먼저 덮는다 (D-425)
 					C.Image(C.NextLayer(), &Sub, AX, BY, AW, BH, FLinearColor::White);
 				}
 			if (bBuild)
