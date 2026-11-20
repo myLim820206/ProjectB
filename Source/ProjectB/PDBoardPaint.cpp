@@ -4111,8 +4111,9 @@ void SPDBoardWidget::PaintHandStrip(FCanvas& C) const
 	const float X = LX, Y = HandPanelY, W = HandStripW, H = DesignH - 1.f - HandPanelY;
 	const bool bHov = InRect(Mouse, X, Y, W, H);
 	for (int32 K = 0; K < 14; ++K) C.Box(X + 2.f, Y + 2.f + K * (H - 4.f) / 14.f, W - 4.f, (H - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f));
-	C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, RadPanel), Hex(TEXT("be73ff"), 0.9f), 1.8f, bHov ? 0.55f : 0.3f);
-	C.Lines(FCanvas::RoundRectPoints(X, Y, W, H, RadPanel), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
+	// 판 테 (D-462): 펼친 족보 메뉴판과 같은 연보라 심 + 넓은 보랏빛 번짐 (D-460), 마우스를 올리면 심이 조금 밝아진다
+	C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, RadPanel), Hex(TEXT("7854a8")), 5.f, 1.f);
+	C.Lines(FCanvas::RoundRectPoints(X, Y, W, H, RadPanel), Hex(bHov ? TEXT("9a80bc") : TEXT("78609a")), 1.1f);
 	const float Cx = X + W / 2.f;
 	{ // 잔 (로고 대신)
 		const FLinearColor Gc = Hex(TEXT("5ae1ff"));
@@ -4128,7 +4129,7 @@ void SPDBoardWidget::PaintHandStrip(FCanvas& C) const
 		C.Lines({FVector2f(Bx - 2.f, By - 4.f), FVector2f(Bx + 2.f, By), FVector2f(Bx - 2.f, By + 4.f)}, bHov ? FLinearColor::White : Hex(TEXT("e4e0cd")), 1.6f);
 	}
 	// 세로 '족보 메뉴': 한국어 · 일본어 · 중국어는 글자를 세로로 쌓고, 영어는 돌려 쓴다
-	const FLinearColor Title = Hex(TEXT("f0e28c"));
+	const FLinearColor Title = Hex(TEXT("e4de94")), TextC = Hex(TEXT("c2bfb4")); // 펼친 판과 같은 색 (D-460, D-462)
 	const FString T = TrS(TEXT("족보 메뉴")).Replace(TEXT(" "), TEXT(""));
 	float TY = Y + 112.f;
 	if (GPDLang == (int32)EPDLang::En) { C.TextRot(TrS(TEXT("족보 메뉴")), Cx, TY + 50.f, Title, 15.f, true, -PI / 2.f); TY += 120.f; }
@@ -4143,7 +4144,7 @@ void SPDBoardWidget::PaintHandStrip(FCanvas& C) const
 		if (Id >= (int32)EPDHand::Count || Count[Id] <= 0) continue;
 		const FLinearColor Hc = HandColor((EPDHand)Id);
 		C.Glow(FCanvas::CirclePoints(FVector2f(Cx, DY), 6.f, 18), Hc, 1.8f, 0.5f);
-		C.TextCentered(FString::Printf(TEXT("×%d"), Count[Id]), Cx, DY + 17.f, Hex(TEXT("e4e0cd")), 9.f, false);
+		C.TextCentered(FString::Printf(TEXT("×%d"), Count[Id]), Cx, DY + 17.f, TextC, 9.f, false);
 		DY += 40.f;
 	}
 	if (!JGroups.empty()) // 만들 수 있는 조커
@@ -4151,7 +4152,7 @@ void SPDBoardWidget::PaintHandStrip(FCanvas& C) const
 		C.Glow(FCanvas::CirclePoints(FVector2f(Cx, DY), 6.f, 18), JokerPink, 1.8f, 0.5f + 0.3f * FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f)));
 		C.TextCentered(Tr(TEXT("조커")), Cx, DY + 17.f, JokerPink, 9.f, false, W - 6.f);
 	}
-	C.TextCentered(Tr(TEXT("연쇄")), Cx, Y + H - 20.f, Hex(TEXT("e4e0cd")), 10.f, true, W - 6.f);
+	C.TextCentered(Tr(TEXT("연쇄")), Cx, Y + H - 20.f, TextC, 10.f, true, W - 6.f);
 }
 
 void SPDBoardWidget::PaintMenu(FCanvas& C) const
