@@ -121,6 +121,134 @@ def trace(sk, min_len=18):  # 18px 보다 짧은 조각은 잘못 잡힌 잔가�
     return res
 
 
+def graph_strokes(sk, wd, min_chain=None):
+    """가운데 선을 교차점 · 가지 그래프로 나눠 획을 만든다 (D-438, 필기체용).
+    1. 갈림점 = 둘레 8칸을 돌 때 0→1 바뀜이 3번 이상인 화소 (계단 화소에 속지 않음). 서로 R 안의 갈림점은 한 교차점으로 묶는다
+    2. 교차점 반지름 안의 화소는 빼고, 나머지 화소 덩어리마다 가장 긴 길(지름)을 가지로 삼는다 (작은 잔가지는 버려진다)
+    3. 교차점마다 가지 방향(교차점에서 나가는 방향)을 재서 가장 곧게 이어지는 짝을 묶는다: 2갈래 = 이음, 3갈래 = T, 4갈래 = X
+    4. 짝지은 가지를 이어 획을 만들고, 이음매는 교차점 가운데를 조절점으로 한 2차 곡선으로 매끈하게 (X 는 가운데에서 엇갈린다)"""
+    from collections import deque
+    pts = set(zip(*np.nonzero(sk)))
+    ring = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+    def nbrs(p, S=pts): return [(p[0] + dy, p[1] + dx) for dy, dx in NB8 if (p[0] + dy, p[1] + dx) in S]
+    def cn(p):
+        v = [((p[0] + dy, p[1] + dx) in pts) for dy, dx in ring]
+        return sum(1 for k in range(8) if not v[k] and v[(k + 1) % 8])
+    J = [p for p in pts if cn(p) >= 3]
+    R = wd * 0.9
+    # 갈림점 묶기
+    groups = []
+    left = set(J)
+    while left:
+        seed = left.pop(); grp = [seed]; dq = deque([seed])
+        while dq:
+            a = dq.popleft()
+            for b in list(left):
+                if math.dist(a, b) <= R: left.discard(b); grp.append(b); dq.append(b)
+        groups.append(grp)
+    nodes = []
+    for g in groups:
+        cy = sum(p[0] for p in g) / len(g); cx = sum(p[1] for p in g) / len(g)
+        rn = max(math.dist((cy, cx), p) for p in g) + wd * 0.55
+        nodes.append(((cy, cx), rn))
+    def node_of(p, pad=0.0):
+        for i, (c, rn) in enumerate(nodes):
+            if math.dist(c, p) <= rn + pad: return i
+        return None
+    outside = {p for p in pts if node_of(p) is None}
+    # 가지 = 바깥 화소 덩어리의 지름 길
+    chains = []
+    seen = set()
+    for p in outside:
+        if p in seen: continue
+        comp = []; dq = deque([p]); seen.add(p)
+        while dq:
+            a = dq.popleft(); comp.append(a)
+            for b in nbrs(a, outside):
+                if b not in seen: seen.add(b); dq.append(b)
+        cs = set(comp)
+        def far(src):
+            par = {src: None}; dq2 = deque([src]); last = src
+            while dq2:
+                a = dq2.popleft(); last = a
+                for b in nbrs(a, cs):
+                    if b not in par: par[b] = a; dq2.append(b)
+            return last, par
+        a, _ = far(comp[0]); b, par = far(a)
+        path = []; c = b
+        while c is not None: path.append(c); c = par[c]
+        if len(path) >= 2: chains.append(path)
+    min_chain = min_chain or wd * 0.8
+    info = []  # (점들 (x, y), [처음 붙은 교차점, 끝 붙은 교차점])
+    for path in chains:
+        P = [(float(x), float(y)) for y, x in path]
+        L = sum(math.dist(P[k], P[k + 1]) for k in range(len(P) - 1))
+        a_node, b_node = node_of(path[0], 3.0), node_of(path[-1], 3.0)
+        if L < min_chain and (a_node is None or b_node is None or a_node == b_node): continue  # 잔가지 · 교차점 안쪽 조각
+        info.append([P, [a_node, b_node]])
+    # 교차점마다 가지 방향 · 짝
+    inc = {}
+    for ci, (P, att) in enumerate(info):
+        for e in (0, 1):
+            if att[e] is not None: inc.setdefault(att[e], []).append((ci, e))
+    link = {}
+    for ni, lst in inc.items():
+        cy, cx = nodes[ni][0]
+        def outdir(ce):
+            ci, e = ce; P = info[ci][0]
+            q = P[min(len(P) - 1, 10)] if e == 0 else P[max(0, len(P) - 11)]
+            return unit((q[0] - cx, q[1] - cy))
+        D = {ce: outdir(ce) for ce in lst}
+        def st(a, b): return -(D[a][0] * D[b][0] + D[a][1] * D[b][1])  # 마주 볼수록(곧게 이어질수록) 큼
+        rest = list(lst)
+        if len(rest) == 4:
+            a = rest[0]
+            opts = [((a, rest[k]), tuple(x for x in rest[1:] if x != rest[k])) for k in (1, 2, 3)]
+            best = max(opts, key=lambda o: st(*o[0]) + st(*o[1]))
+            for x, y in best: link[x] = y; link[y] = x
+            continue
+        while len(rest) >= 2:
+            pa = max(((a, b) for i, a in enumerate(rest) for b in rest[i + 1:]), key=lambda ab: st(*ab))
+            if st(*pa) < -0.2 and len(rest) > 2: break  # 너무 꺾이면 잇지 않는다
+            link[pa[0]] = pa[1]; link[pa[1]] = pa[0]
+            rest = [x for x in rest if x not in pa]
+            if len(lst) == 3: break  # T: 가장 곧은 둘만 잇고 나머지는 교차점까지
+    # 획 만들기
+    def bez(a, c, b, n=10):
+        return [((1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]) for t in [k / n for k in range(1, n)]]
+    used = set()
+    strokes = []
+    def walk(ci, e):
+        out = []
+        while True:
+            used.add(ci)
+            P = info[ci][0] if e == 0 else info[ci][0][::-1]
+            out.extend(P if not out else P)
+            oe = 1 - e
+            nid = info[ci][1][oe]
+            nxt = link.get((ci, oe))
+            if nxt is None or nxt[0] in used:
+                if nid is not None:  # 짝 없는 끝(T 의 세로획): 교차점 가운데까지
+                    cy, cx = nodes[nid][0]; out.append((cx, cy))
+                return out
+            cy, cx = nodes[nid][0]
+            ci2, e2 = nxt
+            Q = info[ci2][0] if e2 == 0 else info[ci2][0][::-1]
+            out.extend(bez(out[-1], (cx, cy), Q[0]))
+            ci, e = ci2, e2
+    starts = [(ci, e) for ci in range(len(info)) for e in (0, 1) if (ci, e) not in link]
+    for ci, e in starts:
+        if ci in used: continue
+        # 시작 끝이 교차점에 붙은 짝 없는 끝이면 교차점 가운데부터
+        head = []
+        nid = info[ci][1][e]
+        if nid is not None: cy, cx = nodes[nid][0]; head = [(cx, cy)]
+        strokes.append(head + walk(ci, e))
+    for ci in range(len(info)):  # 닫힌 고리
+        if ci not in used: strokes.append(walk(ci, 0))
+    return strokes
+
+
 def rdp(P, eps):
     if len(P) < 3: return P
     a, b = np.array(P[0], float), np.array(P[-1], float)
@@ -426,21 +554,14 @@ def main():
         # 관 굵기 = 몸통 화소 수 / 가운데 선 길이
         sk = thin(m)
         wds[col] = m.sum() / max(1, sk.sum())
-        strokes = trace(sk)
-        strokes = merge(strokes)
-        # 필기체(분홍)는 정말 뾰족한 곳(A 꼭대기)만 모서리, 더 넓게 편다. BAR · 잔은 각진 모서리를 남긴다 (D-433: 급한 곡선을 모서리로 오인해 꺾임이 생겼다)
-        if col == 'pink':  # 필기체: 넓게 두 번 펴기 · 곧게 이어지는 끝 잇기 · 교차점 곧게 (D-433 ~ D-435)
+        if col == 'pink':  # 필기체: 교차점 · 가지 그래프로 곧은 짝끼리 이어 X 를 살린다 (D-438), 넓게 두 번 펴기 (A 꼭대기만 모서리)
+            strokes = graph_strokes(sk, wds[col] * 1.55)
             kw = dict(corner_deg=120.0, sigma=7.0)
             strokes = [smooth_keep_corners(smooth_keep_corners(s, **kw), **kw) for s in strokes]
-            strokes = merge_collinear(strokes, max(10.0, wds[col] * 2.0))
-            strokes = straighten_junctions(strokes, max(8.0, wds[col] * 1.6))
-            strokes = [smooth_keep_corners(s, **kw) for s in strokes]  # 이은 자리도 매끈하게
-        else:  # BAR · 잔: 모서리(꼬리표 깎은 모서리 · 마름모)를 살리게 가볍게 한 번만 (D-436)
+        else:  # BAR · 잔: 그대로 (화소 따라가기 + 잇기, 모서리 살려 가볍게 펴기, D-436)
+            strokes = merge(trace(sk))
             kw = dict(corner_deg=40.0, sigma=2.5)
             strokes = [smooth_keep_corners(s, **kw) for s in strokes]
-        if col == 'pink':  # 필기체만: 글자 획이 X 로 엇갈린다. BAR · 잔은 획이 가까이 붙어 있어 곧게 펴면 모양이 망가진다
-            strokes = straighten_crossings(strokes, wds[col] * 1.55)
-            strokes = [smooth_keep_corners(s, corner_deg=kw['corner_deg'], sigma=3.0) for s in strokes]  # 곧게 편 구간 끝의 꺾임만 살짝
         strokes = [rdp(s, 0.2) for s in strokes]  # 점은 촘촘히 (짧은 직선으로 각지지 않게)
         strokes = [s for s in strokes if min(x for x, y in s) > 20]  # 원본 왼쪽 가장자리의 회색 점(화면 조각) 빼기
         snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
