@@ -2141,7 +2141,10 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const FSlateBrush* GOn = Art(EUiArt::GlassOn);
 		const FSlateBrush* GOff = Art(EUiArt::GlassOff);
 		for (int32 I = 0; I < CharmMax; ++I)
+		{
+			if (I < N && CocktailArt(C, (int32)G.Charms[I], 1045.8f + I * 43.7f + 24.f, 528.f, 60.f, 1.f)) continue; // 가진 칵테일 = 그 칵테일 잔 (D-424)
 			if (const FSlateBrush* B = I < N ? GOn : GOff) C.Image(C.NextLayer(), B, 1045.8f + I * 43.7f, 478.7f, 43.5f, 51.8f, FLinearColor::White);
+		}
 		const int32 W0 = G.Phase == EPDPhase::Wave ? G.Wave : G.Wave + 1;
 		const int32 Next = (W0 + CharmEvery - 1) / CharmEvery * CharmEvery;
 		if (N < CharmMax) C.Text(TrF(TEXT("%d웨이브 후 획득"), FMath::Max(0, Next - G.Wave)), 1255.7f, 463.5f, Hex(TEXT("c8c4be")), 8.5f, 2);
@@ -2389,7 +2392,8 @@ void SPDBoardWidget::PaintScreens(FCanvas& C) const
 			const int32 Kind = R.bCharm ? R.Id % 3 : 3; // 0 마티니 1 하이볼 2 온더록 3 칩 접시 (서비스)
 			auto L = [&](std::initializer_list<FVector2f> Pts, float Th) { C.Glow(TArray<FVector2f>(Pts), CB, Th, 0.5f * B); };
 			auto Shown = [&](int32 K, int32 N) { return K >= FMath::RoundToInt(N * (1.f - Fill)); }; // 줄 K (위 0 → 아래 N-1)
-			if (Kind == 0)
+			if (R.bCharm && CocktailArt(C, R.Id, GX, BY, 118.f, (bHov ? 1.f : bAnyPour ? 0.4f : 0.7f) * (bPour ? 0.45f + 0.55f * Fill : 1.f))) {} // 칵테일마다 다른 잔 그림 (D-424)
+			else if (Kind == 0)
 			{
 				L({FVector2f(GX - 26.f, BY - 70.f), FVector2f(GX + 26.f, BY - 70.f), FVector2f(GX, BY - 36.f), FVector2f(GX - 26.f, BY - 70.f)}, 1.8f);
 				L({FVector2f(GX, BY - 36.f), FVector2f(GX, BY - 4.f)}, 1.6f);

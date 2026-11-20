@@ -26,6 +26,41 @@ void SPDBoardWidget::LoadUiArt()
 	}
 }
 
+static UTexture2D* PDLoadPng(const FString& Name)
+{
+	const FString Path = FPaths::ProjectContentDir() / TEXT("UIArt") / (Name + TEXT(".png"));
+	UTexture2D* Tex = FPaths::FileExists(Path) ? FImageUtils::ImportFileAsTexture2D(Path) : nullptr;
+	if (!Tex) return nullptr;
+	Tex->SRGB = true;
+	Tex->Filter = TF_Bilinear;
+	Tex->LODGroup = TEXTUREGROUP_UI;
+	Tex->UpdateResource();
+	Tex->AddToRoot();
+	return Tex;
+}
+
+bool SPDBoardWidget::CocktailArt(FCanvas& C, int32 Id, float GX, float BY, float H, float Alpha) const
+{
+	if (CockArt.Num() == 0) // 처음 쓸 때 읽는다 (60장)
+	{
+		SPDBoardWidget* Self = const_cast<SPDBoardWidget*>(this);
+		Self->CockArt.SetNum(60);
+		for (int32 K = 0; K < 60; ++K)
+			if (UTexture2D* Tex = PDLoadPng(FString::Printf(TEXT("cock_%d_%d"), K / 5, K % 5)))
+			{
+				FSlateBrush& B = Self->CockArt[K];
+				B.SetResourceObject(Tex);
+				B.ImageSize = FVector2D(Tex->GetSizeX(), Tex->GetSizeY());
+				B.DrawAs = ESlateBrushDrawType::Image;
+			}
+	}
+	const int32 K = (Id % 12) * 5 + Id % 5;
+	if (Id < 0 || !CockArt.IsValidIndex(K) || !CockArt[K].GetResourceObject()) return false;
+	const float W = H * 0.8f; // 그림 240 × 300
+	C.Image(C.NextLayer(), &CockArt[K], GX - W / 2.f, BY - H * (268.f / 300.f), W, H, FLinearColor(1.f, 1.f, 1.f, Alpha)); // 그림 속 잔 발 = 위에서 268/300
+	return true;
+}
+
 const FSlateBrush* SPDBoardWidget::Art(EUiArt A) const
 {
 	const int32 I = (int32)A;

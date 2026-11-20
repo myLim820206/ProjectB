@@ -438,6 +438,9 @@ private:
 	TArray<FSlateBrush> UiArt;
 	void LoadUiArt();
 	const FSlateBrush* Art(EUiArt A) const;
+	// 칵테일 잔 60장 (D-424, tools/ui_art/cocktails.py): 잔 = 칵테일 번호 % 12, 색 = 번호 % 5. 발(바닥) 가운데 (GX, BY), 그림 높이 H. 그림이 없으면 false
+	TArray<FSlateBrush> CockArt;
+	bool CocktailArt(FCanvas& C, int32 Id, float GX, float BY, float H, float Alpha) const;
 	bool SaveAtlasAsset(); // 에디터 F8 또는 -pdbakeatlas: 배율 1 로 구워 Content/Sprites/T_PDAtlas 로 저장 (D-145, D-367). 둘 다 저장되면 true
 	bool bBakeAtlasDone = false; // -pdbakeatlas 로 한 번 구웠음
 	bool bForceBake = false; // 에셋이 있어도 굽기 (에셋을 새로 만들 때)

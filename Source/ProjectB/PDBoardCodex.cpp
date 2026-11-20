@@ -177,7 +177,7 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 			const float Y = CdxRowY0 + Slot * CdxRowH, Base = Y + 20.f;
 			const bool bH = K == Hov, bSel = bLive && K == V.Pick && (CdxShop() || Hov < 0);
 			const float IA = It.bKnown ? 1.f : 0.35f;
-			if (V.Tab == 0) Glass(K % 3, X0 + 12.f, Y + 30.f, 0.3f, Hex(CdxCockCol[K % 5]), IA);
+			if (V.Tab == 0) { if (!CocktailArt(C, K, X0 + 12.f, Y + 30.f, 34.f, IA)) Glass(K % 3, X0 + 12.f, Y + 30.f, 0.3f, Hex(CdxCockCol[K % 5]), IA); } // 잔 그림 (D-424)
 			else if (V.Tab == 3) Boss(K, X0 + 12.f, Y + 6.f, 8.f, IA);
 			else C.JokerTower(V.Tab == 1 ? K : UpperBase + K, X0 + 12.f, Y + 18.f, 11.f, It.bKnown ? 0.95f : 0.35f, 0.f);
 			const bool bCan = CdxShop() && CdxCanBuy(It);
@@ -215,7 +215,7 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 	// 상점의 조커 쪽은 레시피 밑 안내문이 [열기] 버튼에 겹치지 않게 그림부터 위로 올린다 (D-368)
 	const float Lift = V.Tab == 1 && CdxShop() ? 26.f : 0.f;
 	float Y = CdxBY + 320.f - Lift; // 그림 아래 (이름 기준선)
-	if (V.Tab == 0) Glass(V.Pick % 3, CX, CdxBY + 270.f, 2.f, Hex(CdxCockCol[V.Pick % 5]), It.bKnown ? 1.f : 0.4f);
+	if (V.Tab == 0) { if (!CocktailArt(C, V.Pick, CX, CdxBY + 270.f, 230.f, It.bKnown ? 1.f : 0.4f)) Glass(V.Pick % 3, CX, CdxBY + 270.f, 2.f, Hex(CdxCockCol[V.Pick % 5]), It.bKnown ? 1.f : 0.4f); } // 잔 그림 (D-424)
 	else if (V.Tab == 3) Boss(V.Pick, CX, CdxBY + 120.f, 48.f, It.bKnown ? 1.f : 0.25f);
 	else C.JokerTower(V.Tab == 1 ? V.Pick : UpperBase + V.Pick, CX, CdxBY + 180.f - Lift, 54.f, It.bKnown ? 1.f : 0.35f, 0.5f + 0.5f * FMath::Sin(Clock * 3.f));
 	NeonText(C, It.Name, CX, Y, Big, 30.f, 1, It.bKnown ? 1.f : 0.5f);
