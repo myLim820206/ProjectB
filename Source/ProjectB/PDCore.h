@@ -329,7 +329,7 @@ struct FPDSynergy
 	int ChainId = -1;
 	std::vector<int> Links;   // 맞닿은 다른 족보 번호
 };
-// 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 고르고(카드 공유 가능, 새 카드 한 장 이상, 같은 종류끼리는 공유 안 함), 연쇄를 묶는다
+// 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 (스트레이트 · 플러시는 3장부터, D-418) 모두 따져 큰 족보부터 고르고(카드 공유 가능, 새 카드 한 장 이상, 같은 종류끼리는 공유 안 함), 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
 std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms = 0, const FPDTreeMods* Tree = nullptr);

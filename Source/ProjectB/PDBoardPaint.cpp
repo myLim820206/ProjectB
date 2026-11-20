@@ -2022,10 +2022,10 @@ void SPDBoardWidget::PaintHud(FCanvas& C) const
 		while (Px > 24.f && FCanvas::Measure(Wv, F).X * 1.12f > 168.f) { Px -= 2.f; F = FCanvas::FontFace("Black", Px); }
 		const float TX = 655.4f, TY = 45.4f; // 시안 상자 속 가운데 (x 875 ~ 1174, y 17 ~ 125 × 0.64)
 		const FLinearColor Edge = Hex(TEXT("8cdcff"));
-		for (int32 K = 0; K < 16; ++K) { const float A = K * TwoPi / 16.f; C.TextFace(Wv, TX + FMath::Cos(A) * 7.f, TY + FMath::Sin(A) * 8.f, WithAlpha(Bc, 0.1f), F, 1.12f); }
-		for (int32 K = 0; K < 16; ++K) { const float A = K * TwoPi / 16.f; C.TextFace(Wv, TX + FMath::Cos(A) * 4.5f, TY + FMath::Sin(A) * 5.5f, WithAlpha(Bc, 0.22f), F, 1.12f); }
-		for (int32 K = 0; K < 20; ++K) { const float A = K * TwoPi / 20.f; C.TextFace(Wv, TX + FMath::Cos(A) * 3.8f, TY + FMath::Sin(A) * 3.8f, Bc, F, 1.12f); }
-		for (int32 K = 0; K < 12; ++K) { const float A = K * TwoPi / 12.f; C.TextFace(Wv, TX + FMath::Cos(A) * 2.2f, TY + FMath::Sin(A) * 2.2f, Edge, F, 1.12f); }
+		for (int32 K = 0; K < 16; ++K) { const float A = K * TwoPi / 16.f; C.TextFace(Wv, TX + FMath::Cos(A) * 7.f, TY + FMath::Sin(A) * 6.f, WithAlpha(Bc, 0.035f), F, 1.12f); } // 은은한 빛 (D-419, 시안)
+		for (int32 K = 0; K < 16; ++K) { const float A = K * TwoPi / 16.f; C.TextFace(Wv, TX + FMath::Cos(A) * 4.5f, TY + FMath::Sin(A) * 4.f, WithAlpha(Bc, 0.07f), F, 1.12f); }
+		for (int32 K = 0; K < 20; ++K) { const float A = K * TwoPi / 20.f; C.TextFace(Wv, TX + FMath::Cos(A) * 2.4f, TY + FMath::Sin(A) * 2.4f, Bc, F, 1.12f); } // 얇고 밝은 테
+		for (int32 K = 0; K < 12; ++K) { const float A = K * TwoPi / 12.f; C.TextFace(Wv, TX + FMath::Cos(A) * 1.2f, TY + FMath::Sin(A) * 1.2f, WithAlpha(Edge, 0.6f), F, 1.12f); }
 		C.TextFace(Wv, TX, TY, Hex(TEXT("020409")), F, 1.12f);
 	}
 	// 목숨 | 레벨 (작은 판 하나)
@@ -2071,12 +2071,14 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 	PaintHud(C);
 
 	// ---- 덱 · 손패 (Alice 시안 D-403): 왼쪽에 큰 금색 'N / M' + 덱 장수, 카드는 무늬 색 어두운 채움 + 굵은 네온 테 (번호 · 무늬 · 숫자 · 공격 방식)
-	{
-		const FLinearColor DeckGold = Hex(TEXT("ffd250"));
-		const float DX = FX + 56.f;
-		C.SoftDisc(FVector2f(DX, HandY + 34.f), 44.f, 20.f, DeckGold, 0.12f);
-		C.TextCentered(FString::Printf(TEXT("%d / %d"), (int32)G.Hand.size(), G.HandMax()), DX, HandY + 34.f, DeckGold, 34.f, true, 104.f);
-		C.TextCentered(TrF(TEXT("덱 %d장"), (int32)G.Deck.size()), DX, HandY + 66.f, Hex(TEXT("ebebf2")), 14.f, true);
+	{ // 덱 (D-417, 시안에서 잰 색): 좁고 굵은 글꼴(Roboto BoldCondensed) 연노랑 'N / M' + 옅은 빛, 아래 '덱 N장'
+		const FLinearColor DeckGold = Hex(TEXT("e6dc78"));
+		const float DX = FX + 56.f, DY = HandY + 34.f;
+		const FString Ds = FString::Printf(TEXT("%d / %d"), (int32)G.Hand.size(), G.HandMax());
+		const FSlateFontInfo DF = FCanvas::FontFace("BoldCondensed", 40.f);
+		for (int32 K = 0; K < 12; ++K) { const float A = K * TwoPi / 12.f; C.TextFace(Ds, DX + FMath::Cos(A) * 3.f, DY + FMath::Sin(A) * 3.f, WithAlpha(DeckGold, 0.08f), DF); }
+		C.TextFace(Ds, DX, DY, DeckGold, DF);
+		C.TextCentered(TrF(TEXT("덱 %d장"), (int32)G.Deck.size()), DX, HandY + 70.f, Hex(TEXT("ebe6c3")), 15.f, false);
 	}
 	if (G.Swaps > 0) // 자리바꿈 버튼 (D-149)
 	{
@@ -2086,23 +2088,32 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		C.Glow(FCanvas::RoundRectPoints(SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH, RadPill(SwapBtnH)), SwC, bHov || bSwapMode ? 1.6f : 1.1f, bSwapMode ? 1.2f + 0.5f * Pulse : bHov ? 1.f : 0.5f);
 		C.TextCentered(bSwapMode ? FString(Tr(TEXT("끄기 X"))) : TrF(TEXT("자리바꿈 ×%d"), G.Swaps), SwapBtnX + SwapBtnW / 2.f, SwapBtnY + SwapBtnH / 2.f, SwC, 10.f, true, SwapBtnW - 6.f);
 	}
-	for (int32 I = 0; I < (int32)G.Hand.size(); ++I)
+	for (int32 I = 0; I < (int32)G.Hand.size(); ++I) // 카드 (D-417, 시안에서 잰 색): 무늬마다 어두운 채움 + 굵고 밝은 테 + 좁고 굵은 숫자
 	{
 		const FPDCard& Card = G.Hand[I];
 		const bool bSel = I == Sel;
 		const float X = HandCardX(I, (int32)G.Hand.size()), Y = HandY - (bSel ? 10.f : 0.f);
-		const FLinearColor Col = SuitColor(Card.Suit);
-		const FLinearColor Fill = SrgbDim(Col, 0.27f); // 무늬 색 어두운 채움 (시안: ♥ 검붉음 · ♠ 짙은 회색 · ♣ 짙은 파랑 · ♦ 짙은 금빛, 화면 밝기로 0.27배)
+		const TCHAR* Fl; const TCHAR* Ed; const TCHAR* Rk;
+		switch (Card.Suit)
+		{
+		case EPDSuit::Heart: Fl = TEXT("3c111d"); Ed = TEXT("f04678"); Rk = TEXT("f05f7d"); break;
+		case EPDSuit::Club: Fl = TEXT("1f2d36"); Ed = TEXT("5aaadc"); Rk = TEXT("5faad7"); break;
+		case EPDSuit::Diamond: Fl = TEXT("353018"); Ed = TEXT("ebcd50"); Rk = TEXT("ebcd55"); break;
+		case EPDSuit::Wild: Fl = TEXT("2a1630"); Ed = TEXT("ff9ad5"); Rk = TEXT("ff9ad5"); break;
+		default: Fl = TEXT("3c3c3c"); Ed = TEXT("c8c8c8"); Rk = TEXT("dcdcdc"); break; // ♠
+		}
+		const FLinearColor Col = Hex(Ed), RkC = Hex(Rk);
 		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, CardW, CardH, 7.f);
-		C.FillPoly(Ro, Fill);
-		if (bSel) C.FillPoly(Ro, WithAlpha(Col, 0.12f));
-		C.Glow(Ro, Col, bSel ? 2.6f : 2.f, bSel ? 1.2f : 0.75f);
-		C.Lines(FCanvas::RoundRectPoints(X + 2.f, Y + 2.f, CardW - 4.f, CardH - 4.f, 5.f), FLinearColor(1.f, 1.f, 1.f, bSel ? 0.35f : 0.18f), 0.7f);
-		C.Text(FString::FromInt(I + 1), X + 7.f, Y + 14.f, Hex(TEXT("bebec8")), 8.f);
-		C.Shape(Card.Suit, X + CardW / 2.f, Y + 26.f, 5.5f, Col, 1.4f, 0.5f);
-		if (Card.IsWild()) C.Shape(Card.Suit, X + CardW / 2.f, Y + 56.f, 14.f, Col, 1.8f, 0.9f);
-		else { const FString Rk = RankText(Card.Rank); C.TextCentered(Rk, X + CardW / 2.f, Y + 56.f, Col, Rk.Len() > 1 ? 26.f : 33.f, true, CardW - 6.f); }
-		C.TextCentered(SuitName(Card.Suit), X + CardW / 2.f, Y + CardH - 11.f, WithAlpha(Col, 0.85f), 8.5f, true, CardW - 6.f);
+		C.FillPoly(Ro, Hex(Fl));
+		if (bSel) C.FillPoly(Ro, WithAlpha(Col, 0.14f));
+		C.Glow(Ro, Col, bSel ? 3.2f : 2.6f, bSel ? 1.3f : 0.9f);
+		C.Lines(Ro, WithAlpha(FLinearColor::White, bSel ? 0.45f : 0.25f), 0.8f);
+		C.Lines(FCanvas::RoundRectPoints(X + 3.f, Y + 3.f, CardW - 6.f, CardH - 6.f, 5.f), WithAlpha(Col, 0.35f), 0.8f);
+		C.Text(FString::FromInt(I + 1), X + 7.f, Y + 14.f, Hex(TEXT("9a9a9a")), 8.5f);
+		C.Shape(Card.Suit, X + CardW / 2.f, Y + 27.f, 5.5f, Col, 1.4f, 0.5f);
+		if (Card.IsWild()) C.Shape(Card.Suit, X + CardW / 2.f, Y + 57.f, 14.f, Col, 1.8f, 0.9f);
+		else C.TextFace(RankText(Card.Rank), X + CardW / 2.f, Y + 57.f, RkC, FCanvas::FontFace("BoldCondensed", Card.Rank == 10 ? 30.f : 36.f));
+		C.TextCentered(SuitName(Card.Suit), X + CardW / 2.f, Y + CardH - 11.f, WithAlpha(RkC, 0.8f), 9.f, false, CardW - 6.f);
 	}
 
 	// ---- 왼쪽 족보 안내
@@ -3940,7 +3951,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수
 			FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
 			if (H == EPDHand::Flush && bHand) Name += Tr(TEXT(" (3~5장)"));
-			if (H == EPDHand::Straight && bHand) Name += Tr(TEXT(" (2~5장)"));
+			if (H == EPDHand::Straight && bHand) Name += Tr(TEXT(" (3~5장)")); // D-418: 3장부터
 			const FString Eff = bHand ? FString(HandEffect(H)) : FString(Tr(Id == JokerFilterId ? TEXT("클릭: 만들 수 있는 조커 목록") : TEXT("클릭: 조커에 족보 먹이기")));
 			FString Price;
 			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);

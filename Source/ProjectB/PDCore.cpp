@@ -298,7 +298,7 @@ std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 	if (N == 5 && Vals.size() == 2 && Vals[0] == 3 && Vals[1] == 2) Out.push_back(EPDHand::FullHouse);
 	if (N == 5 && bSameSuit && bStraight) Out.push_back(EPDHand::StraightFlush);
 	if (N >= 3 && bSameSuit) Out.push_back(EPDHand::Flush);
-	if (N >= 2 && bStraight) Out.push_back(EPDHand::Straight); // 이어진 숫자는 2장부터 (페어와 맞춤)
+	if (N >= 3 && bStraight) Out.push_back(EPDHand::Straight); // 이어진 숫자는 3장부터 (D-418: 2장은 플러시와 구분이 안 가서 뺐다, 예전 2장부터)
 	return Out;
 }
 
