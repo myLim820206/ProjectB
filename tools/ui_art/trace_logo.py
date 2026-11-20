@@ -164,19 +164,70 @@ def merge(strokes, gap=10.0):
     return S
 
 
+def nearest_on(P, q):
+    """꺾은선 P 위에서 q 와 가장 가까운 점과 거리"""
+    best, bd = None, 1e9
+    for a, b in zip(P, P[1:]):
+        ax, ay = a; bx, by = b
+        vx, vy = bx - ax, by - ay
+        L2 = vx * vx + vy * vy
+        t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((q[0] - ax) * vx + (q[1] - ay) * vy) / L2))
+        p = (ax + vx * t, ay + vy * t)
+        d = math.dist(p, q)
+        if d < bd: best, bd = p, d
+    return best, bd
+
+
+def snap_ends(strokes, tol):
+    """다른 선(또는 제 선의 먼 부분)에 닿는 끝은 그 선 위 가장 가까운 점까지 이어 붙이고 '이음 끝' 으로 표시한다.
+    이음 끝에는 둥근 마개를 그리지 않는다 (이음매에 점이 생기던 것, D-430). 돌려주는 값: [(선, [처음이 열린 끝인가, 끝이 열린 끝인가])]"""
+    out = []
+    for i, P in enumerate(strokes):
+        P = list(P)
+        free = [True, True]
+        for k, idx in ((0, 0), (1, -1)):
+            q = P[idx]
+            best, bd = None, 1e9
+            for j, Q in enumerate(strokes):
+                if j == i:
+                    # 제 선: 끝에서 멀리 떨어진 부분만 (고리 · 되돌아와 닿는 획)
+                    L = 0.0; part = []
+                    seq = P if idx == 0 else P[::-1]
+                    for a, b in zip(seq, seq[1:]):
+                        L += math.dist(a, b)
+                        if L > tol * 4: part.append(b)
+                    if len(part) < 2: continue
+                    p, d = nearest_on(part, q)
+                else:
+                    p, d = nearest_on(Q, q)
+                if d < bd: best, bd = p, d
+            if best is not None and bd <= tol:
+                free[k] = False
+                if bd > 0.5:
+                    if idx == 0: P.insert(0, best)
+                    else: P.append(best)
+        out.append((P, free))
+    return out
+
+
 def neon(size, strokes_by_col, wd):
-    W, H = size
+    """strokes_by_col: 색 → [(점들, [처음 열린 끝, 끝 열린 끝])]. 색 관을 먼저 다 그리고 밝은 심을 나중에 한꺼번에 (겹친 자리에 심이 끊겨 보이지 않게)"""
     glow = Image.new('RGB', size, (0, 0, 0)); core = Image.new('RGB', size, (0, 0, 0))
     g, c = ImageDraw.Draw(glow), ImageDraw.Draw(core)
+    def cap(P, free, col, w):
+        for f, p in ((free[0], P[0]), (free[1], P[-1])):
+            if f: r = w / 2; c.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=col)
     for col, strokes in strokes_by_col.items():
         C = COLORS[col]
-        light = tuple(int(v + (255 - v) * 0.55) for v in C)
-        for P in strokes:
+        for P, free in strokes:
             g.line(P, fill=tuple(int(v * 0.55) for v in C), width=int(wd * 1.8), joint='curve')
             c.line(P, fill=C, width=int(wd), joint='curve')
+            cap(P, free, C, wd)
+    for col, strokes in strokes_by_col.items():
+        light = tuple(int(v + (255 - v) * 0.55) for v in COLORS[col])
+        for P, free in strokes:
             c.line(P, fill=light, width=max(1, int(wd * 0.62)), joint='curve')
-            for p in (P[0], P[-1]):
-                r = wd / 2; c.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=C)
+            cap(P, free, light, wd * 0.62)
     img = ImageChops.add(glow.filter(ImageFilter.GaussianBlur(14)).point(lambda v: int(v * 0.8)), glow.filter(ImageFilter.GaussianBlur(4)).point(lambda v: int(v * 0.35)))
     return ImageChops.lighter(img, core)
 
@@ -191,13 +242,22 @@ def main():
         wds[col] = m.sum() / max(1, sk.sum())
         strokes = trace(sk)
         strokes = merge(strokes)
-        strokes = [rdp(s, 1.1) for s in strokes]
+        def smooth(P, w=3):  # 화소 계단을 펴기: 앞뒤 w 점 평균 (끝점은 그대로, D-430)
+            if len(P) < 2 * w + 2: return P
+            Q = [P[0]]
+            for i in range(1, len(P) - 1):
+                k = min(w, i, len(P) - 1 - i)
+                xs = P[i - k:i + k + 1]
+                Q.append((sum(x for x, y in xs) / len(xs), sum(y for x, y in xs) / len(xs)))
+            return Q + [P[-1]]
+        strokes = [rdp(smooth(s), 0.8) for s in strokes]
         strokes = [s for s in strokes if min(x for x, y in s) > 20]  # 원본 왼쪽 가장자리의 회색 점(화면 조각) 빼기
-        res[col] = [[(float(x), float(y)) for x, y in s] for s in strokes]
+        snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
+        res[col] = [{'pts': [(float(x), float(y)) for x, y in P], 'free': free} for P, free in snapped]
         print(col, 'strokes', len(strokes), 'width', round(wds[col], 1))
     json.dump({'size': img.size, 'width': wds, 'strokes': res}, open(OUTJ, 'w'), indent=0)
     wd = float(np.median(list(wds.values()))) * 1.35  # 가운데 흰빛 폭보다 관이 굵다
-    ours = neon(img.size, {k: [[tuple(p) for p in s] for s in v] for k, v in res.items()}, wd)
+    ours = neon(img.size, {k: [([tuple(p) for p in st['pts']], st['free']) for st in v] for k, v in res.items()}, wd)
     W, H = img.size
     sheet = Image.new('RGB', (W, H * 2 + 10), (0, 0, 0))
     sheet.paste(img, (0, 0)); sheet.paste(ours, (0, H + 10))
