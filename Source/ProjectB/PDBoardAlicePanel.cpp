@@ -51,30 +51,32 @@ void SPDBoardWidget::PaintAliceTvBody(FCanvas& C) const
 		Tube({RP(1853.f, 115.f), RP(1849.f, 48.f)}, 1.9f);
 		Tube({RP(1871.f, 116.f), RP(1906.f, 9.f)}, 1.9f);
 	}
-	// 배속 버튼 두 개 (회녹색 판 + 밝은 회색 테): 1646 ~ 1700 · 1714 ~ 1768 × 536 ~ 604
+	// 배속 버튼 두 개 (D-457: 시안 확대해서 다시 맞춤): 1646 ~ 1700 · 1714 ~ 1768 × 536 ~ 604, 밝은 회색 바깥 테 + 4 안쪽 어두운 회녹 테,
+	// 'x2' 글자는 버튼 높이의 1/3 쯤 크게(가운데 553), ▶▶ 는 그 아래(571 ~ 585)
 	for (int32 K = 0; K < 2; ++K)
 	{
-		const float X0 = 1646.f + K * 68.f, X1 = X0 + 54.f;
+		const float X0 = 1646.f + K * 68.f, X1 = X0 + 54.f, Cx = X0 + 27.f;
 		const TArray<FVector2f> Ro = RR(X0, 536.f, X1, 604.f, 6.f);
 		C.FillPoly(Ro, Hex(TEXT("37413e")));
-		C.Glow(Ro, Hex(TEXT("8c9a95")), 1.8f, 0.45f);
-		C.Lines(Ro, Hex(TEXT("a3aeaa")), 1.3f);
-		const FLinearColor Tc = Hex(TEXT("a2aaa7"));
-		C.TextCentered(K == 0 ? TEXT("x2") : TEXT("x4"), (X0 + 27.f) * RefK, 551.f * RefK, Tc, 13.5f, false);
+		C.Glow(Ro, Hex(TEXT("8c9a95")), 1.6f, 0.4f);
+		C.Lines(Ro, Hex(TEXT("aab4b0")), 1.4f);
+		C.Lines(RR(X0 + 4.f, 540.f, X1 - 4.f, 600.f, 3.f), Hex(TEXT("5f6e69")), 1.f);
+		const FLinearColor Tc = Hex(TEXT("aab1ae"));
+		C.TextCentered(K == 0 ? TEXT("x2") : TEXT("x4"), Cx * RefK, 554.f * RefK, Tc, 14.f, false);
 		for (int32 J = 0; J < 2; ++J) // ▶▶
 		{
-			const float Ax = X0 + 17.f + J * 10.f;
-			C.FillPoly({RP(Ax, 570.f), RP(Ax + 10.f, 577.f), RP(Ax, 584.f)}, Tc);
+			const float Ax = Cx - 11.f + J * 10.f;
+			C.FillPoly({RP(Ax, 569.f), RP(Ax + 11.f, 577.f), RP(Ax, 585.f)}, Tc);
 		}
 	}
 	// 채널 다이얼: 가운데 (1836, 570), 바깥 고리 33 · 안 고리 27 (왼쪽 위가 트여 바늘이 나온다)
 	{
 		const FLinearColor PkGlow = Hex(TEXT("ff2d96")), PkCore = Hex(TEXT("e07ab0"));
-		C.FillPoly(FCanvas::CirclePoints(RP(1836.f, 570.f), 33.f * RefK, 32), Hex(TEXT("4a0b39")));
-		C.SoftDisc(RP(1836.f, 570.f), 40.f * RefK, 40.f * RefK, PkGlow, 0.25f);
+		C.FillPoly(FCanvas::CirclePoints(RP(1837.f, 571.f), 33.f * RefK, 32), Hex(TEXT("4a0b39")));
+		C.SoftDisc(RP(1837.f, 571.f), 40.f * RefK, 40.f * RefK, PkGlow, 0.25f);
 		TArray<FVector2f> O, I;
-		AddArc(O, 1836.f, 570.f, 33.f, 240.f, 560.f, 32);
-		AddArc(I, 1836.f, 570.f, 27.f, 255.f, 545.f, 28);
+		AddArc(O, 1837.f, 571.f, 34.f, 240.f, 560.f, 32);
+		AddArc(I, 1837.f, 571.f, 27.f, 95.f, 200.f, 14); // 안 고리는 왼쪽 아래만 (D-457)
 		C.Glow(O, PkGlow, 2.f, 0.9f); C.Lines(O, PkCore, 1.4f);
 		C.Glow(I, PkGlow, 1.2f, 0.5f); C.Lines(I, PkCore, 0.9f);
 		const TArray<FVector2f> Needle = {RP(1800.f, 540.f), RP(1836.f, 568.f)};
