@@ -3652,8 +3652,8 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
 	const FLinearColor Cream = Hex(TEXT("ebebf2")), Lav = Hex(TEXT("be73ff")), PinkH = Hex(TEXT("f5e66e"));
 	// Alice 시안 (D-403): 보랏빛 세로 그라데이션 판 + 연보라 테, 맨 위 BAR Alice 로고(시안 그림 조각) + 금색 '족보 메뉴'
-	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(28, 10, 39), FColor(14, 8, 35), K / 13.f)); // 시안 sRGB 1c 0a 27 → 0e 08 23
-	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), WithAlpha(Lav, 0.9f), 1.8f, 0.6f);
+	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f)); // 시안 패널 안쪽에서 잰 sRGB 10 0a 20 → 0b 07 1a (D-405)
+	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), WithAlpha(Lav, 0.9f), 1.8f, 0.3f); // 번짐이 판 안을 보랏빛으로 물들이지 않게 (D-405)
 	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
 	if (const FSlateBrush* Logo = Art(EUiArt::Logo)) C.Image(C.NextLayer(), Logo, 20.5f, 17.3f, 94.7f, 36.5f, FLinearColor::White);
 	if (bMenuBoard)
