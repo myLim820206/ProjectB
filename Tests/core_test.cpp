@@ -2154,6 +2154,242 @@ static void JokerMergeTests()
 	}
 }
 
+// ---------------------------------------------------------------- 먹이기 상황별 (D-401)
+static int FindFeed(const std::vector<FPDFeed>& L, int Syn)
+{
+	for (int I = 0; I < (int)L.size(); ++I) if (L[I].Syn == Syn) return I;
+	return -1;
+}
+static double XpTotal(int Level, float Xp) { double T = Xp; for (int L = 1; L < Level; ++L) T += JokerXpNeed(L); return T; } // 레벨 1 부터 모은 경험치 전체
+static void FeedTests()
+{
+	std::printf("\n[먹이기 상황별]\n");
+	auto Board = []() { FPDGame G = FuseBoard(); return G; };
+	const float Unit = 13.f; // 흡수 단위: 조커 카드 숫자 10 + 3
+	// 조커는 와일드라 카드 옆에 붙으면 족보 안에 든다 (잭 + 9 + 9 = 트리플). '맞닿았지만 안 든' 조커는 5장 족보처럼 더 낄 수 없을 때 생긴다
+	// 줄 하나(가로 5칸) + 가운데 위아래 칸 + 오른쪽으로 둘 떨어진 칸이 비어 있는 곳. 칸은 (X0 + dx, Y)
+	int X0 = 0;
+	auto Spot = [&X0](const FPDGame& G, int& Y) {
+		for (Y = 1; Y + 1 < Rows; ++Y)
+			for (X0 = 0; X0 + 6 < Cols; ++X0)
+			{
+				bool bOk = G.Buildable(X0 + 2, Y - 1) && G.Buildable(X0 + 2, Y + 1) && G.Buildable(X0 + 6, Y);
+				for (int X = 0; X < 5; ++X) bOk = bOk && G.Buildable(X0 + X, Y);
+				if (bOk) return true;
+			}
+		return false;
+	};
+	auto Row5 = [&X0](FPDGame& G, int Y) { for (int X = 0; X < 5; ++X) Put(G.Towers, X0 + X, Y, C(2 + X, X % 2 ? EPDSuit::Heart : EPDSuit::Spade)); }; // 2 3 4 5 6 스트레이트
+	auto Find5 = [](const FPDGame& G) { for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::Straight && G.Synergies[I].N == 5) return I; return -1; };
+	{ // 1. 기본: 스트레이트 5장 가운데 아래에 잭 — 조커는 못 끼고(5장) 맞닿아서 먹는다. 경험치 72 → Lv3 + 22, 카드는 사라지고 위력에 흡수 60%
+		FPDGame G = Board();
+		int Y; const bool bSpot = Spot(G, Y);
+		Row5(G, Y); PutJ(G.Towers, X0 + 2, Y + 1, EPDJoker::Jack, 1, 2.f);
+		Refresh(G);
+		const int S5 = Find5(G);
+		bool bNoJ = S5 >= 0;
+		for (int K : S5 >= 0 ? G.Synergies[S5].Cells : std::vector<int>{}) bNoJ = bNoJ && !G.Towers.at(K).IsJoker();
+		const auto L = G.FeedTargets();
+		const int I = FindFeed(L, S5);
+		const float Gain = JokerFeedAbsorb * (5.f + 6.f + 7.f + 8.f + 9.f) / Unit;
+		const bool bList = I >= 0 && L[I].Joker == CellKey(X0 + 2, Y + 1) && Near(L[I].Xp, 72.f) && Near(L[I].Gain, Gain);
+		const bool bFed = bList && G.Feed(S5);
+		const auto It = G.Towers.find(CellKey(X0 + 2, Y + 1));
+		Expect(bSpot && bNoJ && bFed && G.Towers.size() == 1 && It != G.Towers.end() && It->second.JLevel == 3 && Near(It->second.JXp, 22.f) && Near(It->second.Mult, 2.f + Gain),
+			"2~6 스트레이트(조커 안 듦) 아래 잭: 경험치 72 → Lv3 + 22, 카드 다섯 사라짐, 위력 2 + 0.6×35/13");
+	}
+	{ // 3. 든 조커가 맞닿은 더 높은 조커보다 먼저, 고른 조커가 있으면 그 조커가 먹는다 (D-213)
+		FPDGame G = Board();
+		int Y; const bool bSpot = Spot(G, Y);
+		Row5(G, Y);
+		PutJ(G.Towers, X0 + 0, Y, EPDJoker::Clown, 2); // 2 대신 광대 (와일드) — 광대 3 4 5 6 스트레이트
+		PutJ(G.Towers, X0 + 2, Y + 1, EPDJoker::Star, 50);
+		Refresh(G);
+		int S5 = -1;
+		for (int K = 0; K < (int)G.Synergies.size(); ++K) if (G.Synergies[K].N == 5 && std::find(G.Synergies[K].Cells.begin(), G.Synergies[K].Cells.end(), CellKey(X0 + 0, Y)) != G.Synergies[K].Cells.end()) S5 = K;
+		const auto L = G.FeedTargets();
+		const int I = FindFeed(L, S5);
+		const bool bInside = I >= 0 && L[I].Joker == CellKey(X0 + 0, Y);
+		const auto L2 = G.FeedTargets(CellKey(X0 + 2, Y + 1));
+		const int I2 = FindFeed(L2, S5);
+		const bool bPick = I2 >= 0 && L2[I2].Joker == CellKey(X0 + 2, Y + 1) && G.Feed(S5, CellKey(X0 + 2, Y + 1)) && G.Towers.at(CellKey(X0 + 2, Y + 1)).JLevel == 50 && G.Towers.count(CellKey(X0 + 0, Y)) && G.Towers.at(CellKey(X0 + 0, Y)).JLevel == 2;
+		Expect(bSpot && bInside && bPick, "광대 3 4 5 6 (광대가 듦, Lv2) + 아래 스타 Lv50: 기본은 광대, 스타를 고르면 스타가 먹고 광대는 그대로");
+	}
+	{ // 4. 맞닿은 조커 둘: 레벨 높은 쪽이 기본, 낮은 쪽을 고를 수 있음, 안 닿은 조커는 못 고름
+		FPDGame G = Board();
+		int Y; const bool bSpot = Spot(G, Y);
+		Row5(G, Y);
+		PutJ(G.Towers, X0 + 2, Y - 1, EPDJoker::Jack, 3); PutJ(G.Towers, X0 + 2, Y + 1, EPDJoker::Bell, 8); PutJ(G.Towers, X0 + 6, Y, EPDJoker::Star, 1);
+		Refresh(G);
+		const int S5 = Find5(G);
+		const auto L = G.FeedTargets();
+		const int I = FindFeed(L, S5);
+		const bool bHigh = I >= 0 && L[I].Joker == CellKey(X0 + 2, Y + 1);
+		const bool bFar = FindFeed(G.FeedTargets(CellKey(X0 + 6, Y)), S5) < 0 && !G.Feed(S5, CellKey(X0 + 6, Y));
+		const bool bLow = G.Feed(S5, CellKey(X0 + 2, Y - 1)) && G.Towers.at(CellKey(X0 + 2, Y - 1)).JLevel > 3 && G.Towers.at(CellKey(X0 + 2, Y + 1)).JLevel == 8;
+		Expect(bSpot && S5 >= 0 && bHigh && bFar && bLow, "스트레이트 위 잭 Lv3 · 아래 방울 Lv8: 기본은 방울, 잭을 고르면 잭, 떨어진 스타는 못 먹음");
+	}
+	{ // 5. 합성 타워를 먹이면 경험치(평균 위력) · 흡수(특성까지)가 크다, 조커 특성이 크면 흡수는 줄어든다
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(7), 2); Put(G.Towers, 1, Row, C(7, EPDSuit::Heart), 2); PutJ(G.Towers, 2, Row, EPDJoker::Jack);
+		G.Towers.at(CellKey(0, Row)).Mult = 3.f; G.Towers.at(CellKey(0, Row)).TDmg = 1.5f;
+		G.Towers.at(CellKey(1, Row)).Mult = 5.f; G.Towers.at(CellKey(1, Row)).TRate = 2.f;
+		G.Towers.at(CellKey(2, Row)).TDmg = 2.f;
+		Refresh(G);
+		const auto L = G.FeedTargets();
+		const int T = FindSyn(G, EPDHand::Triple);
+		const int I = FindFeed(L, T);
+		const float Val = (3.f + 7.f) * 3.f * 1.5f + (3.f + 7.f) * 5.f * 2.f;
+		Expect(T >= 0 && I >= 0 && Near(L[I].Xp, 60.f * (3.f + 5.f) / 2.f) && Near(L[I].Gain, JokerFeedAbsorb * Val / (Unit * 2.f)), "잭 + Lv2 7 둘(위력 3·5, 특성 1.5·2) 트리플 → 경험치 60×4 = 240, 흡수 0.6×145/(13×조커 공격 특성 2)");
+	}
+	auto Trip = [](FPDGame& G, int Row, int JLevel = 1, int Lv = 1, float M = 1.f) {
+		Put(G.Towers, 0, Row, C(9), Lv); Put(G.Towers, 1, Row, C(9, EPDSuit::Heart), Lv); PutJ(G.Towers, 2, Row, EPDJoker::Jack, JLevel);
+		G.Towers.at(CellKey(0, Row)).Mult = M; G.Towers.at(CellKey(1, Row)).Mult = M;
+		Refresh(G);
+		return FindSyn(G, EPDHand::Triple);
+	};
+	{ // 6. 먹이 상자 부적: 경험치 ×1.5, 먹이 사슬 칵테일: 흡수 90%
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		G.Charms = {EPDCharm::Feeder, EPDCharm::FoodChain};
+		const int T = Trip(G, Row);
+		const auto L = G.FeedTargets();
+		const int I = FindFeed(L, T);
+		const bool bGain = I >= 0 && Near(L[I].Gain, 0.9f * 24.f / Unit);
+		const bool bFed = G.Feed(T);
+		const FPDTower& J = G.Towers.at(CellKey(2, Row));
+		Expect(bGain && bFed && Near((float)XpTotal(J.JLevel, J.JXp), 90.f), "먹이 상자: 경험치 60×1.5 = 90, 먹이 사슬: 흡수 0.9×24/13");
+	}
+	{ // 7. 한 번에 여러 레벨, 최대 레벨 9999 에서 멈추고 경험치 0, 최대 레벨 조커는 먹이기 목록에서 빠짐
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		const int T = Trip(G, Row, 1, 2, 10.f); // 경험치 60 × 10 = 600 → 20+30+…+100 = 540 → Lv10, 남은 60
+		const bool bFed = G.Feed(T);
+		const FPDTower& J = G.Towers.at(CellKey(2, Row));
+		bool bEv = false;
+		for (const FPDEvent& E : G.Events) bEv = bEv || (E.Kind == FPDEvent::EKind::Feed && E.A == 10 && E.B == 9);
+		const bool bMulti = bFed && J.JLevel == 10 && Near(J.JXp, 60.f) && bEv && G.Mods.Up(J);
+		FPDGame H = Board();
+		const int T2 = Trip(H, Row, JokerMaxLevel - 1);
+		H.Towers.at(CellKey(2, Row)).JXp = JokerXpNeed(JokerMaxLevel - 1) - 5.f;
+		const bool bCap = H.Feed(T2) && H.Towers.at(CellKey(2, Row)).JLevel == JokerMaxLevel && H.Towers.at(CellKey(2, Row)).JXp == 0.f;
+		Put(H.Towers, 0, Row, C(4)); Put(H.Towers, 1, Row, C(4, EPDSuit::Heart));
+		Refresh(H);
+		const bool bGone = H.FeedTargets().empty() && !H.Feed(FindSyn(H, EPDHand::Triple));
+		Expect(bMulti && bCap && bGone, "경험치 600 → Lv1 에서 Lv10 + 60 (사건 +9, 강화 능력), Lv9998 → 9999 에서 멈추고 경험치 0, Lv9999 는 못 먹음");
+	}
+	{ // 8. 조커만 있는 족보(조커 둘 = 와일드 페어)는 먹일 것이 없다, 단계(오버 · 보상)에서는 안 됨
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		PutJ(G.Towers, 0, Row, EPDJoker::Jack); PutJ(G.Towers, 1, Row, EPDJoker::Bell);
+		Refresh(G);
+		const bool bNone = !G.Synergies.empty() && G.FeedTargets().empty() && !G.Feed(0);
+		G.Towers.clear();
+		const int T = Trip(G, Row);
+		G.Phase = EPDPhase::Over;
+		const bool bOver = G.FeedTargets().empty() && !G.Feed(T);
+		G.Phase = EPDPhase::Reward;
+		const bool bReward = G.FeedTargets().empty() && !G.Feed(T);
+		G.Phase = EPDPhase::Wave;
+		const bool bWave = G.Feed(T);
+		Expect(bNone && bOver && bReward && bWave && G.Towers.size() == 1, "조커 둘 와일드 페어는 먹이 없음, 게임 오버 · 보상 창에선 안 되고 웨이브 중엔 됨");
+	}
+	{ // 9. 카드를 나눠 쓰는 족보: 5 6 7 + 7 의 스트레이트를 먹이면 남은 7 은 그대로, 페어는 사라짐
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6), Row2 = Row + 1 < Rows && G.Buildable(0, Row + 1) ? Row + 1 : -1;
+		Put(G.Towers, 0, Row, C(5)); Put(G.Towers, 1, Row, C(6, EPDSuit::Heart)); Put(G.Towers, 2, Row, C(7)); Put(G.Towers, 3, Row, C(7, EPDSuit::Heart));
+		if (Row2 >= 0) PutJ(G.Towers, 0, Row2, EPDJoker::Jack);
+		Refresh(G);
+		const int St = FindSyn(G, EPDHand::Straight);
+		const bool bFed = Row2 >= 0 && St >= 0 && G.Feed(St);
+		Expect(bFed && G.Towers.size() == 2 && G.Towers.count(CellKey(3, Row)) && G.Synergies.empty(), "5 6 7 + 7: 스트레이트를 먹이면 7♥ 하나만 남고 페어는 사라짐");
+	}
+	{ // 10. 상위 조커도 먹는다, 고른 칸이 조커가 아니면 아무것도 없음
+		FPDGame G = Board();
+		const int Row = FreeRow(G, 6);
+		Put(G.Towers, 0, Row, C(9)); Put(G.Towers, 1, Row, C(9, EPDSuit::Heart)); PutJ(G.Towers, 2, Row, EPDJoker::Jack, 12);
+		G.Towers.at(CellKey(2, Row)).Joker = UpperBase + UpperOf(EPDJoker::Harlequin, EPDJoker::Jack);
+		Refresh(G);
+		const bool bCard = G.FeedTargets(CellKey(0, Row)).empty();
+		const bool bUp = G.Feed(FindSyn(G, EPDHand::Triple)) && G.Towers.size() == 1 && Near((float)XpTotal(G.Towers.begin()->second.JLevel, G.Towers.begin()->second.JXp), (float)XpTotal(12, 0.f) + 60.f);
+		Expect(bCard && bUp, "하트 여왕 Lv12 + 9 + 9 트리플: 상위 조커도 먹음 (경험치 +60), 카드 칸을 고르면 목록이 빔");
+	}
+	{ // 11. 무작위 판 3,000개: 아무 족보를 아무 조커에 먹여도 규칙이 깨지지 않는다
+		std::mt19937 Rng(401);
+		int Done = 0, Bad = 0;
+		std::string FirstBad;
+		auto Fail = [&](const std::string& Why) { if (Bad++ == 0) FirstBad = Why; };
+		for (int B = 0; B < 3000; ++B)
+		{
+			FPDGame G = Board();
+			if (B % 4 == 1) G.Charms = {EPDCharm::Feeder};
+			if (B % 4 == 2) G.Charms = {EPDCharm::FoodChain};
+			for (int Y = 0; Y < 4; ++Y)
+				for (int X = 0; X < 5; ++X)
+				{
+					if (!G.Buildable(X, Y) || Rng() % 5 == 0) continue;
+					if (Rng() % 5 == 0) { PutJ(G.Towers, X, Y, (EPDJoker)(Rng() % (int)EPDJoker::Count), Rng() % 20 == 0 ? JokerMaxLevel : 1 + (int)(Rng() % 30), 1.f + (float)(Rng() % 6)); G.Towers.at(CellKey(X, Y)).JXp = (float)(Rng() % 15); G.Towers.at(CellKey(X, Y)).TDmg = Rng() % 3 == 0 ? 1.5f : 1.f; continue; }
+					Put(G.Towers, X, Y, {2 + (int)(Rng() % 5), (EPDSuit)(Rng() % 2)}, Rng() % 4 == 0 ? 2 : 1);
+					FPDTower& T = G.Towers.at(CellKey(X, Y));
+					if (T.Level == 2) { T.Mult = 3.f; T.TDmg = 1.5f; }
+				}
+			Refresh(G);
+			std::vector<int> Jokers;
+			for (const auto& KV : G.Towers) if (KV.second.IsJoker()) Jokers.push_back(KV.first);
+			for (int Step = 0; Step < 6; ++Step)
+			{
+				const int Only = (!Jokers.empty() && Rng() % 2) ? Jokers[Rng() % Jokers.size()] : -1;
+				const auto L = G.FeedTargets(Only);
+				for (const FPDFeed& F : L)
+				{
+					const FPDSynergy& S = G.Synergies[F.Syn];
+					if (!G.Towers.count(F.Joker) || !G.Towers.at(F.Joker).IsJoker()) { Fail("먹는 칸이 조커가 아님"); continue; }
+					if (Only >= 0 && F.Joker != Only) Fail("고른 조커가 아닌 조커가 먹음");
+					if (G.Towers.at(F.Joker).JLevel >= JokerMaxLevel) Fail("최대 레벨 조커가 목록에 있음");
+					bool bInside = false, bTouch = false; int Fed = 0; float MultSum = 0.f;
+					for (int K : S.Cells)
+					{
+						if (K == F.Joker) bInside = true;
+						if (G.Towers.at(K).IsJoker()) continue;
+						Fed++; MultSum += G.Towers.at(K).Mult;
+						bTouch = bTouch || PDCellDistT(K, F.Joker) == 1;
+					}
+					if (!bInside && !bTouch) Fail("먹는 조커가 족보에 없고 맞닿지도 않음");
+					if (Fed == 0) Fail("먹일 카드가 없는 족보가 목록에 있음");
+					if (Fed > 0 && !Near(F.Xp, S.Value * MultSum / Fed)) Fail("경험치 ≠ 족보 점수 × 평균 위력");
+					if (F.Gain <= 0.f) Fail("흡수가 0 이하");
+				}
+				if (L.empty()) break;
+				const FPDFeed F = L[Rng() % L.size()];
+				const FPDSynergy S = G.Synergies[F.Syn];
+				const FPDTowerMap Snap = G.Towers;
+				const FPDTower J0 = Snap.at(F.Joker);
+				size_t JokerCount = 0; for (const auto& KV : Snap) JokerCount += KV.second.IsJoker();
+				if (!G.Feed(F.Syn, Only)) { Fail("목록에 있는 먹이기가 실패"); break; }
+				++Done;
+				size_t After = 0; for (const auto& KV : G.Towers) After += KV.second.IsJoker();
+				if (After != JokerCount) Fail("조커가 먹이로 사라짐");
+				if (!G.Towers.count(F.Joker)) { Fail("먹은 조커가 사라짐"); break; }
+				const FPDTower& J = G.Towers.at(F.Joker);
+				if (!Near(J.Mult, J0.Mult + F.Gain)) Fail("위력 ≠ 전 위력 + 흡수");
+				const double Want = std::min(XpTotal(J0.JLevel, J0.JXp) + F.Xp * (G.Has(EPDCharm::Feeder) ? 1.5 : 1.0), XpTotal(JokerMaxLevel, 0.f));
+				const double Got = J.JLevel >= JokerMaxLevel ? XpTotal(JokerMaxLevel, 0.f) : XpTotal(J.JLevel, J.JXp);
+				if (std::fabs(Got - Want) > 1e-2 * std::max(1.0, Want)) Fail("경험치가 사라지거나 늘어남");
+				if (J.JXp < 0.f || (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel))) Fail("남은 경험치가 다음 레벨보다 큼");
+				for (const auto& KV : Snap)
+				{
+					const bool bFood = !KV.second.IsJoker() && std::find(S.Cells.begin(), S.Cells.end(), KV.first) != S.Cells.end();
+					if (bFood && G.Towers.count(KV.first)) Fail("먹인 카드가 남음");
+					if (!bFood && !G.Towers.count(KV.first)) Fail("먹이 아닌 타워가 사라짐");
+					if (!bFood && KV.first != F.Joker && G.Towers.count(KV.first) && (G.Towers.at(KV.first).JLevel != KV.second.JLevel || !Near(G.Towers.at(KV.first).Mult, KV.second.Mult))) Fail("다른 타워가 바뀜");
+				}
+			}
+		}
+		Expect(Bad == 0 && Done > 3000, "무작위 판 3,000개 · 먹이기 " + std::to_string(Done) + "번: 규칙 어긋남 " + std::to_string(Bad) + (Bad ? " (처음: " + FirstBad + ")" : ""));
+	}
+}
+
 // ---------------------------------------------------------------- 봇 (웹 프로토타입 test.js 의 평가에서 시작)
 static int Coverage(const FPDGame& G, int X, int Y, float Range)
 {
@@ -2445,6 +2681,7 @@ int main(int Argc, char** Argv)
 	UnitTests();
 	FuseRuleTests();
 	JokerMergeTests();
+	FeedTests();
 	const int Runs = Argc > 1 ? std::atoi(Argv[1]) : 10;
 	if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "base") BotTest(Runs, false, false, true, true);
 	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "tree") { BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); }
