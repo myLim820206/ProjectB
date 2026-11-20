@@ -53,7 +53,7 @@ private:
 	static constexpr int32 MusicN = 6; // UPROPERTY 배열 크기라 숫자로 (UHT 가 식을 못 읽는다). = 재즈 곡 수 + 2 (cpp 에서 확인)
 	static constexpr int32 MusicBoss = 4;
 	static constexpr int32 MusicMenu = 5; // 한 줄에 둘 선언하면 MSVC 가 DLL 클래스에서 C2487
-	TFuture<std::vector<int16_t>> MusicJob[MusicN];
+	TFuture<TArray<uint8>> MusicJob[MusicN]; // 합성 + 바이트 바꾸기까지 뒤 스레드에서 (D-451)
 	TArray<uint8> MusicPcm[MusicN];
 	UPROPERTY(Transient)
 	TObjectPtr<USoundWaveProcedural> MusicWave[MusicN];

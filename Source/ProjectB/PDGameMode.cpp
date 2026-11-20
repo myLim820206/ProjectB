@@ -139,17 +139,18 @@ void APDGameMode::UpdateMusic()
 		if (Pcm.Num() == 0)
 		{
 			if (!MusicJob[I].IsValid() || !MusicJob[I].IsReady()) continue;
-			const std::vector<int16_t> Samples = MusicJob[I].Get();
-			Pcm.SetNumUninitialized((int32)(Samples.size() * sizeof(int16_t)));
-			FMemory::Memcpy(Pcm.GetData(), Samples.data(), Pcm.Num());
+			Pcm = MusicJob[I].Consume(); // 옮기기만 (D-451: 예전엔 게임 스레드에서 곡마다 몇 MB 를 세 번 베껴 시작 화면이 한 번씩 툭 끊겼다)
 			if (Pcm.Num() == 0) continue;
+		}
+		// 소리 객체는 그 곡이 들릴 때 처음 만든다 (D-451): 시작 화면에서 안 쓰는 재즈 · 보스 곡까지 한꺼번에 만들며 끊기던 것
+		if (!MusicWave[I] && MusicMix[I] > 0.f)
+		{
 			MusicWave[I] = NewObject<USoundWaveProcedural>(this);
 			MusicWave[I]->SetSampleRate(PDSampleRate);
 			MusicWave[I]->NumChannels = 1;
 			MusicWave[I]->Duration = INDEFINITELY_LOOPING_DURATION;
 			MusicWave[I]->bLooping = false;
-			MusicWave[I]->QueueAudio(Pcm.GetData(), Pcm.Num());
-			MusicWave[I]->QueueAudio(Pcm.GetData(), Pcm.Num());
+			MusicWave[I]->QueueAudio(Pcm.GetData(), Pcm.Num()); // 한 바퀴 (반 남으면 아래에서 한 바퀴 더)
 			MusicVoice[I] = UGameplayStatics::CreateSound2D(this, MusicWave[I], 0.001f, 1.f, 0.f, nullptr, false, false);
 			if (MusicVoice[I]) { MusicVoice[I]->bIsUISound = true; MusicVoice[I]->Play(); }
 		}
@@ -163,9 +164,9 @@ void APDGameMode::UpdateMusic()
 void APDGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	MusicJob[MusicMenu] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeMenuMusic(PDSampleRate); }); // 메뉴 음악 (D-264): 시작 화면이 먼저라 먼저 합성
-	for (int32 T = 0; T < PD::JazzTrackCount; ++T) MusicJob[T] = Async(EAsyncExecution::ThreadPool, [T]() { return PD::SynthesizeJazz(T, PDSampleRate); }); // 인게임 재즈 4곡 (D-319)
-	MusicJob[MusicBoss] = Async(EAsyncExecution::ThreadPool, []() { return PD::SynthesizeBossMusic(PDSampleRate); }); // 보스 음악 (D-188)
+	MusicJob[MusicMenu] = Async(EAsyncExecution::ThreadPool, []() { const std::vector<int16_t> S = PD::SynthesizeMenuMusic(PDSampleRate); TArray<uint8> B; B.SetNumUninitialized((int32)(S.size() * sizeof(int16_t))); if (B.Num()) FMemory::Memcpy(B.GetData(), S.data(), B.Num()); return B; }); // 메뉴 음악 (D-264): 시작 화면이 먼저라 먼저 합성
+	for (int32 T = 0; T < PD::JazzTrackCount; ++T) MusicJob[T] = Async(EAsyncExecution::ThreadPool, [T]() { const std::vector<int16_t> S = PD::SynthesizeJazz(T, PDSampleRate); TArray<uint8> B; B.SetNumUninitialized((int32)(S.size() * sizeof(int16_t))); if (B.Num()) FMemory::Memcpy(B.GetData(), S.data(), B.Num()); return B; }); // 인게임 재즈 4곡 (D-319)
+	MusicJob[MusicBoss] = Async(EAsyncExecution::ThreadPool, []() { const std::vector<int16_t> S = PD::SynthesizeBossMusic(PDSampleRate); TArray<uint8> B; B.SetNumUninitialized((int32)(S.size() * sizeof(int16_t))); if (B.Num()) FMemory::Memcpy(B.GetData(), S.data(), B.Num()); return B; }); // 보스 음악 (D-188)
 	if (!GEngine || !GEngine->GameViewport) return;
 
 	SAssignNew(BoardWidget, SPDBoardWidget);
