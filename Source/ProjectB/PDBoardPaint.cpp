@@ -3032,8 +3032,8 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	// 가는 점선 빛 줄로 보여 모서리 · 선 끝에서 삐져나갔다. 둥근 빛 사슬은 이음매가 없다. 넓은 겹 + 좁은 겹 + 색 관
 	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
 	{
-		C.Spill(Pts, Gc, Th * 8.f, 0.08f * B, true); // D-449: 뿌옇던 것 → 또렷한 관 + 고른 캡슐 번짐 (사용자 참고 그림)
-		C.Spill(Pts, Gc, Th * 4.5f, 0.30f * B, true);
+		C.Spill(Pts, Gc, Th * 11.f, 0.16f * B, true); // D-452: 참고 그림처럼 또렷한 캡슐 번짐 (D-449 보다 밝고 넓게)
+		C.Spill(Pts, Gc, Th * 5.f, 0.55f * B, true);
 		C.Lines(Pts, Gc, Th * 1.0f);
 	};
 	bool bDiscGlow = false; // 간판 BAR 만 둥근 빛 사슬 (D-450)
