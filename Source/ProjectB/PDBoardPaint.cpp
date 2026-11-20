@@ -2078,7 +2078,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const bool bSel = I == Sel;
 		const float X = HandCardX(I, (int32)G.Hand.size()), Y = HandY - (bSel ? 10.f : 0.f);
 		const FLinearColor Col = SuitColor(Card.Suit);
-		const FLinearColor Fill(Col.R * 0.26f, Col.G * 0.2f, Col.B * 0.24f, 1.f); // 무늬 색 어두운 채움 (시안: ♥ 검붉음 · ♠ 짙은 회색 · ♣ 짙은 파랑 · ♦ 짙은 금빛)
+		const FLinearColor Fill = SrgbDim(Col, 0.27f); // 무늬 색 어두운 채움 (시안: ♥ 검붉음 · ♠ 짙은 회색 · ♣ 짙은 파랑 · ♦ 짙은 금빛, 화면 밝기로 0.27배)
 		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, CardW, CardH, 7.f);
 		C.FillPoly(Ro, Fill);
 		if (bSel) C.FillPoly(Ro, WithAlpha(Col, 0.12f));
@@ -2103,7 +2103,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const FLinearColor Gr = Hex(TEXT("5af06e")), GrT = Hex(TEXT("82f08c"));
 		const float B = bBuild ? 1.f : 0.4f;
 		const float X = RBtnX, Y = StartBtnY, W = RBtnW, H = StartBtnH;
-		for (int32 K = 0; K < 8; ++K) C.Box(X + 2.f, Y + 2.f + K * (H - 4.f) / 8.f, W - 4.f, (H - 4.f) / 8.f + 0.5f, FLinearColor(0.08f * B, (0.36f - K * 0.015f) * B, 0.12f * B, 1.f)); // 세로 그라데이션
+		for (int32 K = 0; K < 8; ++K) C.Box(X + 2.f, Y + 2.f + K * (H - 4.f) / 8.f, W - 4.f, (H - 4.f) / 8.f + 0.5f, SrgbLerp(FColor((uint8)(20 * B), (uint8)(90 * B), (uint8)(30 * B)), FColor((uint8)(8 * B), (uint8)(60 * B), (uint8)(18 * B)), K / 7.f)); // 세로 그라데이션 (시안 sRGB 14 5a 1e → 08 3c 12)
 		if (bBuild && bHov) C.Box(X + 2.f, Y + 2.f, W - 4.f, H - 4.f, WithAlpha(Gr, 0.1f));
 		if (bBuild && G.AutoStartT >= 0.f) // 자동 시작까지 버튼 아래 선이 차오른다
 		{
@@ -2150,7 +2150,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const bool bHot = bPlay && G.PointsLeft() > 0, bHov = InRect(Mouse, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH);
 		const float X = TreeBtnX, Y = TreeBtnY, W = RBtnW, H = TreeBtnH;
 		const FLinearColor Bl = Hex(TEXT("3c87ff")), Ic = Hex(TEXT("5ae1ff")), Tx = Hex(TEXT("82cdff"));
-		for (int32 K = 0; K < 6; ++K) C.Box(X + 2.f, Y + 2.f + K * (H - 4.f) / 6.f, W - 4.f, (H - 4.f) / 6.f + 0.5f, FLinearColor(0.02f, 0.2f - K * 0.012f, 0.58f - K * 0.03f, 1.f));
+		for (int32 K = 0; K < 6; ++K) C.Box(X + 2.f, Y + 2.f + K * (H - 4.f) / 6.f, W - 4.f, (H - 4.f) / 6.f + 0.5f, SrgbLerp(FColor(10, 60, 160), FColor(2, 40, 120), K / 5.f)); // 시안 sRGB
 		const float Fl = bHot ? FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f)) : 0.f; // 포인트가 있으면 숨쉰다 (D-189)
 		if (bHov || bHot) C.Box(X + 2.f, Y + 2.f, W - 4.f, H - 4.f, WithAlpha(Ic, bHov ? 0.1f : 0.04f + 0.08f * Fl));
 		const TArray<FVector2f> Ro = FCanvas::RoundRectPoints(X, Y, W, H, 6.f);
@@ -2177,7 +2177,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const FLinearColor PinkN = Hex(TEXT("ff46be")), PurN = Hex(TEXT("be73ff")), BlueN = Hex(TEXT("2d8cff")), Head = Hex(TEXT("ffe6be"));
 		C.Glow({FVector2f(RX, CharmY - 15.f), FVector2f(RX + PW, CharmY - 15.f)}, PinkN, 1.8f, 0.7f);
 		C.Glow({FVector2f(RX, CharmY - 7.f), FVector2f(RX + PW, CharmY - 7.f)}, PurN, 1.8f, 0.7f);
-		for (int32 K = 0; K < 6; ++K) C.Box(RX, CharmY + K * CharmH / 6.f, PW, CharmH / 6.f + 0.5f, FLinearColor(0.125f - K * 0.008f, 0.047f - K * 0.002f, 0.17f - K * 0.01f, 1.f));
+		for (int32 K = 0; K < 6; ++K) C.Box(RX, CharmY + K * CharmH / 6.f, PW, CharmH / 6.f + 0.5f, SrgbLerp(FColor(32, 12, 44), FColor(20, 9, 34), K / 5.f)); // 시안 sRGB
 		const float HY = CharmY + 18.f, HW = FCanvas::Measure(TrS(Tr(TEXT("칵테일"))), FCanvas::Font(14.f, true)).X;
 		C.TextCentered(Tr(TEXT("칵테일")), RX + PW / 2.f, HY, Head, 14.f, true);
 		C.Lines({FVector2f(RX + 15.f, HY), FVector2f(RX + PW / 2.f - HW / 2.f - 10.f, HY)}, Hex(TEXT("9682a0"), 0.7f), 1.f);
@@ -3652,7 +3652,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
 	const FLinearColor Cream = Hex(TEXT("ebebf2")), Lav = Hex(TEXT("be73ff")), PinkH = Hex(TEXT("f5e66e"));
 	// Alice 시안 (D-403): 보랏빛 세로 그라데이션 판 + 연보라 테, 맨 위 BAR Alice 로고(시안 그림 조각) + 금색 '족보 메뉴'
-	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, FLinearColor(0.118f - K * 0.005f, 0.043f - K * 0.0005f, 0.165f - K * 0.002f, 1.f));
+	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(28, 10, 39), FColor(14, 8, 35), K / 13.f)); // 시안 sRGB 1c 0a 27 → 0e 08 23
 	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), WithAlpha(Lav, 0.9f), 1.8f, 0.6f);
 	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), FLinearColor(1.f, 1.f, 1.f, 0.25f), 0.6f);
 	if (const FSlateBrush* Logo = Art(EUiArt::Logo)) C.Image(C.NextLayer(), Logo, 20.5f, 17.3f, 94.7f, 36.5f, FLinearColor::White);

@@ -72,6 +72,17 @@ inline FLinearColor Hex(const TCHAR* InHex, float Alpha = 1.f)
 	C.A = Alpha;
 	return C;
 }
+// 화면 색(sRGB) 두 개 사이 (D-403): 시안에서 잰 색은 sRGB 라 FLinearColor 숫자로 바로 쓰면 훨씬 밝게 나온다 (Hex 처럼 바꿔서)
+inline FLinearColor SrgbLerp(FColor A, FColor B, float T)
+{
+	return FLinearColor(FColor((uint8)FMath::RoundToInt(FMath::Lerp((float)A.R, (float)B.R, T)), (uint8)FMath::RoundToInt(FMath::Lerp((float)A.G, (float)B.G, T)), (uint8)FMath::RoundToInt(FMath::Lerp((float)A.B, (float)B.B, T))));
+}
+// 같은 색을 화면 밝기(sRGB)로 K 배 어둡게
+inline FLinearColor SrgbDim(const FLinearColor& C, float K)
+{
+	const FColor S = C.ToFColor(true);
+	return FLinearColor(FColor((uint8)(S.R * K), (uint8)(S.G * K), (uint8)(S.B * K)));
+}
 inline FLinearColor WithAlpha(FLinearColor C, float Alpha)
 {
 	C.A *= Alpha;

@@ -30,7 +30,7 @@ void SPDBoardWidget::PaintTv(FCanvas& C) const
 	C.Spill(FCanvas::RoundRectPoints(RX + 8.f, TvY + 8.f, PW - 16.f, TvH - 16.f, 16.f), Pur, 50.f, 0.35f * TvFl); // 몸통 둘레 벽빛 (D-303 ~ D-305)
 	for (const FVector2f Tip : {FVector2f(1188.f, 5.f), FVector2f(1218.f, 5.f)}) C.Glow({FVector2f(1203.f, TvY + 1.f), Tip}, Hex(TEXT("d7d7e6")), 2.4f, 0.6f); // 안테나
 	C.Box(1186.f, TvY - 9.f, 34.f, 12.f, Hex(TEXT("3c3250"), 1.f));
-	for (int32 K = 0; K < 10; ++K) C.Box(RX + 2.f, TvY + 2.f + K * (TvH - 4.f) / 10.f, PW - 4.f, (TvH - 4.f) / 10.f + 0.5f, FLinearColor(0.14f - K * 0.006f, 0.055f - K * 0.0015f, 0.21f - K * 0.006f, 1.f));
+	for (int32 K = 0; K < 10; ++K) C.Box(RX + 2.f, TvY + 2.f + K * (TvH - 4.f) / 10.f, PW - 4.f, (TvH - 4.f) / 10.f + 0.5f, SrgbLerp(FColor(36, 14, 54), FColor(22, 10, 40), K / 9.f)); // 시안 sRGB
 	C.Glow(FCanvas::RoundRectPoints(RX, TvY, PW, TvH, 16.f), Pur, 2.6f, 1.f);
 	C.Lines(FCanvas::RoundRectPoints(RX, TvY, PW, TvH, 16.f), FLinearColor(1.f, 1.f, 1.f, 0.3f), 0.6f);
 	C.Lines(FCanvas::RoundRectPoints(RX + 5.f, TvY + 5.f, PW - 10.f, TvH - 10.f, 12.f), WithAlpha(Pur, 0.45f), 1.f);
