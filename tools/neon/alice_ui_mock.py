@@ -461,9 +461,7 @@ def static(img, box):
 
 REF = os.path.join(os.path.dirname(__file__), '..', '..', 'docs', 'images', 'ui-1120', 'reference.webp')
 USE_REF = os.path.exists(REF)   # 시안 그림이 있으면 간판 · 로고 · 칵테일은 시안에서 잘라 그대로 붙인다 (사용자: 이미지 그대로)
-REF_CUTS = [(262, 0, 760, 84),      # 야자수 + 네온 줄 + WAVE 타원 + 3/20 상자
-            (2, 2, 258, 718),       # 왼쪽 족보 메뉴 패널 통째 (로고 포함)
-            (1041, 470, 1269, 540)]  # 칵테일 잔 다섯 + 선반 줄
+REF_CUTS = [(0, 0, 1280, 720)]  # 사용자: 전부 따오기 (D-402) — 화면 전체를 시안 그림 그대로
 
 
 def paste_ref(img):
@@ -471,6 +469,8 @@ def paste_ref(img):
     for (x0, y0, x1, y1) in REF_CUTS:
         part = ref.crop((x0, y0, x1, y1))
         m = Image.new('L', part.size, 0)
+        if part.size == img.size:
+            return part
         ImageDraw.Draw(m).rectangle([3, 3, part.size[0] - 4, part.size[1] - 4], fill=255)
         img.paste(part, (x0, y0), m.filter(ImageFilter.GaussianBlur(2)))
     return img
