@@ -69,18 +69,22 @@ void SPDBoardWidget::PaintAliceTvBody(FCanvas& C) const
 			C.FillPoly({RP(Ax, 569.f), RP(Ax + 11.f, 577.f), RP(Ax, 585.f)}, Tc);
 		}
 	}
-	// 채널 다이얼: 가운데 (1836, 570), 바깥 고리 33 · 안 고리 27 (왼쪽 위가 트여 바늘이 나온다)
+	// 채널 다이얼 (D-458: 시안 픽셀을 각도별로 재서 다시 맞춤): 가운데 (1837, 571), 바깥 고리 34 · 안 고리 29 둘 다 거의 온 고리,
+	// 왼쪽 위 187° ~ 207° 만 트여 있고 바늘(210°)이 그 끝에 닿아 고리 밖 45 까지 나온다. 안은 자줏빛으로 채우고 가운데가 조금 밝다
 	{
-		const FLinearColor PkGlow = Hex(TEXT("ff2d96")), PkCore = Hex(TEXT("e07ab0"));
-		C.FillPoly(FCanvas::CirclePoints(RP(1837.f, 571.f), 33.f * RefK, 32), Hex(TEXT("4a0b39")));
-		C.SoftDisc(RP(1837.f, 571.f), 40.f * RefK, 40.f * RefK, PkGlow, 0.25f);
+		const FLinearColor PkGlow = Hex(TEXT("a4246c")), PkCore = Hex(TEXT("e295c2")), PkInner = Hex(TEXT("a2447a")); // 심은 시안처럼 희뿌연 분홍
+		C.SoftDisc(RP(1837.f, 571.f), 48.f * RefK, 48.f * RefK, PkGlow, 0.6f); // 고리 밖으로 번지는 분홍 빛
+		C.FillPoly(FCanvas::CirclePoints(RP(1837.f, 571.f), 34.f * RefK, 40), Hex(TEXT("641243")));
+		C.SoftDisc(RP(1837.f, 571.f), 22.f * RefK, 22.f * RefK, Hex(TEXT("7e1c54")), 0.8f);
+		C.SoftDisc(RP(1837.f, 571.f), 6.f * RefK, 6.f * RefK, Hex(TEXT("a83270")), 0.4f); // 바늘 뿌리의 밝은 점
 		TArray<FVector2f> O, I;
-		AddArc(O, 1837.f, 571.f, 34.f, 240.f, 560.f, 32);
-		AddArc(I, 1837.f, 571.f, 27.f, 95.f, 200.f, 14); // 안 고리는 왼쪽 아래만 (D-457)
-		C.Glow(O, PkGlow, 2.f, 0.9f); C.Lines(O, PkCore, 1.4f);
-		C.Glow(I, PkGlow, 1.2f, 0.5f); C.Lines(I, PkCore, 0.9f);
-		const TArray<FVector2f> Needle = {RP(1800.f, 540.f), RP(1836.f, 568.f)};
-		C.Glow(Needle, PkGlow, 1.8f, 0.8f); C.Lines(Needle, PkCore, 1.3f);
+		AddArc(O, 1837.f, 571.f, 34.f, 207.f, 547.f, 40);
+		AddArc(I, 1837.f, 571.f, 29.f, 209.f, 545.f, 36);
+		C.Glow(O, PkGlow, 2.2f, 0.8f); C.Lines(O, PkCore, 1.4f);
+		C.Lines(I, PkInner, 0.9f);
+		const float Na = FMath::DegreesToRadians(210.f);
+		const TArray<FVector2f> Needle = {RP(1837.f + FMath::Cos(Na) * 45.f, 571.f + FMath::Sin(Na) * 45.f), RP(1837.f, 571.f)};
+		C.Glow(Needle, PkGlow, 2.f, 0.8f); C.Lines(Needle, PkCore, 1.4f);
 	}
 	// 스피커 줄 다섯 (1905 ~ 1959)
 	for (const float Y : {538.f, 554.f, 570.5f, 587.f, 603.5f}) Tube(HLine(1905.f, 1959.f, Y), 2.6f);
