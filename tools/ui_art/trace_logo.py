@@ -146,46 +146,55 @@ def graph_strokes(sk, wd, min_chain=None):
             for b in list(left):
                 if math.dist(a, b) <= R: left.discard(b); grp.append(b); dq.append(b)
         groups.append(grp)
-    nodes = []
-    for g in groups:
-        cy = sum(p[0] for p in g) / len(g); cx = sum(p[1] for p in g) / len(g)
-        rn = max(math.dist((cy, cx), p) for p in g) + wd * 0.55
-        nodes.append(((cy, cx), rn))
-    def node_of(p, pad=0.0):
-        for i, (c, rn) in enumerate(nodes):
-            if math.dist(c, p) <= rn + pad: return i
-        return None
-    outside = {p for p in pts if node_of(p) is None}
-    # 가지 = 바깥 화소 덩어리의 지름 길
-    chains = []
-    seen = set()
-    for p in outside:
-        if p in seen: continue
-        comp = []; dq = deque([p]); seen.add(p)
-        while dq:
-            a = dq.popleft(); comp.append(a)
-            for b in nbrs(a, outside):
-                if b not in seen: seen.add(b); dq.append(b)
-        cs = set(comp)
-        def far(src):
-            par = {src: None}; dq2 = deque([src]); last = src
-            while dq2:
-                a = dq2.popleft(); last = a
-                for b in nbrs(a, cs):
-                    if b not in par: par[b] = a; dq2.append(b)
-            return last, par
-        a, _ = far(comp[0]); b, par = far(a)
-        path = []; c = b
-        while c is not None: path.append(c); c = par[c]
-        if len(path) >= 2: chains.append(path)
+    def build(groups):
+        nodes = []
+        for g in groups:
+            cy = sum(p[0] for p in g) / len(g); cx = sum(p[1] for p in g) / len(g)
+            rn = max(math.dist((cy, cx), p) for p in g) + wd * 0.55
+            nodes.append(((cy, cx), rn))
+        def node_of(p, pad=0.0):
+            for k, (c, rn) in enumerate(nodes):
+                if math.dist(c, p) <= rn + pad: return k
+            return None
+        outside = {p for p in pts if node_of(p) is None}
+        chains = []
+        seen = set()
+        for p in outside:
+            if p in seen: continue
+            comp = []; dq = deque([p]); seen.add(p)
+            while dq:
+                a = dq.popleft(); comp.append(a)
+                for b in nbrs(a, outside):
+                    if b not in seen: seen.add(b); dq.append(b)
+            cs = set(comp)
+            def far(src):
+                par = {src: None}; dq2 = deque([src]); last = src
+                while dq2:
+                    a = dq2.popleft(); last = a
+                    for b in nbrs(a, cs):
+                        if b not in par: par[b] = a; dq2.append(b)
+                return last, par
+            a, _ = far(comp[0]); b, par = far(a)
+            path = []; c = b
+            while c is not None: path.append(c); c = par[c]
+            if len(path) >= 2: chains.append(path)
+        info = []
+        for path in chains:
+            P = [(float(x), float(y)) for y, x in path]
+            L = sum(math.dist(P[k], P[k + 1]) for k in range(len(P) - 1))
+            a_node, b_node = node_of(path[0], 3.0), node_of(path[-1], 3.0)
+            info.append([P, [a_node, b_node], L])
+        return nodes, info
+    # 짧은 토막으로 이어진 두 교차점은 하나로 (D-439): 두 획이 겹쳐 지나가는 곳(l 아래)은 갈림점 둘이 30px 떨어져 생긴다
+    while True:
+        nodes, info = build(groups)
+        short = [(L, att) for P, att, L in info if att[0] is not None and att[1] is not None and att[0] != att[1] and L < wd * 2.0]
+        if not short: break
+        _, (na, nb) = min(short)
+        groups[na] = groups[na] + groups[nb]
+        groups.pop(nb)
     min_chain = min_chain or wd * 0.8
-    info = []  # (점들 (x, y), [처음 붙은 교차점, 끝 붙은 교차점])
-    for path in chains:
-        P = [(float(x), float(y)) for y, x in path]
-        L = sum(math.dist(P[k], P[k + 1]) for k in range(len(P) - 1))
-        a_node, b_node = node_of(path[0], 3.0), node_of(path[-1], 3.0)
-        if L < min_chain and (a_node is None or b_node is None or a_node == b_node): continue  # 잔가지 · 교차점 안쪽 조각
-        info.append([P, [a_node, b_node]])
+    info = [[P, att] for P, att, L in info if not (L < min_chain and (att[0] is None or att[1] is None or att[0] == att[1]))]  # 잔가지 · 교차점 안쪽 조각
     # 교차점마다 가지 방향 · 짝
     inc = {}
     for ci, (P, att) in enumerate(info):
