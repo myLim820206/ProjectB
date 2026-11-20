@@ -233,7 +233,9 @@ int32 SPDBoardWidget::PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWind
 	TArray<FVector2f> PathPts;
 	for (const FPDPoint& Pt : G.Path.Points) PathPts.Add(CellPx(Pt.X, Pt.Y));
 	F.Dashed(PathPts, Hex(TEXT("7fd6ff"), 0.35f), 2.f);
-	F.Glow(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("5fa6ad"), 0.8f), 1.6f, 0.5f); // D-455: 참고 그림의 차분한 청록 틀 (예전 46c8e6) // 하늘빛 틀을 판에 붙여 (Alice 시안 D-410: 262 ~ 1030 × 86 ~ 566)
+	// D-461: 시안 판 틀은 심 477379 에 안팎 5 ~ 10 넓게 번진다 (족보 메뉴판 테와 같은 세기, D-460)
+	F.Glow(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("3a8290")), 5.f, 1.f);
+	F.Lines(FCanvas::RoundRectPoints(FX, FY, Cols * CS, Rows * CS, 8.f), Hex(TEXT("4f7e86")), 1.2f); // D-455: 참고 그림의 차분한 청록 틀 (예전 46c8e6) // 하늘빛 틀을 판에 붙여 (Alice 시안 D-410: 262 ~ 1030 × 86 ~ 566)
 	return Layer;
 }
 
