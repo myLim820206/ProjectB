@@ -3036,6 +3036,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		C.Spill(Pts, Gc, Th * 4.5f, 0.30f * B, true);
 		C.Lines(Pts, Gc, Th * 1.0f);
 	};
+	bool bDiscGlow = false; // 간판 BAR 만 둥근 빛 사슬 (D-450)
 	auto Tube = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B)
 	{
 		if (bSpill)
@@ -3047,7 +3048,8 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			return;
 		}
 		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
-		TubeGlow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, B);
+		if (bDiscGlow) TubeGlow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, B);
+		else C.Glow(Pts, FLinearColor(Col.R * B, Col.G * B, Col.B * B, 1.f), Th, 1.1f * B); // 버튼 · 예전 로고는 띠 번짐 (D-450: 가는 버튼 관에 둥근 빛 사슬을 쓰니 2px 마다 원을 찍어 한 프레임 꼭짓점 46만 개, 시작 화면이 16ms 더 걸려 끊겼다)
 		C.Lines(Pts, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), Th * 0.25f); // 튜브 가운데 흰 심
 	};
 	auto Logo = [&]()
@@ -3124,7 +3126,9 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 					{
 						TArray<FVector2f> BP;
 						for (int32 Q = 0; Q < Ps[J2].N; ++Q) BP.Add(FVector2f(X0 + (I * PDLogo::BlockAdv + Ps[J2].P[Q * 2] * 0.8f) * BKn, Base + Ps[J2].P[Q * 2 + 1] * BKn));
-						Tube(BP, BarC, 2.6f, NB[I]);
+						bDiscGlow = true;
+					Tube(BP, BarC, 2.6f, NB[I]);
+					bDiscGlow = false;
 					}
 				}
 			}
