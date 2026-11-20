@@ -303,7 +303,10 @@ def main():
         wds[col] = m.sum() / max(1, sk.sum())
         strokes = trace(sk)
         strokes = merge(strokes)
-        strokes = [rdp(smooth_keep_corners(s), 0.6) for s in strokes]
+        # 필기체(분홍)는 정말 뾰족한 곳(A 꼭대기)만 모서리, 더 넓게 편다. BAR · 잔은 각진 모서리를 남긴다 (D-433: 급한 곡선을 모서리로 오인해 꺾임이 생겼다)
+        kw = dict(corner_deg=120.0, sigma=7.0) if col == 'pink' else dict(corner_deg=55.0, sigma=5.0)
+        strokes = [smooth_keep_corners(smooth_keep_corners(s, **kw), **kw) for s in strokes]  # 두 번 펴기
+        strokes = [rdp(s, 0.2) for s in strokes]  # 점은 촘촘히 (짧은 직선으로 각지지 않게)
         strokes = [s for s in strokes if min(x for x, y in s) > 20]  # 원본 왼쪽 가장자리의 회색 점(화면 조각) 빼기
         snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
         res[col] = [{'pts': [(float(x), float(y)) for x, y in P], 'free': free} for P, free in snapped]
