@@ -251,6 +251,47 @@ def merge_collinear(strokes, gap, k=6, cos_min=0.85):
     return S
 
 
+def straighten_crossings(strokes, wd, margin=8, self_gap=60.0):
+    """교차점을 곧게 (D-435): 깎기는 두 관이 엇갈리는 자리를 한 덩어리로 보고 가운데 선을 휘게 만든다 (원본은 곧은 두 선이 X 로 엇갈림).
+    선마다 다른 선(또는 제 선에서 self_gap 넘게 떨어진 부분)과 관 폭 안으로 가까운 구간을 찾아, 앞뒤로 margin 점씩 넓힌 뒤
+    그 구간을 양 끝점을 잇는 곧은 선으로 바꾼다. 점들은 촘촘해야 한다 (2px)"""
+    S = [list(x) for x in strokes]
+    cum = []
+    for P in S:
+        c = [0.0]
+        for a, b in zip(P, P[1:]): c.append(c[-1] + math.dist(a, b))
+        cum.append(c)
+    out = []
+    for i, P in enumerate(S):
+        near = [False] * len(P)
+        for k, q in enumerate(P):
+            for j, Q in enumerate(S):
+                if j == i:
+                    for t in range(0, len(Q), 2):
+                        if abs(cum[i][t] - cum[i][k]) > self_gap and math.dist(Q[t], q) < wd * 0.9: near[k] = True; break
+                else:
+                    for t in range(0, len(Q), 2):
+                        if math.dist(Q[t], q) < wd * 0.9: near[k] = True; break
+                if near[k]: break
+        P2 = list(P)
+        k = 0
+        while k < len(P):
+            if not near[k]: k += 1; continue
+            a = k
+            while k < len(P) and near[k]: k += 1
+            b = k - 1
+            a2, b2 = max(0, a - margin), min(len(P) - 1, b + margin)
+            if a2 == 0 or b2 == len(P) - 1:  # 선 끝이 닿는 자리(T 자 이음)는 그대로 둔다: 끝은 맞붙이기 몫
+                continue
+            A, B = P[a2], P[b2]
+            n = b2 - a2
+            for t in range(a2, b2 + 1):
+                u = (t - a2) / n
+                P2[t] = (A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u)
+        out.append(P2)
+    return out
+
+
 def straighten_junctions(strokes, tol, m=6, win=14):
     """교차점에서 곧게 잇기 (D-434): 선 A 의 끝이 선 B 의 가운데에 닿으면, B 를 닿는 둘레(±win 점)에서 A 의 방향과 가장 곧게
     이어지는 점에서 둘로 나누고, A 와 곧게 이어지는 조각을 A 에 붙인다. A 의 사선이 B 의 가로획을 지나 이어지는 글자(A 왼쪽 다리)가
@@ -387,11 +428,18 @@ def main():
         strokes = trace(sk)
         strokes = merge(strokes)
         # 필기체(분홍)는 정말 뾰족한 곳(A 꼭대기)만 모서리, 더 넓게 편다. BAR · 잔은 각진 모서리를 남긴다 (D-433: 급한 곡선을 모서리로 오인해 꺾임이 생겼다)
-        kw = dict(corner_deg=120.0, sigma=7.0) if col == 'pink' else dict(corner_deg=55.0, sigma=5.0)
-        strokes = [smooth_keep_corners(smooth_keep_corners(s, **kw), **kw) for s in strokes]  # 두 번 펴기
-        strokes = merge_collinear(strokes, max(10.0, wds[col] * 2.0))
-        strokes = straighten_junctions(strokes, max(8.0, wds[col] * 1.6))
-        strokes = [smooth_keep_corners(s, **kw) for s in strokes]  # 이은 자리도 매끈하게
+        if col == 'pink':  # 필기체: 넓게 두 번 펴기 · 곧게 이어지는 끝 잇기 · 교차점 곧게 (D-433 ~ D-435)
+            kw = dict(corner_deg=120.0, sigma=7.0)
+            strokes = [smooth_keep_corners(smooth_keep_corners(s, **kw), **kw) for s in strokes]
+            strokes = merge_collinear(strokes, max(10.0, wds[col] * 2.0))
+            strokes = straighten_junctions(strokes, max(8.0, wds[col] * 1.6))
+            strokes = [smooth_keep_corners(s, **kw) for s in strokes]  # 이은 자리도 매끈하게
+        else:  # BAR · 잔: 모서리(꼬리표 깎은 모서리 · 마름모)를 살리게 가볍게 한 번만 (D-436)
+            kw = dict(corner_deg=40.0, sigma=2.5)
+            strokes = [smooth_keep_corners(s, **kw) for s in strokes]
+        if col == 'pink':  # 필기체만: 글자 획이 X 로 엇갈린다. BAR · 잔은 획이 가까이 붙어 있어 곧게 펴면 모양이 망가진다
+            strokes = straighten_crossings(strokes, wds[col] * 1.55)
+            strokes = [smooth_keep_corners(s, corner_deg=kw['corner_deg'], sigma=3.0) for s in strokes]  # 곧게 편 구간 끝의 꺾임만 살짝
         strokes = [rdp(s, 0.2) for s in strokes]  # 점은 촘촘히 (짧은 직선으로 각지지 않게)
         strokes = [s for s in strokes if min(x for x, y in s) > 20]  # 원본 왼쪽 가장자리의 회색 점(화면 조각) 빼기
         snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
