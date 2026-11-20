@@ -134,6 +134,56 @@ def rdp(P, eps):
     return [P[0], P[-1]]
 
 
+def resample(P, step=2.0):
+    out = [P[0]]; acc = 0.0
+    for a, b in zip(P, P[1:]):
+        L = math.dist(a, b)
+        t = step - acc
+        while t <= L:
+            out.append((a[0] + (b[0] - a[0]) * t / L, a[1] + (b[1] - a[1]) * t / L)); t += step
+        acc = (acc + L) % step if L > 0 else acc
+        acc = L - (t - step) if L > 0 else acc
+    if math.dist(out[-1], P[-1]) > 0.5: out.append(P[-1])
+    return out
+
+
+def smooth_keep_corners(P, step=2.0, reach=7, sigma=5.0, corner_deg=55.0):
+    """화소 계단 때문에 우는 곡선을 편다 (D-431). 2px 간격으로 다시 찍고, 앞뒤 reach 점(14px) 방향이 corner_deg 넘게 꺾인 곳을
+    모서리로 남긴 뒤, 모서리 사이 조각만 가우스(sigma 점 = 10px)로 편다. 조각 끝(모서리 · 선 끝)은 움직이지 않는다"""
+    Q = resample(P, step)
+    n = len(Q)
+    if n < 2 * reach + 3: return P
+    ang = [0.0] * n
+    for k in range(reach, n - reach):
+        v1 = (Q[k][0] - Q[k - reach][0], Q[k][1] - Q[k - reach][1])
+        v2 = (Q[k + reach][0] - Q[k][0], Q[k + reach][1] - Q[k][1])
+        c = (v1[0] * v2[0] + v1[1] * v2[1]) / (math.hypot(*v1) * math.hypot(*v2) + 1e-6)
+        ang[k] = math.degrees(math.acos(max(-1.0, min(1.0, c))))
+    corners = [0]
+    k = reach
+    while k < n - reach:
+        if ang[k] > corner_deg:
+            m = max(range(k, min(n - reach, k + 2 * reach)), key=lambda q: ang[q])  # 그 둘레에서 가장 꺾인 점
+            corners.append(m); k = m + reach
+        else: k += 1
+    corners.append(n - 1)
+    out = []
+    W = int(sigma * 3)
+    wts = [math.exp(-(d * d) / (2 * sigma * sigma)) for d in range(-W, W + 1)]
+    for a, b in zip(corners, corners[1:]):
+        seg = Q[a:b + 1]
+        sm = []
+        for idx in range(len(seg)):
+            if idx == 0 or idx == len(seg) - 1: sm.append(seg[idx]); continue
+            sx = sy = sw = 0.0
+            r = min(W, idx, len(seg) - 1 - idx)  # 끝 가까이는 짧게 (끝이 끌려가지 않게)
+            for d in range(-r, r + 1):
+                w = wts[d + W]; sx += seg[idx + d][0] * w; sy += seg[idx + d][1] * w; sw += w
+            sm.append((sx / sw, sy / sw))
+        out.extend(sm if not out else sm[1:])
+    return out
+
+
 def merge(strokes, gap=10.0):
     """끝이 맞닿은 선을 이어 붙인다 (갈림점에서 끊긴 것)"""
     S = [list(s) for s in strokes]
@@ -242,15 +292,7 @@ def main():
         wds[col] = m.sum() / max(1, sk.sum())
         strokes = trace(sk)
         strokes = merge(strokes)
-        def smooth(P, w=3):  # 화소 계단을 펴기: 앞뒤 w 점 평균 (끝점은 그대로, D-430)
-            if len(P) < 2 * w + 2: return P
-            Q = [P[0]]
-            for i in range(1, len(P) - 1):
-                k = min(w, i, len(P) - 1 - i)
-                xs = P[i - k:i + k + 1]
-                Q.append((sum(x for x, y in xs) / len(xs), sum(y for x, y in xs) / len(xs)))
-            return Q + [P[-1]]
-        strokes = [rdp(smooth(s), 0.8) for s in strokes]
+        strokes = [rdp(smooth_keep_corners(s), 0.6) for s in strokes]
         strokes = [s for s in strokes if min(x for x, y in s) > 20]  # 원본 왼쪽 가장자리의 회색 점(화면 조각) 빼기
         snapped = snap_ends(strokes, max(8.0, wds[col] * 1.2))
         res[col] = [{'pts': [(float(x), float(y)) for x, y in P], 'free': free} for P, free in snapped]
