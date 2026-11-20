@@ -3030,8 +3030,9 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		if (bSpill)
 		{
 			if (B <= 0.25f) return;
-			C.Spill(Pts, Col, Th * 16.f, 0.22f * B);
-			C.Spill(Pts, Col, Th * 44.f, 0.13f * B);
+			const float ST = FMath::Min(Th, 4.5f); // 벽빛 너비는 예전 굵기 기준 (D-427: Alice 를 굵혀도 벽빛은 그대로)
+			C.Spill(Pts, Col, ST * 16.f, 0.22f * B);
+			C.Spill(Pts, Col, ST * 44.f, 0.13f * B);
 			return;
 		}
 		if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Col.R * 0.28f, Col.G * 0.28f, Col.B * 0.28f, 1.f), Th * 0.8f); return; }
@@ -3053,7 +3054,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 			}
 		}
 		// 이어지는 글자(A → l → i, c → e)는 밝기가 같으면 조절점부터 한 줄로 (D-299: 글자마다 끝이 따로 있으면 이음매에 자국이 남았다)
-		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, SK, 0.f), Pink, 4.5f, PB[Rn.Letter]);
+		for (const PDLogo::FRun& Rn : PDLogo::ScriptRuns(PB)) Tube(PDLogo::CatmullPts(Rn.Pts, PO, SK, 0.f), Pink, 8.5f, PB[Rn.Letter]); // 4px 더 굵게 (D-427, 예전 4.5)
 		// 마티니 잔 (D-309: 예전 왕관 스페이드 자리) — 역삼각 잔 + 다리 + 받침, 올리브 자리에 분홍 스페이드 + 꼬치
 		const float CX = LgX + 168.f * LK, CY = LY + 96.f * LK, R = 26.f * LK;
 		Tube({Map(FVector2f(CX - R, CY - R * 0.9f)), Map(FVector2f(CX + R, CY - R * 0.9f)), Map(FVector2f(CX, CY + R * 0.15f)), Map(FVector2f(CX - R, CY - R * 0.9f))}, Gold, 2.2f, CB);
