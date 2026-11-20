@@ -434,7 +434,7 @@ private:
 	TSharedPtr<FPDAtlas> Atlas;
 	void BakeAtlas();
 	// 시안 그림 조각 (D-403): Content/UIArt/*.png 를 실행 중에 읽어 붓으로 (tools/ui_art/cut_ref.py 가 만든다). 없으면 nullptr → 코드 그림으로 대신
-	enum class EUiArt : uint8 { Sign, Logo, GlassOn, GlassOff, Tv, RPanel, RPanelKo, Count };
+	enum class EUiArt : uint8 { Sign, Logo, GlassOn, GlassOff, Tv, RPanel, RPanelKo, TitleLogo, Count };
 	TArray<FSlateBrush> UiArt;
 	void LoadUiArt();
 	const FSlateBrush* Art(EUiArt A) const;

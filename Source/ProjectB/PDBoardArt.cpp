@@ -7,7 +7,7 @@
 
 void SPDBoardWidget::LoadUiArt()
 {
-	static const TCHAR* Names[(int32)EUiArt::Count] = {TEXT("sign"), TEXT("logo"), TEXT("glass_on"), TEXT("glass_off"), TEXT("tv"), TEXT("rpanel"), TEXT("rpanel_ko")};
+	static const TCHAR* Names[(int32)EUiArt::Count] = {TEXT("sign"), TEXT("logo"), TEXT("glass_on"), TEXT("glass_off"), TEXT("tv"), TEXT("rpanel"), TEXT("rpanel_ko"), TEXT("title_logo")};
 	UiArt.SetNum((int32)EUiArt::Count);
 	for (int32 I = 0; I < (int32)EUiArt::Count; ++I)
 	{

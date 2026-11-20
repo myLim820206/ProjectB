@@ -3065,10 +3065,25 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		Tube(Sp, Pink, 1.6f, CB);
 		Tube({Map(FVector2f(CX + R * 0.1f, CY - R * 0.3f)), Map(FVector2f(CX + R * 0.62f, CY - R * 1.25f))}, Hex(TEXT("787d8c")), 1.2f, CB);
 	};
-	bSpill = true;
-	Logo();
-	bSpill = false;
-	Logo();
+	if (const FSlateBrush* TL = Art(EUiArt::TitleLogo)) // 시작 화면 간판 그림 (D-428, 사용자가 준 BAR Alice 네온 간판): 글자마다 켜지던 빛을 평균해 간판 전체 밝기로
+	{
+		float Sum = 0.f;
+		for (const float V : NB) Sum += V;
+		for (const float V : PB) Sum += V;
+		const float LB = FMath::Clamp(Sum / (PDLogo::BlockLetters + PDLogo::ScriptLetters), 0.f, 1.f);
+		constexpr float TW = 580.f, TH = TW * 546.f / 1139.f; // 그림 1139 × 546
+		const float TX = LgX - TW / 2.f, TY = LY + 168.f * LK - TH - 4.f; // 부제 선(LY + 178LK) 바로 위에 바닥
+		C.SoftDisc(FVector2f(LgX, TY + TH * 0.55f), TW * 0.6f, TH * 0.75f, Hex(TEXT("ff5ac8")), 0.16f * LB); // 벽에 비치는 빛
+		C.Image(C.NextLayer(), TL, TX, TY, TW, TH, FLinearColor(1.f, 1.f, 1.f, FMath::Max(0.12f, LB)));
+		SpWhich = -1; // 글자 하나씩 빠직하던 불티는 예전 글자 자리라 끈다
+	}
+	else
+	{
+		bSpill = true;
+		Logo();
+		bSpill = false;
+		Logo();
+	}
 	// 부제 (D-311): 금색 가는 선 + LATE NIGHT POKER (작은 글자는 Slate 글꼴, 마티니 잔과 같이 켜짐)
 	if (CB > 0.25f)
 	{

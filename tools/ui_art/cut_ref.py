@@ -63,6 +63,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     ref = Image.open(REF).convert('RGB')
     if ref.size != (2000, 1125): ref = ref.resize((2000, 1125), Image.LANCZOS)
+    title_logo()
     for name, box in CUTS.items():
         part = ref.crop(box)
         from PIL import ImageDraw
@@ -75,6 +76,13 @@ def main():
                 ImageDraw.Draw(part).rectangle([x0 - box[0], y0 - box[1], x1 - box[0], y1 - box[1]], fill=col)
         to_alpha(part).save(os.path.join(OUT, name + '.png'))
         print(name, box)
+
+
+def title_logo():
+    """시작 화면 간판 (D-428): 사용자가 준 그림(docs/images/ui-1120/title_logo_ref.webp, 검은 바탕)을 알파 = 가장 밝은 채널로 (검은 바탕 위 빛 = 미리 곱한 알파 그대로)"""
+    im = Image.open(os.path.join(ROOT, 'docs', 'images', 'ui-1120', 'title_logo_ref.webp')).convert('RGB')
+    a = np.asarray(im).astype(np.float32) / 255.0
+    Image.fromarray((np.dstack([a, a.max(axis=2)]) * 255 + 0.5).astype(np.uint8), 'RGBA').save(os.path.join(OUT, 'title_logo.png'))
 
 
 if __name__ == '__main__':
