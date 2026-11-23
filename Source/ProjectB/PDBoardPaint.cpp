@@ -3140,12 +3140,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		}
 	}
 	(void)Logo; // 예전 코드 간판 (D-309 ~ D-427): 따라 그린 간판(D-440)으로 바뀌어 안 쓴다
-	// 부제 (D-311): 금색 가는 선 + LATE NIGHT POKER (작은 글자는 Slate 글꼴, 마티니 잔과 같이 켜짐)
-	if (CB > 0.25f)
-	{
-		C.Lines({FVector2f(LgX - 120.f * LK, LY + 178.f * LK), FVector2f(LgX + 120.f * LK, LY + 178.f * LK)}, WithAlpha(Gold, 0.5f * CB), 1.f);
-		C.TextCentered(TEXT("LATE NIGHT POKER"), LgX, LY + 196.f * LK, WithAlpha(Gold, CB), 15.f * LK, true);
-	}
+	// 부제 (D-311 금색 선 + LATE NIGHT POKER) 는 D-470 에서 뺐다
 	// 빠직: 작은 섬광 + 짧은 번개, 불티가 튀어 떨어지며 꺼진다
 	if (SpWhich >= 0)
 	{
