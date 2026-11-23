@@ -127,7 +127,7 @@ void SPDBoardWidget::PaintTitleWall(FCanvas& C, float TX, float TY, float TW, co
 			for (int32 I = 0; I < GW * GH; ++I) { const uint8 V = (uint8)FMath::RoundToInt(FMath::Clamp(L[I] / Norm, 0.f, 1.f) * 255.f); Px[I] = FColor(V, V, V, 0); } // 알파 0 = 미리 곱한 알파로 더하기
 			UTexture2D* Tex = UTexture2D::CreateTransient(GW, GH, PF_B8G8R8A8);
 			if (!Tex) continue;
-			Tex->SRGB = false;
+			Tex->SRGB = true; // 바이트를 화면 값(sRGB)으로 읽어 선형으로 더한다. false 면 옅은 빛이 선형 값 그대로 더해져 시안보다 몇 배 밝았다 (D-466)
 			Tex->Filter = TF_Bilinear;
 			Tex->LODGroup = TEXTUREGROUP_UI;
 			Tex->AddToRoot();
