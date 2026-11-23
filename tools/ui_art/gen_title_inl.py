@@ -69,16 +69,17 @@ def group(col, cx):
     return 0
 
 
+LIQUID_Y, LIQUID_X0, LIQUID_X1 = 244.0, 898.0, 1004.0  # 잔 속 술 선 (원본 화소): 앞쪽 테(y 222) 아래, 양쪽 벽에서 20 쯤 띄움
+OLIVE_DY = 18.0  # 올리브를 술 선 아래로 내림 (선끼리 붙지 않게)
+
+
 def split_liquid(col, P):
-    """잔 안 술 · 올리브는 하늘색 (D-472, 인게임 참고 그림처럼): 원본에서 노랑으로 따라 그려진 것을 색 3(잔 속 하늘)으로.
-    잔 테 획은 오른쪽 모서리(가장 오른쪽 점)를 지나 왼쪽으로 되돌아가는 술 선이 이어져 있어 거기서 자른다. 작은 닫힌 고리(올리브)는 통째로"""
+    """잔 속 술 · 올리브는 하늘색 (D-472 → D-473, 인게임 참고 그림처럼). 잔 테(뒤쪽 · 앞쪽 테 포함)는 노랑 그대로 두고,
+    술 선은 앞쪽 테 아래에 벽에 닿지 않게 따로 긋는다 (네온은 선이 붙으면 어색하다). 작은 닫힌 고리(올리브)는 하늘색으로 바꿔 술 선 아래로 내린다"""
     if col != 'yellow': return [(col, P)]
     xs = [p[0] for p in P]; ys = [p[1] for p in P]
-    if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50: return [('liquid', P)]
-    i = xs.index(max(xs))
-    if i < len(P) - 3 and P[-1][0] < P[i][0] - 100:
-        j = next((q for q in range(i + 1, len(P)) if P[q][1] <= P[i][1] - 3.5), None)
-        if j is not None: return [(col, P[:j + 1]), ('liquid', P[j:])]
+    if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50:
+        return [('liquid', [(x, y + OLIVE_DY) for x, y in P]), ('liquid', [(LIQUID_X0, LIQUID_Y), (LIQUID_X1, LIQUID_Y)])]
     return [(col, P)]
 
 
