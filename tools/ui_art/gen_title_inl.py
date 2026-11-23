@@ -71,6 +71,7 @@ def group(col, cx):
 
 
 LIQUID_Y, LIQUID_X0, LIQUID_X1 = 244.0, 898.0, 1004.0  # 잔 속 술 선 (원본 화소): 앞쪽 테(y 222) 아래, 양쪽 벽에서 20 쯤 띄움
+LIQUID_HALF = 46.0  # 기운 술 선의 반 길이 (오른쪽 벽이 가까워져 조금 줄임)
 OLIVE_DY = 18.0  # 올리브를 술 선 아래로 내림 (선끼리 붙지 않게)
 RIM_GAP = (960.0, 1000.0)  # 윗변에서 꼬치가 지나는 틈 (원본 x)
 PICK_EXT = 10.0  # 꼬치를 아래로 늘리는 길이 (원본 화소, 시작 화면 너비 580 에서 약 5px)
@@ -86,12 +87,16 @@ def split_liquid(col, P):
     if col != 'yellow': return [(col, P)]
     xs = [p[0] for p in P]; ys = [p[1] for p in P]
     if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50:
-        # 올리브: 잔 윗변과 같은 기울기로 돌린다 (D-477, 왼쪽 모서리 842,190 → 오른쪽 1040,226)
+        # 잔 윗변 기울기 (왼쪽 모서리 842,190 → 오른쪽 1040,226). 술 선은 윗변과 평행 (D-478),
+        # 올리브는 마름모(45° 돌린 정사각형)를 a - 45° 더 돌려 네 변이 윗변과 평행한 정사각형으로 (D-478, 인게임 참고 그림처럼)
         cx, cy = sum(xs[:-1]) / (len(P) - 1), sum(ys[:-1]) / (len(P) - 1)
         a = math.atan2(226.0 - 190.0, 1040.0 - 842.0)
-        ca, sa = math.cos(a), math.sin(a)
-        olive = [(cx + (x - cx) * ca - (y - cy) * sa, cy + OLIVE_DY + (x - cx) * sa + (y - cy) * ca) for x, y in P]
-        return [('liquid', olive), ('liquid', [(LIQUID_X0, LIQUID_Y), (LIQUID_X1, LIQUID_Y)])]
+        r = a - math.pi / 4
+        cr, sr = math.cos(r), math.sin(r)
+        olive = [(cx + (x - cx) * cr - (y - cy) * sr, cy + OLIVE_DY + (x - cx) * sr + (y - cy) * cr) for x, y in P]
+        lx, ly, h = (LIQUID_X0 + LIQUID_X1) / 2, LIQUID_Y, LIQUID_HALF
+        liquid = [(lx - h * math.cos(a), ly - h * math.sin(a)), (lx + h * math.cos(a), ly + h * math.sin(a))]
+        return [('liquid', olive), ('liquid', liquid)]
     # 잔 테 (D-475): 윗변은 왼쪽 모서리 ~ 오른쪽 모서리를 잇는 곧은 선 하나 (잔 전체가 살짝 기운 모양), 꼬치 자리만 틈.
     # 원본은 뒤쪽 테(y 190)와 앞쪽 테(y 222)가 따로라 앞쪽 테를 지우면 윗변이 두 높이로 찌그러져 보였다 (D-474)
     i = xs.index(max(xs))
