@@ -6,6 +6,7 @@
 하늘은 획 가운데 x 로 B · A · R (0 ~ 2, 시작 화면의 NB), 분홍은 A·l · i · c · e (0 ~ 4, PB — 획이 이어져 있어 가운데 x 로 나눔), 노랑은 잔(CB)
 """
 import json
+import math
 import os
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
@@ -72,11 +73,16 @@ def group(col, cx):
 LIQUID_Y, LIQUID_X0, LIQUID_X1 = 244.0, 898.0, 1004.0  # 잔 속 술 선 (원본 화소): 앞쪽 테(y 222) 아래, 양쪽 벽에서 20 쯤 띄움
 OLIVE_DY = 18.0  # 올리브를 술 선 아래로 내림 (선끼리 붙지 않게)
 RIM_GAP = (960.0, 1000.0)  # 윗변에서 꼬치가 지나는 틈 (원본 x)
+PICK_EXT = 10.0  # 꼬치를 아래로 늘리는 길이 (원본 화소, 시작 화면 너비 580 에서 약 5px)
 
 
 def split_liquid(col, P):
     """잔 속 술 · 올리브는 하늘색 (D-472 → D-473, 인게임 참고 그림처럼). 잔 테(뒤쪽 · 앞쪽 테 포함)는 노랑 그대로 두고,
     술 선은 앞쪽 테 아래에 벽에 닿지 않게 따로 긋는다 (네온은 선이 붙으면 어색하다). 작은 닫힌 고리(올리브)는 하늘색으로 바꿔 술 선 아래로 내린다"""
+    if col == 'pink' and min(p[0] for p in P) > 900:  # 잔 꼬치 (D-476): 곧은 선으로, 아래끝을 PICK_EXT 만큼 더 길게
+        (ax, ay), (bx, by) = sorted([P[0], P[-1]], key=lambda p: p[1])  # 위끝 · 아래끝
+        L = math.hypot(bx - ax, by - ay)
+        return [(col, [(ax, ay), (bx + (bx - ax) / L * PICK_EXT, by + (by - ay) / L * PICK_EXT)])]
     if col != 'yellow': return [(col, P)]
     xs = [p[0] for p in P]; ys = [p[1] for p in P]
     if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50:
