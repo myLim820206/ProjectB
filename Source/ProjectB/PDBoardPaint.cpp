@@ -3046,11 +3046,13 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	// ---- 로고 밝기: 켜짐 → 빠직
 	const float T = TitleT, Off = 0.08f;
 	float NB[PDLogo::BlockLetters], PB[PDLogo::ScriptLetters];
-	static const float OnN[] = {0.5f, 0.08f, 0.9f, 0.3f, 1.f}, OnP[] = {0.4f, 0.08f, 0.08f, 0.8f, 0.5f, 1.f};
+	// D-471: 간판 전체가 1초 안에 켜진다. Alice 는 0.3초부터 0.7초 동안 지직지직 깜빡이다 켜짐 (예전엔 1.6초에 시작해 0.24초)
+	static const float OnN[] = {0.5f, 0.08f, 0.9f, 0.3f, 1.f};
+	static const float OnP[] = {0.4f, 0.08f, 0.08f, 0.9f, 0.1f, 0.08f, 0.6f, 1.f, 0.1f, 0.08f, 0.8f, 0.3f, 1.f, 0.5f, 1.f, 1.f, 1.f};
 	auto Seq = [](const float* S, int32 N, float U) { if (U < 0.f) return 0.08f; const int32 I = (int32)(U * 25.f); return I >= N ? 1.f : S[I]; };
-	for (int32 I = 0; I < PDLogo::BlockLetters; ++I) NB[I] = Seq(OnN, 5, T - 0.4f - I * 0.28f);
-	for (int32 I = 0; I < PDLogo::ScriptLetters; ++I) PB[I] = Seq(OnP, 6, T - 1.6f);
-	const float CB = FMath::Clamp((T - 1.9f) / 0.15f, 0.1f, 1.f);
+	for (int32 I = 0; I < PDLogo::BlockLetters; ++I) NB[I] = Seq(OnN, 5, T - 0.1f - I * 0.12f);
+	for (int32 I = 0; I < PDLogo::ScriptLetters; ++I) PB[I] = Seq(OnP, UE_ARRAY_COUNT(OnP), T - 0.3f);
+	const float CB = FMath::Clamp((T - 0.85f) / 0.15f, 0.1f, 1.f);
 	static const float PatN[] = {0.1f, 1.f, 0.08f, 0.08f, 0.7f, 0.08f, 1.f, 1.f, 0.5f, 1.f, 1.f, 1.f};
 	static const float PatP[] = {0.1f, 1.f, 0.08f, 0.6f, 0.08f, 0.08f, 1.f, 0.4f, 1.f, 1.f, 1.f, 1.f};
 	int32 SpWhich = -1, SpLetter = 0, SpK = 0, SpSeed = 0;
