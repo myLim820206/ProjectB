@@ -72,7 +72,7 @@ void SPDBoardWidget::PaintTitleWall(FCanvas& C, float TX, float TY, float TW, co
 		SPDBoardWidget* Self = const_cast<SPDBoardWidget*>(this);
 		Self->TitleLight.SetNum(3);
 		const float K = TW / PDTitleLogo::SrcW;
-		static const float Rad[2] = {60.f, 180.f}, Gain[2] = {0.7f, 1.26f}; // 시안 G 의 35% (D-467 절반 → D-468 0.7배): 가까운 빛 + 넓은 빛 (가우스 σ, 화면 화소)
+		static const float Rad[2] = {60.f, 180.f}, Gain[2] = {0.56f, 1.0f}; // 시안 G 의 28% (D-467 절반 → D-468 0.7배 → D-469 0.8배): 가까운 빛 + 넓은 빛 (가우스 σ, 화면 화소)
 		for (int32 Col = 0; Col < 3; ++Col)
 		{
 			// 관 모양(너비 = 관 굵기 × 2)을 칸에 덮인 넓이로 뿌린다
