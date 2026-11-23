@@ -86,7 +86,12 @@ def split_liquid(col, P):
     if col != 'yellow': return [(col, P)]
     xs = [p[0] for p in P]; ys = [p[1] for p in P]
     if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50:
-        return [('liquid', [(x, y + OLIVE_DY) for x, y in P]), ('liquid', [(LIQUID_X0, LIQUID_Y), (LIQUID_X1, LIQUID_Y)])]
+        # 올리브: 잔 윗변과 같은 기울기로 돌린다 (D-477, 왼쪽 모서리 842,190 → 오른쪽 1040,226)
+        cx, cy = sum(xs[:-1]) / (len(P) - 1), sum(ys[:-1]) / (len(P) - 1)
+        a = math.atan2(226.0 - 190.0, 1040.0 - 842.0)
+        ca, sa = math.cos(a), math.sin(a)
+        olive = [(cx + (x - cx) * ca - (y - cy) * sa, cy + OLIVE_DY + (x - cx) * sa + (y - cy) * ca) for x, y in P]
+        return [('liquid', olive), ('liquid', [(LIQUID_X0, LIQUID_Y), (LIQUID_X1, LIQUID_Y)])]
     # 잔 테 (D-475): 윗변은 왼쪽 모서리 ~ 오른쪽 모서리를 잇는 곧은 선 하나 (잔 전체가 살짝 기운 모양), 꼬치 자리만 틈.
     # 원본은 뒤쪽 테(y 190)와 앞쪽 테(y 222)가 따로라 앞쪽 테를 지우면 윗변이 두 높이로 찌그러져 보였다 (D-474)
     i = xs.index(max(xs))
