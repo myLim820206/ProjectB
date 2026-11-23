@@ -2985,20 +2985,16 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	static const TCHAR* Edge[3] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714")}; // 원본에서 잰 관 바깥 테
 	static const TCHAR* Core[3] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5")}; // 관 가운데 파스텔
 	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
+	const bool bTitle = Wall > 0.f; // 시작 화면: 번짐 넓게 (D-464), 관 선 1.5배 (D-465). 인게임 배지는 그대로
+	const float LineK = bTitle ? 1.5f : 1.f;
 	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
 	{
-		const bool bTitle = Wall > 0.f; // D-464: 시작 화면만 넓게 (× 11 → × 15, × 5 → × 6.5), 인게임 배지는 그대로
 		C.Spill(Pts, Gc, Th * (bTitle ? 15.f : 11.f), 0.16f * B, true);
 		C.Spill(Pts, Gc, Th * (bTitle ? 6.5f : 5.f), 0.55f * B, true);
-		C.Lines(Pts, Gc, Th * 1.0f);
+		C.Lines(Pts, Gc, Th * LineK);
 	};
-	auto WallSpill = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, float A1, float A2)
-	{
-		if (Wall <= 0.f || B <= 0.25f) return;
-		const float ST = FMath::Min(Th, 4.5f * Sc);
-		C.Spill(Pts, Col, ST * 24.f, A1 * B * Wall, true); // D-463: 뿌연 넓은 겹(× 44)은 빼고 벽빛만 1.5배 넓게 (× 16 → × 24)
-		(void)A2;
-	};
+	// 벽빛은 시작 화면에서 PaintTitleWall 이 전구 빛으로 그린다 (D-465, 예전 둥근 빛 사슬 D-302 · D-463 은 뺐다)
+	auto WallSpill = [](const TArray<FVector2f>&, const FLinearColor&, float, float, float, float) {};
 	auto Bright = [&](const PDTitleLogo::FStroke& St) { return St.Color == 0 ? NB[FMath::Clamp(St.Group, 0, PDLogo::BlockLetters - 1)] : St.Color == 1 ? PB[FMath::Clamp(St.Group, 0, PDLogo::ScriptLetters - 1)] : CB; };
 	TArray<FVector2f> Pts;
 	for (int32 Pass = 0; Pass < 2; ++Pass)
@@ -3014,7 +3010,7 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 			if (Pass == 0) { WallSpill(Pts, Ec, Th, B, 0.13f, 0.08f); continue; } // 벽빛 (D-302 · D-449)
 			if (B <= 0.25f) { C.Lines(Pts, FLinearColor(Ec.R * 0.28f, Ec.G * 0.28f, Ec.B * 0.28f, 1.f), Th * 0.8f); continue; } // 꺼진 관
 			TubeGlow(Pts, FLinearColor(Ec.R * B, Ec.G * B, Ec.B * B, 1.f), Th, B);
-			C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f);
+			C.Lines(Pts, FLinearColor(Cc.R * B, Cc.G * B, Cc.B * B, 1.f), Th * 0.6f * LineK);
 		}
 	// BAR (D-442): 틀 없는 하늘색 블록 글자 B · A · R (PDLogo, 글자마다 NB 로 깜빡임). 새 간판의 BAR 꼬리표 글자 자리(원본 218, 142 가운데)에
 	const float BKn = 0.8525f * Sc; // 예전 배율 0.55 × 1.55
@@ -3035,7 +3031,7 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 				if (Pass == 0) { WallSpill(BP, BarC, BarTh, B, 0.22f, 0.13f); continue; }
 				if (B <= 0.25f) { C.Lines(BP, FLinearColor(BarC.R * 0.28f, BarC.G * 0.28f, BarC.B * 0.28f, 1.f), BarTh * 0.8f); continue; }
 				TubeGlow(BP, FLinearColor(BarC.R * B, BarC.G * B, BarC.B * B, 1.f), BarTh, B);
-				C.Lines(BP, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), BarTh * 0.25f); // 튜브 가운데 흰 심
+				C.Lines(BP, FLinearColor(1.f, 1.f, 1.f, 0.4f * B), BarTh * 0.25f * LineK); // 튜브 가운데 흰 심
 			}
 		}
 }
@@ -3045,19 +3041,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	const FLinearColor Cyan = Hex(TEXT("6edcff")), Pink = Hex(TEXT("ff6aaa")), Gold = Hex(TEXT("ffd26e")), Grey = Hex(TEXT("8a94a6")), Dim = Hex(TEXT("5f6878"));
 	const float Pulse = 0.5f + 0.5f * FMath::Sin(Clock * 4.f);
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 1.f)); // 뒤 게임판이 비치지 않게 불투명 (D-255)
-	// 벽돌 벽 (흐린 선): 화면 전체 (D-381: 바닥 경계 · 반사는 뺐다)
-	const FLinearColor Brick = Hex(TEXT("3c303a"), 0.6f);
-	const float BrW = 192.f, BrH = 102.f; // D-464: 벽돌 3배 (예전 64 × 34)
-	for (int32 R = 0; 20.f + R * BrH < DesignH; ++R)
-	{
-		const float Y = 20.f + R * BrH;
-		C.Lines({FVector2f(0.f, Y), FVector2f(DesignW, Y)}, Brick, 1.f);
-		for (int32 K = 0; K * BrW < DesignW + BrW; ++K)
-		{
-			const float X = K * BrW + (R % 2 ? BrW / 2.f : 0.f);
-			C.Lines({FVector2f(X, Y), FVector2f(X, Y + BrH)}, Brick, 1.f);
-		}
-	}
+	// 벽돌 벽 · 전구 벽빛은 간판 바로 앞에 (PaintTitleWall, D-465: 글자 밝기를 따라 깜빡여서 밝기 계산 뒤로)
 
 	// ---- 로고 밝기: 켜짐 → 빠직
 	const float T = TitleT, Off = 0.08f;
@@ -3135,6 +3119,7 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 		constexpr float TW = 580.f, TH = TW * PDTitleLogo::SrcH / PDTitleLogo::SrcW;
 		const float TX = LgX - TW / 2.f, TY = LY + 168.f * LK - TH - 4.f; // 부제 선(LY + 178LK) 바로 위에 바닥
 		const float K = TW / PDTitleLogo::SrcW;
+		PaintTitleWall(C, TX, TY, TW, NB, PB, CB); // 벽돌 벽 + 전구 벽빛 (D-465)
 		PaintAliceSign(C, TX, TY, TW, NB, PB, CB, 1.f); // D-453: 인게임 족보 메뉴판 로고와 같은 그리기
 		// 빠직 불티 자리 (D-444): BAR 는 글자 위끝, Alice 는 글자 묶음마다 가장 높은 점
 		{

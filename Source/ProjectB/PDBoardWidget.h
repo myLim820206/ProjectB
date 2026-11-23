@@ -444,6 +444,11 @@ private:
 	// 칵테일 잔 60장 (D-424, tools/ui_art/cocktails.py): 잔 = 칵테일 번호 % 12, 색 = 번호 % 5. 발(바닥) 가운데 (GX, BY), 그림 높이 H. 그림이 없으면 false
 	TArray<FSlateBrush> CockArt;
 	bool CocktailArt(FCanvas& C, int32 Id, float GX, float BY, float H, float Alpha) const;
+	// 시작 화면 전구 벽빛 (D-465, 시안 tools/neon/title_wall_mock.py lamp G): 간판 관 모양을 색별로 크게 흐린 빛을 처음 한 번 구워(160 × 90)
+	// 더하기로 찍고, 벽돌 면 반사율 · 어두운 줄눈을 위에 그린다. 글자 묶음 밝기를 따라 깜빡인다
+	TArray<FSlateBrush> TitleLight;
+	float TitleLightNorm[3] = {0.f, 0.f, 0.f};
+	void PaintTitleWall(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB) const;
 	bool SaveAtlasAsset(); // 에디터 F8 또는 -pdbakeatlas: 배율 1 로 구워 Content/Sprites/T_PDAtlas 로 저장 (D-145, D-367). 둘 다 저장되면 true
 	bool bBakeAtlasDone = false; // -pdbakeatlas 로 한 번 구웠음
 	bool bForceBake = false; // 에셋이 있어도 굽기 (에셋을 새로 만들 때)
