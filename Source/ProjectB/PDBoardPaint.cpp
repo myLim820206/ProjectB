@@ -2987,8 +2987,9 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
 	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
 	{
-		C.Spill(Pts, Gc, Th * 11.f, 0.16f * B, true);
-		C.Spill(Pts, Gc, Th * 5.f, 0.55f * B, true);
+		const bool bTitle = Wall > 0.f; // D-464: 시작 화면만 넓게 (× 11 → × 15, × 5 → × 6.5), 인게임 배지는 그대로
+		C.Spill(Pts, Gc, Th * (bTitle ? 15.f : 11.f), 0.16f * B, true);
+		C.Spill(Pts, Gc, Th * (bTitle ? 6.5f : 5.f), 0.55f * B, true);
 		C.Lines(Pts, Gc, Th * 1.0f);
 	};
 	auto WallSpill = [&](const TArray<FVector2f>& Pts, const FLinearColor& Col, float Th, float B, float A1, float A2)
@@ -3046,14 +3047,15 @@ void SPDBoardWidget::PaintTitle(FCanvas& C) const
 	C.Box(0.f, 0.f, DesignW, DesignH, Hex(TEXT("06060b"), 1.f)); // 뒤 게임판이 비치지 않게 불투명 (D-255)
 	// 벽돌 벽 (흐린 선): 화면 전체 (D-381: 바닥 경계 · 반사는 뺐다)
 	const FLinearColor Brick = Hex(TEXT("3c303a"), 0.6f);
-	for (int32 R = 0; R < 21; ++R)
+	const float BrW = 192.f, BrH = 102.f; // D-464: 벽돌 3배 (예전 64 × 34)
+	for (int32 R = 0; 20.f + R * BrH < DesignH; ++R)
 	{
-		const float Y = 20.f + R * 34.f;
+		const float Y = 20.f + R * BrH;
 		C.Lines({FVector2f(0.f, Y), FVector2f(DesignW, Y)}, Brick, 1.f);
-		for (int32 K = 0; K < 21; ++K)
+		for (int32 K = 0; K * BrW < DesignW + BrW; ++K)
 		{
-			const float X = K * 64.f + (R % 2 ? 32.f : 0.f);
-			C.Lines({FVector2f(X, Y), FVector2f(X, Y + 34.f)}, Brick, 1.f);
+			const float X = K * BrW + (R % 2 ? BrW / 2.f : 0.f);
+			C.Lines({FVector2f(X, Y), FVector2f(X, Y + BrH)}, Brick, 1.f);
 		}
 	}
 
