@@ -71,7 +71,7 @@ def group(col, cx):
 
 LIQUID_Y, LIQUID_X0, LIQUID_X1 = 244.0, 898.0, 1004.0  # 잔 속 술 선 (원본 화소): 앞쪽 테(y 222) 아래, 양쪽 벽에서 20 쯤 띄움
 OLIVE_DY = 18.0  # 올리브를 술 선 아래로 내림 (선끼리 붙지 않게)
-RIM_CUT_X = 992.0  # 오른쪽 짧은 테가 끝나는 곳 (꼬치 아래끝 x 981 바로 오른쪽)
+RIM_GAP = (960.0, 1000.0)  # 윗변에서 꼬치가 지나는 틈 (원본 x)
 
 
 def split_liquid(col, P):
@@ -81,14 +81,14 @@ def split_liquid(col, P):
     xs = [p[0] for p in P]; ys = [p[1] for p in P]
     if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50:
         return [('liquid', [(x, y + OLIVE_DY) for x, y in P]), ('liquid', [(LIQUID_X0, LIQUID_Y), (LIQUID_X1, LIQUID_Y)])]
-    # 잔 테 (D-474): 윗변은 왼쪽 테 → 꼬치 자리 틈 → 오른쪽 모서리에서 꺾여 들어오는 짧은 테 한 줄. 오른쪽 모서리 뒤 앞쪽 테는 꼬치 오른쪽(x 990)에서 끊는다
+    # 잔 테 (D-475): 윗변은 왼쪽 모서리 ~ 오른쪽 모서리를 잇는 곧은 선 하나 (잔 전체가 살짝 기운 모양), 꼬치 자리만 틈.
+    # 원본은 뒤쪽 테(y 190)와 앞쪽 테(y 222)가 따로라 앞쪽 테를 지우면 윗변이 두 높이로 찌그러져 보였다 (D-474)
     i = xs.index(max(xs))
     if i < len(P) - 3 and P[-1][0] < P[i][0] - 100:
-        j = next((q for q in range(i + 1, len(P)) if P[q][0] < RIM_CUT_X), len(P))
-        Q = P[:j]
-        a, b = P[j - 1], P[j] if j < len(P) else P[j - 1]
-        if b[0] < a[0]: Q.append((RIM_CUT_X, a[1] + (b[1] - a[1]) * (a[0] - RIM_CUT_X) / (a[0] - b[0])))
-        return [(col, Q)]
+        k = next(q for q in range(len(P)) if P[q][1] >= P[0][1] + 2.0)  # 왼쪽 모서리 아래 첫 점 (그 앞은 뒤쪽 테)
+        L0, R0 = P[k - 1], P[i]  # 왼쪽 · 오른쪽 모서리
+        rim = lambda x: (x, L0[1] + (R0[1] - L0[1]) * (x - L0[0]) / (R0[0] - L0[0]))
+        return [(col, [rim(RIM_GAP[0]), rim(L0[0] + 6.0)] + P[k - 1:i + 1] + [rim(RIM_GAP[1])])]
     return [(col, P)]
 
 
