@@ -71,6 +71,7 @@ def group(col, cx):
 
 LIQUID_Y, LIQUID_X0, LIQUID_X1 = 244.0, 898.0, 1004.0  # 잔 속 술 선 (원본 화소): 앞쪽 테(y 222) 아래, 양쪽 벽에서 20 쯤 띄움
 OLIVE_DY = 18.0  # 올리브를 술 선 아래로 내림 (선끼리 붙지 않게)
+RIM_CUT_X = 992.0  # 오른쪽 짧은 테가 끝나는 곳 (꼬치 아래끝 x 981 바로 오른쪽)
 
 
 def split_liquid(col, P):
@@ -80,6 +81,14 @@ def split_liquid(col, P):
     xs = [p[0] for p in P]; ys = [p[1] for p in P]
     if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50:
         return [('liquid', [(x, y + OLIVE_DY) for x, y in P]), ('liquid', [(LIQUID_X0, LIQUID_Y), (LIQUID_X1, LIQUID_Y)])]
+    # 잔 테 (D-474): 윗변은 왼쪽 테 → 꼬치 자리 틈 → 오른쪽 모서리에서 꺾여 들어오는 짧은 테 한 줄. 오른쪽 모서리 뒤 앞쪽 테는 꼬치 오른쪽(x 990)에서 끊는다
+    i = xs.index(max(xs))
+    if i < len(P) - 3 and P[-1][0] < P[i][0] - 100:
+        j = next((q for q in range(i + 1, len(P)) if P[q][0] < RIM_CUT_X), len(P))
+        Q = P[:j]
+        a, b = P[j - 1], P[j] if j < len(P) else P[j - 1]
+        if b[0] < a[0]: Q.append((RIM_CUT_X, a[1] + (b[1] - a[1]) * (a[0] - RIM_CUT_X) / (a[0] - b[0])))
+        return [(col, Q)]
     return [(col, P)]
 
 
