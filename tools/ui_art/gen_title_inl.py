@@ -69,12 +69,25 @@ def group(col, cx):
     return 0
 
 
+def split_liquid(col, P):
+    """잔 안 술 · 올리브는 하늘색 (D-472, 인게임 참고 그림처럼): 원본에서 노랑으로 따라 그려진 것을 색 3(잔 속 하늘)으로.
+    잔 테 획은 오른쪽 모서리(가장 오른쪽 점)를 지나 왼쪽으로 되돌아가는 술 선이 이어져 있어 거기서 자른다. 작은 닫힌 고리(올리브)는 통째로"""
+    if col != 'yellow': return [(col, P)]
+    xs = [p[0] for p in P]; ys = [p[1] for p in P]
+    if P[0] == P[-1] and max(xs) - min(xs) < 50 and max(ys) - min(ys) < 50: return [('liquid', P)]
+    i = xs.index(max(xs))
+    if i < len(P) - 3 and P[-1][0] < P[i][0] - 100:
+        j = next((q for q in range(i + 1, len(P)) if P[q][1] <= P[i][1] - 3.5), None)
+        if j is not None: return [(col, P[:j + 1]), ('liquid', P[j:])]
+    return [(col, P)]
+
+
 def main():
     J = json.load(open(SRC))
     lines = ['// 자동 생성 (tools/ui_art/gen_title_inl.py, D-440): 시작 화면 BAR Alice 간판 — 원본 그림에서 따라 그린 네온 획. 손으로 고치지 말 것',
              '#pragma once', '', 'namespace PDTitleLogo', '{',
              '\tconstexpr float SrcW = %.1ff, SrcH = %.1ff;' % tuple(J['size']),
-             '\tconstexpr float Tube[3] = {%s}; // 관 굵기 (원본 화소, 하늘 · 분홍 · 노랑)' % ', '.join('%.2ff' % J['tube'][c] for c in COLS),
+             '\tconstexpr float Tube[4] = {%s, %.2ff}; // 관 굵기 (원본 화소, 하늘 · 분홍 · 노랑 · 잔 속 하늘 = 노랑 굵기)' % (', '.join('%.2ff' % J['tube'][c] for c in COLS), J['tube']['yellow']),
              '\tstruct FStroke { int32 Color, Group, N; bool bFreeA, bFreeB; const float* P; };']
     arrays, entries = [], []
     k = 0
@@ -85,10 +98,11 @@ def main():
             if len(P) > 2 and sum(math.dist(P[q], P[q + 1]) for q in range(len(P) - 1)) < 40.0:
                 P = [P[0], P[-1]]  # 짧은 획(i 점)은 다듬기를 건너뛴 화소 계단이라 끊긴 듯 보였다 → 두 끝을 잇는 곧은 선 (D-447)
             # fillet 은 쓰지 않는다 (D-445: 잘게 꺾인 점이 번짐 띠를 더 삐져나가게 했다 — 게임이 모서리에서 번짐을 끊어 찍는다)
-            cx = sum(p[0] for p in P) / len(P)
-            arrays.append('\tconst float S%d[] = {%s};' % (k, ', '.join('%.1ff, %.1ff' % (x, y) for x, y in P)))
-            entries.append('\t\t{%d, %d, %d, %s, %s, S%d},' % (ci, group(col, cx), len(P), 'true' if st['free'][0] else 'false', 'true' if st['free'][1] else 'false', k))
-            k += 1
+            for c2, P2 in split_liquid(col, P):
+                cx = sum(p[0] for p in P2) / len(P2)
+                arrays.append('\tconst float S%d[] = {%s};' % (k, ', '.join('%.1ff, %.1ff' % (x, y) for x, y in P2)))
+                entries.append('\t\t{%d, %d, %d, %s, %s, S%d},' % (3 if c2 == 'liquid' else ci, group(col, cx), len(P2), 'true' if st['free'][0] else 'false', 'true' if st['free'][1] else 'false', k))
+                k += 1
     lines += arrays
     lines += ['\tconst FStroke Strokes[] = {'] + entries + ['\t};', '\tconstexpr int32 NumStrokes = %d;' % k, '}', '']
     open(OUT, 'w', encoding='utf-8').write('\n'.join(lines))
