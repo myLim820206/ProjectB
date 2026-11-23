@@ -2995,8 +2995,8 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	{
 		if (Wall <= 0.f || B <= 0.25f) return;
 		const float ST = FMath::Min(Th, 4.5f * Sc);
-		C.Spill(Pts, Col, ST * 16.f, A1 * B * Wall, true);
-		C.Spill(Pts, Col, ST * 44.f, A2 * B * Wall, true);
+		C.Spill(Pts, Col, ST * 24.f, A1 * B * Wall, true); // D-463: 뿌연 넓은 겹(× 44)은 빼고 벽빛만 1.5배 넓게 (× 16 → × 24)
+		(void)A2;
 	};
 	auto Bright = [&](const PDTitleLogo::FStroke& St) { return St.Color == 0 ? NB[FMath::Clamp(St.Group, 0, PDLogo::BlockLetters - 1)] : St.Color == 1 ? PB[FMath::Clamp(St.Group, 0, PDLogo::ScriptLetters - 1)] : CB; };
 	TArray<FVector2f> Pts;
