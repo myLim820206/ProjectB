@@ -168,6 +168,7 @@ private:
 	static float Receipt(FCanvas& C, float CX, float Y, const TArray<TPair<FString, FString>>& RcRows, const FString& Total, const FString& Sub);
 	void PaintLevelUp(FCanvas& C) const;   // 레벨업 이펙트 (D-273): 가운데 마키 간판 → 위 레벨 자리로 날아가 매달림
 	void PaintTitle(FCanvas& C) const;     // 시작 화면
+	static void PaintAliceSign(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB, float Wall, float AngleDeg = 0.f); // BAR Alice 간판 (AngleDeg: 가운데를 축으로 기울이기, D-454) (시작 화면 · 인게임 족보 메뉴판, D-453)
 	void PaintLoading(FCanvas& C) const;   // 로딩 화면
 	int32 MenuHoverAt(FVector2f P) const;  // 메뉴 창에서 이 위치의 항목 (-1 = 없음)
 	void RestartRun();                     // 새 판 시작 (게임 오버·메뉴 공통)
@@ -381,6 +382,8 @@ private:
 	float TvTitleAt = -10.f;                 // 제목이 바뀐 때 (한 글자씩 찍힘)
 	void TvDial();
 	void PaintTv(FCanvas& C) const;
+	void PaintAliceTvBody(FCanvas& C) const; // TV 몸통 · 안테나 · 배속 버튼 · 다이얼 · 스피커 (D-456, 예전 tv.png)
+	void PaintAliceRPanel(FCanvas& C) const;  // 오른쪽 아래 줄 · 칵테일 칸 · 스킬 · 시작 버튼 (D-456, 예전 rpanel.png)
 	void PaintJukebox(FCanvas& C) const;     // 주크박스 간판 (D-319): 예전 남은 적 간판 자리
 	// 완성 연출 (D-314, D-315): 합성 · 조커 · 상위 조커 · 조커 레벨 10 · 같은 조커 합치기 · 상위 조커 레벨 10마다. 도는 동안 게임은 멈추고, 클릭하면 바로 건너뛴다
 	enum class ECine : uint8 { Fuse, Joker, Upper, JokerLv, Merge, UpperLv };
@@ -433,6 +436,19 @@ private:
 	// 스프라이트 아틀라스 (D-140): 타워 카드·조커를 게임 시작 때 지금 네온 코드로 텍스처 한 장에 구워 두고, 판에선 사각형으로 찍는다
 	TSharedPtr<FPDAtlas> Atlas;
 	void BakeAtlas();
+	// 시안 그림 조각 (D-403): Content/UIArt/*.png 를 실행 중에 읽어 붓으로 (tools/ui_art/cut_ref.py 가 만든다). 없으면 nullptr → 코드 그림으로 대신
+	enum class EUiArt : uint8 { Sign, Logo, GlassOn, GlassOff, Tv, RPanel, RPanelKo, TitleLogo, Count };
+	TArray<FSlateBrush> UiArt;
+	void LoadUiArt();
+	const FSlateBrush* Art(EUiArt A) const;
+	// 칵테일 잔 60장 (D-424, tools/ui_art/cocktails.py): 잔 = 칵테일 번호 % 12, 색 = 번호 % 5. 발(바닥) 가운데 (GX, BY), 그림 높이 H. 그림이 없으면 false
+	TArray<FSlateBrush> CockArt;
+	bool CocktailArt(FCanvas& C, int32 Id, float GX, float BY, float H, float Alpha) const;
+	// 시작 화면 전구 벽빛 (D-465, 시안 tools/neon/title_wall_mock.py lamp G): 간판 관 모양을 색별로 크게 흐린 빛을 처음 한 번 구워(160 × 90)
+	// 더하기로 찍고, 벽돌 면 반사율 · 어두운 줄눈을 위에 그린다. 글자 묶음 밝기를 따라 깜빡인다
+	TArray<FSlateBrush> TitleLight;
+	float TitleLightNorm[3] = {0.f, 0.f, 0.f};
+	void PaintTitleWall(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB) const;
 	bool SaveAtlasAsset(); // 에디터 F8 또는 -pdbakeatlas: 배율 1 로 구워 Content/Sprites/T_PDAtlas 로 저장 (D-145, D-367). 둘 다 저장되면 true
 	bool bBakeAtlasDone = false; // -pdbakeatlas 로 한 번 구웠음
 	bool bForceBake = false; // 에셋이 있어도 굽기 (에셋을 새로 만들 때)
@@ -450,6 +466,9 @@ private:
 	int32 SellCell = -1;                   // 판매 (D-221): 오른쪽 클릭한 타워 칸. 그 아래 [판매] 버튼을 누르면 판다
 	mutable FBox2f SellBtnRect;
 	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만
+	bool bHandsFolded = false;             // 족보 메뉴를 좁은 띠로 접음 (D-421, 설정 ini 에 저장)
+	bool HandsFolded() const { return bHandsFolded && HandFilter < 0; } // 합성 · 조커 만들기 · 먹이기 중이면 펼쳐 보인다
+	void PaintHandStrip(FCanvas& C) const;
 	int32 RClickCancels = 0;               // 합성 모드를 오른쪽 클릭으로 끈 횟수 (D-373): RClickTagUntil 번이 되면 커서 꼬리표를 안 띄운다 (설정 ini 에 저장)
 	static constexpr int32 RClickTagUntil = 3;
 	float FuseMissAt = -100.f;             // 합성 모드 헛클릭 시각 (D-373): 꼬리표 오른쪽 버튼이 빨갛게 번쩍

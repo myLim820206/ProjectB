@@ -799,7 +799,7 @@ def jk_star(cx, cy, R):             # 스타: 큰 별 혜성
     return suit('wild')(cx + R * .4, cy, R * .3) + [[(cx + R * .15, cy + d * R * .1), (cx - R, cy + d * R * .25)] for d in (-1, 0, 1)]
 
 
-def oyster(cx, cy, R):              # 바다코끼리와 목수(★) 연출 소품 (D-400): 벌어진 굴 껍데기 + 진주
+def oyster(cx, cy, R):              # 바다코끼리와 목수(★) 연출 소품 (D-482): 벌어진 굴 껍데기 + 진주
     bowl = [(cx + math.cos(math.pi * k / 12) * R, cy + math.sin(math.pi * k / 12) * R * .5) for k in range(13)]
     a = math.radians(32)             # 뚜껑: 오른쪽 경첩에서 위로 살짝 열림 (껍데기와 같은 크기, 낮은 돔)
     lid = []
@@ -822,7 +822,7 @@ SHAPES = {
     'jokers': joker_cards(),
     'towers': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white')],
     'joker': [(joker, 'pink')],
-    'oyster': [(oyster, 'ice')],   # 바다코끼리와 목수 연출 소품 (D-400)
+    'oyster': [(oyster, 'ice')],   # 바다코끼리와 목수 연출 소품 (D-482)
     # 무늬 색 줄이기 비교 (줄마다): 지금 4색 / 2색 (♥♦ 빨강, ♠♣ 흰빛, 와일드 금색)
     'suitcolors': [(tower('spade', '9'), 'spade'), (tower('heart', 'A'), 'heart'), (tower('diamond', '10'), 'diamond'), (tower('club', 'K'), 'club'), (tower('wild', ''), 'white'),
                    (tower('spade', '9'), 'ice'), (tower('heart', 'A'), 'red'), (tower('diamond', '10'), 'red'), (tower('club', 'K'), 'ice'), (tower('wild', ''), 'gold')],

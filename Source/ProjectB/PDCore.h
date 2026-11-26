@@ -21,6 +21,7 @@ namespace PD
 constexpr int Cols = 16;
 constexpr int Rows = 10;
 constexpr int HandMaxBase = 7;
+constexpr int HandMaxCap = 10; // D-397: 칵테일 · 스킬 덤을 다 더해도 손패는 10장까지 (예전 최대 11)
 constexpr int CharmMax = 5;
 constexpr int NumWaves = 15; // 1회차 (보스 3종이 한 바퀴). 진행은 무한이고 목숨이 0이 되면 끝. 이 뒤로는 적 체력이 더 천천히 오른다
 constexpr int StartLives = 20;
@@ -235,7 +236,7 @@ struct FPDTower
 	int JLevel = 1;                 // 조커 레벨 (족보 먹이기·처치 경험치로 오름, 최대 JokerMaxLevel)
 	float StunT = 0.f;              // 파괴자 보스에게 기절한 남은 시간 (D-112)
 	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
-	int Feast = 0;                  // 바다코끼리와 목수: 이번 웨이브에 처치한 수 (굴 잔치, 최대 WalrusFeastMax, D-400). 웨이브가 끝나면 0 이라 저장하지 않는다
+	int Feast = 0;                  // 바다코끼리와 목수: 이번 웨이브에 처치한 수 (굴 잔치, 최대 WalrusFeastMax, D-482). 웨이브가 끝나면 0 이라 저장하지 않는다
 	bool IsJoker() const { return Joker >= 0; }
 };
 // 조커 레벨 (D-098): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +15% (D-191), 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
@@ -276,7 +277,7 @@ constexpr int UpperBase = 10, UpperJokerCount = 30;
 constexpr int UpperNeedLevel = 10, UpperNeedLevelTip = 5;
 constexpr float UpperBonus = 1.5f, UpperBonusPlain = 1.3f, UpperTipBonus = 0.25f; // ★ 대표 11종 ×1.5, 일반 19종 ×1.3 (D-333)
 enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle, Walrus };
-constexpr int WalrusFeastMax = 5;          // 바다코끼리와 목수 '굴 잔치' (D-400): 처치할 때마다 주변 연사 +10%, 최대 5번, 웨이브마다 초기화
+constexpr int WalrusFeastMax = 5;          // 바다코끼리와 목수 '굴 잔치' (D-482): 처치할 때마다 주변 연사 +10%, 최대 5번, 웨이브마다 초기화
 constexpr float WalrusFeastStep = 0.1f;
 struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
@@ -331,7 +332,7 @@ struct FPDSynergy
 	int ChainId = -1;
 	std::vector<int> Links;   // 맞닿은 다른 족보 번호
 };
-// 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 모두 따져 큰 족보부터 고르고(카드 공유 가능, 새 카드 한 장 이상, 같은 종류끼리는 공유 안 함), 연쇄를 묶는다
+// 상하좌우로 붙은 타워 덩어리 안의 2~5장 연결 묶음을 (스트레이트 · 플러시는 3장부터, D-418) 모두 따져 큰 족보부터 고르고(카드 공유 가능, 새 카드 한 장 이상, 같은 종류끼리는 공유 안 함), 연쇄를 묶는다
 std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers);
 // 족보 효과를 타워에 반영하고 족보 목록을 돌려준다
 std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms = 0, const FPDTreeMods* Tree = nullptr);
@@ -641,7 +642,7 @@ public:
 	std::vector<FPDReward> RollRewards();
 	FPDCharmBits CharmMask() const;
 	bool Has(EPDCharm J) const { return HasCharm(CharmMask(), J); }
-	int HandMax() const { return HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.HandAdd; }
+	int HandMax() const { const int N = HandMaxBase + (Has(EPDCharm::BigHand) ? 2 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.HandAdd; return N < HandMaxCap ? N : HandMaxCap; }
 	// 스킬 트리
 	enum class EBuy : uint8_t { Ok, Owned, NotLinked, Sealed, KeyCap, NoPoint, Closed };
 	// 레벨 (D-228): 적을 잡아 경험치 → 레벨업마다 트리 포인트 1. 다음 레벨까지 = 예전 n번째 포인트 골드 값 (20 × 1.22^(레벨-1))

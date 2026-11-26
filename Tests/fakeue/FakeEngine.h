@@ -216,6 +216,7 @@ public:
 	bool IsValid() const { return F.valid(); }
 	bool IsReady() const { return F.valid() && F.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
 	const T& Get() const { return F.get(); }
+	T Consume() { T V = F.get(); F = std::shared_future<T>(); return V; } // 결과를 꺼내고 비운다 (엔진의 TFuture::Consume)
 	void Wait() const { F.wait(); }
 };
 template <typename F> auto Async(EAsyncExecution Execution, F&& Function, TUniqueFunction<void()> CompletionCallback = nullptr) -> TFuture<std::invoke_result_t<F>>

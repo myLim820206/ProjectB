@@ -303,6 +303,7 @@ void SPDBoardWidget::Construct(const FArguments& InArgs)
 {
 	SetCanTick(true);
 	LoadUserData();
+	LoadUiArt(); // 시안 그림 조각 (D-403)
 	if (FParse::Param(FCommandLine::Get(), TEXT("pdnosplash")) || FParse::Param(FCommandLine::Get(), TEXT("pdbakeatlas"))) bSplash = false; // 회사 로고 건너뛰기 (D-385)
 }
 
@@ -360,6 +361,7 @@ void SPDBoardWidget::LoadUserData()
 		GConfig->GetBool(PDSetSection, TEXT("VSync"), Settings.bVSync, GGameUserSettingsIni);
 		GConfig->GetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 		GConfig->GetInt(PDSetSection, TEXT("RClickCancels"), RClickCancels, GGameUserSettingsIni); // 합성 취소 꼬리표 (D-373)
+		GConfig->GetBool(PDSetSection, TEXT("HandsFolded"), bHandsFolded, GGameUserSettingsIni); // 족보 메뉴 접힘 (D-421)
 	}
 	Settings.FrameCap = FMath::Clamp(Settings.FrameCap, 0, 2);
 	if (Settings.Lang < 0 || Settings.Lang >= (int32)EPDLang::Count) Settings.Lang = LangFromSystem(); // 처음 켜면 시스템 언어 (D-159)
@@ -454,6 +456,7 @@ void SPDBoardWidget::SaveSettings() const
 	GConfig->SetInt(PDSetSection, TEXT("Lang"), Settings.Lang, GGameUserSettingsIni);
 	GConfig->SetBool(PDSetSection, TEXT("Hints"), Settings.bHints, GGameUserSettingsIni);
 	GConfig->SetInt(PDSetSection, TEXT("RClickCancels"), RClickCancels, GGameUserSettingsIni);
+	GConfig->SetBool(PDSetSection, TEXT("HandsFolded"), bHandsFolded, GGameUserSettingsIni);
 	GConfig->Flush(false, GGameUserSettingsIni);
 }
 
@@ -1221,7 +1224,9 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 		for (int K : Cs) { const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols)); Mn = FVector2f(FMath::Min(Mn.X, C0.X), FMath::Min(Mn.Y, C0.Y)); Mx = FVector2f(FMath::Max(Mx.X, C0.X + CS), FMath::Max(Mx.Y, C0.Y + CS)); }
 		Out = FBox2f(Mn, Mx);
 		return true; };
-	auto Row = [&](int32 R) { Out = FBox2f(FVector2f(LX + 8.f, HandMenuTop(R)), FVector2f(LX + LW - 8.f, HandMenuTop(R) + HandMenuRowH)); return true; }; // 족보 메뉴판 줄 (D-263)
+	auto Row = [&](int32 R) {
+		if (HandsFolded()) { Out = FBox2f(FVector2f(UnfoldBtnX, UnfoldBtnY), FVector2f(UnfoldBtnX + UnfoldBtnW, UnfoldBtnY + UnfoldBtnH)); return true; } // 접혀 있으면 펼치기 단추를 가리킨다 (D-421)
+		Out = FBox2f(FVector2f(LX + 8.f, HandMenuTop(R)), FVector2f(LX + LW - 8.f, HandMenuTop(R) + HandMenuRowH)); return true; }; // 족보 메뉴판 줄 (D-263)
 	switch ((EHint)H)
 	{
 	case EHint::Place: case EHint::HandFull: Out = FBox2f(FVector2f(FX + 92.f, HandY - 14.f), FVector2f(FX + Cols * CS, HandY + CardH + 2.f)); return true;
@@ -1232,7 +1237,7 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 	case EHint::Joker: return Row(JokerFilterId);
 	case EHint::Feed: return Row(FeedFilterId);
 	case EHint::Swap: Out = FBox2f(FVector2f(SwapBtnX, SwapBtnY), FVector2f(SwapBtnX + SwapBtnW, SwapBtnY + SwapBtnH)); return true;
-	case EHint::Boss: Out = FBox2f(FVector2f(HudPanX + 6.f, HudPanY + 6.f), FVector2f(HudDivLf - 6.f, HudPanY + HudPanH - 6.f)); return true; // 윗줄 계기판의 WAVE 칸 (D-351: 다음 보스 줄은 뺐다)
+	case EHint::Boss: Out = FBox2f(FVector2f(WaveBoxX, WaveBoxY), FVector2f(WaveBoxX + WaveBoxW, WaveBoxY + WaveBoxH)); return true; // WAVE 숫자 상자 (Alice 시안 D-403)
 	case EHint::Shop: Out = FBox2f(FVector2f(TreeBtnX, TreeBtnY), FVector2f(TreeBtnX + RBtnW, TreeBtnY + TreeBtnH)); return true;
 	case EHint::Sell: for (const auto& KV : Game.Towers) if (!KV.second.IsJoker()) return Cells({KV.first}); return false;
 	case EHint::UpperHow: return Row(JokerFilterId);
@@ -1560,7 +1565,15 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	// 족보 필터 (D-148): 왼쪽 족보 목록 한 줄 클릭 = 그 족보만 보기, 다시 클릭 = 끄기
-	if (!bRight && HandMenuAt(P.X, P.Y) >= 0) // 족보 메뉴판 줄 (D-263)
+	// 족보 메뉴 접기 · 펼치기 (D-421)
+	if (!bRight && HandFilter < 0 && (bHandsFolded ? InRect(P, LX, HandPanelY, HandStripW, DesignH - 1.f - HandPanelY) : InRect(P, FoldBtnX, FoldBtnY, FoldBtnW, FoldBtnH)))
+	{
+		bHandsFolded = !bHandsFolded;
+		UiSound(EPDSound::Move);
+		SaveSettings();
+		return;
+	}
+	if (!bRight && !HandsFolded() && HandMenuAt(P.X, P.Y) >= 0) // 족보 메뉴판 줄 (D-263)
 	{
 		const int32 Hi = HandMenuAt(P.X, P.Y);
 		const bool bAny = Hi == JokerFilterId ? !JGroups.empty() : std::any_of(Game.Synergies.begin(), Game.Synergies.end(), [Hi](const FPDSynergy& S) { return (int32)S.Kind == Hi; });
@@ -1573,11 +1586,10 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		return;
 	}
 	if (!bRight && FVector2f::Distance(P, TvDialPos()) <= TvDialR + 3.f) { TvDial(); return; } // 채널 TV 다이얼 (D-316)
-	for (int32 Dir = -1; Dir <= 1; Dir += 2) if (!bRight && InRect(P, JukeBtnX(Dir), JukeBtnY, JukeBtnS, JukeBtnS)) { JukeStep(Dir); return; } // 주크박스 간판 ◀ ▶ (D-319)
+	for (int32 K = 0; K < 2; ++K) // TV 아래 배속 버튼 ×2 · ×4 (Alice 시안 D-403): 그 배속, 이미 그 배속이면 ×1
+		if (!bRight && InRect(P, SpdBtnX + K * SpdBtnGap, SpdBtnY, SpdBtnW, SpdBtnH)) { const int32 Sp = K == 0 ? 2 : 4; Game.Speed = Game.Speed == Sp ? 1 : Sp; UiSound(EPDSound::Move); return; }
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
-	// 위쪽 띠 버튼 (D-119): 속도, 일시정지, 톱니바퀴 = 메뉴 (D-349: 설정 · 도감은 메뉴 안에서)
-	if (!bRight && InRect(P, SpeedBtnX, HudBtnY, HudBtnS, HudBtnS)) { Game.Speed = NextSpeed(Game.Speed); UiSound(EPDSound::Move); return; }
-	if (!bRight && InRect(P, PauseBtnX, HudBtnY, HudBtnS, HudBtnS) && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { bPaused = !bPaused; UiSound(EPDSound::Move); return; } // 일시정지 (D-169)
+	// 오른쪽 위 '?' = 메뉴 (Alice 시안 D-403, 예전 톱니바퀴 D-349). 일시정지는 P 키
 	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bMenu = true; MenuSel = 0; Sel = -1; UiSound(EPDSound::Move); return; }
 	// 먹이기 목록 (D-213): 판 칸 클릭 = 먹이기 / 조커 고르기, 오른쪽 클릭 = 풀기 → 끄기
 	if (InFeed())

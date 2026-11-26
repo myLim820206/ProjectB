@@ -263,7 +263,7 @@ void SPDBoardWidget::PaintCineOne(FCanvas& C, const FCine& Cn, bool bTail) const
 					case EPDUpperSpecial::Mirror: C.Glow(FCanvas::RoundRectPoints(Q.X - 5.f, Q.Y - 8.f, 10.f, 16.f, 3.f), White, 1.3f, 0.7f); C.Lines({Q + FVector2f(-3, 4), Q + FVector2f(3, -4)}, White, 1.f); break; // 거울
 					case EPDUpperSpecial::RedQueen: Crown(Q + FVector2f(0.f, 4.f), 6.f, 0.9f); break;
 					case EPDUpperSpecial::MockTurtle: { TArray<FVector2f> Sh; for (int32 J = 0; J <= 10; ++J) { const float B = PI * J / 10.f; Sh.Add(Q + FVector2f(-FMath::Cos(B) * 9.f, -FMath::Sin(B) * 6.f)); } C.Glow(Sh, Hex(TEXT("8affc4")), 1.4f, 0.7f); break; } // 등껍질
-					case EPDUpperSpecial::Walrus: // 벌어진 굴 껍데기 + 진주 (D-400, tools/neon/neon.py oyster)
+					case EPDUpperSpecial::Walrus: // 벌어진 굴 껍데기 + 진주 (D-482, tools/neon/neon.py oyster)
 					{
 						const float OR = 9.f, LA = FMath::DegreesToRadians(32.f);
 						TArray<FVector2f> Bowl, Lid;

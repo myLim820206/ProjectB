@@ -141,7 +141,7 @@ static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Mask, EPDJoker::Jack, EPDUpperSpecial::None},           // 그리핀
 	{EPDJoker::Mask, EPDJoker::Cheshire, EPDUpperSpecial::GrinOnly},   // 웃음만 남은 고양이: 판 전체에서 가장 강한 타워를 따라 함
 	{EPDJoker::Comedy, EPDJoker::Harlequin, EPDUpperSpecial::None},    // 하얀 여왕
-	{EPDJoker::Comedy, EPDJoker::Baton, EPDUpperSpecial::Walrus},      // 바다코끼리와 목수: 굴 잔치 — 처치할 때마다 주변 연사 +10% (최대 +50%, 웨이브마다 초기화, D-400)
+	{EPDJoker::Comedy, EPDJoker::Baton, EPDUpperSpecial::Walrus},      // 바다코끼리와 목수: 굴 잔치 — 처치할 때마다 주변 연사 +10% (최대 +50%, 웨이브마다 초기화, D-482)
 	{EPDJoker::Comedy, EPDJoker::Jack, EPDUpperSpecial::None},         // 하얀 기사
 	{EPDJoker::Comedy, EPDJoker::Star, EPDUpperSpecial::None},         // 말하는 꽃들
 	{EPDJoker::Harlequin, EPDJoker::Jack, EPDUpperSpecial::QueenHearts}, // 하트 여왕: 체력 15% 이하 즉시 처치 (보스 제외)
@@ -247,7 +247,7 @@ void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>
 }
 
 static std::vector<EPDHand> PDClassifyHandRaw(const std::vector<FPDCard>& Cards);
-// 족보 판정은 카드 순서와 무관하다 (스트레이트 순서는 PDOrderedStraight 가 따로 본다). 정렬한 카드 묶음을 키로 결과를 기억한다 (D-398):
+// 족보 판정은 카드 순서와 무관하다 (스트레이트 순서는 PDOrderedStraight 가 따로 본다). 정렬한 카드 묶음을 키로 결과를 기억한다 (D-480):
 // 와일드(조커)가 W 장이면 숫자·무늬를 다 넣어 보는 재귀가 (13 × 무늬)^W 번이라, 조커 4장 덩어리에서 족보 찾기가 127ms 걸리던 것
 std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 {
@@ -268,7 +268,7 @@ std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 
 static std::vector<EPDHand> PDClassifyHandRaw(const std::vector<FPDCard>& Cards)
 {
-	// 와일드 카드 (D-398): 예전엔 와일드마다 숫자 2~14 · 판의 무늬를 다 넣어 보고 나온 족보를 모았다. 같은 결과를 바로 구한다
+	// 와일드 카드 (D-480): 예전엔 와일드마다 숫자 2~14 · 판의 무늬를 다 넣어 보고 나온 족보를 모았다. 같은 결과를 바로 구한다
 	//  와일드 무늬는 와일드 아닌 카드의 무늬 중에서만 고르므로(없으면 스페이드) 플러시 = 나머지 무늬가 모두 같음
 	int W = 0;
 	for (const FPDCard& C : Cards) W += C.IsWild();
@@ -288,9 +288,9 @@ static std::vector<EPDHand> PDClassifyHandRaw(const std::vector<FPDCard>& Cards)
 			LoMin = std::min(LoMin, Lo); LoMax = std::max(LoMax, Lo);
 		}
 		const int D = (int)Cnt.size();
-		// 스트레이트: 숫자가 모두 다르고, N 칸 창(2~14, 또는 A = 1 로 1~13)에 다 들어간다
+		// 스트레이트: 3장부터 (D-418), 숫자가 모두 다르고, N 칸 창(2~14, 또는 A = 1 로 1~13)에 다 들어간다
 		bool bStraight = false;
-		if (N >= 2 && D == M)
+		if (N >= 3 && D == M)
 		{
 			if (M == 0) bStraight = N <= 13;
 			else bStraight = (HiMax - HiMin < N && std::max(2, HiMax - N + 1) + N - 1 <= 14) || (LoMax - LoMin < N && std::max(1, LoMax - N + 1) + N - 1 <= 13);
@@ -342,7 +342,7 @@ static std::vector<EPDHand> PDClassifyHandRaw(const std::vector<FPDCard>& Cards)
 	if (N == 5 && Vals.size() == 2 && Vals[0] == 3 && Vals[1] == 2) Out.push_back(EPDHand::FullHouse);
 	if (N == 5 && bSameSuit && bStraight) Out.push_back(EPDHand::StraightFlush);
 	if (N >= 3 && bSameSuit) Out.push_back(EPDHand::Flush);
-	if (N >= 2 && bStraight) Out.push_back(EPDHand::Straight); // 이어진 숫자는 2장부터 (페어와 맞춤)
+	if (N >= 3 && bStraight) Out.push_back(EPDHand::Straight); // 이어진 숫자는 3장부터 (D-418: 2장은 플러시와 구분이 안 가서 뺐다, 예전 2장부터)
 	return Out;
 }
 
@@ -674,7 +674,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, c
 			const bool bUp = Tm.Up(J); // 트리 조커 강화 또는 조커 레벨 10+
 			const int Reach = (JokerHas(Kind, EPDJoker::Hatter) && bUp) ? 2 : 1;
 			const bool bNear = std::abs(O.X - J.X) <= Reach && std::abs(O.Y - J.Y) <= Reach; // 주변 8칸 (강화한 모자 장수는 24칸)
-			if (JokerHas(Kind, EPDJoker::Baton) && bNear) O.Eff.Rate *= (Sp == EPDUpperSpecial::Dormouse ? 1.8f : bUp ? 1.7f : 1.4f) * (Sp == EPDUpperSpecial::Walrus ? 1.f + WalrusFeastStep * J.Feast : 1.f); // 굴 잔치 (D-400)
+			if (JokerHas(Kind, EPDJoker::Baton) && bNear) O.Eff.Rate *= (Sp == EPDUpperSpecial::Dormouse ? 1.8f : bUp ? 1.7f : 1.4f) * (Sp == EPDUpperSpecial::Walrus ? 1.f + WalrusFeastStep * J.Feast : 1.f); // 굴 잔치 (D-482)
 			if (JokerHas(Kind, EPDJoker::Hatter) && bNear) { O.Eff.Dmg *= bUp ? 1.5f : 1.25f; O.Eff.Range *= Sp == EPDUpperSpecial::MadTea ? 30.f : 1.1f; } // 미친 다과회: 주변 사거리 무한
 			if (JokerHas(Kind, EPDJoker::Harlequin) && !O.Card.IsWild() && O.Card.Suit == J.JSuit) O.Eff.Dmg *= bUp ? 1.6f : 1.3f;
 			const bool bCopyable = Sp == EPDUpperSpecial::RedQueen ? (!O.Card.IsWild() && O.Card.Suit == J.JSuit) : (bNear || Sp == EPDUpperSpecial::GrinOnly); // 붉은 여왕: 판 위 같은 무늬, 웃음만 남은 고양이: 판 전체
@@ -1407,7 +1407,7 @@ void FPDGame::EndWave()
 {
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	RestoreSuits(); // 딜러가 바꾼 무늬 · 칩 더미는 웨이브가 끝나면 원래대로 (D-334)
-	bool bFeast = false; // 굴 잔치는 웨이브마다 처음부터 (D-400)
+	bool bFeast = false; // 굴 잔치는 웨이브마다 처음부터 (D-482)
 	for (auto& KV : Towers) if (KV.second.Feast) { KV.second.Feast = 0; bFeast = true; }
 	if (bFeast) Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 	int Got = 0;
@@ -2012,7 +2012,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 			Tips += Mods.Up(T.Joker) ? 1 : 0;
 			Lv = std::max(Lv, T.JLevel);
 			if (T.Joker == (int)EPDJoker::Harlequin) JS = T.JSuit; // 할리퀸의 무늬를 이어받음
-			J.Level = std::max(J.Level, T.Level); // 타워 레벨(사거리)은 큰 쪽 — 같은 조커 합치기 · 조커 만들기와 같게 (D-399: 예전엔 고른 칸의 레벨이라 칸에 따라 사거리가 달랐다)
+			J.Level = std::max(J.Level, T.Level); // 타워 레벨(사거리)은 큰 쪽 — 같은 조커 합치기 · 조커 만들기와 같게 (D-481: 예전엔 고른 칸의 레벨이라 칸에 따라 사거리가 달랐다)
 			J.TDmg = std::max(J.TDmg, T.TDmg);
 			J.TRate = std::max(J.TRate, T.TRate);
 			J.TRange = std::max(J.TRange, T.TRange);
@@ -2306,7 +2306,7 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 	{
 		auto It = Towers.find(HitSrc);
 		if (It != Towers.end() && It->second.IsJoker()) GainJokerXp(HitSrc, EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp);
-		It = Towers.find(HitSrc); // 굴 잔치 (D-400): 바다코끼리와 목수가 처치하면 주변 연사가 쌓인다
+		It = Towers.find(HitSrc); // 굴 잔치 (D-482): 바다코끼리와 목수가 처치하면 주변 연사가 쌓인다
 		if (It != Towers.end() && JokerSpecial(It->second.Joker) == EPDUpperSpecial::Walrus && It->second.Feast < WalrusFeastMax)
 		{
 			It->second.Feast++;

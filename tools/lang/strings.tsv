@@ -58,7 +58,7 @@ Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기	Tab: next 
 공격력 ×3.5	ATK ×3.5	攻撃力 ×3.5	攻击力 ×3.5	攻擊力 ×3.5	PDBoardDraw.h
 공격력 ×1.5 · 연사 ×1.5 · 범위	ATK ×1.5 · Rate ×1.5 · Area	攻撃力 ×1.5 · 連射 ×1.5 · 範囲	攻击力 ×1.5 · 连射 ×1.5 · 范围	攻擊力 ×1.5 · 連射 ×1.5 · 範圍	PDBoardDraw.h
 범위 공격 (장수만큼 넓게)	Area attack (wider with more cards)	範囲攻撃 (枚数ぶん広く)	范围攻击 (张数越多越广)	範圍攻擊 (張數越多越廣)	PDBoardDraw.h
-연사 ×1.25 / ×1.5 / ×1.75 / ×2	Rate ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	连射 ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	PDBoardDraw.h
+연사 ×1.5 / ×1.75 / ×2	Fire rate ×1.5 / ×1.75 / ×2	連射 ×1.5 / ×1.75 / ×2	连射 ×1.5 / ×1.75 / ×2	連射 ×1.5 / ×1.75 / ×2	PDBoardDraw.h
 공격력 ×2	ATK ×2	攻撃力 ×2	攻击力 ×2	攻擊力 ×2	PDBoardDraw.h
 공격력 ×1.5 · 사거리 ×1.25	ATK ×1.5 · Range ×1.25	攻撃力 ×1.5 · 射程 ×1.25	攻击力 ×1.5 · 射程 ×1.25	攻擊力 ×1.5 · 射程 ×1.25	PDBoardDraw.h
 공격력 ×1.5	ATK ×1.5	攻撃力 ×1.5	攻击力 ×1.5	攻擊力 ×1.5	PDBoardDraw.h
@@ -584,28 +584,23 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
 클릭: 메뉴 (합성 %d · 판매 +%d 경험치)	Click: menu (fuse %d · sell +%d XP)	クリック: メニュー (合成 %d · 売却 +%d 経験値)	点击: 菜单 (合成 %d · 出售 +%d 经验)	點擊: 選單 (合成 %d · 出售 +%d 經驗)	PDBoardPaint.cpp
-손패 %d/%d	Hand %d/%d	手札 %d/%d	手牌 %d/%d	手牌 %d/%d	PDBoardPaint.cpp
 덱 %d장	Deck %d	デッキ %d枚	牌库 %d张	牌庫 %d張	PDBoardPaint.cpp
-자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
 끄기 X	Off X	やめる X	关闭 X	關閉 X	PDBoardPaint.cpp
-웨이브 %d 시작	Start wave %d	ウェーブ %d 開始	开始第%d波	開始第%d波	PDBoardPaint.cpp
+자리바꿈 ×%d	Swap ×%d	入れ替え ×%d	换位 ×%d	換位 ×%d	PDBoardPaint.cpp
+스 킬	SKILLS	スキル	技 能	技 能	PDBoardPaint.cpp
+%d웨이브 후 획득	in %d waves	%dウェーブ後に獲得	%d波后获得	%d波後獲得	PDBoardPaint.cpp
+포인트 %d	Points %d	ポイント %d	点数 %d	點數 %d	PDBoardPaint.cpp
+시 작	START	スタート	开 始	開 始	PDBoardPaint.cpp
 %d초 뒤 자동	Auto in %ds	%d秒後に自動	%d秒后自动	%d秒後自動	PDBoardPaint.cpp
 웨이브 %d 진행 중	Wave %d in progress	ウェーブ %d 進行中	第%d波 进行中	第%d波 進行中	PDBoardPaint.cpp
 웨이브 시작	Start Wave	ウェーブ開始	开始波次	開始波次	PDBoardPaint.cpp
-배속 ×%d (F)	Speed ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	PDBoardPaint.cpp
 ×%d 배속	×%d speed	×%d 倍速	×%d 倍速	×%d 倍速	PDBoardPaint.cpp
 F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍速	PDBoardPaint.cpp
-포인트 %d	Points %d	ポイント %d	点数 %d	點數 %d	PDBoardPaint.cpp
-스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDBoardPaint.cpp
-칵테일 %d/%d	Cocktails %d/%d	カクテル %d/%d	鸡尾酒 %d/%d	雞尾酒 %d/%d	PDBoardPaint.cpp
-다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDBoardPaint.cpp
-%d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDBoardPaint.cpp
-?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDBoardPaint.cpp
 카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)	Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)	カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)	点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)	PDBoardPaint.cpp
 오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
 타워 클릭: 메뉴 (합성 · 조커 · 먹이기 · 판매) · 왼쪽 족보 목록으로도 합성	Click a tower: menu (fuse · joker · feed · sell) · you can also fuse from the hand list	タワークリック: メニュー (合成 · ジョーカー · 食べさせる · 売却) · 左の役リストからも合成	点击塔: 菜单 (合成 · 小丑 · 喂食 · 出售) · 也可从左侧牌型列表合成	點擊塔: 選單 (合成 · 小丑 · 餵食 · 出售) · 也可從左側牌型列表合成	PDBoardPaint.cpp
-Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
-K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Codex · Esc Menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單	PDBoardPaint.cpp
+Space 웨이브 시작 · F 속도 · P 일시정지 · M 소리 · F3 프레임 표시	Space start wave · F speed · P pause · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · P 一時停止 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · P 暂停 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · P 暫停 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
+K 스킬 트리 · U 영구 강화 · J 도감 · Esc 또는 ? 클릭: 메뉴	K skill tree · U upgrades · J codex · Esc or click ?: menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc か ? クリック: メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 或点击 ?: 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 或點擊 ?: 選單	PDBoardPaint.cpp
 웨이브 %d 칵테일 — 하나를 고른다	Wave %d cocktail — pick one	ウェーブ %d カクテル — 1つ選ぶ	第%d波 鸡尾酒 — 选择一个	第%d波 雞尾酒 — 選擇一個	PDBoardPaint.cpp
 서비스	On the house	サービス	店家招待	店家招待	PDBoardPaint.cpp
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
@@ -638,7 +633,6 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 짝: %s (함께 못 찍음)	Pair: %s (can't take both)	対: %s (同時に取れない)	成对: %s (不能同时点亮)	成對: %s (不能同時點亮)	PDBoardPaint.cpp
 클릭해서 찍기	Click to take	クリックで取得	点击点亮	點擊點亮	PDBoardPaint.cpp
 이어하기	Continue	続きから	继续游戏	繼續遊戲	PDBoardPaint.cpp
-게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDBoardPaint.cpp
 잠금 해제	Unlocks	解放	解锁	解鎖	PDBoardPaint.cpp
 최고 기록 %d웨이브	Best record: wave %d	最高記録 %dウェーブ	最高纪录 第%d波	最高紀錄 第%d波	PDBoardPaint.cpp
 위아래 키 또는 마우스로 고르기 · Enter 또는 클릭으로 결정	Up/Down or mouse to choose · Enter or click to confirm	上下キーかマウスで選ぶ · Enter かクリックで決定	用上下键或鼠标选择 · 按 Enter 或点击确认	用上下鍵或滑鼠選擇 · 按 Enter 或點擊確認	PDBoardPaint.cpp
@@ -747,16 +741,14 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 상위	Upper	上位	上位	上位	PDBoardPaint.cpp
 %s + %s · 맞붙여 놓아야 해요	%s + %s · must be placed side by side	%s + %s · 隣り合わせに置く必要あり	%s + %s · 需要相邻放置	%s + %s · 需要相鄰放置	PDBoardPaint.cpp
 %s 하나만 더 있으면	Needs one more %s	%s があと1つあれば	再有一个%s就行	再有一個%s就行	PDBoardPaint.cpp
-5장 족보	5-card hands	5枚の役	5张牌型	5張牌型	PDBoardPaint.cpp
-2~4장 족보	2–4-card hands	2~4枚の役	2~4张牌型	2~4張牌型	PDBoardPaint.cpp
-조커 · 먹이	Jokers · Feed	ジョーカー · 餌	小丑 · 喂养	小丑 · 餵養	PDBoardPaint.cpp
+5장	5 cards	5枚	5张	5張	PDBoardPaint.cpp
+2~4장	2–4 cards	2~4枚	2~4张	2~4張	PDBoardPaint.cpp
+조커/먹이	Jokers / Feed	ジョーカー/餌	小丑/喂养	小丑/餵養	PDBoardPaint.cpp
  (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
- (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDBoardPaint.cpp
 클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
 클릭: 조커에 족보 먹이기	Click: feed hands to a Joker	クリック: ジョーカーに役を食べさせる	点击: 给小丑喂牌型	點擊: 給小丑餵牌型	PDBoardPaint.cpp
-판 %d	On board %d	盤上 %d	场上 %d	場上 %d	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
-족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDBoardPaint.cpp
+족보끼리 맞닿을 경우, 개당 +%d%%	+%d%% per touching hand	役同士が隣接すると1つにつき +%d%%	牌型相邻时每个 +%d%%	牌型相鄰時每個 +%d%%	PDBoardPaint.cpp
 잠깐 쉬어 가자 · 판은 그대로 멈춰 있다	Take a break · the board is paused	ひと休み · 盤面は止まっている	休息一下 · 棋盘已暂停	休息一下 · 棋盤已暫停	PDBoardPaint.cpp
 ↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)	↑↓ · Enter or click   Esc: close   (game is paused while open)	↑↓ · Enter かクリック   Esc: 閉じる   (開いている間ゲームは止まる)	↑↓ · Enter 或点击   Esc: 关闭   (打开期间游戏暂停)	↑↓ · Enter 或點擊   Esc: 關閉   (打開期間遊戲暫停)	PDBoardPaint.cpp
 언어	Language	言語	语言	語言	PDBoardPaint.cpp
@@ -795,6 +787,24 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDLangTable.inl
+연사 ×1.25 / ×1.5 / ×1.75 / ×2	Rate ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	连射 ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	PDLangTable.inl
+ (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDLangTable.inl
+판 %d	On board %d	盤上 %d	场上 %d	場上 %d	PDLangTable.inl
+손패 %d/%d	Hand %d/%d	手札 %d/%d	手牌 %d/%d	手牌 %d/%d	PDLangTable.inl
+웨이브 %d 시작	Start wave %d	ウェーブ %d 開始	开始第%d波	開始第%d波	PDLangTable.inl
+배속 ×%d (F)	Speed ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	倍速 ×%d (F)	PDLangTable.inl
+스킬 트리	Skill Tree	スキルツリー	技能树	技能樹	PDLangTable.inl
+칵테일 %d/%d	Cocktails %d/%d	カクテル %d/%d	鸡尾酒 %d/%d	雞尾酒 %d/%d	PDLangTable.inl
+다음 %d웨이브	Next: wave %d	次 %dウェーブ	下次 第%d波	下次 第%d波	PDLangTable.inl
+%d웨이브마다 하나를 고른다	Pick one every %d waves	%dウェーブごとに1つ選ぶ	每%d波选择一个	每%d波選擇一個	PDLangTable.inl
+?  도움말	?  Help	?  ヘルプ	?  帮助	?  說明	PDLangTable.inl
+Space 웨이브 시작 · F 속도 · M 소리 · F3 프레임 표시	Space start wave · F speed · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · M 聲音 · F3 幀數顯示	PDLangTable.inl
+K 스킬 트리 · U 영구 강화 · J 도감 · Esc 메뉴	K Skill Tree · U Upgrades · J Codex · Esc Menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 選單	PDLangTable.inl
+5장 족보	5-card hands	5枚の役	5张牌型	5張牌型	PDLangTable.inl
+2~4장 족보	2–4-card hands	2~4枚の役	2~4张牌型	2~4張牌型	PDLangTable.inl
+조커 · 먹이	Jokers · Feed	ジョーカー · 餌	小丑 · 喂养	小丑 · 餵養	PDLangTable.inl
+족보끼리 맞닿으면 하나에 +%d%%씩	Each touching hand adds +%d%%	役同士が隣接すると1つにつき +%d%%	牌型相邻每个 +%d%%	牌型相鄰每個 +%d%%	PDLangTable.inl
 설정	Settings	設定	设置	設定	PDLangTable.inl
 닫기  K	Close  K	閉じる  K	关闭  K	關閉  K	PDLangTable.inl
 닫기  Esc	Close  Esc	閉じる  Esc	关闭  Esc	關閉  Esc	PDLangTable.inl
