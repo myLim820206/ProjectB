@@ -74,8 +74,62 @@ def group(col, cx):
 # ---- 마티니 잔 (D-481): 따라 그린 잔 대신 손으로 설계한 선. 좌표는 원본 그림(1139 × 546) 화소
 # 곧게 선 대칭 잔: V 잔(닫힌 관 하나) · 다리 + 납작한 타원 받침(관 하나), 잔 속 하늘색 술 선 · 각얼음, 분홍 빨대, 노란 반짝 선 셋.
 # 잔 전체를 TILT 만큼 한 덩어리로 기울일 수 있다 (선 모양은 그대로 — 예전처럼 윗변만 찌그러지지 않게)
-GLASS = dict(cx=940.0, rim_y=196.0, half=100.0, apex_y=306.0, foot_y=414.0, foot_rx=50.0, foot_ry=9.0, corner=7.0)
-TILT = 0.0  # 잔 기울기 (도, + = 시계 방향). 받침 가운데를 축으로
+GLASS = dict(cx=952.0, rim_y=176.0, half=124.0, apex_y=336.0, foot_y=426.0, corner=7.0)
+TILT = -8.0  # 잔 기울기 (도, + = 시계 방향). 받침 가운데를 축으로. −8° = 오른쪽이 올라감 (인게임 시안처럼, 사용자 2026-11-27)
+# 게임에서 보이는 관 반폭 (원본 화소): 관 굵기 × 0.8 × 1.5(시작 화면 LineK) / 2. 서로 다른 관은 반폭 합 + GAP 보다 가까이 두지 않는다 (네온 선이 붙으면 어색하다)
+HALF = {'yellow': 14.86 * 0.6, 'liquid': 14.86 * 0.6, 'straw': 20.11 * 0.6}
+GAP = 10.0
+
+
+def _resample(P, step=1.0):
+    out = [P[0]]
+    for a, b in zip(P, P[1:]):
+        n = max(1, int(math.dist(a, b) / step))
+        out += [(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n) for k in range(1, n + 1)]
+    return out
+
+
+def _seg_dist(p, a, b):
+    vx, vy = b[0] - a[0], b[1] - a[1]
+    t = max(0.0, min(1.0, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / (vx * vx + vy * vy)))
+    return math.dist(p, (a[0] + vx * t, a[1] + vy * t))
+
+
+def _poly_dist(p, Q):
+    return min(_seg_dist(p, a, b) for a, b in zip(Q, Q[1:]))
+
+
+def _cut(P, Q, d):
+    """선 P 에서 선 Q 와 d 보다 가까운 부분을 잘라 낸 조각들 (빨대가 지나는 자리의 잔 테 · 술 선 틈)"""
+    parts, cur = [], []
+    for p in _resample(P):
+        if _poly_dist(p, Q) < d:
+            if len(cur) > 1: parts.append(cur)
+            cur = []
+        else:
+            cur.append(p)
+    if len(cur) > 1: parts.append(cur)
+    return [_simplify(c) for c in parts if math.dist(c[0], c[-1]) >= 14.0]  # 너무 짧은 토막은 버린다
+
+
+def _simplify(P, eps=0.3):
+    """곧은 구간의 촘촘한 점을 줄인다 (Ramer-Douglas-Peucker)"""
+    if len(P) < 3: return P
+    i, dm = max(((k, _seg_dist(P[k], P[0], P[-1])) for k in range(1, len(P) - 1)), key=lambda t: t[1])
+    if dm <= eps: return [P[0], P[-1]]
+    return _simplify(P[:i + 1], eps)[:-1] + _simplify(P[i:], eps)
+
+
+def check(out):
+    """다른 관끼리 가장 가까운 거리 / 필요한 거리 목록 (1 보다 작으면 겹쳐 보인다). 같은 색 노랑끼리(잔 · 다리 · 받침 · 반짝)는 이어지는 관이라 뺀다"""
+    res = []
+    for i in range(len(out)):
+        for j in range(i + 1, len(out)):
+            (ca, A), (cb, B) = out[i], out[j]
+            if ca == cb: continue
+            dmin = min(_poly_dist(p, B) for p in _resample(A, 2.0))
+            res.append((dmin / (HALF[ca] + HALF[cb] + GAP), ca, cb, round(dmin, 1)))
+    return sorted(res)
 
 
 def _round(P, r, closed, n=4):
@@ -98,35 +152,41 @@ def _round(P, r, closed, n=4):
 
 
 def martini(tilt=None):
-    """(색, 점 목록) 목록. 색: 'yellow' 잔 · 반짝, 'liquid' 잔 속 하늘, 'straw' 분홍 빨대"""
+    """(색, 점 목록) 목록. 색: 'yellow' 잔 · 반짝, 'liquid' 잔 속 하늘, 'straw' 분홍 빨대.
+    빨대가 지나는 자리는 잔 윗변 · 술 선을 끊어 틈을 낸다 (사용자: 빨대가 노란 선을 중간에 잘라 겹치지 않게). 잔 속 하늘 그림은 노란 벽과 띄운다"""
     g = GLASS
     cx, ry, h, ay = g['cx'], g['rim_y'], g['half'], g['apex_y']
-    wall = lambda y: h * (ay - y) / (ay - ry)  # 높이 y 에서 잔 벽까지 반폭
-    out = []
-    # V 잔: 윗변 · 두 벽을 한 관으로. 빨대가 지나는 자리만 윗변을 끊는다 (틈 왼끝 → 왼쪽 모서리 → 아래 꼭짓점 → 오른쪽 모서리 → 틈 오른끝)
-    sx0, sx1 = cx + 30.0, cx + 54.0
-    out.append(('yellow', _round([(sx0, ry), (cx - h, ry), (cx, ay), (cx + h, ry), (sx1, ry)], g['corner'], False)))
-    # 다리 + 받침: 꼭짓점에서 조금 띄워 내려와 납작한 타원 받침 윗가장자리에 닿는다
-    fy, frx, fry = g['foot_y'], g['foot_rx'], g['foot_ry']
-    out.append(('yellow', [(cx, ay + 10.0), (cx, fy - fry)]))
-    out.append(('yellow', [(cx + frx * math.cos(math.radians(a)), fy + fry * math.sin(math.radians(a))) for a in range(-90, 271, 10)]))
-    # 잔 속 술 선: 윗변과 나란히, 양쪽 벽에서 띄운다
-    ly = ry + 30.0
-    lw = wall(ly) - 16.0
-    out.append(('liquid', [(cx - lw, ly), (cx + lw, ly)]))
-    # 각얼음: 윗변과 나란한 정사각형 (모서리 살짝 둥글게), 술 선 아래
-    s, iy = 15.0, ly + 32.0
-    out.append(('liquid', _round([(cx - s, iy - s), (cx + s, iy - s), (cx + s, iy + s), (cx - s, iy + s)], 4.0, True)))
-    # 빨대: 오른쪽 위에서 윗변 틈 가운데를 지나 술 선 바로 위까지 (선끼리 닿지 않게)
-    gx = (sx0 + sx1) / 2
-    tx, ty = gx + 32.0, ry - 56.0
-    t = (ly - 14.0 - ty) / (ry - ty)
-    out.append(('straw', [(tx, ty), (tx + (gx - tx) * t, ty + (ry - ty) * t)]))
+    wall = lambda y: h * (ay - y) / (ay - ry)  # 높이 y 에서 잔 벽(가운데 선)까지 반폭
+    cosw = (ay - ry) / math.hypot(h, ay - ry)   # 벽과 수평 거리 → 수직 거리
+    need = lambda a, b: HALF[a] + HALF[b] + GAP
+    # 빨대: 오른쪽 위 잔 밖에서 비스듬히 들어와 술 선을 지나 얼음 오른쪽 위에서 끝난다
+    sx, sk, se = cx + 32.0, 0.5, 30.0  # 윗변을 지나는 x, 기울기(dx/dy), 잔 속 길이
+    straw = [(sx + sk * 64.0, ry - 64.0), (sx - sk * se, ry + se)]
+    # V 잔: 윗변 · 두 벽을 한 관으로 (모서리는 작게 구부림), 빨대 자리만 끊는다
+    bowl = _round([(cx - h, ry), (cx, ay), (cx + h, ry)], g['corner'], True)
+    # 닫힌 관을 윗변 가운데에서 열어 한 줄로 (끊는 자리가 윗변 위에 오게)
+    k = min(range(len(bowl) - 1), key=lambda q: abs(bowl[q][0] - cx) + abs(bowl[q][1] - ry) * 10)
+    ring = bowl[k:-1] + bowl[:k + 1]
+    out = [('yellow', P) for P in _cut(ring, straw, need('yellow', 'straw'))]
+    # 술 선: 윗변과 나란히, 벽과 노랑-하늘 간격만큼 띄움. 빨대 자리는 끊는다
+    ly = ry + need('yellow', 'liquid') + 4.0
+    lw = wall(ly) - need('yellow', 'liquid') / cosw
+    out += [('liquid', P) for P in _cut([(cx - lw, ly), (cx + lw, ly)], straw, need('liquid', 'straw'))]
+    # 각얼음: 윗변과 나란한 정사각형 (모서리 둥글게). 술 선 아래 · 벽 · 빨대와 띄우고, 빨대 반대쪽(왼쪽)으로 조금
+    s = 11.0
+    iy = ly + need('liquid', 'liquid') + s
+    ix = cx - 6.0
+    out.append(('liquid', _round([(ix - s, iy - s), (ix + s, iy - s), (ix + s, iy + s), (ix - s, iy + s)], 4.0, True)))
+    out.append(('straw', straw))
+    # 다리 + 받침: 꼭짓점에서 조금 띄워 내려와 받침(납작한 사다리꼴, 인게임 시안처럼) 윗변 가운데에 닿는다
+    fy = g['foot_y']
+    out.append(('yellow', [(cx, ay + 6.0), (cx, fy - 16.0)]))
+    out.append(('yellow', _round([(cx - 26.0, fy - 16.0), (cx + 26.0, fy - 16.0), (cx + 56.0, fy), (cx - 56.0, fy)], 5.0, True)))
     # 반짝 선 셋: 잔 오른쪽 위 한 점에서 퍼지는 같은 길이 선
-    sc = (cx + h - 4.0, ry - 14.0)
-    for a in (-72.0, -40.0, -10.0):
+    sc = (cx + h + 6.0, ry - 22.0)
+    for a in (-80.0, -46.0, -14.0):
         c, sn = math.cos(math.radians(a)), math.sin(math.radians(a))
-        out.append(('yellow', [(sc[0] + c * 56.0, sc[1] + sn * 56.0), (sc[0] + c * 90.0, sc[1] + sn * 90.0)]))
+        out.append(('yellow', [(sc[0] + c * 48.0, sc[1] + sn * 48.0), (sc[0] + c * 82.0, sc[1] + sn * 82.0)]))
     tilt = TILT if tilt is None else tilt
     if tilt:
         r = math.radians(tilt); cr, sr = math.cos(r), math.sin(r)

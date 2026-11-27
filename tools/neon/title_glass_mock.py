@@ -1,4 +1,4 @@
-"""BAR Alice 간판 마티니 잔 미리보기 (D-481): 예전(따라 그린 잔) | 새 잔(손으로 설계한 선)
+"""BAR Alice 간판 마티니 잔 미리보기 (D-481): main 의 잔 | 작업 중인 잔 (기울기를 인자로 주면 여러 개)
 
     python tools/neon/title_glass_mock.py [출력.png] [기울기...]
 
@@ -71,7 +71,7 @@ def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'DOC', 'assets', 'images', 'title-wall', 'glass_redraw.png')
     tilts = [float(t) for t in sys.argv[2:]] or [G.TILT]
     sets = [old_strokes()] + [new_strokes(t) for t in tilts]
-    GLASS_BOX = (800, 60, 1139, 450)
+    GLASS_BOX = (770, 30, 1139, 450)
     cols = []
     for st in sets:
         full = sign(st, 580)
