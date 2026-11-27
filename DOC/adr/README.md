@@ -32,6 +32,7 @@
 | D-484 | [간판 마티니: 술 선은 한 줄, 빨대는 술 선 위에서 끝](D-484-sign-martini-liquid-line.md) | 확정 |
 | D-485 | [간판 마티니: 다리 · 받침도 잔과 같이 기울인다](D-485-sign-martini-stem-axis.md) | 확정 |
 | D-486 | [족보 메뉴판 접기를 없앤다](D-486-hand-menu-no-fold.md) | 확정 |
-| D-487 | [조커 레시피를 하나로, 재료 2 · 3 · 4개](D-487-joker-recipe-tiers.md) | 확정 |
+| D-487 | [조커 레시피를 하나로, 재료 2 · 3 · 4개](D-487-joker-recipe-tiers.md) | 일부 대체 (D-490) |
 | D-488 | [조커 발사체를 조커마다 다르게 (40종)](D-488-joker-shots-distinct.md) | 확정 |
 | D-489 | [조커는 족보에 안 들어간다, 시작 자리바꿈 2번](D-489-joker-not-wild.md) | 확정 |
+| D-490 | [모자 장수 · 스타는 더 세게 + 행운의 한 장, 할리퀸은 투 페어](D-490-hatter-star-harlequin.md) | 확정 |
