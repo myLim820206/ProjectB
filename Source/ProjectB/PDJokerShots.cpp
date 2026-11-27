@@ -185,7 +185,7 @@ FJsLns JsShape(int32 Fx, float T, bool bSecond)
 	{
 		FJsLn B = JsArc(-0.7f, 0.f, 1.4f, -65.f, 65.f, 14);
 		JsAppend(B, JsArc(-1.f, 0.f, 1.15f, 55.f, -55.f, 12), 0);
-		B.Add(B[0]);
+		B.Add(FVector2f(B[0])); // 같은 배열 원소를 그대로 넣으면 늘어날 때 깨진다 (복사해서)
 		return {B, JsSeg(-1.f, 0.f, -1.6f, 0.f), JsSeg(-1.1f, -0.3f, -1.1f, 0.3f)};
 	}
 	case 7: return JsGrin(true); // 체셔
@@ -287,7 +287,7 @@ FJsLns JsShape(int32 Fx, float T, bool bSecond)
 	{
 		FJsLn Sh = JsArc(0.f, 0.35f, 0.85f, 200.f, 340.f, 12);
 		Sh.Add(JsV(0.f, 0.55f));
-		Sh.Add(Sh[0]);
+		Sh.Add(FVector2f(Sh[0]));
 		FJsLns L{Sh};
 		for (float A : {230.f, 255.f, 285.f, 310.f}) { const float R = FMath::DegreesToRadians(A); L.Add(JsSeg(0.f, 0.55f, FMath::Cos(R) * 0.75f, 0.35f + FMath::Sin(R) * 0.75f)); }
 		return L;
@@ -319,7 +319,7 @@ FJsLns JsShape(int32 Fx, float T, bool bSecond)
 		JsAppend(Box, JsArc(W - R, H - R, R, 0.f, 90.f, 3), 0);
 		JsAppend(Box, JsArc(-W + R, H - R, R, 90.f, 180.f, 3), 0);
 		JsAppend(Box, JsArc(-W + R, -H + R, R, 180.f, 270.f, 3), 0);
-		Box.Add(Box[0]);
+		Box.Add(FVector2f(Box[0]));
 		return {Box, JsHeart(0.f, -0.02f, 0.3f, true), FJsLn{JsV(0.f, 0.15f), JsV(0.12f, 0.32f), JsV(-0.12f, 0.32f), JsV(0.f, 0.15f)}};
 	}
 	case 33: // 체스판: 2×2 체크 (두 칸 빗금)
