@@ -260,7 +260,7 @@ constexpr uint32_t JokerStarterMask = (1u << 3) | (1u << 2) | (1u << 6) | (1u <<
 constexpr int ChipMult = 2; // 판당 칩 배율 (D-323: 다 여는 데 약 60시간)
 constexpr uint32_t UpperStarterMask = (1u << 11) | (1u << 18); // 상위 조커 맛보기 2종: 험프티 덤프티 · 하얀 기사, 처음부터 열림 (D-320)
 inline int JokerPrice(int J) { static const int P[10] = {350, 350, 0, 0, 150, 0, 0, 250, 200, 500}; return J >= 0 && J < 10 ? P[J] : 0; }
-constexpr float JokerBonus = 1.2f; // 조커 합성: 재료 위력 합 × 1.2
+constexpr float JokerBonus = 3.0f; // 조커 합성: 재료 위력 합 × 3.0 (D-491, 예전 1.2: 만능 제거로 사라진 족보 효과를 덤으로 되돌림)
 constexpr float JokerCardBonus = 0.1f; // 재료 카드 한 장마다 조커 위력 +10% (4장 ×1.4, 10장 ×2) (D-114, D-118)
 constexpr float JokerMergeBonus = 1.3f; // 같은 조커끼리 합치기: 위력 합 × 1.3 (D-114)
 // 같은 조커끼리 맞닿은 묶음 (D-114). 합치면 한 칸에 하나로
@@ -675,7 +675,7 @@ public:
 	void DealSuits(int N);                        // 딜러: 무작위 타워 N 장 무늬 바꾸기 (한꺼번에 최대 DealMax)
 	void RestoreSuits();                          // 딜러가 바꾼 무늬 되돌리기
 	float FuseMult() const;              // 합성 배율 (기본 1.5)
-	float JokerMult() const;             // 조커 배율 (기본 1.2)
+	float JokerMult() const;             // 조커 배율 (기본 JokerBonusK = 3.0, D-491)
 	void RebuildMods();
 	bool Buildable(int X, int Y) const;
 	// 손패를 놓을 수 있나 (D-192): 빈 칸이거나 Lv1 카드 타워(교체하면 그 카드는 손으로). 합성 타워·조커 위에는 못 놓는다
@@ -695,6 +695,7 @@ public:
 	int Xp = 0, Level = 1, Points = 0, XpEarned = 0; // 다음 레벨까지 모은 경험치, 레벨, 쓴 트리 포인트, 판에서 번 경험치 합
 	int Swaps = StartSwaps;                   // 남은 자리바꿈 (시작 2번 D-489 + 보상 D-149)
 	bool bLucky = true;                       // 행운의 한 장 (D-490). QA 가 끈 판과 비교할 때만 false
+	float JokerBonusK = JokerBonus;           // 조커 덤 (D-491). QA 갈래(2.0 · 3.0 · 4.0)만 바꾼다, 게임은 늘 JokerBonus
 	int LuckyHits = 0;                        // 이번 판에 행운의 한 장이 온 횟수 (봇 기록)
 	FPDLucky LuckyLine() const;               // 지금 판의 행운의 한 장 줄 (덱에 남은 카드만 기다림)
 	void LuckyDraw(int First, int Got);      // 행운의 한 장: 방금 받은 카드(Hand[First..]) 중 한 장을 확률로 줄 끝 카드로 (D-490)

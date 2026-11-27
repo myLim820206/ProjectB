@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+#include <random>
 #include <set>
 #include <string>
 #include <tuple>
@@ -33,6 +34,28 @@ static std::string Names(std::vector<EPDHand> V)
 	for (auto& X : S) O += (O.empty() ? "" : ",") + X;
 	return O.empty() ? "none" : O;
 }
+// 예전 ClassifyHand 의 와일드 처리 (와일드마다 숫자 · 무늬를 다 넣어 봄): 새 셈과 같은 답인지 비교용 (QA 29 문제 2)
+static std::vector<EPDHand> RefClassify(const std::vector<FPDCard>& Cards)
+{
+	for (size_t W = 0; W < Cards.size(); ++W)
+	{
+		if (!Cards[W].IsWild()) continue;
+		std::vector<EPDSuit> Suits;
+		for (const FPDCard& Cd : Cards) if (!Cd.IsWild() && std::find(Suits.begin(), Suits.end(), Cd.Suit) == Suits.end()) Suits.push_back(Cd.Suit);
+		if (Suits.empty()) Suits.push_back(EPDSuit::Spade);
+		std::set<EPDHand> All;
+		std::vector<FPDCard> Try = Cards;
+		for (int R = 2; R <= 14; ++R)
+			for (EPDSuit Su : Suits)
+			{
+				Try[W] = {R, Su};
+				for (EPDHand H : RefClassify(Try)) All.insert(H);
+			}
+		return std::vector<EPDHand>(All.begin(), All.end());
+	}
+	return ClassifyHand(Cards); // 와일드 없는 패는 그대로
+}
+
 static void Put(FPDTowerMap& M, int X, int Y, FPDCard Card, int Level = 1)
 {
 	FPDTower T;
@@ -262,6 +285,30 @@ static void UnitTests()
 		Expect(!HasRoyal(Lo9) && HasSF(Lo9), "와일드 10 J Q K 에서 와일드가 10 쪽 끝이면 9 라서 로열 아님, 스트레이트 플러시 (D-190)");
 		Expect(HasRoyal(Lv2), "Lv2 와일드가 끼어도 로열");
 		Expect(!HasRoyal(Jk) && !HasSF(Jk), "A 자리 조커는 로열을 메우지 않는다: 10 J Q K 만 남아 로열·스트레이트 플러시 아님 (D-489)");
+	}
+	{ // 와일드가 든 패 셈 (QA 29 문제 2): 예전처럼 다 넣어 본 답과 같아야 하고, 와일드 3 · 5장 맞닿은 판도 빨라야
+		std::mt19937 Rr(4242);
+		int Bad = 0;
+		for (int T = 0; T < 6000; ++T)
+		{
+			const int N = 2 + (int)(Rr() % 4), NW = 1 + (int)(Rr() % std::min(N, 3));
+			std::vector<FPDCard> Cards;
+			const int SuitSpread = 1 + (int)(Rr() % 3); // 무늬가 같은 패도 자주 나오게
+			const int Base = 2 + (int)(Rr() % 13);
+			for (int I = 0; I < N - NW; ++I) Cards.push_back({Rr() % 2 ? 2 + (int)(Rr() % 13) : std::min(14, Base + (int)(Rr() % 4)), (EPDSuit)(Rr() % SuitSpread)});
+			for (int I = 0; I < NW; ++I) Cards.insert(Cards.begin() + Rr() % (Cards.size() + 1), FPDCard{0, EPDSuit::Wild});
+			if (ClassifyHand(Cards) != RefClassify(Cards)) Bad++;
+		}
+		Expect(Bad == 0, "와일드가 든 패: 셈으로 낸 족보가 예전(다 넣어 보기)과 같음 (6000패, 다름 " + std::to_string(Bad) + ")");
+		FPDTowerMap Wb;
+		for (int Y = 0; Y < 4; ++Y) for (int X = 0; X < 8; ++X) Put(Wb, X, Y, C(2 + (X * 5 + Y * 3) % 13, (EPDSuit)((X + Y) % 4)));
+		for (int X = 2; X < 7; ++X) Put(Wb, X, 1, FPDCard{0, EPDSuit::Wild}); // 와일드 5장 맞닿음 (예전 357ms 남짓)
+		const auto T0 = std::chrono::steady_clock::now();
+		const std::vector<FPDSynergy> SW = ComputeSynergies(Wb);
+		const double Ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - T0).count();
+		char Buf[48];
+		std::snprintf(Buf, sizeof Buf, "%.2fms, 족보 %d", Ms, (int)SW.size());
+		Expect(Ms < 10.0 && !SW.empty(), std::string("와일드 5장 맞닿은 32칸 판 족보 계산 10ms 아래: ") + Buf);
 	}
 	{ // 조커는 족보에 안 든다 (D-489): 빈 칸처럼 줄기를 끊는다. 와일드 카드는 그대로 만능
 		auto Joker = [](FPDTowerMap& M, int X, int Y, EPDJoker K) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = X; T.Y = Y; T.Joker = (int)K; T.Mult = 4.f; M[CellKey(X, Y)] = T; };
@@ -644,6 +691,15 @@ static void UnitTests()
 		const FPDTower& Jc = G.Towers.begin()->second;
 		Expect(b2 && G.Towers.size() == 1 && std::fabs(Jc.Mult - 4.f * JokerBonus * 3.5f * (1.f + JokerCardBonus * 4.f)) < 1e-4f,
 			"포카드 + 플러시 → 체셔 (재료 2, 등급 ×3.5, 카드 4장 덤)");
+		// 조커 덤 (D-491): 3.0, QA 갈래로 바꾸면 조커 위력이 그 비율로
+		G.Towers.clear();
+		PutFused(G.Towers, 0, Row, C(13), EPDHand::Four, 3);
+		Put(G.Towers, 3, Row, C(4, Di)); Put(G.Towers, 4, Row, C(9, Di)); Put(G.Towers, 5, Row, C(12, Di));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		G.JokerBonusK = 2.f;
+		const bool b3 = G.JokerFuse(0) && G.Towers.size() == 1;
+		Expect(JokerBonus == 3.f && b3 && std::fabs(G.Towers.begin()->second.Mult - 4.f * 2.f * 3.5f * (1.f + JokerCardBonus * 4.f)) < 1e-4f && std::fabs(G.JokerMult() - 2.f) < 1e-6f,
+			"조커 덤 3.0 (D-491), JokerBonusK 갈래 2.0 이면 위력도 2.0 배로");
 	}
 	{ // 같은 조커끼리 합치기 (D-114), 조커는 먹이가 되지 않음
 		FPDGame G(15);
@@ -1573,7 +1629,7 @@ static void UnitTests()
 		G.TreeOwned = Bits({FindKey(EPDKeystone::ClownPath)});
 		for (auto& KV : G.Towers) KV.second.Level = 2;
 		G.RebuildMods();
-		Expect(!G.CanFuse(0) && std::abs(G.JokerMult() - 1.6f) < 1e-4f, "광대의 길: 레벨 2는 더 합성 못 함, 조커 배율 1.6");
+		Expect(!G.CanFuse(0) && std::abs(G.JokerMult() - (JokerBonus + 0.4f)) < 1e-4f, "광대의 길: 레벨 2는 더 합성 못 함, 조커 배율 +0.4");
 		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::ClownPath, "합성 막힌 까닭 = 광대의 길 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = MaxLevel;
 		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::MaxLevel, "합성 막힌 까닭 = 최고 레벨 (D-371)");
@@ -1750,6 +1806,7 @@ static long GJokerMask = -1;     // 열 조커 (1 << EPDJoker), -1 = 그대로
 static int GSeedBase = 0;        // 판 씨앗 시작 (여러 프로세스로 나눠 돌리기)
 static bool GAimSF = false;      // 스트레이트 플러시 노림 (D-490): 같은 무늬 줄을 합성 · 먹이기 · 조커 재료로 쓰지 않고 지키며, 줄을 늘리는 자리에 덤
 static bool GLuckyOn = true;     // 행운의 한 장 켬 (QA: 끈 판과 비교)
+static float GJokerBonus = JokerBonus; // 조커 덤 갈래 (D-491, QA: 2.0 · 3.0 · 4.0)
 // 노림 봇이 지키는 칸: 행운의 한 장 줄(3 ~ 4장) + 판 위 스트레이트 플러시 · 로열 (모자 장수 · 스타 재료)
 static FPDLucky BotLine(const FPDGame& G, const FPDTowerMap& Tw)
 {
@@ -1876,6 +1933,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		G.RebuildMods();
 		G.bMuted = true;
 		G.bLucky = GLuckyOn;
+		G.JokerBonusK = GJokerBonus;
 		std::mt19937 R(77 + Run);
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
@@ -2165,7 +2223,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		{
 			int Mx = 0, JNow = 0;
 			for (auto& KV : G.Towers) if (KV.second.IsJoker()) { Mx = std::max(Mx, KV.second.JLevel); JNow++; }
-			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f aimsf=%d lucky=%d luckyhits=%d seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, (int)GAimSF, (int)GLuckyOn, G.LuckyHits, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
+			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f aimsf=%d lucky=%d luckyhits=%d jbonus=%.2f seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, (int)GAimSF, (int)GLuckyOn, G.LuckyHits, GJokerBonus, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", Built[J]);
 			std::printf(" first=");
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", FirstBuilt[J]);
@@ -2221,7 +2279,7 @@ int main(int Argc, char** Argv)
 		std::printf("   → CHIPS mode=%s upg=%d content=%d clear=%d/%d\n", Argv[3], GBotUpgLv, GBotContent, GBotClears, Runs);
 		GBotMode = EPDMode::Endless; GBotUpgLv = 10; GBotContent = 0;
 	}
-	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱] [스트레이트 플러시 노림 0/1] [행운의 한 장 1/0]
+	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱] [스트레이트 플러시 노림 0/1] [행운의 한 장 1/0] [조커 덤, 기본 JokerBonus]
 	{
 		GStudy = true;
 		GBotMode = (EPDMode)std::atoi(Argv[3]); GBotUpgLv = std::atoi(Argv[4]); GBotContent = std::atoi(Argv[5]);
@@ -2229,6 +2287,7 @@ int main(int Argc, char** Argv)
 		GJokerSlack = Argc > 10 ? (float)std::atof(Argv[10]) : 0.f;
 		GAimSF = Argc > 11 && std::atoi(Argv[11]) != 0; // D-490
 		GLuckyOn = Argc > 12 ? std::atoi(Argv[12]) != 0 : true;
+		GJokerBonus = Argc > 13 ? (float)std::atof(Argv[13]) : JokerBonus; // D-491 갈래
 		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
 	}
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }

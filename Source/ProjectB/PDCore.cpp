@@ -246,25 +246,45 @@ void ApplyUpgrades(FPDTreeMods& M, const std::array<int, (int)EPDUpgrade::Count>
 	for (int S = 0; S < 4; ++S) M.UpgSuit[S] = UpgradeStep((EPDUpgrade)((int)EPDUpgrade::Spade + S)) * Lv[(int)EPDUpgrade::Spade + S];
 }
 
+// 와일드가 든 패 (QA 29 문제 2): 예전엔 와일드마다 숫자 13 × 무늬를 다 넣어 보며 다시 불러 와일드 3장이면 패 하나에 수만 번이었다.
+// 같은 답을 셈으로 바로 낸다 (와일드는 2 ~ A 아무 숫자, 진짜 카드에 있는 무늬 중 하나). 결과는 족보 번호 순서 (예전과 같음)
+static std::vector<EPDHand> PDClassifyWild(const std::vector<FPDCard>& Cards)
+{
+	const int N = (int)Cards.size();
+	int Cnt[15] = {}, NReal = 0, Distinct = 0, MaxCnt = 0, HiMin = 99, HiMax = 0, LoMin = 99, LoMax = 0;
+	bool bSameSuit = true;
+	EPDSuit Suit = EPDSuit::Wild;
+	for (const FPDCard& C : Cards)
+	{
+		if (C.IsWild()) continue;
+		NReal++;
+		if (Cnt[C.Rank]++ == 0) Distinct++;
+		MaxCnt = std::max(MaxCnt, Cnt[C.Rank]);
+		if (Suit == EPDSuit::Wild) Suit = C.Suit; else bSameSuit = bSameSuit && C.Suit == Suit;
+		const int Lo = C.Rank == 14 ? 1 : C.Rank;
+		HiMin = std::min(HiMin, C.Rank); HiMax = std::max(HiMax, C.Rank);
+		LoMin = std::min(LoMin, Lo); LoMax = std::max(LoMax, Lo);
+	}
+	const bool bKind = Distinct <= 1;                                   // 같은 숫자 N장
+	const bool bStraight = N >= 3 && MaxCnt <= 1 && (NReal == 0 || HiMax - HiMin <= N - 1 || LoMax - LoMin <= N - 1);
+	const bool bRoyal = N == 5 && bSameSuit && MaxCnt <= 1 && (NReal == 0 || HiMin >= 10);
+	std::vector<EPDHand> Out; // EPDHand 순서: 로열, 파이브, 스트레이트 플러시, 포카드, 풀하우스, 플러시, 스트레이트, 트리플, 투 페어, 원 페어
+	if (bRoyal) Out.push_back(EPDHand::RoyalFlush);
+	if (N == 5 && bKind) Out.push_back(EPDHand::Five);
+	if (N == 5 && bSameSuit && bStraight) Out.push_back(EPDHand::StraightFlush);
+	if (N == 4 && bKind) Out.push_back(EPDHand::Four);
+	if (N == 5 && Distinct <= 2 && MaxCnt <= 3) Out.push_back(EPDHand::FullHouse);
+	if (N >= 3 && bSameSuit) Out.push_back(EPDHand::Flush);
+	if (bStraight) Out.push_back(EPDHand::Straight);
+	if (N == 3 && bKind) Out.push_back(EPDHand::Triple);
+	if (N == 4 && Distinct <= 2 && MaxCnt <= 2) Out.push_back(EPDHand::TwoPair);
+	if (N == 2 && bKind) Out.push_back(EPDHand::Pair);
+	return Out;
+}
+
 std::vector<EPDHand> ClassifyHand(const std::vector<FPDCard>& Cards)
 {
-	// 와일드 카드: 가능한 숫자·무늬를 다 넣어 보고 나오는 족보를 모두 모은다
-	for (size_t W = 0; W < Cards.size(); ++W)
-	{
-		if (!Cards[W].IsWild()) continue;
-		std::vector<EPDSuit> Suits;
-		for (const FPDCard& C : Cards) if (!C.IsWild() && std::find(Suits.begin(), Suits.end(), C.Suit) == Suits.end()) Suits.push_back(C.Suit);
-		if (Suits.empty()) Suits.push_back(EPDSuit::Spade);
-		std::set<EPDHand> All;
-		std::vector<FPDCard> Try = Cards;
-		for (int R = 2; R <= 14; ++R)
-			for (EPDSuit Su : Suits)
-			{
-				Try[W] = {R, Su};
-				for (EPDHand H : ClassifyHand(Try)) All.insert(H);
-			}
-		return std::vector<EPDHand>(All.begin(), All.end());
-	}
+	for (const FPDCard& C : Cards) if (C.IsWild()) return PDClassifyWild(Cards);
 	const int N = (int)Cards.size();
 	std::map<int, int> Cnt;
 	for (const FPDCard& C : Cards) Cnt[C.Rank]++;
@@ -1078,7 +1098,7 @@ int FPDGame::KillXp(EPDEnemy T, int W) const
 
 int FPDGame::XpToNext() const { return (int)std::min(1.0e9, std::round(PointBasePrice * std::pow((double)PointPriceGrowth, (double)(Level - 1)))); } // 레벨 94 넘으면 int 가 넘쳐 음수 → AddXp 무한 반복이던 것 (D-268): 10억에서 멈춘다
 float FPDGame::FuseMult() const { return FuseBonus + Mods.FuseAdd + (Mods.Key(EPDKeystone::Smith) ? 0.5f : 0.f); }
-float FPDGame::JokerMult() const { return JokerBonus + Mods.JokerAdd + (Mods.Key(EPDKeystone::ClownPath) ? 0.4f : 0.f); }
+float FPDGame::JokerMult() const { return JokerBonusK + Mods.JokerAdd + (Mods.Key(EPDKeystone::ClownPath) ? 0.4f : 0.f); }
 
 void FPDGame::RebuildMods()
 {
