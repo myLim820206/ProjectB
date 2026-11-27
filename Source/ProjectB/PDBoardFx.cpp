@@ -76,7 +76,8 @@ void SPDBoardWidget::HandleEvents()
 		case FPDEvent::EKind::Shot:
 		{
 			const EPDShot K = (EPDShot)(int)E.R;
-			const FLinearColor Col = ShotColor(K, E.Suit);
+			const int32 JFx = K >= EPDShot::Juggle ? JokerFxAt(CellKey((int32)E.X, (int32)E.Y)) : -1; // 조커 발사체는 조커마다 색 (D-488)
+			const FLinearColor Col = JFx >= 0 ? JokerFxColor(JFx) : ShotColor(K, E.Suit);
 			const int32 Lv = FMath::Clamp(E.Lv, 1, MaxLevel);
 			const FVector2f To = CellPx(E.X2, E.Y2), Dir = (To - P).GetSafeNormal();
 			const float W = (E.A ? 2.6f : 1.6f) + (E.B > 0 ? 1.4f : 0.f);
@@ -90,13 +91,14 @@ void SPDBoardWidget::HandleEvents()
 			case EPDShot::JokerLaser: Beams.Add({P, To, 0.f, 0.14f, W + 1.f, Col}); break;
 			case EPDShot::Arc: Beams.Add({P, To, 0.f, 0.18f, W, Col, 2, Lv}); break;
 			case EPDShot::Crown: Beams.Add({P, To, 0.f, 0.3f, W + 2.f, Col, 3, Lv}); break;
-			case EPDShot::Grin: Beams.Add({P, To, 0.f, 0.3f, W + 0.5f, Col, 4, Lv}); break;
+			case EPDShot::Grin: Beams.Add({P, To, 0.f, 0.3f, W + 0.5f, Col, JFx >= 0 ? 0 : 4, Lv}); break; // 조커 즉시 광선: 웃음 · 꿈 구름은 착탄 도장이 그린다 (D-488)
 			default: break;
 			}
 			if (ShotSpeed(K) <= 0.f)
 			{
 				const float Pw = ShotPower(K, Lv, E.A != 0, E.B);
-				ImpactFx(K, To, Dir, Col, Lv, Pw);
+				if (JFx >= 0) JokerImpactFx(JFx, To, Dir, Pw);
+				else ImpactFx(K, To, Dir, Col, Lv, Pw);
 				HitFx(To, Pw, E.B, E.Dmg);
 				if (E.B > 0) CritFx(To, E.B);
 			}
@@ -109,7 +111,8 @@ void SPDBoardWidget::HandleEvents()
 			const int32 Lv = FMath::Clamp(E.Lv, 1, MaxLevel);
 			const FVector2f Dir = FVector2f(E.X2, E.Y2).GetSafeNormal();
 			const float Pw = ShotPower(K, Lv, E.A != 0, E.B);
-			ImpactFx(K, P, Dir, Col, Lv, Pw);
+			if (K >= EPDShot::Juggle) JokerImpactFx(JokerFxOfImpact(E), P, Dir, Pw); // 조커 발사체: 조커마다 다른 도장 · 파편 (D-488)
+			else ImpactFx(K, P, Dir, Col, Lv, Pw);
 			HitFx(P, Pw, E.B, E.Dmg);
 			if (E.B > 0) CritFx(P, E.B);
 			break;
@@ -755,6 +758,7 @@ void SPDBoardWidget::UpdateFx(float Dt)
 			const float VL = FMath::Max(0.001f, FMath::Sqrt(Pr.VX * Pr.VX + Pr.VY * Pr.VY));
 			const FVector2f Back(-Pr.VX / VL, -Pr.VY / VL);
 			const FVector2f Jit(FMath::FRandRange(-12.f, 12.f), FMath::FRandRange(-12.f, 12.f));
+			if (Pr.Kind >= EPDShot::Juggle) { JokerTrail(Pr, JokerFxOf(Pr)); continue; } // 조커 발사체 꼬리 (D-488)
 			const FLinearColor Col = ShotColor(Pr.Kind, Pr.Suit);
 			switch (Pr.Kind)
 			{
@@ -800,6 +804,7 @@ void SPDBoardWidget::UpdateFx(float Dt)
 		}
 		for (auto It = HpShown.CreateIterator(); It; ++It) if (!Live.Contains(It.Key())) It.RemoveCurrent();
 	}
+	UpdateStamps(Dt);
 	for (FBeam& B : Beams) B.T += Dt;
 	Beams.RemoveAll([](const FBeam& B) { return B.T >= B.MaxT; });
 	for (FRing& R : Rings) R.T += Dt;
