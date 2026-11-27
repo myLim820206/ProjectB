@@ -11,6 +11,7 @@
 | [17-modes-and-progression.md](17-modes-and-progression.md) | 모드(30 · 60 · 100 · 무한)와 판 밖 성장 |
 | [18-upper-jokers.md](18-upper-jokers.md) | 상위 조커 30종 |
 | [19-potions-jokers-list.md](19-potions-jokers-list.md) | 묘약 · 조커 기능 목록 |
+| [25-joker-recipe-tiers.md](25-joker-recipe-tiers.md) | 조커 조합법 개편안: 뽑기 난이도에 따라 재료 2 · 3 · 4개 (제안, 결정 대기) |
 | [22-bosses.md](22-bosses.md) | 보스 확장 |
 | [23-achievements.md](23-achievements.md) | 도전 과제 |
 | [21-bar-alice.md](21-bar-alice.md) | 게임 이름과 세계관 (바 앨리스) |
