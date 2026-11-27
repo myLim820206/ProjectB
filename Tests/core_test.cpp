@@ -1935,6 +1935,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		G.bLucky = GLuckyOn;
 		G.JokerBonusK = GJokerBonus;
 		std::mt19937 R(77 + Run);
+		double JsShare = 0, JsDmg = 0, JsRate = 0, JsSplash = 0, JsKinds = 0, JsMult = 0; int JsW = 0, JsN = 0; double PowAt[4] = {}, JPowAt[4] = {}; int JCntAt[4] = {};
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
 			// 상위 조커 (D-231): 판 위력이 오르면 합친다
@@ -2043,6 +2044,27 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				G.Place(BI, BX, BY);
 			}
 			Phases++;
+			{ // QA 조커 몫 (이슈 #37): JSTAT 줄 = 조커가 판 위력에서 차지하는 몫 · 조커가 받은 효과 · 5/10/15/20웨이브 판 위력
+				FPDTowerMap Tw = G.Towers;
+				const FPDCharmBits Cm = G.CharmMask();
+				ApplyEffects(Tw, Cm, &G.Mods);
+				auto Wt = [&G](const FPDTower& T, float Range) { return (double)Coverage(G, T.X, T.Y, Range); };
+				double Tot = 0, Jp = 0; int Jc = 0;
+				for (const auto& KV : Tw)
+				{
+					const double P = OneTowerPower(Tw, KV.second, Cm, &G.Mods, Wt);
+					Tot += P;
+					if (!KV.second.IsJoker()) continue;
+					Jp += P; Jc++;
+					const FPDEffects& E = KV.second.Eff;
+					JsDmg += E.Dmg; JsRate += E.Rate; JsSplash += E.Splash; JsMult += KV.second.Mult;
+					int Kc = 0; for (int H = 0; H < (int)EPDHand::Count; ++H) Kc += (E.Kinds >> H) & 1u;
+					JsKinds += Kc; JsN++;
+				}
+				if (Jc > 0 && Tot > 0) { JsShare += Jp / Tot; JsW++; }
+				static const int At[4] = {5, 10, 15, 20};
+				for (int Q = 0; Q < 4; ++Q) if (G.Wave + 1 == At[Q]) { PowAt[Q] = Tot; JPowAt[Q] = Jp; JCntAt[Q] = Jc; }
+			}
 			if (bJoker)
 			{
 				const uint32_t Can = CraftableNow(G);
@@ -2223,6 +2245,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		{
 			int Mx = 0, JNow = 0;
 			for (auto& KV : G.Towers) if (KV.second.IsJoker()) { Mx = std::max(Mx, KV.second.JLevel); JNow++; }
+			std::printf("JSTAT seed=%d wave=%d clear=%d jw=%d share=%.3f jdmg=%.2f jrate=%.2f jsplash=%.2f jkinds=%.2f jmult=%.2f pow5=%.0f pow10=%.0f pow15=%.0f pow20=%.0f jpow5=%.0f jpow10=%.0f jpow15=%.0f jpow20=%.0f jc10=%d jc15=%d jc20=%d\n", Run, G.Wave, G.Phase == EPDPhase::Clear, JsW, JsW ? JsShare / JsW : 0., JsN ? JsDmg / JsN : 0., JsN ? JsRate / JsN : 0., JsN ? JsSplash / JsN : 0., JsN ? JsKinds / JsN : 0., JsN ? JsMult / JsN : 0., PowAt[0], PowAt[1], PowAt[2], PowAt[3], JPowAt[0], JPowAt[1], JPowAt[2], JPowAt[3], JCntAt[1], JCntAt[2], JCntAt[3]);
 			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f aimsf=%d lucky=%d luckyhits=%d jbonus=%.2f seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, (int)GAimSF, (int)GLuckyOn, G.LuckyHits, GJokerBonus, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", Built[J]);
 			std::printf(" first=");
