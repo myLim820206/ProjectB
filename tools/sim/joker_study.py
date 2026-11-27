@@ -10,6 +10,8 @@ from collections import defaultdict
 
 NAMES = ["광대", "모자 장수", "웃는 가면", "희비극", "할리퀸", "지휘봉", "잭", "체셔", "방울", "스타"]
 MODES = {0: "30", 1: "60", 2: "100", 3: "무한"}
+GOAL = {0: 30, 1: 60, 2: 100, 3: 200}
+LABEL = {"normal": "", "pursue": " (레시피 노림 봇)", "starter": " (처음 상태: 조커 4종)", "oldbot": " (예전 봇)"}
 
 
 def parse(path):
@@ -71,7 +73,7 @@ def main(path):
     print("## 모드별 난이도 (똑똑한 조커 봇, 모든 조커 열림)\n")
     print("| 모드 | 영구 강화 | 판 | 클리어 | 95% 범위 | 무너진 웨이브 (클리어 못 한 판) 중앙 · 25~75% | 남은 목숨 (클리어 판) | 판당 조커 | 판당 상위 조커 |")
     print("|---|---|---|---|---|---|---|---|---|")
-    for grp in ("normal", "starter", "oldbot"):
+    for grp in ("normal", "pursue", "starter", "oldbot"):
         cells = defaultdict(list)
         for r in runs:
             if r["group"] == grp:
@@ -84,21 +86,40 @@ def main(path):
             lives = [r["lives"] for r in rs if r["clear"]]
             jk = st.mean(sum(r["built"]) for r in rs)
             up = st.mean(r["uppers"] for r in rs)
-            label = {"normal": "", "starter": " (처음 상태: 조커 4종)", "oldbot": " (예전 봇)"}[grp]
+            label = LABEL[grp]
             fw = f"{med(fail):.0f} · {q(fail, .25):.0f}~{q(fail, .75):.0f}" if fail else "—"
             lv = f"{st.mean(lives):.1f}" if lives else "—"
             print(f"| {MODES[m]}{label} | {u} | {n} | {k}/{n} ({pct(k / n)}) | {pct(lo)}~{pct(hi)} | {fw} | {lv} | {jk:.1f} | {up:.2f} |")
     print()
 
+    # 1-2. 조커 등장 요약 (이슈 #25): 첫 조커 웨이브, 판당 수 · 종류, 조커 없는 판
+    print("## 조커 등장 요약 (강화 0)\n")
+    print("| 모드 | 판 | 판당 조커 | 판당 종류 | 첫 조커 웨이브 중앙 · 25~75% | 조커 0개 판 | 10웨이브까지 | 모자 장수 만든 판 | 스타 만든 판 | 광대 만든 판 |")
+    print("|---|---|---|---|---|---|---|---|---|---|")
+    for grp in ("normal", "pursue", "starter"):
+        for m in (0, 1, 2, 3):
+            rs = [r for r in runs if r["group"] == grp and r["mode"] == m and r["upg"] == 0]
+            if not rs:
+                continue
+            n = len(rs)
+            firsts = [min(w for (w, _) in r["log"]) for r in rs if r["log"]]
+            kinds = st.mean(sum(1 for b in r["built"] if b) for r in rs)
+            by10 = st.mean(sum(1 for (w, _) in r["log"] if w <= 10) for r in rs)
+            zero = sum(1 for r in rs if not r["log"])
+            fw = f"{med(firsts):.0f} · {q(firsts, .25):.0f}~{q(firsts, .75):.0f}" if firsts else "—"
+            hb = lambda j: f"{sum(1 for r in rs if r['built'][j])}/{n}"
+            print(f"| {MODES[m]}{LABEL[grp]} | {n} | {st.mean(sum(r['built']) for r in rs):.1f} | {kinds:.1f} | {fw} | {zero} | {by10:.1f} | {hb(1)} | {hb(9)} | {hb(0)} |")
+    print()
+
     # 2. 조커 만들기 난이도
-    for (m, u) in [(0, 0), (1, 0), (2, 0)]:
-        rs = [r for r in runs if r["group"] == "normal" and r["mode"] == m and r["upg"] == u]
+    for grp, m, u in [(g, m, 0) for g in ("normal", "pursue") for m in (0, 1, 2, 3)]:
+        rs = [r for r in runs if r["group"] == grp and r["mode"] == m and r["upg"] == u]
         if not rs:
             continue
         n = len(rs)
-        print(f"## 조커 만들기 · {MODES[m]} 모드 강화 0 ({n}판)\n")
-        print("| 조커 | 레시피가 판에 생긴 판 | 처음 생긴 웨이브 (중앙) | 생겨 있던 웨이브 비율 | 실제로 만든 판 | 판당 만든 수 | 처음 만든 웨이브 (중앙) |")
-        print("|---|---|---|---|---|---|---|")
+        print(f"## 조커 만들기 · {MODES[m]} 모드 강화 0{LABEL[grp]} ({n}판)\n")
+        print("| 조커 | 레시피가 판에 생긴 판 | 처음 생긴 웨이브 (중앙) | 생겨 있던 웨이브 비율 | 실제로 만든 판 | 판당 만든 수 | 처음 만든 웨이브 (중앙) | 만든 웨이브 중앙 · 25~75% |")
+        print("|---|---|---|---|---|---|---|---|")
         for j in range(10):
             can_runs = sum(1 for r in rs if r["firstcan"][j])
             fc = [r["firstcan"][j] for r in rs if r["firstcan"][j]]
@@ -106,19 +127,24 @@ def main(path):
             b_runs = sum(1 for r in rs if r["built"][j])
             b_mean = st.mean(r["built"][j] for r in rs)
             fb = [r["first"][j] for r in rs if r["first"][j]]
-            print(f"| {NAMES[j]} | {pct(can_runs / n)} | {med(fc):.0f} | {pct(can_share)} | {pct(b_runs / n)} | {b_mean:.2f} | {med(fb) if fb else '—'} |")
+            bw = [w for r in rs for (w, jj) in r["log"] if jj == j]
+            bws = f"{med(bw):.0f} · {q(bw, .25):.0f}~{q(bw, .75):.0f}" if bw else "—"
+            fcs = f"{med(fc):.0f}" if fc else "—"
+            print(f"| {NAMES[j]} | {pct(can_runs / n)} | {fcs} | {pct(can_share)} | {pct(b_runs / n)} | {b_mean:.2f} | {med(fb) if fb else '—'} | {bws} |")
         print()
 
     # 3. 웨이브까지 만든 조커 수 (100 모드 판의 기록을 웨이브로 자름)
     print("## 웨이브까지 만든 조커 수 (똑똑한 조커 봇, 강화 0, 그 웨이브까지 살아 있던 판만)\n")
-    print("| 모드 | 웨이브 10 | 20 | 30 | 45 | 60 | 80 | 100 |")
-    print("|---|---|---|---|---|---|---|---|")
-    for m in (0, 1, 2):
+    print("| 모드 | 웨이브 5 | 10 | 20 | 30 | 45 | 60 | 80 | 100 |")
+    print("|---|---|---|---|---|---|---|---|---|")
+    for m in (0, 1, 2, 3):
         rs = [r for r in runs if r["group"] == "normal" and r["mode"] == m and r["upg"] == 0]
         row = []
-        for w in (10, 20, 30, 45, 60, 80, 100):
+        if not rs:
+            continue
+        for w in (5, 10, 20, 30, 45, 60, 80, 100):
             alive = [r for r in rs if r["wave"] >= w]
-            if not alive or w > {0: 30, 1: 60, 2: 100}[m]:
+            if not alive or w > GOAL[m]:
                 row.append("—")
                 continue
             row.append(f"{st.mean(sum(1 for (bw, _) in r['log'] if bw <= w) for r in alive):.1f} ({len(alive)}판)")
