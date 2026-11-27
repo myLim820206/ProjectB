@@ -1,4 +1,4 @@
-"""첫 화면 · 버튼 · 영구 강화 화면 시안 3종 (docs/15 네온 화풍)
+"""첫 화면 · 버튼 · 영구 강화 화면 시안 3종 (DOC/art/15 네온 화풍)
 
     python tools/neon/title_mock.py 출력폴더
 

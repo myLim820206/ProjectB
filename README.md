@@ -1,41 +1,16 @@
-# ProjectB
+# ProjectB — 바 앨리스: 늦은 밤의 포커
 
-기본 도형만으로 만드는 언리얼 엔진 PC 게임 프로젝트입니다. Windows와 macOS를 지원하며 Steam으로 출시합니다.
+포커 카드로 타워를 세우는 디펜스 게임(포커 디펜스). 언리얼 엔진 5.8 C++, Windows · macOS, Steam 출시.
 
-## 문서
+- 작업 안내와 문서 목차: [AGENTS.md](AGENTS.md)
+- 기획: [DOC/design](DOC/design/README.md) · 개발: [DOC/dev](DOC/dev/README.md) · 디자인: [DOC/art](DOC/art/README.md)
+- 용어집: [DOC/glossary.md](DOC/glossary.md) · 결정 기록: [DOC/adr](DOC/adr/README.md) · 보관: [DOC/archive](DOC/archive/README.md)
 
-| 문서 | 내용 |
-|---|---|
-| [docs/00-project-charter.md](docs/00-project-charter.md) | 프로젝트 개요, 확정 사항, 미결정 사항 |
-| [docs/09-tetris-poker.md](docs/09-tetris-poker.md) | 테트리스 포커 (현재 진행) |
-| [docs/10-balatro-reverse-design.md](docs/10-balatro-reverse-design.md) | 발라트로 역기획 (성장 구조 참고) |
-| [docs/11-rule-cards.md](docs/11-rule-cards.md) | 규칙 카드 기획 (라운드 사이 성장) |
-| [docs/12-unreal-port.md](docs/12-unreal-port.md) | 언리얼 프로젝트 (포커 디펜스): 열어 보는 법, 구조, 이펙트, 검증 상태 |
-| [docs/14-poker-defense.md](docs/14-poker-defense.md) | 포커 디펜스 (카드 = 타워, 족보 시너지) — 현재 진행 |
-| [docs/13-stack-poker.md](docs/13-stack-poker.md) | 스택 포커 (보류) |
-| [docs/08-shape-concepts.md](docs/08-shape-concepts.md) | 도형 기반 게임 콘셉트 검토, 테트리스 디펜스 기록 |
-| [docs/02-technical-plan.md](docs/02-technical-plan.md) | 기술 계획: 엔진, 플랫폼, 빌드, 협업 규칙 |
-| [docs/03-steam-release.md](docs/03-steam-release.md) | Steam 출시 계획과 체크리스트 |
-| [docs/04-roadmap.md](docs/04-roadmap.md) | 마일스톤과 일정 |
-| [docs/05-decision-log.md](docs/05-decision-log.md) | 의사결정 기록 |
-| [docs/06-concept-candidates.md](docs/06-concept-candidates.md) | 이전 콘셉트 검토 기록 |
-| [docs/07-art-pipeline.md](docs/07-art-pipeline.md) | 픽셀 아트 파이프라인 (보류) |
-| [archive/](archive/README.md) | 보관 기획: 달빛주막, 퇴마청 |
-
-## 도구
+## 구성
 
 | 경로 | 내용 |
 |---|---|
-| `ProjectB.uproject`, `Source/`, `Config/` | 언리얼 프로젝트 (포커 디펜스 C++) |
-| `Tests/` | 포커 디펜스 규칙 코어 시험 (`./Tests/run.sh`, 언리얼 없이 실행) |
-| `prototype/tetris-poker/` | 테트리스 포커 웹 프로토타입 |
-| `prototype/poker-defense/` | 포커 디펜스 웹 프로토타입 (현재) |
-| `prototype/stack-poker/` | 스택 포커 웹 프로토타입 (보류) |
-| `prototype/tetris-defense/` | 테트리스 디펜스 웹 프로토타입 (보류) |
-| `tools/pixelart/` | 픽셀 아트 생성 스크립트 (Python, Pillow) |
-| `tools/preview/` | 3D 미리보기 렌더러 (three.js, 헤드리스 Chromium) |
-| `archive/dalbit-jumak/tools/balance/` | 달빛주막 경제 밸런스 시뮬레이터 |
-
-## 상태
-
-프로토타입 단계. 포커 디펜스를 웹에서 다듬고 언리얼(C++, 이펙트 포함)로 옮겼습니다. 실제 엔진 빌드 확인이 다음 단계입니다.
+| `ProjectB.uproject`, `Config/`, `Content/`, `Source/` | 언리얼 프로젝트 (포커 디펜스 C++) |
+| `Tests/` | 규칙 코어 시험 (`./Tests/run.sh`, 언리얼 없이 실행) |
+| `tools/` | 언어팩, 네온 미리보기, 아틀라스 굽기, 패키징 도구 |
+| `DOC/` | 문서 (`DOC/assets/` 는 문서용 그림 · 소리) |

@@ -1,5 +1,5 @@
 ﻿// 스팀 연결부 (B8): 도전 과제 · 클라우드 저장. App ID 가 생기고 Steamworks(OnlineSubsystemSteam) 를 켜면 PDSteam.cpp 만 채운다.
-// 지금은 아무것도 안 한다 (게임은 진행 파일에 도전 과제를 따로 남긴다). 클라우드 저장은 Steam Auto-Cloud 설정만으로 (docs/03 2절)
+// 지금은 아무것도 안 한다 (게임은 진행 파일에 도전 과제를 따로 남긴다). 클라우드 저장은 Steam Auto-Cloud 설정만으로 (DOC/design/03 2절)
 #pragma once
 #include "CoreMinimal.h"
 

@@ -1,4 +1,4 @@
-"""카드병정 적 시안 (네온 화풍, docs/15-art-style.md). 적을 트럼프 카드 몸통의 병정으로.
+"""카드병정 적 시안 (네온 화풍, DOC/art/15-art-style.md). 적을 트럼프 카드 몸통의 병정으로.
 
     python tools/neon/soldiers.py sheet 출력.png   # 종류 8 × 걷기 4프레임
     python tools/neon/soldiers.py gif 출력.gif     # 길을 따라 걷는 움직이는 시안

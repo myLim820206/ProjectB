@@ -2,7 +2,7 @@
 
     python tools/neon/alice_ui_mock.py 출력폴더   → alice_ui_mock.png
 
-사용자 요청으로 이 시안은 docs/15 의 '채우지 않은 선' 규칙 대신 시안 색감을 따른다 (D-399):
+사용자 요청으로 이 시안은 DOC/art/15 의 '채우지 않은 선' 규칙 대신 시안 색감을 따른다 (D-399):
 칠한 카드(무늬 색 어두운 채움 + 굵은 네온 테두리), 칠한 버튼(진한 파랑 스킬 · 진한 초록 시작 · 회색 배속),
 보랏빛 패널 바탕, 판 안은 검정, 무늬 색은 시안대로 ♥ 빨강 · ♠ 은회색 · ♣ 파랑 · ♦ 노랑.
 시안 그림(2000 × 1125) 좌표 × 0.64 = 1280 × 720 좌표.
@@ -459,7 +459,7 @@ def static(img, box):
     return img
 
 
-REF = os.path.join(os.path.dirname(__file__), '..', '..', 'docs', 'images', 'ui-1120', 'reference.webp')
+REF = os.path.join(os.path.dirname(__file__), '..', '..', 'DOC', 'assets', 'images', 'ui-1120', 'reference.webp')
 USE_REF = os.path.exists(REF)   # 시안 그림이 있으면 간판 · 로고 · 칵테일은 시안에서 잘라 그대로 붙인다 (사용자: 이미지 그대로)
 REF_CUTS = [(0, 0, 1280, 720)]  # 사용자: 전부 따오기 (D-402) — 화면 전체를 시안 그림 그대로
 

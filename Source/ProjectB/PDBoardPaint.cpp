@@ -1,4 +1,4 @@
-﻿// 포커 디펜스 화면 그리기: 판, 적, 발사체, 이펙트, 버튼, 패널, 창 (화풍 docs/15-art-style.md)
+﻿// 포커 디펜스 화면 그리기: 판, 적, 발사체, 이펙트, 버튼, 패널, 창 (화풍 DOC/art/15-art-style.md)
 #include "PDBoardDraw.h"
 #include "PDTitleLogo.inl" // 시작 화면 간판 획 (D-440)
 #include "PDLogo.h"
@@ -819,7 +819,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			F.Glow(Poly(E.Type == EPDEnemy::ShieldBoss ? 4 : E.Type == EPDEnemy::SplitBoss ? 8 : 6, 22.f + 2.f * Pulse, Clock * 0.8f), Col, 2.4f, 1.4f);
 			F.Glow(FCanvas::CirclePoints(P, 12.f), Col, 2.f);
 			break;
-		// 새 보스 (D-112): docs/images/bosses_preview.png 의 절반 크기
+		// 새 보스 (D-112): DOC/assets/images/bosses_preview.png 의 절반 크기
 		case EPDEnemy::Charger:
 		{
 			F.Glow({P + FVector2f(25.f, 0.f), P + FVector2f(-13.f, -18.f), P + FVector2f(-4.f, 0.f), P + FVector2f(-13.f, 18.f), P + FVector2f(25.f, 0.f)}, Col, 2.4f, 1.4f);

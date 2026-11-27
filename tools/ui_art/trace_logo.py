@@ -1,6 +1,6 @@
-"""시작 화면 간판(docs/images/ui-1120/title_logo_ref.webp)을 코드 선으로 따라 그리기 (D-429)
+"""시작 화면 간판(DOC/assets/images/ui-1120/title_logo_ref.webp)을 코드 선으로 따라 그리기 (D-429)
 
-    python tools/ui_art/trace_logo.py   → tools/ui_art/title_logo_strokes.json + docs/images/ui-1120/title_logo_trace.png (원본 | 코드 네온)
+    python tools/ui_art/trace_logo.py   → tools/ui_art/title_logo_strokes.json + DOC/assets/images/ui-1120/title_logo_trace.png (원본 | 코드 네온)
 
 1. 색별로 네온 관 몸통만 고른다 (하늘 = BAR, 분홍 = Alice, 노랑 = 마티니): 밝고 그 색상에 가까운 화소
 2. Zhang-Suen 깎기로 관의 가운데 선(1화소)을 얻는다
@@ -15,9 +15,9 @@ import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
-SRC = os.path.join(ROOT, 'docs', 'images', 'ui-1120', 'title_logo_ref.webp')
+SRC = os.path.join(ROOT, 'DOC', 'assets', 'images', 'ui-1120', 'title_logo_ref.webp')
 OUTJ = os.path.join(os.path.dirname(__file__), 'title_logo_strokes.json')
-OUTP = os.path.join(ROOT, 'docs', 'images', 'ui-1120', 'title_logo_trace.png')
+OUTP = os.path.join(ROOT, 'DOC', 'assets', 'images', 'ui-1120', 'title_logo_trace.png')
 
 COLORS = {'cyan': (60, 235, 240), 'pink': (255, 90, 225), 'yellow': (255, 235, 40)}
 

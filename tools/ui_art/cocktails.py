@@ -1,6 +1,6 @@
-"""칵테일 잔 60종 (잔 12 × 색 5, D-423) — Alice 시안 잔(docs/images/ui-1120/reference.webp 칵테일 칸)과 같은 퀄리티로 (D-422)
+"""칵테일 잔 60종 (잔 12 × 색 5, D-423) — Alice 시안 잔(DOC/assets/images/ui-1120/reference.webp 칵테일 칸)과 같은 퀄리티로 (D-422)
 
-    python tools/ui_art/cocktails.py            → Content/UIArt/cock_<잔>_<색>.png + docs/images/ui-1120/cocktails_preview.png
+    python tools/ui_art/cocktails.py            → Content/UIArt/cock_<잔>_<색>.png + DOC/assets/images/ui-1120/cocktails_preview.png
 
 잔 (게임 규칙: 칵테일 번호 % 3): 0 마티니(V 잔 · 반쪽 오렌지 · 꼬치 · 술 물결 · 얼음), 1 하이볼(긴 잔 · 라임 바퀴 · 빨대 · 기포), 2 온더록(낮은 잔 · 큰 얼음 둘 · 오렌지 껍질)
 색 (칵테일 번호 % 5): 잔 네온 색 + 술 색 짝 — 0 분홍/파랑(시안 그대로), 1 은빛/금빛, 2 금빛/빨강, 3 하늘/초록, 4 보라/분홍
@@ -14,7 +14,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
 OUT = os.path.join(ROOT, 'Content', 'UIArt')
-PREVIEW = os.path.join(ROOT, 'docs', 'images', 'ui-1120', 'cocktails_preview.png')
+PREVIEW = os.path.join(ROOT, 'DOC', 'assets', 'images', 'ui-1120', 'cocktails_preview.png')
 W, H = 240, 300        # 저장 크기 (게임 68 × 85 의 약 3.5배)
 SS = 3                 # 그릴 때 더 크게 그려 줄임 (매끈하게)
 

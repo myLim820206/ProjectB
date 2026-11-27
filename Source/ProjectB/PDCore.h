@@ -1,7 +1,7 @@
 // 포커 디펜스 규칙 코어
 // 언리얼 의존성이 없는 순수 C++17. 언리얼 모듈 안에서 그대로 컴파일되고,
 // Tests/core_test.cpp 가 이 파일과 PDSynth.cpp 만 컴파일해 단위 시험과 봇 시험을 돌린다 (Tests/run.sh).
-// 처음 규칙은 웹 프로토타입(prototype/poker-defense/index.html, v1.2)에서 옮겼고, 그 뒤 기능은 여기에만 있다.
+// 처음 규칙은 웹 프로토타입(DOC/archive/prototype/poker-defense/index.html, v1.2)에서 옮겼고, 그 뒤 기능은 여기에만 있다.
 // 좌표는 모두 칸 단위 (칸 중심 = x + 0.5). 화면 픽셀 변환은 위젯이 한다.
 #pragma once
 
@@ -157,7 +157,7 @@ struct FPDEffects
 };
 
 
-// ---------------------------------------------------------------- 스킬 트리 (판 안에서만, docs/16-skill-tree.md)
+// ---------------------------------------------------------------- 스킬 트리 (판 안에서만, DOC/design/16-skill-tree.md)
 // 적을 잡아 번 골드로 포인트를 사서 노드를 찍는다. 이미 찍은 노드와 이어진 노드만 살 수 있고,
 // 포인트 값은 살 때마다 ×1.15 로 올라 무한 진행에서도 트리를 다 채우지 못한다.
 // 키스톤은 둘씩 짝이라 하나를 찍으면 짝은 그 판 동안 봉인되고, 판마다 최대 3개.
@@ -252,7 +252,7 @@ struct FPDFeed
 	float Xp = 0.f; // 얻는 경험치
 	float Gain = 0.f; // 조커 위력 배율(Mult)에 더해지는 양 (D-191)
 };
-// 조커 10종 (그림 번호 1~10 순서: docs/15-art-style.md 9절)
+// 조커 10종 (그림 번호 1~10 순서: DOC/art/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
 // 조커 잠금 (D-239): 처음엔 희비극·웃는 가면·잭·지휘봉만. 나머지는 잠금 해제 메뉴에서 칩으로
 constexpr uint32_t JokerStarterMask = (1u << 3) | (1u << 2) | (1u << 6) | (1u << 5);
@@ -269,7 +269,7 @@ struct FPDJokerMerge
 	std::vector<int> Cells;
 	int Upper = -1; // 상위 조커 합성 (D-231): 서로 다른 두 조커 → 상위 조커 번호 (0~29). -1 = 같은 조커 합치기
 };
-// ---------------------------------------------------------------- 상위 조커 (D-231, docs/18)
+// ---------------------------------------------------------------- 상위 조커 (D-231, DOC/design/18)
 // 서로 다른 기본 조커 둘(맞닿음, 둘 다 조커 레벨 10 이상, 트리 끝자락을 찍은 조커는 5)을 합친 최종형. 타워의 Joker 값 10~39.
 // 능력 = 두 재료 조커의 능력 (강화된 상태) + 대표 조커 몇은 고유 능력. 위력 = 재료 합 × 1.5 (트리 끝자락 재료 하나마다 +25%)
 constexpr int UpperBase = 10, UpperJokerCount = 30;
@@ -526,7 +526,7 @@ inline const FPDGoalDef& GoalDef(int I)
 	return D[I];
 }
 bool GoalMet(EPDGoal G, const FPDGoalStats& S);
-// 도전 과제 (B8, docs/17 4절): 목표 해금 10종(EPDGoal 과 같은 순서) + 14종. 스팀 도전 과제 API 이름은 AchApiName
+// 도전 과제 (B8, DOC/design/17 4절): 목표 해금 10종(EPDGoal 과 같은 순서) + 14종. 스팀 도전 과제 API 이름은 AchApiName
 enum class EPDAch : uint8_t
 {
 	Clear30, Clear60, Clear100, FirstJoker, FirstUpper, AllJokers, Level30, Kills1000, Bosses9, Runs10, // 목표 해금과 같다

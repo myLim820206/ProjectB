@@ -1,6 +1,6 @@
 """시작 화면 간판 벽빛 시안 (D-465): 간판 뒤 벽돌 벽에 비치는 환한 분위기를 넓이 · 세기별로 비교
 
-    python tools/neon/title_wall_mock.py  → docs/images/title-wall/title_wall_mock.png
+    python tools/neon/title_wall_mock.py  → DOC/assets/images/title-wall/title_wall_mock.png
 
 게임 PaintTitle · PaintAliceSign 과 같은 자리(TX 110, TW 580)와 색. 간판은 따라 그린 획(tools/ui_art/title_logo_strokes.json),
 벽빛 · 관 번짐은 게임 FCanvas::Spill 처럼 (1-t)² 둥근 빛을 반지름 절반 간격으로 겹쳐 찍는다
@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(__file__)
 ROOT = os.path.join(HERE, '..', '..')
-OUT = os.path.join(ROOT, 'docs', 'images', 'title-wall')
+OUT = os.path.join(ROOT, 'DOC', 'assets', 'images', 'title-wall')
 W, H = 1280, 720
 EDGE = {'cyan': (0x14, 0xd2, 0xeb), 'pink': (0xff, 0x2d, 0xcd), 'yellow': (0xff, 0xd7, 0x14)}
 CORE = {'cyan': (0xaf, 0xff, 0xff), 'pink': (0xff, 0xaf, 0xf2), 'yellow': (0xff, 0xfa, 0xa5)}

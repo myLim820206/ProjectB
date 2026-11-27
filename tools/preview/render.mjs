@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const out = path.resolve(process.argv[2] || path.join(here, '../../docs/images/hd2d-preview.png'));
+const out = path.resolve(process.argv[2] || path.join(here, '../../DOC/assets/images/hd2d-preview.png'));
 const w = process.argv[3] || 1280, h = process.argv[4] || 720;
 const pageFile = process.argv[5] || 'index.html';
 const port = 8765;
