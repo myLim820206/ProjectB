@@ -1858,6 +1858,11 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		FPDGame G(1000 + Run);
 		// 조커 연구 기록 (판마다)
 		int Built[(int)EPDJoker::Count] = {}, FirstBuilt[(int)EPDJoker::Count] = {}, CanWaves[(int)EPDJoker::Count] = {}, FirstCan[(int)EPDJoker::Count] = {};
+		int HandWaves[(int)EPDHand::Count] = {}, FirstHand[(int)EPDHand::Count] = {}; // 족보 등장 (이슈 #33): 배치를 마친 판에 그 족보가 있던 웨이브 수 · 처음 웨이브
+		int Line3Waves = 0, Line4Waves = 0, FirstLine4 = 0; // 행운의 한 장 줄 (D-490)
+		std::string LuckyLog; // 행운의 한 장이 온 웨이브
+		std::string UpperLog; // 상위 조커: 웨이브:번호
+		int LuckySeen = 0;
 		int RunUppers = 0, Phases = 0;
 		const long FeedsAtStart = Feeds;
 		bool bStuck = false;
@@ -1891,9 +1896,12 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 					const double P = Power(Copy, Tw);
 					if (P > BestP) { BestP = P; BestI = I; }
 				}
-				if (BestI < 0 || !G.MergeJokers(BestI)) break;
+				if (BestI < 0) break;
+				const int UpId = Ms[BestI].Upper;
+				if (!G.MergeJokers(BestI)) break;
 				UppersMade++;
 				RunUppers++;
+				UpperLog += (UpperLog.empty() ? "" : ",") + std::to_string(G.Wave + 1) + ":" + std::to_string(UpId); // 상위 조커 종류 (이슈 #33)
 			}
 			// 조커 먹이기: 판 위 위력을 15% 넘게 깎지 않는 족보 중 경험치가 가장 많은 것 (비운 칸은 바로 아래에서 다시 채움)
 			for (int Tries = 0; bJoker && Tries < 3 && !G.Hand.empty(); ++Tries)
@@ -1981,6 +1989,12 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			{
 				const uint32_t Can = CraftableNow(G);
 				for (int J = 0; J < (int)EPDJoker::Count; ++J) if ((Can >> J) & 1u) { CanWaves[J]++; if (!FirstCan[J]) FirstCan[J] = G.Wave + 1; }
+				bool HSeen[(int)EPDHand::Count] = {};
+				for (const FPDSynergy& S : G.Synergies) HSeen[(int)S.Kind] = true;
+				for (int H = 0; H < (int)EPDHand::Count; ++H) if (HSeen[H]) { HandWaves[H]++; if (!FirstHand[H]) FirstHand[H] = G.Wave + 1; }
+				const FPDLucky Ln = BotLine(G, G.Towers);
+				if (Ln.Len >= 4) { Line4Waves++; if (!FirstLine4) FirstLine4 = G.Wave + 1; } else if (Ln.Len == 3) Line3Waves++;
+				if (G.LuckyHits > LuckySeen) { LuckyLog += (LuckyLog.empty() ? "" : ",") + std::to_string(G.Wave); LuckySeen = G.LuckyHits; }
 			}
 			// 조커 (똑똑한 봇): 열린 조커마다 가장 좋은 재료로 만들어 보고, 판 위력이 가장 많이 오르는 것
 			for (int Tries = 0; bJoker && GSmartJoker && Tries < 5; ++Tries)
@@ -2159,6 +2173,11 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", CanWaves[J]);
 			std::printf(" firstcan=");
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", FirstCan[J]);
+			std::printf(" hands=");
+			for (int H = 0; H < (int)EPDHand::Count; ++H) std::printf("%s%d", H ? "," : "", HandWaves[H]);
+			std::printf(" firsthand=");
+			for (int H = 0; H < (int)EPDHand::Count; ++H) std::printf("%s%d", H ? "," : "", FirstHand[H]);
+			std::printf(" line3=%d line4=%d firstline4=%d luckylog=%s keys=%u upperlog=%s", Line3Waves, Line4Waves, FirstLine4, LuckyLog.empty() ? "-" : LuckyLog.c_str(), G.Mods.Keys, UpperLog.empty() ? "-" : UpperLog.c_str());
 			std::printf(" log=%s\n", BuildLog.empty() ? "-" : BuildLog.c_str());
 			std::fflush(stdout);
 		}
