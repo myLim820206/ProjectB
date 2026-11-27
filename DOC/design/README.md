@@ -13,6 +13,7 @@
 | [19-potions-jokers-list.md](19-potions-jokers-list.md) | 묘약 · 조커 기능 목록 |
 | [25-joker-recipe-tiers.md](25-joker-recipe-tiers.md) | 조커 조합법 개편: 뽑기 난이도에 따라 재료 2 · 3 · 4개 (확정, D-487) |
 | [26-qa-joker-recipe-d487.md](26-qa-joker-recipe-d487.md) | QA 보고서: 조합법 개편 · 발사체 차별화 뒤 검증 (문제 목록 · 추천) |
+| [27-joker-not-wild.md](27-joker-not-wild.md) | 조커는 족보에 안 들어간다 (만능 제거) + 시작 자리바꿈 2번 (확정, D-489) |
 | [22-bosses.md](22-bosses.md) | 보스 확장 |
 | [23-achievements.md](23-achievements.md) | 도전 과제 |
 | [21-bar-alice.md](21-bar-alice.md) | 게임 이름과 세계관 (바 앨리스) |
