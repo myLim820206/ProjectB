@@ -1,4 +1,4 @@
-"""Alice 인게임 시안 그림(docs/images/ui-1120/reference.webp, 2000 × 1125)에서 바뀌지 않는 그림을 잘라
+"""Alice 인게임 시안 그림(DOC/assets/images/ui-1120/reference.webp, 2000 × 1125)에서 바뀌지 않는 그림을 잘라
 게임이 실행 중에 읽는 PNG(Content/UIArt/*.png)로 만든다 (D-403).
 
     python tools/ui_art/cut_ref.py
@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..')
-REF = os.path.join(ROOT, 'docs', 'images', 'ui-1120', 'reference.webp')
+REF = os.path.join(ROOT, 'DOC', 'assets', 'images', 'ui-1120', 'reference.webp')
 OUT = os.path.join(ROOT, 'Content', 'UIArt')
 
 # 시안 그림 좌표 (2000 × 1125). 게임 좌표 = × 0.64
@@ -79,8 +79,8 @@ def main():
 
 
 def title_logo():
-    """시작 화면 간판 (D-428): 사용자가 준 그림(docs/images/ui-1120/title_logo_ref.webp, 검은 바탕)을 알파 = 가장 밝은 채널로 (검은 바탕 위 빛 = 미리 곱한 알파 그대로)"""
-    im = Image.open(os.path.join(ROOT, 'docs', 'images', 'ui-1120', 'title_logo_ref.webp')).convert('RGB')
+    """시작 화면 간판 (D-428): 사용자가 준 그림(DOC/assets/images/ui-1120/title_logo_ref.webp, 검은 바탕)을 알파 = 가장 밝은 채널로 (검은 바탕 위 빛 = 미리 곱한 알파 그대로)"""
+    im = Image.open(os.path.join(ROOT, 'DOC', 'assets', 'images', 'ui-1120', 'title_logo_ref.webp')).convert('RGB')
     a = np.asarray(im).astype(np.float32) / 255.0
     Image.fromarray((np.dstack([a, a.max(axis=2)]) * 255 + 0.5).astype(np.uint8), 'RGBA').save(os.path.join(OUT, 'title_logo.png'))
 

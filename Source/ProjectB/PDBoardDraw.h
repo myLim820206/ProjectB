@@ -1,7 +1,7 @@
 // 포커 디펜스 화면의 그리기 도우미 (PDBoardWidget·PDBoardFx·PDBoardPaint 가 같이 쓴다)
 // - PDDraw: 1280 x 720 설계 좌표의 배치 상수, 색, 글자 표, 버튼 위치
 // - SPDBoardWidget::FCanvas: Slate 그리기 요소를 만드는 붓 (네온 선, 글자, 무늬·카드·조커 그림)
-// 화풍은 docs/15-art-style.md (거의 검은 바탕, 채우지 않은 한 색 가는 선, 넓고 부드러운 번짐)
+// 화풍은 DOC/art/15-art-style.md (거의 검은 바탕, 채우지 않은 한 색 가는 선, 넓고 부드러운 번짐)
 #pragma once
 #include "PDLang.h"
 
@@ -158,7 +158,7 @@ inline FLinearColor EnemyColor(EPDEnemy T)
 	case EPDEnemy::Armored: case EPDEnemy::ShieldBoss: return Hex(TEXT("9fc3e8"));
 	case EPDEnemy::Splitter: case EPDEnemy::Mini: case EPDEnemy::SplitBoss: return Hex(TEXT("ff9ad5"));
 	case EPDEnemy::Regen: case EPDEnemy::RegenBoss: return Hex(TEXT("b6ff6a"));
-	// 새 보스 (D-112, 미리보기 docs/images/bosses_preview.png)
+	// 새 보스 (D-112, 미리보기 DOC/assets/images/bosses_preview.png)
 	case EPDEnemy::Charger: return Hex(TEXT("ffa86a"));
 	case EPDEnemy::Summoner: return Hex(TEXT("c49aff"));
 	case EPDEnemy::Phantom: return Hex(TEXT("cfe4ff"));
@@ -366,7 +366,7 @@ inline const TCHAR* CharmDesc(int J)
 		TEXT("♠ 타워 사거리 +50%"), TEXT("♣ 타워 둔화 +15%p"), TEXT("♦ 타워 연사 +40%"), TEXT("보스 웨이브 동안 모든 피해 +30%"), TEXT("웨이브 시작 10초 동안 모든 피해 +50%"), TEXT("먹이기 흡수 60% → 90%"), TEXT("손패 최대 +1, 웨이브마다 카드 +1")};
 	return Tr(N[J]);
 }
-// 상위 조커 30종 (D-231, docs/18 4절 순서)
+// 상위 조커 30종 (D-231, DOC/design/18 4절 순서)
 inline const TCHAR* UpperName(int U)
 {
 	static const TCHAR* N[UpperJokerCount] = {TEXT("장미 칠하는 정원사"), TEXT("트위들덤과 트위들디"), TEXT("도도새"), TEXT("애벌레"), TEXT("공작부인"), TEXT("거울 나라"),
@@ -554,7 +554,7 @@ inline float FeedBtnW(const FPDSynergy& S)
 }
 inline FVector2f FeedButtonCenter(const FPDGame& G, int I) { return FuseButtonCenter(G.Synergies, I); } // 먹이기 모드에선 합성 버튼이 없어 족보 가운데
 
-// ---- 스킬 트리 글자와 위치 (docs/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
+// ---- 스킬 트리 글자와 위치 (DOC/design/16-skill-tree.md). 위치는 생성기가 화면 좌표로 넣어 둔다
 inline FVector2f TreeNodePos(int Id) { return FVector2f(TreeNode(Id).X, TreeNode(Id).Y); }
 inline const TCHAR* KeystoneName(int K)
 {
@@ -1445,7 +1445,7 @@ struct SPDBoardWidget::FCanvas
 			Start = End;
 		}
 	}
-	// 네온 선 (docs/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
+	// 네온 선 (DOC/art/15-art-style.md): 아주 넓고 옅은 번짐 세 겹 + 가늘고 또렷한 심
 	// 웹 캔버스의 shadowBlur 처럼 부드럽게 퍼지는 빛을 흉내 낸다
 	// 둥근 광원 (D-304): 가운데서 바깥으로 매끈하게 옅어지는 타원. 꼭짓점 색으로 옅어짐을 주고 글자는 선 띠의 꽉 찬 가운데 한 점만 쓴다
 	// (예전엔 번짐 띠 무늬를 돌려 찍어서 두 겹 띠의 경계가 원판 테두리처럼 보였다). 옅어짐 = (1 - t)², 고리 8겹
@@ -2097,7 +2097,7 @@ struct SPDBoardWidget::FCanvas
 		default: break;
 		}
 	}
-	// 카드(=타워): 둥근 사각 틀 안에 숫자와 작은 무늬 기호 (docs/15-art-style.md: 판 위 물체는 둥근 사각 틀 안에 작은 기호)
+	// 카드(=타워): 둥근 사각 틀 안에 숫자와 작은 무늬 기호 (DOC/art/15-art-style.md: 판 위 물체는 둥근 사각 틀 안에 작은 기호)
 	// bFrame=false 면 틀 없이 안쪽만 (손패 카드는 카드 테두리가 틀 역할)
 	void CardShape(const FPDCard& Card, float CX, float CY, float R, float Alpha, bool bStrong, float Pulse = 0.f, bool bFrame = true)
 	{
@@ -2113,7 +2113,7 @@ struct SPDBoardWidget::FCanvas
 		TextCentered(RankText(Card.Rank), CX, CY - R * 0.24f, Col, R * (Card.Rank == 10 ? 0.62f : 0.74f), true);
 		Shape(Card.Suit, CX, CY + R * 0.5f, R * 0.3f, Col, 1.4f, 0.8f);
 	}
-	// ---- 조커 그림 10종 (docs/15-art-style.md 9절, tools/neon/neon.py 와 같은 좌표)
+	// ---- 조커 그림 10종 (DOC/art/15-art-style.md 9절, tools/neon/neon.py 와 같은 좌표)
 	static void AddBez(TArray<FVector2f>& Out, FVector2f A, FVector2f B, FVector2f C, int32 N = 14)
 	{
 		for (int32 I = Out.Num() ? 1 : 0; I <= N; ++I)

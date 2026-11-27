@@ -47,5 +47,5 @@ def main(out):
 
 
 if __name__ == "__main__":
-    default = pathlib.Path(__file__).resolve().parents[2] / "docs/images/art-sample.png"
+    default = pathlib.Path(__file__).resolve().parents[2] / "DOC/assets/images/art-sample.png"
     main(sys.argv[1] if len(sys.argv) > 1 else default)

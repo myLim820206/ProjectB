@@ -1,5 +1,5 @@
 // Alice 시안 오른쪽 기둥 (D-456): 예전에 시안 그림 조각(tv.png · rpanel.png)으로 찍던 TV 몸통 · 아래 판을 코드 네온 선으로.
-// 좌표는 시안 그림(docs/images/ui-1120/reference.webp, 2000 × 1125)에서 잰 값 그대로 쓰고 × 0.64 로 게임 좌표 (그림 조각과 같은 자리).
+// 좌표는 시안 그림(DOC/assets/images/ui-1120/reference.webp, 2000 × 1125)에서 잰 값 그대로 쓰고 × 0.64 로 게임 좌표 (그림 조각과 같은 자리).
 // 색은 시안에서 잰 관 심 · 번짐 · 바탕 색
 #include "PDBoardDraw.h"
 

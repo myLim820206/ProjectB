@@ -1,6 +1,6 @@
 // 웹 프로토타입용 효과음 파일을 만든다: 언리얼과 같은 합성기(PDSynth)로 WAV를 만들어 base64로 묶는다
 //   g++ -std=c++17 -O2 -o build/render_sounds render_sounds.cpp ../Source/ProjectB/PDSynth.cpp
-//   ./build/render_sounds > ../prototype/tetris-poker/sounds.js
+//   ./build/render_sounds > ../DOC/archive/prototype/tetris-poker/sounds.js
 #include "../Source/ProjectB/PDSynth.h"
 
 #include <cstdio>

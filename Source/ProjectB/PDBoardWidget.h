@@ -8,7 +8,7 @@
 struct FPDAtlas;
 
 // 포커 디펜스 화면 전체. 1280 x 720 기준 좌표로 그리고 창 크기에 맞춰 확대한다.
-// 그래픽은 도형과 선뿐이고, 네온 빛번짐은 굵고 옅은 선 위에 가늘고 밝은 선을 겹쳐 흉내 낸다 (docs/15-art-style.md).
+// 그래픽은 도형과 선뿐이고, 네온 빛번짐은 굵고 옅은 선 위에 가늘고 밝은 선을 겹쳐 흉내 낸다 (DOC/art/15-art-style.md).
 // Slate 이펙트(빛줄기, 파티클, 파동, 별빛, 몸 조각, 흔들림, 배너)는 이 위젯이 그리고, 나이아가라 월드 이펙트는 요청만 쌓는다.
 // 파일: PDBoardWidget.cpp 틱·입력 / PDBoardFx.cpp 이펙트 / PDBoardPaint.cpp 그리기 / PDBoardDraw.h 그리기 도우미
 class SPDBoardWidget : public SCompoundWidget

@@ -1,4 +1,4 @@
-"""합성 모드 '오른쪽 클릭 = 취소' 커서 힌트 시안 (네온 선, docs/15)
+"""합성 모드 '오른쪽 클릭 = 취소' 커서 힌트 시안 (네온 선, DOC/art/15)
 
     python tools/neon/rclick_hint_mock.py 출력폴더
 

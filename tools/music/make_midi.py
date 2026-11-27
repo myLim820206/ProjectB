@@ -1,6 +1,6 @@
 """리프 · 코드 · 베이스 · 드럼을 MIDI 로 뽑는다 (D-364). 맥 GarageBand / Logic 에 끌어다 놓고 악기를 입힌다.
 
-  python3 tools/music/make_midi.py   → docs/music/*.mid
+  python3 tools/music/make_midi.py   → DOC/assets/music/*.mid
 
 곡은 아래 SONGS 에 적는다. 박 단위(4/4), 스윙 8분은 앞 2/3 · 뒤 1/3 자리로 직접 적는다.
 """
@@ -86,7 +86,7 @@ def last_call():
     return mel, keys, bass, drums
 
 if __name__ == '__main__':
-    out = os.path.join(os.path.dirname(__file__), '..', '..', 'docs', 'music')
+    out = os.path.join(os.path.dirname(__file__), '..', '..', 'DOC', 'assets', 'music')
     os.makedirs(out, exist_ok=True)
     mel, keys, bass, drums = last_call()
     write(os.path.join(out, 'last_call.mid'), 84, [
@@ -95,4 +95,4 @@ if __name__ == '__main__':
         track('Bass (Upright)', bass, 2, 32),
         track('Drums (Brush / Jazz Kit)', drums, 9, 0),
     ])
-    print('docs/music/last_call.mid')
+    print('DOC/assets/music/last_call.mid')

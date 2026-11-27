@@ -122,7 +122,7 @@ FPDTreeMods BuildTreeMods(const FPDTreeBits& Owned)
 
 bool FPDTreeMods::Up(const FPDTower& T) const { return T.IsJoker() && (IsUpperJoker(T.Joker) || Up(T.Joker) || T.JLevel >= JokerUpLevel); } // 상위 조커는 늘 강화 상태
 
-// 상위 조커 30종 (D-231, docs/18 4절 순서)
+// 상위 조커 30종 (D-231, DOC/design/18 4절 순서)
 static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Clown, EPDJoker::Hatter, EPDUpperSpecial::None},        // 장미 칠하는 정원사
 	{EPDJoker::Clown, EPDJoker::Comedy, EPDUpperSpecial::Tweedle},     // 트위들덤과 트위들디: 둘째 적은 다음 무늬로
@@ -651,7 +651,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, c
 	return Syn;
 }
 
-// 대장 표: 족보 → 조커 (그림 번호는 docs/15 9절)
+// 대장 표: 족보 → 조커 (그림 번호는 DOC/art/15 9절)
 static const EPDJoker GPDCaptain[(int)EPDHand::Count] = {
 	EPDJoker::Star,      // 로열 스트레이트 플러시
 	EPDJoker::Clown,     // 파이브 카드 (와일드의 상징)

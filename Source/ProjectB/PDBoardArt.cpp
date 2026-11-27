@@ -1,4 +1,4 @@
-// 시안 그림 조각 (D-403): Alice 인게임 시안(docs/images/ui-1120/reference.webp)에서 잘라 낸 바뀌지 않는 그림
+// 시안 그림 조각 (D-403): Alice 인게임 시안(DOC/assets/images/ui-1120/reference.webp)에서 잘라 낸 바뀌지 않는 그림
 // (야자수 · WAVE 간판, BAR Alice 로고, 칵테일 잔 켜짐 · 꺼짐)을 Content/UIArt/*.png 에서 실행 중에 읽는다.
 // PNG 는 미리 곱한 알파 (tools/ui_art/cut_ref.py), 붓은 PreMultipliedAlpha 로 찍는다. 패키지는 DefaultGame.ini 의 DirectoriesToAlwaysStageAsNonUFS 로 싣는다
 #include "PDBoardDraw.h"
