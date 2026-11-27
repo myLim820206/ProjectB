@@ -24,7 +24,7 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 	const FPDTower& T = It->second;
 	if (!T.IsJoker())
 	{
-		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) // 합성: 이 칸이 든 합성 되는 족보마다 (조커 칸은 빠진다, D-128)
+		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) // 합성: 이 칸이 든 합성 되는 족보마다
 		{
 			if (!G.CanFuse(I))
 			{
@@ -34,11 +34,11 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 				FCellAct A;
 				A.Kind = ECellAct::NoFuse; A.A = I; A.B = (int32)Why; A.Cells = G.Synergies[I].Cells; A.Col = Hex(TEXT("5f6878"));
 				A.Label = TrF(TEXT("합성 불가 · %s"), *HandLabel(G.Synergies[I]));
-				A.Right = Why == FPDGame::EFuseBlock::Joker ? FString(Tr(TEXT("조커가 낌"))) : Why == FPDGame::EFuseBlock::ClownPath ? FString(Tr(TEXT("광대의 길"))) : FString(Tr(TEXT("최고 레벨")));
+				A.Right = Why == FPDGame::EFuseBlock::ClownPath ? FString(Tr(TEXT("광대의 길"))) : FString(Tr(TEXT("최고 레벨")));
 				Out.Add(MoveTemp(A));
 				continue;
 			}
-			const FPDSynergy FS = FuseSyn(G, I);
+			const FPDSynergy FS = G.Synergies[I];
 			if (!HasCell(FS.Cells, Cell)) continue;
 			FCellAct A;
 			A.Kind = ECellAct::Fuse; A.A = I; A.Cells = FS.Cells; A.Col = Hex(TEXT("ffd26e"));
@@ -167,7 +167,7 @@ void SPDBoardWidget::DoCellAct(int32 Row)
 	case ECellAct::Fuse: DoFuse(A.A, Cell); break; // 클릭한 칸으로 합성 (D-312 ②)
 	case ECellAct::Feed:
 		PendingFuseCells.Reset();
-		for (int K : Game.Synergies[A.A].Cells) if (!Game.Towers.at(K).IsJoker()) PendingFuseCells.Add(CellCenter(K));
+		for (int K : Game.Synergies[A.A].Cells) PendingFuseCells.Add(CellCenter(K));
 		if (!Game.Feed(A.A, Cell)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
 		break;
 	case ECellAct::Merge:
@@ -222,6 +222,7 @@ void SPDBoardWidget::CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) 
 		{
 			Add(T.JLevel >= JokerMaxLevel ? TrF(TEXT("조커 레벨 %d (최대)"), T.JLevel) : TrF(TEXT("조커 레벨 %d · 경험치 %.0f/%.0f"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel)), JokerPink, 10.f);
 			Add(JokerAbility(T.Joker), Fg, 10.f);
+			Add(Tr(TEXT("조커는 족보에 들어가지 않는다")), Grey, 10.f); // D-489
 		}
 		else
 		{
@@ -252,8 +253,7 @@ void SPDBoardWidget::CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) 
 	}
 	case ECellAct::Feed:
 	{
-		int32 Gone = 0;
-		for (int K : A->Cells) Gone += !G.Towers.at(K).IsJoker();
+		const int32 Gone = (int32)A->Cells.size();
 		if (!Copy.Feed(A->A, Cell) || !Copy.Towers.count(Cell)) break;
 		const FPDTower& J1 = Copy.Towers.at(Cell);
 		const float PwB = PowOf(Cell), PwA = PowIn(Copy, Cell), BoardB = PowerSum, BoardA = Copy.Power();
@@ -284,8 +284,7 @@ void SPDBoardWidget::CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) 
 		break;
 	case ECellAct::NoFuse: // 합성이 막힌 까닭 (D-371)
 		Add(TrF(TEXT("%s · 합성할 수 없다"), *HandLabel(G.Synergies[A->A])), Grey, 13.f, true);
-		if (A->B == (int32)FPDGame::EFuseBlock::Joker) { Add(Tr(TEXT("조커가 낀 족보는 합성하지 않는다")), Fg); Add(Tr(TEXT("조커에 먹이면 조커 레벨이 오른다")), Grey, 10.f); }
-		else if (A->B == (int32)FPDGame::EFuseBlock::ClownPath) { Add(Tr(TEXT("키스톤 광대의 길: 합성은 레벨 2까지")), Fg); Add(Tr(TEXT("대신 조커 배율 +0.4")), Grey, 10.f); }
+		if (A->B == (int32)FPDGame::EFuseBlock::ClownPath) { Add(Tr(TEXT("키스톤 광대의 길: 합성은 레벨 2까지")), Fg); Add(Tr(TEXT("대신 조커 배율 +0.4")), Grey, 10.f); }
 		else Add(TrF(TEXT("이미 최고 합성 레벨 (Lv%d)"), MaxLevel), Fg);
 		break;
 	case ECellAct::Sell:

@@ -131,6 +131,7 @@ enum class EPDInstant : uint8_t { Wild, Draw2, Repair, Xp, Swap, Count }; // 경
 constexpr float WildChance = 0.5f; // 부적 창마다 와일드가 셋째 칸에 들 확률
 constexpr float SwapChance = 0.4f; // 와일드가 없을 때 자리바꿈이 셋째 칸에 들 확률 (D-149)
 constexpr int SwapPerReward = 2;    // 자리바꿈 보상 한 장 = 2번
+constexpr int StartSwaps = 2;       // 새 판은 자리바꿈 2번으로 시작 (D-489): 조커를 판 구석으로 옮기라고
 struct FPDReward
 {
 	bool bCharm = true;
@@ -582,10 +583,8 @@ public:
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;
 	// 합성이 막힌 까닭 (D-371): 화면이 '합성 불가' 줄에 이유를 보여 준다
-	enum class EFuseBlock : uint8_t { None, NotInPlay, Joker, ClownPath, MaxLevel };
+	enum class EFuseBlock : uint8_t { None, NotInPlay, ClownPath, MaxLevel }; // 조커가 낀 족보(D-200)는 없어졌다 (D-489)
 	EFuseBlock FuseBlock(int SynergyIdx) const;
-	// 합성할 족보 (D-128): 조커가 든 족보는 조커를 뺀 칸들이 그대로 족보면 그 칸들만 (예: 조커 + ♦ 셋 = 플러시4 → ♦ 셋 플러시 합성)
-	bool FuseSynergy(int SynergyIdx, FPDSynergy& Out) const;
 	// 합성: 결과 타워가 놓일 칸을 재료 칸 중에서 고를 수 있다 (-1 = 기본 칸). 재료 밖 칸이면 실패
 	bool Fuse(int SynergyIdx, int TargetCell = -1);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
 	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
@@ -602,9 +601,9 @@ public:
 	std::vector<int> BestJokerPicks(EPDJoker J) const;
 	// 레시피에서 판에 모자란 족보 수 (같은 족보가 둘 필요하면 둘 다 세야). Missing = 모자란 족보 하나 (없으면 Count)
 	int JokerMissing(EPDJoker J, EPDHand* Missing = nullptr) const;
-	// 조커에 먹일 수 있는 족보 (족보마다 하나). OnlyJoker 를 주면 그 조커가 먹을 수 있는 족보만 (그 조커가 족보에 들었거나 맞닿음, D-213)
+	// 조커에 먹일 수 있는 족보 (족보마다 하나). 조커에 맞닿은 족보만 (D-489). OnlyJoker 를 주면 그 조커가 맞닿은 족보만 (D-213)
 	std::vector<FPDFeed> FeedTargets(int OnlyJoker = -1) const;
-	// 족보를 조커에 먹인다 (조커 아닌 칸은 사라지고 경험치). JokerKey 를 주면 그 조커가 먹는다 (D-213), 아니면 든 조커 → 맞닿은 조커 중 레벨 높은 쪽
+	// 족보를 조커에 먹인다 (족보 칸은 사라지고 경험치). JokerKey 를 주면 그 조커가 먹는다 (D-213), 아니면 맞닿은 조커 중 레벨 높은 쪽
 	bool Feed(int SynergyIdx, int JokerKey = -1);
 	std::vector<FPDJokerMerge> JokerMerges() const;  // 같은 조커끼리 맞닿은 묶음 (2개 이상)
 	bool MergeJokers(int MergeIdx, int TargetCell = -1); // 묶음을 조커 하나로 (위력 합 × JokerMergeBonus, 레벨은 가장 높은 것)
@@ -678,7 +677,7 @@ public:
 	float AutoStartT = -1.f; // 다음 웨이브 자동 시작까지 남은 시간 (음수 = 없음). Tick(화면) 에서만 줄어든다
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
 	int Xp = 0, Level = 1, Points = 0, XpEarned = 0; // 다음 레벨까지 모은 경험치, 레벨, 쓴 트리 포인트, 판에서 번 경험치 합
-	int Swaps = 0;                            // 남은 자리바꿈 (보상, D-149)
+	int Swaps = StartSwaps;                   // 남은 자리바꿈 (시작 2번 D-489 + 보상 D-149)
 	float XpCarry = 0.f;                      // 경험치 덤의 소수 부분
 	FPDTreeBits TreeOwned = FPDTreeBits(1);   // 찍은 노드 (0번 시작점은 처음부터)
 	std::array<int, (int)EPDUpgrade::Count> Upg = {}; // 강화 레벨 (판 밖 영구 강화가 채운다, D-228. 새 판에도 유지)

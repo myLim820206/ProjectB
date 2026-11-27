@@ -5,6 +5,7 @@
 #include "../Source/ProjectB/PDCore.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -183,7 +184,9 @@ static void UnitTests()
 	}
 	{ // 설치와 교체
 		FPDGame G(3);
+		G.Swaps = 0;
 		G.NewGame(true);
+		Expect(G.Swaps == 2 && StartSwaps == 2, "새 판은 자리바꿈 2번으로 시작 (D-489)");
 		G.Hand = {C(9), C(9, He), C(4, Di)};
 		int PX = -1, PY = -1;
 		for (int Y = 0; Y < Rows && PX < 0; ++Y) for (int X = 0; X < Cols; ++X) if (G.Path.IsPath(X, Y)) { PX = X; PY = Y; break; }
@@ -205,6 +208,7 @@ static void UnitTests()
 		// 자리바꿈 (D-149): 남은 횟수가 있어야, 타워끼리 바꾸기 / 빈 칸으로 옮기기 / 길 위는 안 됨
 		G.Hand = {C(4, He)};
 		G.Towers[CellKey(0, 0)].Level = 2;
+		G.Swaps = 0;
 		const bool bNone = G.SwapTowers(CellKey(0, 0), CellKey(1, 0));
 		G.Swaps = 3;
 		const bool bSw = G.SwapTowers(CellKey(0, 0), CellKey(1, 0));
@@ -256,7 +260,47 @@ static void UnitTests()
 		Put(Lo9, 0, 0, W); Put(Lo9, 1, 0, C(10)); Put(Lo9, 2, 0, C(11)); Put(Lo9, 3, 0, C(12)); Put(Lo9, 4, 0, C(13));
 		auto HasSF = [](FPDTowerMap M) { for (const FPDSynergy& S : ApplyEffects(M)) if (S.Kind == EPDHand::StraightFlush) return true; return false; };
 		Expect(!HasRoyal(Lo9) && HasSF(Lo9), "와일드 10 J Q K 에서 와일드가 10 쪽 끝이면 9 라서 로열 아님, 스트레이트 플러시 (D-190)");
-		Expect(HasRoyal(Lv2) && HasRoyal(Jk), "Lv2 와일드·A 자리 조커가 끼어도 로열");
+		Expect(HasRoyal(Lv2), "Lv2 와일드가 끼어도 로열");
+		Expect(!HasRoyal(Jk) && !HasSF(Jk), "A 자리 조커는 로열을 메우지 않는다: 10 J Q K 만 남아 로열·스트레이트 플러시 아님 (D-489)");
+	}
+	{ // 조커는 족보에 안 든다 (D-489): 빈 칸처럼 줄기를 끊는다. 와일드 카드는 그대로 만능
+		auto Joker = [](FPDTowerMap& M, int X, int Y, EPDJoker K) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = X; T.Y = Y; T.Joker = (int)K; T.Mult = 4.f; M[CellKey(X, Y)] = T; };
+		auto Has = [](const std::vector<FPDSynergy>& S, EPDHand H, int N) { for (const FPDSynergy& X : S) if (X.Kind == H && (int)X.Cells.size() == N) return true; return false; };
+		auto NoJokerCell = [](const FPDTowerMap& M, const std::vector<FPDSynergy>& S) { for (const FPDSynergy& X : S) for (int K : X.Cells) if (M.at(K).IsJoker()) return false; return true; };
+		FPDTowerMap Cut, Side, Wi, Jm;
+		// 5 6 [조커] 7 8: 줄기가 끊겨 스트레이트 없음 (조커를 건너뛰지 않음)
+		Put(Cut, 0, 0, C(5)); Put(Cut, 1, 0, C(6, EPDSuit::Heart)); Joker(Cut, 2, 0, EPDJoker::Baton); Put(Cut, 3, 0, C(7, EPDSuit::Club)); Put(Cut, 4, 0, C(8, EPDSuit::Diamond));
+		const std::vector<FPDSynergy> SCut = ComputeSynergies(Cut);
+		bool bStraight = false;
+		for (const FPDSynergy& X : SCut) bStraight = bStraight || X.Kind == EPDHand::Straight;
+		Expect(!bStraight && NoJokerCell(Cut, SCut), "5 6 [조커] 7 8 = 스트레이트 아님: 조커가 줄기를 끊는다 (D-489)");
+		// 5 6 7 8 9 옆에 조커가 붙어 있어도 스트레이트 5장 그대로, 조커는 안 든다
+		for (int X = 0; X < 5; ++X) Put(Side, X, 0, C(5 + X, X % 2 ? EPDSuit::Heart : EPDSuit::Spade));
+		Joker(Side, 2, 1, EPDJoker::Clown);
+		const std::vector<FPDSynergy> SSide = ComputeSynergies(Side);
+		Expect(Has(SSide, EPDHand::Straight, 5) && NoJokerCell(Side, SSide), "스트레이트 옆 조커: 스트레이트 5장 그대로, 조커 칸은 족보 밖 (D-489)");
+		// 9 [와일드] 9 = 트리플 (와일드는 만능), 9 [조커] 9 = 족보 없음
+		Put(Wi, 0, 0, C(9)); Put(Wi, 1, 0, FPDCard{0, EPDSuit::Wild}); Put(Wi, 2, 0, C(9, EPDSuit::Heart));
+		Put(Jm, 0, 0, C(9)); Joker(Jm, 1, 0, EPDJoker::Jack); Put(Jm, 2, 0, C(9, EPDSuit::Heart));
+		Expect(Has(ComputeSynergies(Wi), EPDHand::Triple, 3) && ComputeSynergies(Jm).empty(), "9 와일드 9 = 트리플, 9 조커 9 = 족보 없음 (와일드만 만능, D-489)");
+		// 조커 셋이 맞닿은 판 (QA 26 부록 A, 예전 135ms): 족보 계산 3ms 아래, 조커는 어느 족보에도 없음
+		FPDTowerMap A;
+		const int Rows26[][6] = {{8, 1, 11, 0, 2, -1}, {2, 2, 11, 2, 1, -1}, {4, 2, 13, 3, 1, -1}, {5, 2, 10, 1, 1, -1}, {4, 3, 4, 2, 1, -1}, {5, 3, 0, 4, 2, 2},
+			{3, 4, 14, 1, 1, -1}, {4, 4, 12, 3, 1, -1}, {5, 4, 0, 4, 1, 3}, {6, 4, 0, 4, 2, 5}, {7, 4, 9, 0, 1, -1}, {8, 4, 8, 0, 1, -1}, {11, 4, 3, 1, 1, -1},
+			{5, 5, 7, 3, 1, -1}, {6, 5, 2, 2, 1, -1}, {7, 5, 9, 3, 1, -1}, {11, 5, 6, 3, 1, -1}, {13, 5, 13, 1, 1, -1}, {14, 5, 8, 1, 1, -1}, {3, 6, 12, 3, 1, -1},
+			{11, 6, 13, 0, 1, -1}, {13, 6, 5, 0, 1, -1}, {11, 7, 12, 1, 1, -1}};
+		for (const auto& R : Rows26)
+		{
+			FPDTower T; T.X = R[0]; T.Y = R[1]; T.Card = {R[2], (EPDSuit)R[3]}; T.Level = R[4]; T.Joker = R[5];
+			if (R[0] == 8 && R[1] == 1) T.FuseHand = 9;
+			A[CellKey(R[0], R[1])] = T;
+		}
+		const auto T0 = std::chrono::steady_clock::now();
+		const std::vector<FPDSynergy> SA = ComputeSynergies(A); // 처음 보는 판이라 덩어리 캐시 없이 다 찾는다
+		const double Ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - T0).count();
+		char Buf[64];
+		std::snprintf(Buf, sizeof Buf, "%.2fms, 족보 %d", Ms, (int)SA.size());
+		Expect(Ms < 3.0 && NoJokerCell(A, SA), std::string("조커 셋 맞닿은 판 (QA 26 부록 A) 족보 계산 3ms 아래, 조커 칸은 족보 밖: ") + Buf);
 	}
 	{ // 적: 방패, 관통탄, 분열, 재생, 보스
 		FPDGame G(4);
@@ -439,10 +483,10 @@ static void UnitTests()
 		Put(G.Towers, 3, 5, C(11, Di));
 		G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
 		int Fl = -1;
-		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::Flush && G.Synergies[I].Cells.size() == 4) Fl = I;
-		FPDSynergy FS;
-		const bool bNo = Fl >= 0 && !G.CanFuse(Fl) && !G.FuseSynergy(Fl, FS) && !G.Fuse(Fl, CellKey(3, 3));
-		Expect(bNo && G.Towers.size() == 4, "조커 + ♦ 셋 = 플러시4 → 조커가 껴서 합성 불가, 판 그대로");
+		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::Flush) Fl = I;
+		const bool bThree = Fl >= 0 && G.Synergies.size() == 1 && G.Synergies[Fl].Cells.size() == 3 && std::find(G.Synergies[Fl].Cells.begin(), G.Synergies[Fl].Cells.end(), CellKey(3, 2)) == G.Synergies[Fl].Cells.end();
+		const bool bFuse = bThree && G.CanFuse(Fl) && G.Fuse(Fl, CellKey(3, 3));
+		Expect(bThree && bFuse && G.Towers.size() == 2 && G.Towers.at(CellKey(3, 2)).IsJoker(), "조커 + ♦ 셋 = 조커 빼고 플러시3, 합성되고 조커는 남는다 (D-489)");
 	}
 	{ // 조커 처치 경험치 (D-125): 조커가 잡으면 +1 (보스 +15), 다른 타워가 잡으면 없음, 레벨업 사건
 		FPDGame G(21);
@@ -622,7 +666,7 @@ static void UnitTests()
 		for (const auto& KV : G.Towers) if (KV.second.Joker == (int)EPDJoker::Clown) { Clowns++; M = KV.second.Mult; Lv = KV.second.JLevel; }
 		Expect(bMerged && Clowns == 1 && std::fabs(M - 10.f * JokerMergeBonus) < 1e-4f && Lv == 5 && G.Towers.size() == 2 && Pw.After > 0.f,
 			"같은 광대 둘이 맞닿으면 하나로: 위력 (4+6) × 1.3, 레벨은 높은 쪽 5");
-		// 조커가 족보에 와일드로 끼어도 먹이기에서 조커는 사라지지 않는다
+		// 조커 옆 족보를 먹여도 조커는 사라지지 않는다 (조커는 족보에 안 든다, D-489)
 		G.Towers.clear();
 		MakeJ(0, EPDJoker::Clown, 4.f, 1);
 		MakeJ(1, EPDJoker::Hatter, 4.f, 1);
@@ -634,6 +678,19 @@ static void UnitTests()
 		for (const auto& KV : G.Towers) Jokers += KV.second.IsJoker();
 		bFedJoker = Jokers < 2;
 		Expect(!bFedJoker, "조커는 먹이가 되지 않음 (먹이기 뒤에도 조커 둘 그대로)");
+		// 먹이기는 조커에 맞닿은 족보만 (D-489): 한 칸 떨어진 원 페어는 먹일 수 없다
+		G.Towers.clear();
+		MakeJ(0, EPDJoker::Clown, 4.f, 1);
+		Put(G.Towers, 2, Row, C(9)); Put(G.Towers, 3, Row, C(9, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		const bool bFar = G.Synergies.size() == 1 && G.FeedTargets().empty() && G.FeedTargets(CellKey(0, Row)).empty() && !G.Feed(0, CellKey(0, Row));
+		Put(G.Towers, 1, Row, C(5, Di)); // 조커와 페어 사이를 카드로 메워도 페어는 여전히 조커에 안 닿는다
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		int PairI = -1;
+		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::Pair) PairI = I;
+		bool bPairFeed = false;
+		for (const FPDFeed& Fd : G.FeedTargets()) bPairFeed = bPairFeed || Fd.Syn == PairI;
+		Expect(bFar && PairI >= 0 && !bPairFeed, "먹이기는 조커에 맞닿은 족보만: 떨어진 원 페어는 먹일 수 없다 (D-489)");
 	}
 	{ // 부적 창은 5웨이브마다 (D-101): 그 사이 웨이브는 창 없이 5초 뒤 다음 웨이브
 		FPDGame G(12);
@@ -859,8 +916,9 @@ static void UnitTests()
 		{
 			const int JKey = G.Towers.begin()->first, JX = JKey % Cols;
 			const float D0 = TowerStats(G.Towers.at(JKey)).Dmg; // 족보에 안 든 조커 혼자
-			Put(G.Towers, JX + 1, Row, C(9)); Put(G.Towers, JX + 2, Row, C(9, He)); // 조커(와일드)가 끼어 트리플
+			Put(G.Towers, JX + 1, Row, C(9)); Put(G.Towers, JX + 2, Row, C(9, He)); // 조커 옆 원 페어 (조커는 족보에 안 들어 트리플이 아니다, D-489)
 			G.Synergies = ApplyEffects(G.Towers, 0);
+			Expect(G.Synergies.size() == 1 && G.Synergies[0].Kind == EPDHand::Pair && G.Synergies[0].Cells.size() == 2, "조커 옆 9 9 는 원 페어 (트리플 아님, D-489)");
 			auto Fd = G.FeedTargets();
 			const int SV = Fd.empty() ? 0 : G.Synergies[Fd[0].Syn].Value;
 			const float M0 = G.Towers.at(JKey).Mult, Gain = Fd.empty() ? 0.f : Fd[0].Gain; // 흡수 (D-191)
@@ -873,7 +931,7 @@ static void UnitTests()
 				"조커 옆 족보 먹이기: 경험치만큼 레벨 업 (레벨마다 위력 +15%) + 먹인 위력 60% 흡수 (D-191), 먹인 칸은 사라짐");
 			G.Towers.at(JKey).JLevel = JokerUpLevel - 1;
 			G.Towers.at(JKey).JXp = JokerXpNeed(JokerUpLevel - 1) - 1.f;
-			Put(G.Towers, JX + 1, Row, C(4)); Put(G.Towers, JX + 2, Row, C(5, He));
+			Put(G.Towers, JX + 1, Row, C(4)); Put(G.Towers, JX + 2, Row, C(4, He));
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			auto Fd2 = G.FeedTargets();
 			Expect(!Fd2.empty() && G.Feed(Fd2[0].Syn) && G.Towers.at(JKey).JLevel >= JokerUpLevel && G.Mods.Up(G.Towers.at(JKey)), "레벨 10 이 되면 강화 능력");
@@ -884,12 +942,12 @@ static void UnitTests()
 			Jk2.JLevel = 1;
 			Jk2.JXp = 0.f;
 			G.Towers[J2] = Jk2;
-			Put(G.Towers, JX + 1, Row, C(6), 2); Put(G.Towers, JX + 2, Row, C(6, He), 2); // 레벨 2 원 페어 (조커는 와일드라 낄 수 있지만 레벨 2 둘이 따로 족보)
+			Put(G.Towers, JX + 1, Row, C(6), 2); Put(G.Towers, JX + 2, Row, C(6, He), 2); // 레벨 2 원 페어 (양쪽 조커 둘에 맞닿음)
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			int PairSyn = -1;
 			for (int I = 0; I < (int)G.Synergies.size(); ++I)
 			{
-				const std::vector<int>& Cs = G.Synergies[I].Cells; // 조커가 와일드로 껴도 된다
+				const std::vector<int>& Cs = G.Synergies[I].Cells;
 				if (std::find(Cs.begin(), Cs.end(), CellKey(JX + 1, Row)) != Cs.end()) PairSyn = I;
 			}
 			bool bDefaultHigh = false, bOnly2 = false;
@@ -899,7 +957,7 @@ static void UnitTests()
 			Expect(bDefaultHigh && bOnly2 && bFed && G.Towers.at(J2).JXp + G.Towers.at(J2).JLevel > 1.f && !G.Towers.count(CellKey(JX + 1, Row)),
 				"족보 양쪽에 조커 둘: 기본은 레벨 높은 쪽, 고르면 고른 조커(레벨 1)가 먹는다");
 		}
-		// 조커는 와일드: 레벨 2 타워 옆에 붙어도 족보
+		// 조커는 족보에 안 든다 (D-489): 레벨 2 타워 옆에 붙어도 족보 없음
 		G.Towers.clear();
 		FPDTower Jk;
 		Jk.Card = {0, EPDSuit::Wild};
@@ -909,7 +967,7 @@ static void UnitTests()
 		G.Towers[CellKey(0, Row)] = Jk;
 		Put(G.Towers, 1, Row, C(9), 2);
 		G.Synergies = ApplyEffects(G.Towers, 0);
-		Expect(G.Synergies.size() == 1 && !G.CanFuse(0), "조커는 레벨 2 타워와도 족보 (와일드), 조커가 든 족보는 합성 불가");
+		Expect(G.Synergies.empty(), "조커 + 레벨 2 타워 하나 = 족보 없음 (D-489, 예전엔 와일드로 원 페어)");
 		// 포카드를 기억하는 합성 타워(따로 선 레벨 3) + 플러시(4♦ 9♦ Q♦) → 체셔 (D-487)
 		G.Towers.clear();
 		PutFused(G.Towers, 0, Row, C(13), EPDHand::Four, 3);

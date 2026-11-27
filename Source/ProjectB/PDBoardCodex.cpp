@@ -270,7 +270,7 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 		}
 		else Row(*Lb, Hs, Y + 17.f);
 		Y += 70.f;
-		C.TextCentered(TEXT("레시피의 족보를 모두 골라 맞으면 조커 (판 어디에 있어도) · 재료가 적을수록 귀한 족보"), CX, Y, Dim, 11.f, false, CdxPgW - 60.f);
+		C.TextCentered(TEXT("레시피의 족보를 모두 골라 맞으면 조커 · 조커는 족보에 들어가지 않는다"), CX, Y, Dim, 11.f, false, CdxPgW - 60.f);
 		if (CdxShop()) BuyBtn();
 		return;
 	}

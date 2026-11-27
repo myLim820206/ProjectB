@@ -831,7 +831,7 @@ void SPDBoardWidget::DoFuse(int32 SynergyIdx, int32 Cell)
 {
 	if (!Game.CanFuse(SynergyIdx)) return;
 	PendingFuseCells.Reset();
-	for (int K : FuseSyn(Game, SynergyIdx).Cells) PendingFuseCells.Add(CellCenter(K));
+	for (int K : Game.Synergies[SynergyIdx].Cells) PendingFuseCells.Add(CellCenter(K));
 	if (!Game.Fuse(SynergyIdx, Cell)) PendingFuseCells.Reset();
 }
 
@@ -859,7 +859,7 @@ int32 SPDBoardWidget::FindPickIndex() const
 		return SameCells(U, PickCells) ? 0 : -1;
 	}
 	for (int32 I = 0; I < (int32)Game.Synergies.size(); ++I)
-		if (Game.CanFuse(I) && SameCells(FuseSyn(Game, I).Cells, PickCells)) return I;
+		if (Game.CanFuse(I) && SameCells(Game.Synergies[I].Cells, PickCells)) return I;
 	return -1;
 }
 
@@ -1193,7 +1193,7 @@ void SPDBoardWidget::UpdateHints(float Dt)
 		case EHint::Joker: bOn = (bBuild || bWave) && !JGroups.empty(); break;
 		case EHint::Feed: bOn = (bBuild || bWave) && !Game.FeedTargets().empty(); break;
 		case EHint::HandFull: bOn = (bBuild || bWave) && !Game.Hand.empty() && (int32)Game.Hand.size() >= Game.HandMax(); break;
-		case EHint::Swap: bOn = (bBuild || bWave) && Game.Swaps > 0; break;
+		case EHint::Swap: bOn = (bBuild || bWave) && Game.Swaps > 0 && BaseJokers() > 0; break; // 첫 조커를 만든 뒤 (D-489: 시작 자리바꿈 2번으로 조커를 구석에)
 		case EHint::Boss: bOn = bBuild && Game.Wave > 0 && Game.NextBossWave() == Game.Wave + 1; break;
 		case EHint::Shop: bOn = (bBuild || bWave) && Game.Wave > 0 && CanShop(); break;
 		case EHint::Reward: bOn = Game.Phase == EPDPhase::Reward; break;
@@ -1289,7 +1289,7 @@ void SPDBoardWidget::FeedClick(int32 Cell, bool bRight)
 		const std::vector<int>& Cs = Game.Synergies[Fd.Syn].Cells;
 		if (std::find(Cs.begin(), Cs.end(), Cell) == Cs.end()) continue;
 		PendingFuseCells.Reset();
-		for (int K : Cs) if (!Game.Towers.at(K).IsJoker()) PendingFuseCells.Add(CellCenter(K));
+		for (int K : Cs) PendingFuseCells.Add(CellCenter(K));
 		if (!Game.Feed(Fd.Syn, FeedJoker)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
 		return;
 	}
@@ -1345,7 +1345,7 @@ bool SPDBoardWidget::SynRevealed(int32 I) const
 	const int32 Key = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 	const std::vector<int>& Cells = Game.Synergies[I].Cells;
 	if (Key >= 0 && std::find(Cells.begin(), Cells.end(), Key) != Cells.end()) return true;
-	return Game.CanFuse(I) && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseBtnW(FuseSyn(Game, I)), FuseH);
+	return Game.CanFuse(I) && InBox(Mouse, FuseButtonCenter(Game.Synergies, I), FuseBtnW(Game.Synergies[I]), FuseH);
 }
 
 bool SPDBoardWidget::JokerRevealed(const FPDJokerGroup& Gr) const
@@ -1515,7 +1515,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		const int32 Key = CellAt(P);
 		bool bSameBtn = false;
 		if (bPickJoker) bSameBtn = InRect(P, CraftBtnX, CraftBtnY, CraftBtnW, CraftBtnH);
-		else if (const int32 Pi = FindPickIndex(); Pi >= 0) { const FVector2f B = FuseButtonCenter(Game.Synergies, Pi); bSameBtn = InBox(P, B, FuseBtnW(FuseSyn(Game, Pi)), FuseH); }
+		else if (const int32 Pi = FindPickIndex(); Pi >= 0) { const FVector2f B = FuseButtonCenter(Game.Synergies, Pi); bSameBtn = InBox(P, B, FuseBtnW(Game.Synergies[Pi]), FuseH); }
 		if (!bRight && bSameBtn) return;
 		else if (!bRight && Key >= 0 && std::find(PickCells.begin(), PickCells.end(), Key) != PickCells.end()) FinishPick(Key);
 		else PickCells.clear();
@@ -1635,7 +1635,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		{
 			const FPDSynergy& S = Game.Synergies[I];
 			if ((int32)S.Kind != HandFilter || !Game.CanFuse(I)) continue;
-			const std::vector<int> FC = FuseSyn(Game, I).Cells; // 조커 칸은 빠진다 (D-128)
+			const std::vector<int>& FC = Game.Synergies[I].Cells;
 			if (std::find(FC.begin(), FC.end(), Cell) == FC.end()) continue;
 			DoFuse(I, Cell);
 			return;

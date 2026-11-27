@@ -30,7 +30,7 @@ ko	en	ja	zh-Hans	zh-Hant	file
 칩이 모자란다	Not enough chips	チップが足りない	筹码不足	籌碼不足	PDBoardCodex.cpp
 %s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardCodex.cpp
 재료 %d	Ingredients %d	材料 %d	材料 %d	材料 %d	PDBoardCodex.cpp
-레시피의 족보를 모두 골라 맞으면 조커 (판 어디에 있어도) · 재료가 적을수록 귀한 족보	Pick every hand in the recipe to make a joker (anywhere on the board) · fewer ingredients means rarer hands	レシピの役をすべて選べばジョーカー(盤のどこでも) · 材料が少ないほど珍しい役	选齐配方中的所有牌型即成小丑(场上任意位置) · 材料越少, 牌型越稀有	選齊配方中的所有牌型即成小丑(場上任意位置) · 材料越少, 牌型越稀有	PDBoardCodex.cpp
+레시피의 족보를 모두 골라 맞으면 조커 · 조커는 족보에 들어가지 않는다	Pick every hand in a recipe to make a Joker · Jokers don't count in hands	レシピの役をすべて選ぶとジョーカー · ジョーカーは役に入らない	选齐配方中的牌型即可得到小丑 · 小丑不计入牌型	選齊配方中的牌型即可得到小丑 · 小丑不計入牌型	PDBoardCodex.cpp
 서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)	Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)	異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)	两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)	兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)	PDBoardCodex.cpp
 30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다	30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100	30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる	30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同	30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同	PDBoardCodex.cpp
 Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기	Tab: next board · ←→: page · Esc · Right-click: close	Tab: 次のボード · ←→: ページ · Esc · 右クリック: 閉じる	Tab: 下一块 · ←→: 翻页 · Esc · 右键: 关闭	Tab: 下一塊 · ←→: 翻頁 · Esc · 右鍵: 關閉	PDBoardCodex.cpp
@@ -52,7 +52,7 @@ Tab: 다음 판 · ←→: 쪽 · J / Esc · 오른쪽 클릭: 닫기	Tab: next 
 투 페어	Two Pair	ツーペア	两对	兩對	PDBoardDraw.h
 원 페어	One Pair	ワンペア	一对	一對	PDBoardDraw.h
 공격력 ×2.5 · 연사 ×2.5 · 넓은 범위	ATK ×2.5 · Rate ×2.5 · Wide area	攻撃力 ×2.5 · 連射 ×2.5 · 広範囲	攻击力 ×2.5 · 连射 ×2.5 · 大范围	攻擊力 ×2.5 · 連射 ×2.5 · 大範圍	PDBoardDraw.h
-공격력 ×5 (와일드·조커가 있어야)	ATK ×5 (needs a Wild or Joker)	攻撃力 ×5 (ワイルド・ジョーカーが必要)	攻击力 ×5 (需要百搭或小丑)	攻擊力 ×5 (需要百搭或小丑)	PDBoardDraw.h
+공격력 ×5 (와일드가 있어야)	ATK ×5 (needs a Wild)	攻撃力 ×5 (ワイルドが必要)	攻击力 ×5 (需要百搭)	攻擊力 ×5 (需要百搭)	PDBoardDraw.h
 공격력 ×2 · 연사 ×2 · 범위	ATK ×2 · Rate ×2 · Area	攻撃力 ×2 · 連射 ×2 · 範囲	攻击力 ×2 · 连射 ×2 · 范围	攻擊力 ×2 · 連射 ×2 · 範圍	PDBoardDraw.h
 공격력 ×3.5	ATK ×3.5	攻撃力 ×3.5	攻击力 ×3.5	攻擊力 ×3.5	PDBoardDraw.h
 공격력 ×1.5 · 연사 ×1.5 · 범위	ATK ×1.5 · Rate ×1.5 · Area	攻撃力 ×1.5 · 連射 ×1.5 · 範囲	攻击力 ×1.5 · 连射 ×1.5 · 范围	攻擊力 ×1.5 · 連射 ×1.5 · 範圍	PDBoardDraw.h
@@ -469,7 +469,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
 합성 레벨 %d!	Fusion Lv %d!	合成レベル %d!	合成等级 %d!	合成等級 %d!	PDBoardFx.cpp
 합성 불가 · %s	Can't fuse · %s	合成不可 · %s	不可合成 · %s	不可合成 · %s	PDBoardMenu.cpp
-조커가 낌	Joker inside	ジョーカー入り	含小丑	含小丑	PDBoardMenu.cpp
 최고 레벨	Max level	最大レベル	已满级	已滿級	PDBoardMenu.cpp
 %d장	%d cards	%d枚	%d张	%d張	PDBoardMenu.cpp
 조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDBoardMenu.cpp
@@ -484,6 +483,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
  · 둔화	 · slow	 · 減速	 · 减速	 · 減速	PDBoardMenu.cpp
 조커 레벨 %d (최대)	Joker level %d (max)	ジョーカーレベル %d (最大)	小丑等级 %d (最高)	小丑等級 %d (最高)	PDBoardMenu.cpp
 조커 레벨 %d · 경험치 %.0f/%.0f	Joker level %d · XP %.0f/%.0f	ジョーカーレベル %d · 経験値 %.0f/%.0f	小丑等级 %d · 经验 %.0f/%.0f	小丑等級 %d · 經驗 %.0f/%.0f	PDBoardMenu.cpp
+조커는 족보에 들어가지 않는다	Jokers don't count in hands	ジョーカーは役に入らない	小丑不计入牌型	小丑不計入牌型	PDBoardMenu.cpp
 특성 공격 ×%.1f 연사 ×%.1f	Trait ATK ×%.1f rate ×%.1f	特性 攻撃 ×%.1f 連射 ×%.1f	特性 攻击 ×%.1f 连射 ×%.1f	特性 攻擊 ×%.1f 連射 ×%.1f	PDBoardMenu.cpp
 합성하면: %s %s · %s Lv%d	After fusing: %s %s · %s Lv%d	合成すると: %s %s · %s Lv%d	合成后: %s %s · %s Lv%d	合成後: %s %s · %s Lv%d	PDBoardMenu.cpp
 위력 %s/초 → %s/초 (%s)	Power %s/s → %s/s (%s)	威力 %s/秒 → %s/秒 (%s)	威力 %s/秒 → %s/秒 (%s)	威力 %s/秒 → %s/秒 (%s)	PDBoardMenu.cpp
@@ -500,8 +500,6 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 조커: %s · 위력 ×%s	Joker: %s · power ×%s	ジョーカー: %s · 威力 ×%s	小丑: %s · 威力 ×%s	小丑: %s · 威力 ×%s	PDBoardMenu.cpp
 이 칸의 족보를 재료로 넣고 나머지 재료를 고른다	Uses this cell's hand as a material, then pick the rest	このマスの役を素材に入れ、残りの素材を選ぶ	用这一格的牌型作为材料，再选择其余材料	用這一格的牌型作為材料，再選擇其餘材料	PDBoardMenu.cpp
 %s · 합성할 수 없다	%s · can't be fused	%s · 合成できない	%s · 无法合成	%s · 無法合成	PDBoardMenu.cpp
-조커가 낀 족보는 합성하지 않는다	Hands with a Joker aren't fused	ジョーカー入りの役は合成しない	含小丑的牌型不会合成	含小丑的牌型不會合成	PDBoardMenu.cpp
-조커에 먹이면 조커 레벨이 오른다	Feed it to the Joker to raise its level	ジョーカーに食べさせるとレベルが上がる	喂给小丑可提升小丑等级	餵給小丑可提升小丑等級	PDBoardMenu.cpp
 키스톤 광대의 길: 합성은 레벨 2까지	Keystone Jester's Path: fusing only up to level 2	キーストーン 道化の道: 合成はレベル2まで	基石 小丑之路: 合成最多到2级	基石 小丑之路: 合成最多到2級	PDBoardMenu.cpp
 대신 조커 배율 +0.4	In exchange, Joker multiplier +0.4	代わりにジョーカー倍率 +0.4	作为交换，小丑倍率 +0.4	作為交換，小丑倍率 +0.4	PDBoardMenu.cpp
 이미 최고 합성 레벨 (Lv%d)	Already at max fuse level (Lv%d)	すでに最大合成レベル (Lv%d)	已是最高合成等级 (Lv%d)	已是最高合成等級 (Lv%d)	PDBoardMenu.cpp
@@ -563,7 +561,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 %s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)	Make %s: %d materials picked · click a candidate = add (Best = the game's pick)	%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)	制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)	製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)	PDBoardPaint.cpp
 레시피 완성: 고른 재료 칸 클릭 = 그 칸에 조커 · 오른쪽 클릭 = 재료 빼기 · Esc = 목록으로	Recipe complete: click a picked tile = Joker there · right-click = remove material · Esc = back to list	レシピ完成: 選んだ素材マスをクリック = そこにジョーカー · 右クリック = 素材を外す · Esc = リストへ	配方完成: 点击已选素材格 = 小丑放那里 · 右键 = 移除素材 · Esc = 返回列表	配方完成: 點擊已選素材格 = 小丑放那裡 · 右鍵 = 移除素材 · Esc = 返回列表	PDBoardPaint.cpp
 고른 재료 클릭 = 빼기 · 다른 곳 오른쪽 클릭 / Esc = 목록으로	Click a picked material = remove · right-click elsewhere / Esc = back to list	選んだ素材をクリック = 外す · ほかを右クリック / Esc = リストへ	点击已选素材 = 移除 · 右键别处 / Esc = 返回列表	點擊已選素材 = 移除 · 右鍵別處 / Esc = 返回列表	PDBoardPaint.cpp
-%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기	%s: nothing to fuse (max level or a Joker inside) · Esc: off	%s: 合成できる役がない (最大レベルかジョーカー入り) · Esc: やめる	%s: 没有可合成的牌型 (已满级或含小丑) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級或含小丑) · Esc: 關閉	PDBoardPaint.cpp
+%s: 합성할 수 있는 족보가 없다 (최대 레벨) · Esc: 끄기	%s: nothing to fuse (max level) · Esc: off	%s: 合成できる役がない (最大レベル) · Esc: やめる	%s: 没有可合成的牌型 (已满级) · Esc: 关闭	%s: 沒有可合成的牌型 (已滿級) · Esc: 關閉	PDBoardPaint.cpp
 상위: %s	Upper: %s	上位: %s	上位: %s	上位: %s	PDBoardPaint.cpp
 상위 조커 ???	Upper Joker ???	上位ジョーカー ???	上位小丑 ???	上位小丑 ???	PDBoardPaint.cpp
 조커 합치기	Merge Jokers	ジョーカー合体	合并小丑	合併小丑	PDBoardPaint.cpp
@@ -602,6 +600,7 @@ K 스킬 트리 · U 영구 강화 · J 도감 · Esc 또는 ? 클릭: 메뉴	K 
 1 · 2 · 3 또는 클릭으로 고르기   S: 건너뛰기	Pick with 1 · 2 · 3 or click   S: skip	1 · 2 · 3 かクリックで選ぶ   S: スキップ	按 1 · 2 · 3 或点击选择   S: 跳过	按 1 · 2 · 3 或點擊選擇   S: 跳過	PDBoardPaint.cpp
 칵테일 칸이 가득 찼다 (5/5)	Cocktail slots are full (5/5)	カクテル枠がいっぱい (5/5)	鸡尾酒栏已满 (5/5)	雞尾酒欄已滿 (5/5)	PDBoardPaint.cpp
 눌러서 보기	Click to view	クリックで表示	点击查看	點擊查看	PDBoardPaint.cpp
+레시피의 족보를 모두 골라 맞으면 조커 (판 어디에 있어도) · 재료가 적을수록 귀한 족보	Pick every hand in the recipe to make a joker (anywhere on the board) · fewer ingredients means rarer hands	レシピの役をすべて選べばジョーカー(盤のどこでも) · 材料が少ないほど珍しい役	选齐配方中的所有牌型即成小丑(场上任意位置) · 材料越少, 牌型越稀有	選齊配方中的所有牌型即成小丑(場上任意位置) · 材料越少, 牌型越稀有	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명	Hover a row for details	行にカーソルで説明	悬停查看说明	懸停查看說明	PDBoardPaint.cpp
 줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다	Hover a row for details · Click to unlock with chips	行にカーソルで説明 · クリックでチップを使って解放	悬停查看说明 · 点击用筹码解锁	懸停查看說明 · 點擊用籌碼解鎖	PDBoardPaint.cpp
 %d / %d 쪽  ·  휠: 넘기기	Page %d / %d  ·  Wheel: flip	%d / %d ページ  ·  ホイール: めくる	第 %d / %d 页  ·  滚轮: 翻页	第 %d / %d 頁  ·  滾輪: 翻頁	PDBoardPaint.cpp
@@ -655,7 +654,7 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 족보끼리 맞닿으면 연쇄 보너스가 붙는다	Touching hands earn a chain bonus	役同士が隣接すると連鎖ボーナス	牌型相邻会获得连锁加成	牌型相鄰會獲得連鎖加成	PDBoardPaint.cpp
 합성은 왼쪽 족보 목록에서 족보를 누르고 합쳐질 칸을 클릭	To fuse, pick a hand in the left list and click the tile to fuse into	合成は左の役リストで役を押し、まとめるマスをクリック	合成: 在左侧牌型列表选牌型, 再点要合成到的格子	合成: 在左側牌型列表選牌型, 再點要合成到的格子	PDBoardPaint.cpp
 레시피의 족보 2~4개를 골라 조커를 만들 수 있다 (판 어디에 있어도)	You can pick the 2-4 hands of a recipe to make a Joker (anywhere on the board)	レシピの役を2~4つ選んでジョーカーを作れる (盤のどこでも)	可以选配方中的 2~4 个牌型制作小丑 (棋盘任何位置)	可以選配方中的 2~4 個牌型製作小丑 (棋盤任何位置)	PDBoardPaint.cpp
-자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다	The Swap reward lets you swap two towers	入れ替え報酬でタワー2つの場所を交換できる	换位奖励可以交换两座塔的位置	換位獎勵可以交換兩座塔的位置	PDBoardPaint.cpp
+조커는 족보에 들어가지 않는다 · 자리바꿈으로 판 구석에 모아 두자	Jokers don't count in hands · Use Swap to gather them in a corner	ジョーカーは役に入らない · 入れ替えで盤の隅に集めよう	小丑不计入牌型 · 用换位把它们集中到角落	小丑不計入牌型 · 用換位把它們集中到角落	PDBoardPaint.cpp
 무늬는 공격 방식, 숫자는 공격력	Suit sets the attack type, rank sets attack power	スートは攻撃方式、数字は攻撃力	花色决定攻击方式, 点数决定攻击力	花色決定攻擊方式, 點數決定攻擊力	PDBoardPaint.cpp
 받은 칩	Chips earned	獲得チップ	获得筹码	獲得籌碼	PDBoardPaint.cpp
 목표 달성! 칵테일 열림: %s	Goal reached! Cocktail unlocked: %s	目標達成! カクテル解放: %s	目标达成! 解锁鸡尾酒: %s	目標達成! 解鎖雞尾酒: %s	PDBoardPaint.cpp
@@ -695,8 +694,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요	and click a glowing hand to feed it and raise its joker level	光る役のマスを押して食べさせるとジョーカーレベルが上がります	点击发光的牌型格子喂食，小丑等级就会提升	點擊發光的牌型格子餵食，小丑等級就會提升	PDBoardPaint.cpp
 카드를 오른쪽 클릭해 버리거나	Right-click a card to discard it, or	カードを右クリックで捨てるか	右键卡牌丢弃, 或	右鍵卡牌丟棄, 或	PDBoardPaint.cpp
 Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タワーの上に置いて入れ替えましょう	放到 Lv1 塔上替换	放到 Lv1 塔上替換	PDBoardPaint.cpp
-자리바꿈 버튼(X)을 누르고 타워 둘을 고르면	Press the Swap button (X) and pick two towers	入れ替えボタン(X)を押してタワーを2つ選ぶと	按换位按钮 (X) 并选两座塔	按換位按鈕 (X) 並選兩座塔	PDBoardPaint.cpp
-자리를 바꿀 수 있어요	to swap their places	場所を入れ替えられます	即可交换位置	即可交換位置	PDBoardPaint.cpp
+조커는 족보에 들어가지 않아요. 자리바꿈(X)을 누르고	Jokers don't count in hands. Press Swap (X)	ジョーカーは役に入りません。入れ替え(X)を押して	小丑不计入牌型。按下换位(X)	小丑不計入牌型。按下換位(X)	PDBoardPaint.cpp
+조커를 판 구석으로 옮기면 족보 자리가 넓어져요	and move Jokers to a corner to free room for hands	ジョーカーを隅に移すと役を作る場所が広がります	把小丑移到角落，就有更多地方组牌型	把小丑移到角落，就有更多地方組牌型	PDBoardPaint.cpp
 다음 웨이브에 보스가 나와요	A boss comes next wave	次のウェーブにボスが出ます	下一波会出现首领	下一波會出現首領	PDBoardPaint.cpp
 채널 TV 다음 화 예고에 보스 이름이 나와요	The boss name appears in the TV channel's next-episode preview	チャンネルTVの次回予告にボスの名前が出ます	频道电视的下集预告里会出现首领名字	頻道電視的下集預告裡會出現首領名字	PDBoardPaint.cpp
 레벨이 올라 포인트가 생겼어요	You leveled up and got a point	レベルが上がってポイントを得た	升级了，获得了点数	升級了，獲得了點數	PDBoardPaint.cpp
@@ -981,7 +980,6 @@ Space: 웨이브 시작 · F: 배속 · Esc: 메뉴	Space: start wave · F: spee
 [조커 만들기](C): 족보 2~3개를 골라 레시피와 맞으면 조커	[Make Joker](C): pick 2–3 hands; if they match a recipe, you get a Joker	[ジョーカー作成](C): 役を2〜3個選び、レシピに合えばジョーカー	[制作小丑](C): 选 2~3 个牌型, 符合配方即成小丑	[製作小丑](C): 選 2~3 個牌型, 符合配方即成小丑	PDLangTable.inl
 왼쪽 족보 목록 클릭 → 칸 클릭: 합성 · C: 조커 만들기	Hand list → tile: fuse · C: make Joker	役リスト → マス: 合成 · C: ジョーカー作成	牌型列表 → 格子: 合成 · C: 制作小丑	牌型列表 → 格子: 合成 · C: 製作小丑	PDLangTable.inl
 족보 2~3개를 골라 만든다 (C)	Pick 2–3 hands to make (C)	役を2〜3個選んで作る (C)	选 2~3 个牌型制作 (C)	選 2~3 個牌型製作 (C)	PDLangTable.inl
-조커가 낀 족보는 합성할 수 없다	Hands with a Joker can't be fused	ジョーカー入りの役は合成できない	含小丑的牌型不能合成	含小丑的牌型不能合成	PDLangTable.inl
 최대 레벨이라 합성할 수 없다	Max level, can't fuse	最大レベルなので合成できない	已满级, 不能合成	已滿級, 不能合成	PDLangTable.inl
 %s만 보기: 그 족보 칸 클릭 = 합성 · 족보 목록 다시 클릭 / Esc: 끄기	Showing %s only: click its tiles = fuse · click the list again / Esc: off	%s のみ表示: その役のマスをクリック = 合成 · 役リストをもう一度 / Esc: 解除	只看%s: 点击该牌型的格 = 合成 · 再点牌型列表 / Esc: 关闭	只看%s: 點擊該牌型的格 = 合成 · 再點牌型列表 / Esc: 關閉	PDLangTable.inl
 족보에 마우스를 올리면 [합성] 버튼이 뜬다	Hover a hand to show the [Fuse] button	役にマウスを乗せると [合成] ボタンが出る	鼠标移到牌型上会出现 [合成] 按钮	滑鼠移到牌型上會出現 [合成] 按鈕	PDLangTable.inl
