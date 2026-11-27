@@ -2982,8 +2982,8 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	const FVector2f Piv(TX + TW / 2.f, TY + PDTitleLogo::SrcH * K / 2.f);
 	const float Ca = FMath::Cos(FMath::DegreesToRadians(AngleDeg)), Sa = FMath::Sin(FMath::DegreesToRadians(AngleDeg));
 	auto Rot = [&](FVector2f V) { if (AngleDeg == 0.f) return V; const FVector2f D = V - Piv; return Piv + FVector2f(D.X * Ca - D.Y * Sa, D.X * Sa + D.Y * Ca); };
-	static const TCHAR* Edge[4] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714"), TEXT("14d2eb")}; // 원본에서 잰 관 바깥 테. 3 = 잔 속 술 · 올리브 (D-472, 하늘)
-	static const TCHAR* Core[4] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5"), TEXT("afffff")}; // 관 가운데 파스텔
+	static const TCHAR* Edge[5] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714"), TEXT("14d2eb"), TEXT("ff2dcd")}; // 원본에서 잰 관 바깥 테. 3 = 잔 속 술 · 얼음 (D-472, 하늘), 4 = 잔 빨대 (가는 분홍, 밝기는 잔 CB, D-483)
+	static const TCHAR* Core[5] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5"), TEXT("afffff"), TEXT("ffaff2")}; // 관 가운데 파스텔
 	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
 	const bool bTitle = Wall > 0.f; // 시작 화면: 번짐 넓게 (D-464), 관 선 1.5배 (D-465). 인게임 배지는 그대로
 	const float LineK = bTitle ? 1.5f : 1.f;

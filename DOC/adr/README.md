@@ -27,4 +27,5 @@
 | D-479 | [저장소를 DOC/ 구조로 정리](D-479-repo-structure.md) | 확정 |
 | D-480 | [방울 멈춤을 둔화와 따로 둔다](D-480-bell-stop-separate.md) | 확정 |
 | D-481 | [간판 마티니 잔을 손으로 설계한 선으로 다시 그린다](D-481-sign-martini-redraw.md) | 일부 대체 (D-482) |
-| D-482 | [간판 마티니 잔: −8° 기울이고 관끼리 띄운다](D-482-sign-martini-tilt-gaps.md) | 확정 |
+| D-482 | [간판 마티니 잔: −8° 기울이고 관끼리 띄운다](D-482-sign-martini-tilt-gaps.md) | 일부 대체 (D-483) |
+| D-483 | [간판 마티니 잔을 인게임 시안 비율로](D-483-sign-martini-mockup-ratio.md) | 확정 |
