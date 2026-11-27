@@ -339,6 +339,29 @@ private:
 	TMap<int32, float> HpShown;  // 적 Id → 천천히 줄어드는 체력 막대 (깎인 만큼 흰색으로 보임)
 	void HitFx(FVector2f P, float Power, int32 Crits, float Dmg);                  // 맞는 순간 공통: 적 번쩍임, 피해 숫자, 작은 흰 섬광
 	void ImpactFx(PD::EPDShot K, FVector2f P, FVector2f Dir, FLinearColor Col, int32 Lv, float Power); // 발사체마다 다른 타격 효과
+	// 조커 · 상위 조커 발사체 40종 (D-488, PDJokerShots.cpp): 조커마다 다른 실루엣 · 색 · 움직임 · 착탄. Fx = 조커 번호 0~39
+	struct FStamp // 착탄 도장: 조커 실루엣이 커지며 사라짐
+	{
+		FVector2f P;
+		float T, MaxT, Ang, S0, S1;
+		int32 Fx;
+		bool bSecond;
+	};
+	TArray<FStamp> Stamps;
+	struct FShotSnap { PD::EPDShot Kind; float X, Y, VX, VY; int32 Fx; }; // 틱 직전 조커 발사체 (닿음 사건에서 쏜 조커를 찾는다)
+	TArray<FShotSnap> ShotSnaps;
+	static FLinearColor JokerFxColor(int32 Fx);
+	int32 JokerFxAt(int32 Key) const;                        // 그 칸 타워의 조커 번호 (-1 = 조커 아님)
+	int32 JokerFxOf(const PD::FPDProjectile& Pr) const;
+	int32 JokerFxOfImpact(const PD::FPDEvent& E) const;
+	void SnapShots();
+	FVector2f JokerShotPos(const PD::FPDProjectile& Pr, int32 Fx, int32 Copy, float& OutU, float& OutAng) const;
+	void PaintJokerShot(FCanvas& F, const PD::FPDProjectile& Pr, int32 Fx) const;
+	void PaintStamps(FCanvas& F) const;
+	static void DrawJokerShape(FCanvas& F, const TArray<TArray<FVector2f>>& L, const FLinearColor& Col, bool bWhiteCore);
+	void JokerTrail(const PD::FPDProjectile& Pr, int32 Fx);
+	void JokerImpactFx(int32 Fx, FVector2f P, FVector2f Dir, float Power);
+	void UpdateStamps(float Dt);
 	void BurstCone(FVector2f P, FVector2f Dir, float Spread, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak, float Gravity = 0.f);
 	void AddShards(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float LenMin, float LenMax, float Life);
 	void DeathFx(FVector2f P, PD::EPDEnemy Type);                                   // 죽는 순간
