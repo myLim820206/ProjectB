@@ -2691,12 +2691,14 @@ void FPDGame::Update(float Dt)
 	for (FPDEnemy& E : Enemies)
 	{
 		E.SlowT = std::max(0.f, E.SlowT - Dt);
+		if (E.SlowT <= 0.f) E.SlowAmt = 0.f; // 둔화가 끝나면 세기도 지운다 (가장 센 둔화가 계속 남지 않게)
+		E.StopT = std::max(0.f, E.StopT - Dt);
 		const float Rg = EnemyDef(E.Type).Regen + ((E.Mut & MutRegen) ? Boss::MutRegen : 0.f); // 재생하는 변이
 		if (Rg > 0.f && !E.bDead) E.Hp = std::min(E.MaxHp, E.Hp + E.MaxHp * Rg * Dt);
 		float PileK = 1.f;
 		for (const FPDChipPile& Pl : ChipPiles) if (std::fabs(Pl.D - E.D) <= Boss::PileRange) PileK = Boss::PileSpeed;
 		const float SpeedK = E.bDead ? 1.f : BossTick(E, Dt) * (InWarlordAura(E) ? Boss::AuraSpeed : 1.f) * PileK;
-		E.D += E.Speed * SpeedK * (E.SlowT > 0.f ? 1.f - E.SlowAmt : 1.f) * Dt;
+		E.D += E.Speed * SpeedK * (E.StopT > 0.f ? 0.f : E.SlowT > 0.f ? 1.f - E.SlowAmt : 1.f) * Dt;
 		if (E.D >= Path.Length && !E.bDead)
 		{
 			E.bDead = true;
@@ -2756,7 +2758,7 @@ void FPDGame::Update(float Dt)
 				for (FPDEnemy& E : Enemies)
 				{
 					const FPDPoint P = Path.At(E.D);
-					if (!E.bDead && std::hypot(P.X - TX, P.Y - TY) <= BellR) { E.SlowT = bRabbit ? 1.f : bUp ? 2.f : 1.5f; E.SlowAmt = 1.f; }
+					if (!E.bDead && std::hypot(P.X - TX, P.Y - TY) <= BellR) E.StopT = std::max(E.StopT, bRabbit ? 1.f : bUp ? 2.f : 1.5f);
 				}
 				FPDEvent B;
 				B.Kind = FPDEvent::EKind::Bell;
