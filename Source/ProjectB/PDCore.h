@@ -308,8 +308,22 @@ EPDHand CaptainHand(EPDJoker J);
 // 흔한 대장(원 페어 · 플러시 · 스트레이트 · 투 페어) 4개, 중간(트리플 · 풀하우스) 3개, 드문 대장 2개. 짝 재료는 흔한 족보만, 스트레이트는 레시피에 최대 하나
 constexpr int JokerRecipeMax = 4;
 const std::vector<EPDHand>& JokerRecipe(EPDJoker J);
-// 조커 등급 배율 (D-487, 예전 D-116): 재료 수로 정한다. 4개 ×1.6, 3개 ×2.5, 2개 ×3.5
+// 조커 등급 배율 (D-487, 예전 D-116): 재료 수로 정한다. 4개 ×1.6, 3개 ×2.5, 2개 ×3.5.
+// 대장 족보가 판 위에서 아주 드문 둘은 따로 (D-490): 모자 장수(스트레이트 플러시) ×5, 스타(로열) ×6
+constexpr float HatterTier = 5.f, StarTier = 6.f;
 float JokerTier(EPDJoker J);
+// 행운의 한 장 (D-490): 판에 같은 무늬 · 같은 레벨로 숫자가 이어진 줄(3 ~ 4장, 스트레이트 모양 D-108)을 지켜 두면
+// 웨이브를 막고 받는 카드 중 한 장이 확률로 그 줄 끝을 늘리는 카드로 온다 (덱에 남은 카드만, 웨이브에 한 번)
+constexpr float LuckyP4 = 0.4f, LuckyP3 = 0.15f;
+struct FPDLucky
+{
+	std::vector<int> Line;          // 줄 칸 (숫자 오름차순)
+	int Len = 0;                    // 0 = 줄 없음
+	int NWant = 0;                  // 기다리는 카드 수 (끝 둘까지)
+	FPDCard Want[2];                // 줄 끝을 늘리는 카드
+	int Cell[2] = {-1, -1};         // 그 카드를 놓을 빈 칸 (끝에 맞닿은 칸)
+	float P() const { return NWant == 0 ? 0.f : Len >= 4 ? LuckyP4 : LuckyP3; }
+};
 EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 레시피와 정확히 맞는 조커 (족보 묶음이 같아야, 개수도), 없으면 EPDJoker::Count
 constexpr float CaptainCommand = 0.3f; // 지휘: 판 위 자기 족보 타워 위력 +30%, 대장이 여럿이면 겹친다 (+60%, +90% …)
 constexpr int MaxLevel = 4;
@@ -319,6 +333,8 @@ inline int CellKey(int X, int Y) { return Y * Cols + X; }
 // 합성 결과가 놓일 기본 칸: 재료 칸들 가운데에 가장 가까운 칸 (같으면 먼저 나온 칸)
 int DefaultFuseCell(const std::vector<int>& Cells);
 using FPDTowerMap = std::map<int, FPDTower>;
+// 판에서 가장 긴 줄 (같으면 숫자가 높은 줄). Open(칸) = 그 칸이 비어 있고 지을 수 있음. 덱은 보지 않는다 (봇 어림용)
+FPDLucky FindLuckyLine(const FPDTowerMap& Towers, const std::function<bool(int)>& Open);
 
 struct FPDSynergy
 {
@@ -488,14 +504,14 @@ struct FPDProjectile
 // ---------------------------------------------------------------- 화면 연출용 사건 (위젯이 꺼내 파티클을 만든다)
 struct FPDEvent
 {
-	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp, LevelUp, RunClear } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
+	enum class EKind : uint8_t { Shot, Splash, Kill, Leak, Place, Synergy, WaveStart, WaveClear, GameOver, Discard, Reward, Fuse, JokerFuse, Feed, Bell, Star, TreeBuy, Impact, BossSkill, JokerMerge, JokerXp, LevelUp, RunClear, Lucky } Kind = EKind::Shot; // BossSkill: Enemy=보스, X·Y=보스 위치, X2·Y2=대상(파괴자: 기절한 타워 칸)
 	float X = 0.f, Y = 0.f, X2 = 0.f, Y2 = 0.f, R = 0.f;
 	EPDSuit Suit = EPDSuit::Spade;
 	EPDEnemy Enemy = EPDEnemy::Normal;
 	EPDHand Hand = EPDHand::Pair;
 	int Lv = 1;       // Shot·Impact: 쏜 타워 레벨 (그림 진화)
 	float Dmg = 0.f;  // Shot(즉시 발사체)·Impact: 목표에 준 피해 (화면의 피해 숫자)
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: A=새 레벨, B=오른 레벨 수, R=얻은 경험치 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: A=새 레벨, B=오른 레벨 수, R=얻은 경험치 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도 / Lucky: X·Y=기다리던 칸, A=숫자, Suit=무늬 (D-490)
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Clear }; // Reward: 부적 창에서 고르는 중, Clear: 모드 목표 웨이브를 넘김 (D-229)
@@ -678,6 +694,10 @@ public:
 	int BestWave = 0; // 이번 실행에서 가장 멀리 간 웨이브
 	int Xp = 0, Level = 1, Points = 0, XpEarned = 0; // 다음 레벨까지 모은 경험치, 레벨, 쓴 트리 포인트, 판에서 번 경험치 합
 	int Swaps = StartSwaps;                   // 남은 자리바꿈 (시작 2번 D-489 + 보상 D-149)
+	bool bLucky = true;                       // 행운의 한 장 (D-490). QA 가 끈 판과 비교할 때만 false
+	int LuckyHits = 0;                        // 이번 판에 행운의 한 장이 온 횟수 (봇 기록)
+	FPDLucky LuckyLine() const;               // 지금 판의 행운의 한 장 줄 (덱에 남은 카드만 기다림)
+	void LuckyDraw(int First, int Got);      // 행운의 한 장: 방금 받은 카드(Hand[First..]) 중 한 장을 확률로 줄 끝 카드로 (D-490)
 	float XpCarry = 0.f;                      // 경험치 덤의 소수 부분
 	FPDTreeBits TreeOwned = FPDTreeBits(1);   // 찍은 노드 (0번 시작점은 처음부터)
 	std::array<int, (int)EPDUpgrade::Count> Upg = {}; // 강화 레벨 (판 밖 영구 강화가 채운다, D-228. 새 판에도 유지)

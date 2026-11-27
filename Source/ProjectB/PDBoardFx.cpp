@@ -210,6 +210,15 @@ void SPDBoardWidget::HandleEvents()
 			FlashCol = Hex(TEXT("ff3a4a"));
 			break;
 		case FPDEvent::EKind::Discard: break;
+		case FPDEvent::EKind::Lucky: // 행운의 한 장 (D-490): 기다리던 칸에 금빛 고리 + 글
+		{
+			const FLinearColor LuckyGold = Hex(TEXT("ffd96a"));
+			Rings.Add({P, 8.f, 70.f, 0.f, 0.6f, 2.6f, LuckyGold});
+			Rings.Add({P, 6.f, 120.f, 0.2f, 1.0f, 1.8f, FLinearColor::White});
+			Burst(P, 36, LuckyGold, 60.f, 220.f, 0.9f, 2.4f, true);
+			Floats.Add({TrF(TEXT("행운의 한 장! %s %s"), *RankText(E.A), SuitName(E.Suit)), P - FVector2f(0.f, 30.f), 0.f, 2.2f, 20.f, LuckyGold});
+			break;
+		}
 		case FPDEvent::EKind::JokerFuse:
 		{
 			SuckIn(P, 10, 18.f, 0.45f, 1.8f, 3.2f, JokerPink, FLinearColor::White, 3);
