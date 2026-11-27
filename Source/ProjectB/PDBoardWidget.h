@@ -413,6 +413,7 @@ private:
 	bool bDevMode = false;                 // 개발자 모드 (D-485, F2, 쉬핑에도): F4 · F5, 도감 클릭 = 칵테일 켜기/끄기 · 조커 놓기
 	int32 DevJoker = -1;                   // 개발자 모드: 놓을 조커 번호 (기본 0~9, 상위 UpperBase+), -1 = 없음
 	bool bClickShift = false;              // 이번 클릭에 Shift (개발자 모드 조커 Lv10)
+	int32 DevMatLv = 1;                    // 개발자 모드: 놓을 조커의 재료 레벨 1~4 (D-486, 숫자 키)
 	// 도감 책자 (D-354, PDBoardCodex.cpp): 왼쪽 쪽 = 고른 항목 크게, 오른쪽 쪽 = 12줄 목록, 오른쪽 옆면 탭 넷(칵테일 · 조커 · 상위 조커 · 보스). 쪽 · 탭을 바꾸면 장이 휘며 넘어간다
 	struct FCdxView { int32 Tab = 0, Page = 0, Pick = 0; };
 	struct FCdxItem { FString Name, Desc, Note, Right; int32 Price = 0; bool bKnown = true, bHave = false, bOpen = false, bMat = true, bGoal = false; };

@@ -2255,27 +2255,76 @@ bool FPDGame::DevToggleCharm(int Id)
 	return bOn;
 }
 
-float FPDGame::DevJokerMult(int Joker) const
+static int PDMinCards(EPDHand H) // 족보가 되는 가장 적은 장수 (스트레이트 · 플러시 3장, D-418)
 {
-	auto Basic = [this](int J) { return 6.f * JokerMult() * JokerTier((EPDJoker)J) * (1.f + JokerCardBonus * 6.f); }; // 재료 위력 합 6 · 카드 6장 (D-114)
-	if (Joker >= 0 && Joker < (int)EPDJoker::Count) return Basic(Joker);
-	if (!IsUpperJoker(Joker)) return 1.f;
-	const FPDUpperDef& D = UpperDef(Joker - UpperBase);
-	const float Bonus = Mods.Key(EPDKeystone::Crown) ? 2.2f : D.Special == EPDUpperSpecial::None ? UpperBonusPlain : UpperBonus; // MergeJokers 와 같은 식
-	return (Basic((int)D.A) + Basic((int)D.B)) * Bonus * (1.f + Mods.UpperPrep);
+	switch (H)
+	{
+	case EPDHand::Pair: return 2;
+	case EPDHand::Triple: case EPDHand::Straight: case EPDHand::Flush: return 3;
+	case EPDHand::TwoPair: case EPDHand::Four: return 4;
+	default: return 5; // 풀하우스 · 스트레이트 플러시 · 파이브 · 로열
+	}
 }
 
-bool FPDGame::DevPlaceJoker(int Cell, int Joker, bool bUp)
+FPDTower FPDGame::DevJokerTower(int Joker, int MatLv) const
+{
+	const int L = std::clamp(MatLv, 1, MaxLevel);
+	FPDTower T;
+	T.Card = {0, EPDSuit::Wild};
+	T.Joker = Joker;
+	if (Joker >= 0 && Joker < (int)EPDJoker::Count)
+	{
+		float Sum = 0.f;
+		int Cells = 0;
+		for (EPDHand H : GPDRecipe[Joker])
+		{
+			const int N = PDMinCards(H);
+			if (L == 1) { Sum += N; Cells += N; continue; } // Lv1 카드 N 장 (위력 1, 특성 없음)
+			float M = 1.f; // Fuse: 위력 = 재료 N 개 합 × 합성 배율, 특성 = 큰 쪽 × 족보 효과, 범위는 큰 쪽
+			FPDTrait Tr;
+			for (int Lv = 2; Lv <= L; ++Lv)
+			{
+				M = N * M * FuseMult();
+				const FPDTrait Hd = HandTrait(H, N);
+				Tr.Dmg *= Hd.Dmg; Tr.Rate *= Hd.Rate; Tr.Range *= Hd.Range; Tr.Splash = std::max(Tr.Splash, Hd.Splash);
+			}
+			Sum += M;
+			Cells += 1;
+			T.TDmg = std::max(T.TDmg, Tr.Dmg); T.TRate = std::max(T.TRate, Tr.Rate); T.TRange = std::max(T.TRange, Tr.Range); T.TSplash = std::max(T.TSplash, Tr.Splash); // JokerFuseGroup: 특성은 재료 중 큰 쪽
+			T.Level = L;
+		}
+		T.Mult = Sum * JokerMult() * JokerTier((EPDJoker)Joker) * (1.f + JokerCardBonus * (float)Cells);
+		return T;
+	}
+	if (!IsUpperJoker(Joker)) return T;
+	const FPDUpperDef& D = UpperDef(Joker - UpperBase); // MergeJokers 와 같은 식
+	const FPDTower A = DevJokerTower((int)D.A, L), B = DevJokerTower((int)D.B, L);
+	const float Bonus = Mods.Key(EPDKeystone::Crown) ? 2.2f : D.Special == EPDUpperSpecial::None ? UpperBonusPlain : UpperBonus;
+	const int Tips = (Mods.Up((int)D.A) ? 1 : 0) + (Mods.Up((int)D.B) ? 1 : 0);
+	T.Mult = (A.Mult + B.Mult) * Bonus * (1.f + UpperTipBonus * Tips + Mods.UpperPrep);
+	T.Level = std::max(A.Level, B.Level);
+	T.TDmg = std::max(A.TDmg, B.TDmg); T.TRate = std::max(A.TRate, B.TRate); T.TRange = std::max(A.TRange, B.TRange); T.TSplash = std::max(A.TSplash, B.TSplash);
+	return T;
+}
+
+int FPDGame::DevJokerCards(int Joker, int MatLv) const
+{
+	const int L = std::clamp(MatLv, 1, MaxLevel);
+	if (IsUpperJoker(Joker)) { const FPDUpperDef& D = UpperDef(Joker - UpperBase); return DevJokerCards((int)D.A, L) + DevJokerCards((int)D.B, L); }
+	if (Joker < 0 || Joker >= (int)EPDJoker::Count) return 0;
+	int Sum = 0;
+	for (EPDHand H : GPDRecipe[Joker]) { int C = PDMinCards(H); for (int Lv = 3; Lv <= L; ++Lv) C *= PDMinCards(H); Sum += C; }
+	return Sum;
+}
+
+bool FPDGame::DevPlaceJoker(int Cell, int Joker, bool bUp, int MatLv)
 {
 	if (!InPlay() || Cell < 0 || !Buildable(Cell % Cols, Cell / Cols)) return false;
 	if (!(Joker >= 0 && Joker < (int)EPDJoker::Count) && !IsUpperJoker(Joker)) return false;
-	FPDTower T;
+	FPDTower T = DevJokerTower(Joker, MatLv);
 	T.X = Cell % Cols;
 	T.Y = Cell / Cols;
-	T.Card = {0, EPDSuit::Wild};
-	T.Joker = Joker;
 	T.JLevel = (bUp || IsUpperJoker(Joker)) ? JokerUpLevel : 1;
-	T.Mult = DevJokerMult(Joker);
 	Towers[Cell] = T;
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 	return true;

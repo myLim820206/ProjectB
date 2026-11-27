@@ -543,6 +543,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 F2 끄기 · F4 판 채우기 (웨이브 20) · F5 상위 조커로 채우기	F2 off · F4 fill board (wave 20) · F5 fill with upper jokers	F2 オフ・F4 盤を埋める（ウェーブ20）・F5 上位ジョーカーで埋める	F2 关闭 · F4 填满棋盘（第20波）· F5 用上位小丑填满	F2 關閉 · F4 填滿棋盤（第20波）· F5 用上位小丑填滿	PDBoardPaint.cpp
 도감(J) 줄 클릭: 칵테일 켜기/끄기 · 조커 놓기	Codex (J) row click: toggle cocktail · place joker	図鑑（J）の行をクリック：カクテルのオン/オフ・ジョーカーを置く	图鉴（J）点击条目：开关鸡尾酒 · 放置小丑	圖鑑（J）點擊條目：開關雞尾酒 · 放置小丑	PDBoardPaint.cpp
 놓을 조커: %s — 칸 클릭 (Shift = Lv10) · 오른쪽 클릭 = 끝	Joker to place: %s — click a cell (Shift = Lv10) · right-click = done	置くジョーカー：%s — マスをクリック（Shift = Lv10）・右クリック = 終了	要放置的小丑：%s — 点击格子（Shift = Lv10）· 右键 = 结束	要放置的小丑：%s — 點擊格子（Shift = Lv10）· 右鍵 = 結束	PDBoardPaint.cpp
+재료 Lv%d (숫자 1~4) · 카드 %d장 · 위력 ×%.0f	Materials Lv%d (keys 1-4) · %d cards · power ×%.0f	素材 Lv%d（数字1〜4）・カード%d枚・威力 ×%.0f	材料 Lv%d（数字1~4）· 卡牌%d张 · 威力 ×%.0f	材料 Lv%d（數字1~4）· 卡牌%d張 · 威力 ×%.0f	PDBoardPaint.cpp
 1초 최저 %.0f fps (%.1f ms)	1s low %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	1秒最低 %.0f fps (%.1f ms)	PDBoardPaint.cpp
 적 %d · 발사체 %d · 타워 %d	Enemies %d · Shots %d · Towers %d	敵 %d · 弾 %d · タワー %d	敌人 %d · 弹体 %d · 塔 %d	敵人 %d · 彈體 %d · 塔 %d	PDBoardPaint.cpp
 입자 %d · 고리 %d · 배속 ×%d · F3 닫기	Particles %d · Rings %d · Speed ×%d · F3 close	粒子 %d · リング %d · 倍速 ×%d · F3 閉じる	粒子 %d · 光环 %d · 倍速 ×%d · F3 关闭	粒子 %d · 光環 %d · 倍速 ×%d · F3 關閉	PDBoardPaint.cpp

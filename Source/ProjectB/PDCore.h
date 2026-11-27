@@ -582,8 +582,11 @@ public:
 	bool SellTower(int Cell);
 	// 개발자 모드 (D-485, 쉬핑에도): 칵테일 · 조커 성능과 이펙트 시험용
 	bool DevToggleCharm(int Id);                       // 칵테일 켜기/끄기 (칸 수 제한 없음). 켰으면 true
-	float DevJokerMult(int Joker) const;               // 시험용 조커 위력: 기본 조커 = Lv1 카드 6장으로 만든 것, 상위 조커 = 그런 재료 둘을 합친 것
-	bool DevPlaceJoker(int Cell, int Joker, bool bUp); // 칸에 조커를 놓는다 (있던 타워는 바꿈). bUp = 조커 레벨 10 (상위 조커는 늘 10)
+	// 재료 레벨 MatLv(1~4)로 만든 조커 (D-486): 3개 레시피 족보마다 가장 적은 장수, Lv2+ 는 그 족보로만 거듭 합성해 키운 타워 하나.
+	// 위력 · 특성 · 타워 레벨은 Fuse · JokerFuse · MergeJokers 와 같은 식. 상위 조커 = 재료 조커 둘(같은 MatLv)을 합친 것. 칸 · 조커 레벨은 안 채움
+	FPDTower DevJokerTower(int Joker, int MatLv) const;
+	int DevJokerCards(int Joker, int MatLv) const;     // 그 조커에 든 Lv1 카드 수 (Lv2 = 족보 장수, Lv3 = 장수², Lv4 = 장수³)
+	bool DevPlaceJoker(int Cell, int Joker, bool bUp, int MatLv = 1); // 칸에 조커를 놓는다 (있던 타워는 바꿈). bUp = 조커 레벨 10 (상위 조커는 늘 10)
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;

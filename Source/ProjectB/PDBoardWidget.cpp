@@ -1502,7 +1502,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (DevJoker >= 0 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave))
 	{
 		if (bRight) { DevJoker = -1; UiSound(EPDSound::Move); return; }
-		if (const int32 Cell = CellAt(P); Cell >= 0) { UiSound(Game.DevPlaceJoker(Cell, DevJoker, bClickShift) ? EPDSound::Lock : EPDSound::Denied); Sel = -1; return; }
+		if (const int32 Cell = CellAt(P); Cell >= 0) { UiSound(Game.DevPlaceJoker(Cell, DevJoker, bClickShift, DevMatLv) ? EPDSound::Lock : EPDSound::Denied); Sel = -1; return; }
 	}
 	// 칸 메뉴 상자 (D-312): 줄 클릭 = 그 일, 상자 안 다른 곳은 먹는다. 바깥 클릭 · 오른쪽 클릭 = 닫기 (다른 타워를 왼쪽 클릭하면 그 타워 메뉴)
 	if (MenuCell >= 0)
@@ -2096,6 +2096,11 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 #endif
 	if (K == EKeys::F2) { bDevMode = !bDevMode; DevJoker = -1; UiSound(bDevMode ? EPDSound::Clear : EPDSound::Move); return FReply::Handled(); } // 개발자 모드 (D-485, 쉬핑에도)
 	if (K == EKeys::Escape && DevJoker >= 0) { DevJoker = -1; return FReply::Handled(); } // 조커 놓기 끝
+	if (DevJoker >= 0) // 조커 놓는 중: 숫자 1~4 = 재료 레벨 (D-486). 손패 고르기 대신
+	{
+		const FKey LvKeys[4][2] = {{EKeys::One, EKeys::NumPadOne}, {EKeys::Two, EKeys::NumPadTwo}, {EKeys::Three, EKeys::NumPadThree}, {EKeys::Four, EKeys::NumPadFour}};
+		for (int32 L = 0; L < 4; ++L) if (K == LvKeys[L][0] || K == LvKeys[L][1]) { DevMatLv = L + 1; UiSound(EPDSound::Move); return FReply::Handled(); }
+	}
 #if WITH_EDITOR
 #if WITH_EDITOR
 	if (K == EKeys::F7 && Game.Phase != EPDPhase::Title) { LevelUpFrom = Game.Level; LevelUpTo = Game.Level + 1; LevelUpPts = 1; LevelUpAt = Clock; return FReply::Handled(); } // 레벨업 이펙트 미리 보기 (에디터, D-273)

@@ -1,7 +1,7 @@
 // 포커 디펜스 규칙 코어 시험 (언리얼 없이 실행)
 //   ./Tests/run.sh [봇 판 수]
 // 족보·연쇄·길·설치·적·부적·발사체·합성·조커·스킬 트리·골드 강화를 확인하고, 봇으로 밸런스를 본다.
-//   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만, ./Tests/run.sh N level [모드] 는 레벨 곡선
+//   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만, ./Tests/run.sh N level [모드] 는 레벨 곡선, ./Tests/run.sh 0 jokerlv [upper] 는 재료 레벨별 조커 세기 표
 #include <chrono>
 #include <cstdlib>
 #include "../Source/ProjectB/PDCore.h"
@@ -1742,25 +1742,60 @@ static void FuseRuleTests()
 		const bool bOff = !G.DevToggleCharm((int)EPDCharm::GlassCannon) && !G.Has(EPDCharm::GlassCannon);
 		for (int K = 0; K < 8; ++K) G.DevToggleCharm(K); // 칸 수(5) 제한 없이
 		const bool bMany = (int)G.Charms.size() == 8 && !G.DevToggleCharm(-1) && !G.DevToggleCharm((int)EPDCharm::Count);
-		// 기본 조커: 레벨 1 / 10, 위력 = Lv1 카드 6장으로 만든 조커와 같음
-		FPDGame H = FuseBoard();
-		Put(H.Towers, 0, Row, C(4)); Put(H.Towers, 1, Row, C(4, EPDSuit::Heart)); Put(H.Towers, 2, Row, C(9)); Put(H.Towers, 3, Row, C(9, EPDSuit::Heart)); Put(H.Towers, 4, Row, C(12)); Put(H.Towers, 5, Row, C(12, EPDSuit::Heart));
-		Refresh(H);
-		const auto Gs = H.JokerGroups();
-		float Made = -1.f; int MadeJ = -1;
-		for (const auto& Gr : Gs) if (Gr.Cells.size() == 6) { MadeJ = (int)Gr.Result; H.JokerFuse((int)(&Gr - &Gs[0])); for (auto& KV : H.Towers) if (KV.second.IsJoker()) Made = KV.second.Mult; break; }
-		const bool bSame = MadeJ >= 0 && Near(Made, G.DevJokerMult(MadeJ));
+		// 재료 레벨 1~4 로 만든 조커 (D-486): 실제로 카드를 놓고 합성 · 조커 만들기를 한 결과와 같아야 한다 (희비극 · 잭)
+		struct FReal
+		{
+			static FPDCard Card(EPDHand H, int X) { if (H == EPDHand::Flush) { const int R[3] = {2, 7, 11}; return {R[X], EPDSuit::Club}; } return H == EPDHand::Straight ? FPDCard{5 + X, (EPDSuit)(X % 2)} : FPDCard{9, (EPDSuit)X}; }
+			static int N(EPDHand H) { return H == EPDHand::Pair ? 2 : 3; }
+			static FPDTower Make(EPDHand H, int L) // 족보 H 를 실제 Fuse 로 레벨 L 까지 (같은 족보로 거듭)
+			{
+				FPDGame F = FuseBoard();
+				for (int X = 0; X < N(H); ++X) { FPDTower T; if (L > 2) T = Make(H, L - 1); T.X = X; T.Y = 9; T.Card = Card(H, X); F.Towers[CellKey(X, 9)] = T; }
+				Refresh(F);
+				for (int I = 0; I < (int)F.Synergies.size(); ++I) if (F.Synergies[I].Kind == H && (int)F.Synergies[I].Cells.size() == N(H)) { F.Fuse(I, CellKey(0, 9)); return F.Towers.at(CellKey(0, 9)); }
+				return FPDTower{};
+			}
+			static FPDTower Joker(EPDHand A, EPDHand B, EPDHand C, int L)
+			{
+				FPDGame G2 = FuseBoard();
+				const EPDHand Hs[3] = {A, B, C}; const int X0[3] = {0, 5, 10};
+				for (int I = 0; I < 3; ++I)
+				{
+					if (L == 1) for (int X = 0; X < N(Hs[I]); ++X) Put(G2.Towers, X0[I] + X, 9, Card(Hs[I], X));
+					else { FPDTower T = Make(Hs[I], L); T.X = X0[I]; T.Y = 9; T.Card = {2 + 3 * I, (EPDSuit)I}; G2.Towers[CellKey(X0[I], 9)] = T; }
+				}
+				Refresh(G2);
+				const auto Gs = G2.JokerGroups();
+				for (int I = 0; I < (int)Gs.size(); ++I) if (Gs[I].SynergyIdx.size() + Gs[I].FusedCells.size() == 3 && G2.JokerFuse(I)) for (auto& KV : G2.Towers) if (KV.second.IsJoker()) return KV.second;
+				return FPDTower{};
+			}
+		};
+		bool bSame = true;
+		std::string Why;
+		for (int L = 1; L <= MaxLevel; ++L)
+			for (int Pick = 0; Pick < 2; ++Pick)
+			{
+				const FPDTower R = Pick == 0 ? FReal::Joker(EPDHand::Pair, EPDHand::Straight, EPDHand::Flush, L) : FReal::Joker(EPDHand::Triple, EPDHand::Straight, EPDHand::Flush, L);
+				const int JK = Pick == 0 ? (int)EPDJoker::Comedy : (int)EPDJoker::Jack;
+				const FPDTower D = G.DevJokerTower(JK, L);
+				const bool bOk = R.Joker == JK && std::fabs(R.Mult - D.Mult) < 1e-3f * std::max(1.f, R.Mult) && Near(R.TDmg, D.TDmg) && Near(R.TRate, D.TRate) && Near(R.TSplash, D.TSplash) && R.Level == D.Level;
+				if (!bOk && Why.empty()) Why = " (어긋남: " + std::string(Pick ? "잭" : "희비극") + " 재료 Lv" + std::to_string(L) + " 실제 " + std::to_string(R.Mult) + " / 계산 " + std::to_string(D.Mult) + ")";
+				bSame = bSame && bOk;
+			}
+		const bool bCards = G.DevJokerCards((int)EPDJoker::Comedy, 1) == 8 && G.DevJokerCards((int)EPDJoker::Comedy, 2) == 8 && G.DevJokerCards((int)EPDJoker::Comedy, 4) == 8 + 27 + 27;
+		Expect(bSame && bCards, "재료 Lv1~4 로 만든 희비극 · 잭: 계산 = 실제 카드 놓고 합성 · 조커 만들기 결과, 카드 수 8 · 8 · 62" + Why);
 		const bool bPlace = G.DevPlaceJoker(CellKey(0, Row), (int)EPDJoker::Bell, false) && G.Towers.at(CellKey(0, Row)).JLevel == 1 && G.DevPlaceJoker(CellKey(1, Row), (int)EPDJoker::Bell, true) && G.Towers.at(CellKey(1, Row)).JLevel == JokerUpLevel;
 		const int U = UpperOf(EPDJoker::Hatter, EPDJoker::Cheshire);
-		const bool bUpper = G.DevPlaceJoker(CellKey(3, Row), UpperBase + U, false) && G.Towers.at(CellKey(3, Row)).JLevel == JokerUpLevel && Near(G.Towers.at(CellKey(3, Row)).Mult, (G.DevJokerMult((int)EPDJoker::Hatter) + G.DevJokerMult((int)EPDJoker::Cheshire)) * UpperBonus);
+		const bool bUpper = G.DevPlaceJoker(CellKey(3, Row), UpperBase + U, false, 3) && G.Towers.at(CellKey(3, Row)).JLevel == JokerUpLevel && G.Towers.at(CellKey(3, Row)).Level == 3
+			&& Near(G.Towers.at(CellKey(3, Row)).Mult, (G.DevJokerTower((int)EPDJoker::Hatter, 3).Mult + G.DevJokerTower((int)EPDJoker::Cheshire, 3).Mult) * UpperBonus);
 		Put(G.Towers, 4, Row, C(7));
 		const bool bReplace = G.DevPlaceJoker(CellKey(4, Row), (int)EPDJoker::Jack, false) && G.Towers.at(CellKey(4, Row)).IsJoker();
 		int JX, JY; float ND; NearPathCell(G, JX, JY, ND);
 		const bool bPath = !G.DevPlaceJoker(CellKey(JX - 1 >= 0 && G.Path.IsPath(JX - 1, JY) ? JX - 1 : JX + 1, JY), (int)EPDJoker::Jack, false) && !G.DevPlaceJoker(CellKey(5, Row), 99, false);
 		G.Phase = EPDPhase::Over;
 		const bool bOver = !G.DevPlaceJoker(CellKey(5, Row), (int)EPDJoker::Jack, false);
-		Expect(bOn && bOff && bMany && bSame && bPlace && bUpper && bReplace && bPath && bOver,
-			"개발자 모드: 유리 대포 켜면 목숨 −3 · 끄기 · 칸 수 제한 없음, 놓은 조커 위력 = 카드 6장으로 만든 조커, Lv1/Lv10, 다과회 = 재료 둘 ×1.5, 타워 바꿈, 길 · 없는 번호 · 게임 오버는 안 됨");
+		Expect(bOn && bOff && bMany && bPlace && bUpper && bReplace && bPath && bOver,
+			"개발자 모드: 유리 대포 켜면 목숨 −3 · 끄기 · 칸 수 제한 없음, 조커 Lv1/Lv10, 재료 Lv3 다과회 = 재료 조커 둘 ×1.5, 타워 바꿈, 길 · 없는 번호 · 게임 오버는 안 됨");
 	}
 	{ // 18. 무작위 판 2,000개: 아무 족보나 아무 칸에 합성해도 규칙이 깨지지 않는다
 		std::mt19937 Rng(2026);
@@ -2748,6 +2783,32 @@ int main(int Argc, char** Argv)
 				std::printf("   → %s 모드%s 클리어 %d / %d판\n", Names[M], U ? " (영구 강화 10레벨)" : "", GBotClears, Runs);
 			}
 		GBotMode = EPDMode::Endless;
+	}
+	else if (Argc > 2 && std::string(Argv[2]) == "jokerlv") // 재료 레벨별 조커 세기 표 (D-486): ./Tests/run.sh 0 jokerlv [upper]
+	{
+		static const char* JN[] = {"광대", "모자 장수", "웃는 가면", "희비극", "할리퀸", "지휘봉", "잭", "체셔", "방울", "스타"};
+		FPDGame G(42);
+		G.NewGame(true);
+		const bool bUpper = Argc > 3 && std::string(Argv[3]) == "upper";
+		std::printf("\n[재료 레벨별 조커 세기] 조커 하나만 (판 족보 · 오라 · 칵테일 · 트리 없음), 단일 대상 DPS = 공격력 × 초당 발\n");
+		std::printf("재료는 3개 레시피 족보마다 가장 적은 장수, Lv2+ 는 그 족보로만 거듭 합성. 카드 = 든 Lv1 카드 수\n");
+		std::printf(" %-22s 재료  카드 |   위력  공격특성 연사특성 범위 사거리 |    공격력  초당발        DPS   Lv1대비  카드당(Lv1대비)\n", "조커");
+		const int Count = bUpper ? UpperJokerCount : (int)EPDJoker::Count;
+		for (int K = 0; K < Count; ++K)
+		{
+			const int JK = bUpper ? UpperBase + K : K;
+			std::string Name = bUpper ? std::string(JN[(int)UpperDef(K).A]) + "+" + JN[(int)UpperDef(K).B] + (UpperDef(K).Special != EPDUpperSpecial::None ? " ★" : "") : JN[K];
+			double Dps1 = 0, PerCard1 = 0;
+			for (int L = 1; L <= MaxLevel; ++L)
+			{
+				FPDTower T = G.DevJokerTower(JK, L);
+				T.JLevel = IsUpperJoker(JK) ? JokerUpLevel : 1;
+				const FPDTowerStats St = TowerStats(T, 0, &G.Mods);
+				const double Dps = (double)St.Dmg * St.Rate, PerCard = Dps / std::max(1, G.DevJokerCards(JK, L));
+				if (L == 1) { Dps1 = Dps; PerCard1 = PerCard; }
+				std::printf(" %-22s  Lv%d %5d | %7.1f  %7.2f  %7.2f  %4.2f  %5.2f | %9.0f  %6.2f  %10.0f  %7.1f배  %7.1f배\n", L == 1 ? Name.c_str() : "", L, G.DevJokerCards(JK, L), T.Mult, T.TDmg, T.TRate, T.TSplash, St.Range, St.Dmg, St.Rate, Dps, Dps / Dps1, PerCard / PerCard1);
+			}
+		}
 	}
 	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "level") // 레벨 곡선 (D-479): level [모드 0=30 1=60 2=100 3=무한, 기본 0] — 트리까지 쓰는 봇
 	{
