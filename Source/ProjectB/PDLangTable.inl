@@ -30,9 +30,8 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("클릭해서 열기"), TEXT("Click to unlock"), TEXT("クリックで解放"), TEXT("点击解锁"), TEXT("點擊解鎖")},
 	{TEXT("칩이 모자란다"), TEXT("Not enough chips"), TEXT("チップが足りない"), TEXT("筹码不足"), TEXT("籌碼不足")},
 	{TEXT("%s 대장 · 위력 %s"), TEXT("%s captain · power %s"), TEXT("%s 隊長 · 威力 %s"), TEXT("%s 队长 · 威力 %s"), TEXT("%s 隊長 · 威力 %s")},
-	{TEXT("3개"), TEXT("3 hands"), TEXT("3つ"), TEXT("3个"), TEXT("3個")},
-	{TEXT("2개"), TEXT("2 hands"), TEXT("2つ"), TEXT("2个"), TEXT("2個")},
-	{TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)"), TEXT("Pick 3 (or 2) hands that match a recipe to make a joker (anywhere on the board)"), TEXT("役を3つ(または2つ)選びレシピと合えばジョーカー(盤のどこでも)"), TEXT("选 3 个(或 2 个)牌型，符合配方即成小丑(场上任意位置)"), TEXT("選 3 個(或 2 個)牌型，符合配方即成小丑(場上任意位置)")},
+	{TEXT("재료 %d"), TEXT("Ingredients %d"), TEXT("材料 %d"), TEXT("材料 %d"), TEXT("材料 %d")},
+	{TEXT("레시피의 족보를 모두 골라 맞으면 조커 (판 어디에 있어도) · 재료가 적을수록 귀한 족보"), TEXT("Pick every hand in the recipe to make a joker (anywhere on the board) · fewer ingredients means rarer hands"), TEXT("レシピの役をすべて選べばジョーカー(盤のどこでも) · 材料が少ないほど珍しい役"), TEXT("选齐配方中的所有牌型即成小丑(场上任意位置) · 材料越少, 牌型越稀有"), TEXT("選齊配方中的所有牌型即成小丑(場上任意位置) · 材料越少, 牌型越稀有")},
 	{TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)"), TEXT("Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)"), TEXT("異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)"), TEXT("两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)"), TEXT("兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)")},
 	{TEXT("30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다"), TEXT("30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100"), TEXT("30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる"), TEXT("30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同"), TEXT("30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同")},
 	{TEXT("Tab: 다음 판 · ←→: 쪽 · Esc · 오른쪽 클릭: 닫기"), TEXT("Tab: next board · ←→: page · Esc · Right-click: close"), TEXT("Tab: 次のボード · ←→: ページ · Esc · 右クリック: 閉じる"), TEXT("Tab: 下一块 · ←→: 翻页 · Esc · 右键: 关闭"), TEXT("Tab: 下一塊 · ←→: 翻頁 · Esc · 右鍵: 關閉")},
@@ -354,9 +353,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("판 전체 레이저: 모든 적에게 피해"), TEXT("Board-wide laser: hits every enemy"), TEXT("盤全体レーザー: 全ての敵にダメージ"), TEXT("全场激光: 伤害所有敌人"), TEXT("全場雷射: 傷害所有敵人")},
 	{TEXT("로열"), TEXT("Royal"), TEXT("ロイヤル"), TEXT("皇家"), TEXT("皇家")},
 	{TEXT("스티플"), TEXT("St. Flush"), TEXT("ストフラ"), TEXT("同花顺"), TEXT("同花順")},
-	{TEXT("3개: %s + %s + %s"), TEXT("3 hands: %s + %s + %s"), TEXT("3つ: %s + %s + %s"), TEXT("3个: %s + %s + %s"), TEXT("3個: %s + %s + %s")},
-	{TEXT("2개: %s + %s"), TEXT("2 hands: %s + %s"), TEXT("2つ: %s + %s"), TEXT("2个: %s + %s"), TEXT("2個: %s + %s")},
-	{TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 · 판 어디에 있어도 된다 · 3개 쪽이 카드가 많아 세다"), TEXT("Pick 3 (or 2) hands that match a recipe to make a Joker · they can be anywhere on the board · 3 hands use more cards, so it's stronger"), TEXT("役を3つ(または2つ)選んでレシピに合えばジョーカー · 盤のどこにあってもよい · 3つの方がカードが多くて強い"), TEXT("选 3 个(或 2 个)牌型, 符合配方即成小丑 · 在棋盘任何位置都行 · 3 个的卡更多, 更强"), TEXT("選 3 個(或 2 個)牌型, 符合配方即成小丑 · 在棋盤任何位置都行 · 3 個的卡更多, 更強")},
+	{TEXT("레시피의 족보를 모두 골라 맞으면 조커 · 판 어디에 있어도 된다 · 재료가 적을수록 귀한 족보"), TEXT("Pick every hand in the recipe to make a Joker · they can be anywhere on the board · fewer ingredients means rarer hands"), TEXT("レシピの役をすべて選べばジョーカー · 盤のどこにあってもよい · 材料が少ないほど珍しい役"), TEXT("选齐配方中的所有牌型即成小丑 · 在棋盘任何位置都行 · 材料越少, 牌型越稀有"), TEXT("選齊配方中的所有牌型即成小丑 · 在棋盤任何位置都行 · 材料越少, 牌型越稀有")},
 	{TEXT("지휘: %s · %s 타워 위력 +30%% (겹침)"), TEXT("Command: %s · %s towers power +30%% (stacks)"), TEXT("指揮: %s · %s のタワー威力 +30%% (重複)"), TEXT("指挥: %s · %s 塔威力 +30%% (可叠加)"), TEXT("指揮: %s · %s 塔威力 +30%% (可疊加)")},
 	{TEXT("지휘: %s 타워 위력 +30%% (겹침)"), TEXT("Command: %s towers power +30%% (stacks)"), TEXT("指揮: %s タワー威力 +30%% (重複可)"), TEXT("指挥: %s 塔威力 +30%% (可叠加)"), TEXT("指揮: %s 塔威力 +30%% (可疊加)")},
 	{TEXT("상위 조커: %s (%s + %s)"), TEXT("Upper Joker: %s (%s + %s)"), TEXT("上位ジョーカー: %s (%s + %s)"), TEXT("上位小丑: %s (%s + %s)"), TEXT("上位小丑: %s (%s + %s)")},
@@ -658,7 +655,7 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)"), TEXT("Adjacent towers forming a poker hand create a synergy (any shape)"), TEXT("隣り合うタワーがポーカーの役になるとシナジー (形は自由)"), TEXT("相邻的塔组成扑克牌型就有协同 (形状不限)"), TEXT("相鄰的塔組成撲克牌型就有協同 (形狀不限)")},
 	{TEXT("족보끼리 맞닿으면 연쇄 보너스가 붙는다"), TEXT("Touching hands earn a chain bonus"), TEXT("役同士が隣接すると連鎖ボーナス"), TEXT("牌型相邻会获得连锁加成"), TEXT("牌型相鄰會獲得連鎖加成")},
 	{TEXT("합성은 왼쪽 족보 목록에서 족보를 누르고 합쳐질 칸을 클릭"), TEXT("To fuse, pick a hand in the left list and click the tile to fuse into"), TEXT("合成は左の役リストで役を押し、まとめるマスをクリック"), TEXT("合成: 在左侧牌型列表选牌型, 再点要合成到的格子"), TEXT("合成: 在左側牌型列表選牌型, 再點要合成到的格子")},
-	{TEXT("족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)"), TEXT("You can pick 3 (or 2) hands to make a Joker (anywhere on the board)"), TEXT("役を3つ(または2つ)選んでジョーカーを作れる (盤のどこでも)"), TEXT("可以选 3 个(或 2 个)牌型制作小丑 (棋盘任何位置)"), TEXT("可以選 3 個(或 2 個)牌型製作小丑 (棋盤任何位置)")},
+	{TEXT("레시피의 족보 2~4개를 골라 조커를 만들 수 있다 (판 어디에 있어도)"), TEXT("You can pick the 2-4 hands of a recipe to make a Joker (anywhere on the board)"), TEXT("レシピの役を2~4つ選んでジョーカーを作れる (盤のどこでも)"), TEXT("可以选配方中的 2~4 个牌型制作小丑 (棋盘任何位置)"), TEXT("可以選配方中的 2~4 個牌型製作小丑 (棋盤任何位置)")},
 	{TEXT("자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다"), TEXT("The Swap reward lets you swap two towers"), TEXT("入れ替え報酬でタワー2つの場所を交換できる"), TEXT("换位奖励可以交换两座塔的位置"), TEXT("換位獎勵可以交換兩座塔的位置")},
 	{TEXT("무늬는 공격 방식, 숫자는 공격력"), TEXT("Suit sets the attack type, rank sets attack power"), TEXT("スートは攻撃方式、数字は攻撃力"), TEXT("花色决定攻击方式, 点数决定攻击力"), TEXT("花色決定攻擊方式, 點數決定攻擊力")},
 	{TEXT("받은 칩"), TEXT("Chips earned"), TEXT("獲得チップ"), TEXT("获得筹码"), TEXT("獲得籌碼")},
@@ -1031,4 +1028,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 };
-static const int32 PDLangRowCount = 1030;
+static const int32 PDLangRowCount = 1027;

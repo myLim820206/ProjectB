@@ -417,19 +417,16 @@ inline const TCHAR* JokerAbility(int K)
 	}
 	return *S;
 }
-// 조커 레시피 (D-115): 코어 JokerRecipe 의 족보 3개를 그대로 보여 준다
+// 조커 레시피 (D-487): 코어 JokerRecipe 의 족보 2~4개를 그대로 보여 준다. 재료 수가 곧 난이도라 머리에 "재료 N"
 inline const TCHAR* HandShort(EPDHand H) { return Tr(H == EPDHand::RoyalFlush ? TEXT("로열") : H == EPDHand::StraightFlush ? TEXT("스티플") : HandName(H)); } // 도감 칸이 좁아서
 inline FString JokerRecipeText(int K)
 {
-	const auto& R = JokerRecipe((EPDJoker)K);
-	return TrF(TEXT("3개: %s + %s + %s"), HandShort(R[0]), HandShort(R[1]), HandShort(R[2]));
+	const std::vector<EPDHand>& R = JokerRecipe((EPDJoker)K);
+	FString S = TrF(TEXT("재료 %d"), (int32)R.size());
+	for (EPDHand H : R) { S += TEXT(" · "); S += HandShort(H); }
+	return S;
 }
-inline FString JokerRecipe2Text(int K)
-{
-	const auto& R = JokerRecipe2((EPDJoker)K);
-	return TrF(TEXT("2개: %s + %s"), HandShort(R[0]), HandShort(R[1]));
-}
-inline FString JokerRuleText() { return TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 · 판 어디에 있어도 된다 · 3개 쪽이 카드가 많아 세다"); }
+inline FString JokerRuleText() { return TEXT("레시피의 족보를 모두 골라 맞으면 조커 · 판 어디에 있어도 된다 · 재료가 적을수록 귀한 족보"); }
 inline FString JokerCommand(int K)
 {
 	if (IsUpperJoker(K)) { const FPDUpperDef& D = UpperDef(K - UpperBase); return TrF(TEXT("지휘: %s · %s 타워 위력 +30%% (겹침)"), HandName(CaptainHand(D.A)), HandName(CaptainHand(D.B))); }

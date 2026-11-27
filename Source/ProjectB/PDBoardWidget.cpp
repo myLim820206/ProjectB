@@ -987,7 +987,7 @@ void SPDBoardWidget::CraftSelect(int32 Entry)
 
 namespace
 {
-// 고른 재료 족보들이 그 조커의 3개 또는 2개 레시피 안에 들어가나 (아직 덜 골랐어도)
+// 고른 재료 족보들이 그 조커의 레시피 안에 들어가나 (아직 덜 골랐어도)
 bool PDCraftFits(const std::vector<FPDJokerNode>& Ns, const std::vector<int>& Idx, int32 J)
 {
 	std::vector<int> Have;
@@ -1001,10 +1001,9 @@ bool PDCraftFits(const std::vector<FPDJokerNode>& Ns, const std::vector<int>& Id
 		std::sort(R.begin(), R.end());
 		return std::includes(R.begin(), R.end(), Have.begin(), Have.end());
 	};
-	std::vector<int> R3, R2;
-	for (EPDHand H : JokerRecipe((EPDJoker)J)) R3.push_back((int)H);
-	for (EPDHand H : JokerRecipe2((EPDJoker)J)) R2.push_back((int)H);
-	return Sub(R3) || Sub(R2);
+	std::vector<int> R;
+	for (EPDHand H : JokerRecipe((EPDJoker)J)) R.push_back((int)H);
+	return Sub(R);
 }
 }
 
@@ -1057,7 +1056,7 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 					if (std::find(Ns[I].Cells.begin(), Ns[I].Cells.end(), Cell) != Ns[I].Cells.end() && std::find(Idx.begin(), Idx.end(), I) == Idx.end()) Alt.push_back(I);
 				for (int C : Alt)
 				{
-					if (Idx.size() >= 3) break;
+					if (Idx.size() >= JokerRecipe((EPDJoker)CraftJoker).size()) break;
 					std::vector<int> Try = Idx;
 					Try.push_back(C);
 					if (PDCraftFits(Ns, Try, CraftJoker)) { CraftPicks.push_back(Ns[C].Cells); UiSound(EPDSound::Move); return; }
@@ -1084,7 +1083,7 @@ void SPDBoardWidget::CraftClick(int32 Cell)
 	std::stable_sort(Cands.begin(), Cands.end(), [&Ns](int A, int B) { return HandBaseValue(Ns[A].Kind) > HandBaseValue(Ns[B].Kind); });
 	for (int C : Cands)
 	{
-		if (Idx.size() < 3)
+		if (Idx.size() < JokerRecipe((EPDJoker)CraftJoker).size())
 		{
 			std::vector<int> Try = Idx;
 			Try.push_back(C);

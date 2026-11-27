@@ -1372,7 +1372,6 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		{
 			std::vector<EPDHand> Kinds;
 			for (EPDHand H : JokerRecipe((EPDJoker)J)) Kinds.push_back(H);
-			for (EPDHand H : JokerRecipe2((EPDJoker)J)) Kinds.push_back(H);
 			for (int32 I = 0; I < (int32)Ns.size(); ++I)
 			{
 				if (std::find(Kinds.begin(), Kinds.end(), Ns[I].Kind) == Kinds.end()) continue;
@@ -2617,7 +2616,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 				const FString TierS = FMath::IsNearlyEqual(Tier, FMath::RoundToFloat(Tier)) ? FString::Printf(TEXT("×%.0f"), Tier) : FString::Printf(TEXT("×%.1f"), Tier);
 				It.Right = It.bKnown ? TierS : FString(TEXT("?"));
 				if (!It.bKnown) { It.Name = TEXT("???"); It.Desc = Tr(TEXT("만들어 보면 열린다")); }
-				It.Note = JokerRecipeText(K) + TEXT("   ") + JokerRecipe2Text(K); // 레시피는 몰라도 보인다 (예전 도감과 같게)
+				It.Note = JokerRecipeText(K); // 레시피는 몰라도 보인다 (예전 도감과 같게)
 				It.Note2 = TrF(TEXT("%s 대장 · 위력 %s"), HandName(CaptainHand((EPDJoker)K)), *TierS) + (It.bKnown ? TEXT("  ·  ") + JokerCommand(K) : FString());
 			}
 			else if (UnlockTab == 2)
@@ -2664,7 +2663,7 @@ void SPDBoardWidget::PaintUnlock(FCanvas& C) const
 	}
 	// 아래: 안내 + 쪽 넘기기
 	C.Glow({FVector2f(UnlBX + 30.f, 640.f), FVector2f(UnlBX + UnlBW - 30.f, 640.f)}, WithAlpha(Pink, 0.5f), 1.f, 0.2f * NK);
-	C.TextCentered(bCdx ? (UnlockTab == 3 ? TEXT("30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다") : UnlockTab == 2 ? TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)") : UnlockTab == 1 ? TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)") : TEXT("줄에 마우스를 올리면 설명"))
+	C.TextCentered(bCdx ? (UnlockTab == 3 ? TEXT("30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다") : UnlockTab == 2 ? TEXT("서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)") : UnlockTab == 1 ? TEXT("레시피의 족보를 모두 골라 맞으면 조커 (판 어디에 있어도) · 재료가 적을수록 귀한 족보") : TEXT("줄에 마우스를 올리면 설명"))
 		: TEXT("줄에 마우스를 올리면 설명 · 클릭하면 칩으로 연다"), HCX, 668.f, Dim, 12.f, false, UnlBW - 120.f);
 	if (UnlPages() > 1)
 		for (int32 Dir = -1; Dir <= 1; Dir += 2)
@@ -3346,7 +3345,7 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 		TEXT("붙어 있는 타워들이 포커 족보가 되면 시너지 (모양 상관없이)"),
 		TEXT("족보끼리 맞닿으면 연쇄 보너스가 붙는다"),
 		TEXT("합성은 왼쪽 족보 목록에서 족보를 누르고 합쳐질 칸을 클릭"),
-		TEXT("족보 3개(또는 2개)를 골라 조커를 만들 수 있다 (판 어디에 있어도)"),
+		TEXT("레시피의 족보 2~4개를 골라 조커를 만들 수 있다 (판 어디에 있어도)"),
 		TEXT("자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다"),
 		TEXT("무늬는 공격 방식, 숫자는 공격력")};
 	C.TextCentered(Tips[FMath::Clamp(LoadTip, 0, 5)], CX, 466.f, Fg, 13.f, false, 760.f);
@@ -3961,14 +3960,8 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 				float X = LX + 18.f;
 				const float Ty = Y + 31.f;
 				int32 Slot = 0;
-				// 3개 · 2개 레시피 중 고른 재료가 더 많이 맞는 쪽을 보여 준다 (D-370): 2개 레시피로 완성됐는데 3개 레시피에 빈 칸이 보여 헷갈리던 것
-				auto Matched = [&Have](auto const& Rec) { std::vector<int> Hv = Have; int32 M = 0; for (EPDHand H : Rec) { auto Mi = std::find(Hv.begin(), Hv.end(), (int)H); if (Mi != Hv.end()) { Hv.erase(Mi); ++M; } } return M; };
-				const auto& R3 = JokerRecipe((EPDJoker)E.J);
-				const auto& R2 = JokerRecipe2((EPDJoker)E.J);
-				const int32 M3 = Matched(R3), M2 = Matched(R2);
-				const bool bUse2 = M3 < 3 && (M2 == 2 || M2 > M3);
-				std::vector<EPDHand> Rec = bUse2 ? std::vector<EPDHand>(R2.begin(), R2.end()) : std::vector<EPDHand>(R3.begin(), R3.end());
-				if (bUse2) { C.Text(TEXT("2개"), X, Ty, Dim, 9.f); X += FCanvas::Measure(TrS(TEXT("2개")), Fn).X + 5.f; } // 레시피 창의 '2개' 줄 머리와 같은 글자
+				// 레시피 하나 (D-487, 예전 D-370 의 3개/2개 전환은 없앰): 족보 자리마다 체크
+				const std::vector<EPDHand>& Rec = JokerRecipe((EPDJoker)E.J);
 				for (EPDHand H : Rec)
 				{
 					if (Slot++ > 0) { C.Text(TEXT(" · "), X, Ty, Dim, 9.f); X += FCanvas::Measure(TEXT(" · "), Fn).X; }

@@ -52,11 +52,10 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 			if (!G.JokerOpen(J)) continue;
 			std::vector<EPDHand> Kinds;
 			for (EPDHand H : JokerRecipe((EPDJoker)J)) Kinds.push_back(H);
-			for (EPDHand H : JokerRecipe2((EPDJoker)J)) Kinds.push_back(H);
 			for (const FPDJokerNode& N : Ns)
 			{
 				if (!HasCell(N.Cells, Cell) || std::find(Kinds.begin(), Kinds.end(), N.Kind) == Kinds.end()) continue;
-				auto Fits = [&Ns](const std::vector<EPDHand>& Rec) { // 판의 재료 수로 레시피(3개 또는 2개)가 채워지나 (BestJokerPicks 는 사본을 많이 만들어 비싸다)
+				auto Fits = [&Ns](const std::vector<EPDHand>& Rec) { // 판의 재료 수로 레시피가 채워지나 (BestJokerPicks 는 사본을 많이 만들어 비싸다)
 					if (Rec.empty()) return false;
 					for (EPDHand H : Rec)
 					{
@@ -67,10 +66,7 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 					}
 					return true;
 				};
-				std::vector<EPDHand> R3, R2;
-				for (EPDHand H : JokerRecipe((EPDJoker)J)) R3.push_back(H);
-				for (EPDHand H : JokerRecipe2((EPDJoker)J)) R2.push_back(H);
-				if (!Fits(R3) && !Fits(R2)) break;
+				if (!Fits(JokerRecipe((EPDJoker)J))) break;
 				FCellAct A;
 				A.Kind = ECellAct::Craft; A.A = J; A.Cells = N.Cells; A.Col = JokerPink;
 				A.Label = TrF(TEXT("조커: %s"), (G.Discovered >> J) & 1u ? JokerName(J) : TEXT("???"));

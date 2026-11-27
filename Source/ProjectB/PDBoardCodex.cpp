@@ -236,7 +236,7 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 	if (V.Tab == 1)
 	{
 		if (It.bKnown) { C.TextCentered(JokerCommand(V.Pick), CX, Y, JokerPink, 12.f, true, CdxPgW - 60.f); Y += 30.f; }
-		// 레시피: 족보 알약 이어 붙이기 (3개 · 2개)
+		// 레시피: 족보 알약 이어 붙이기
 		auto Row = [&](const TCHAR* Lb, const TArray<EPDHand>& Hs, float Ry)
 		{
 			float W = FCanvas::Measure(TrS(Lb), FCanvas::Font(11.f, false)).X + 10.f;
@@ -254,12 +254,23 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 				X += 20.f;
 			}
 		};
-		const auto& R3 = JokerRecipe((EPDJoker)V.Pick);
-		const auto& R2 = JokerRecipe2((EPDJoker)V.Pick);
-		Row(TEXT("3개"), {R3[0], R3[1], R3[2]}, Y);
-		Row(TEXT("2개"), {R2[0], R2[1]}, Y + 34.f);
+		// 레시피 하나 (D-487): "재료 N" + 알약. 재료 4개는 알약 폭이 커서 한 줄이 넘치면 두 줄로 나눈다
+		const std::vector<EPDHand>& Rec = JokerRecipe((EPDJoker)V.Pick);
+		TArray<EPDHand> Hs;
+		for (EPDHand H : Rec) Hs.Add(H);
+		const FString Lb = TrF(TEXT("재료 %d"), Hs.Num());
+		float RowW = FCanvas::Measure(Lb, FCanvas::Font(11.f, false)).X + 10.f;
+		for (EPDHand H : Hs) RowW += FCanvas::Measure(TrS(HandShort(H)), FCanvas::Font(12.f, true)).X + 42.f;
+		if (RowW - 20.f > CdxPgW - 60.f && Hs.Num() > 2)
+		{
+			Row(*Lb, {Hs[0], Hs[1]}, Y);
+			TArray<EPDHand> Rest;
+			for (int32 I = 2; I < Hs.Num(); ++I) Rest.Add(Hs[I]);
+			Row(TEXT("+"), Rest, Y + 34.f);
+		}
+		else Row(*Lb, Hs, Y + 17.f);
 		Y += 70.f;
-		C.TextCentered(TEXT("족보 3개(또는 2개)를 골라 레시피와 맞으면 조커 (판 어디에 있어도)"), CX, Y, Dim, 11.f, false, CdxPgW - 60.f);
+		C.TextCentered(TEXT("레시피의 족보를 모두 골라 맞으면 조커 (판 어디에 있어도) · 재료가 적을수록 귀한 족보"), CX, Y, Dim, 11.f, false, CdxPgW - 60.f);
 		if (CdxShop()) BuyBtn();
 		return;
 	}
