@@ -123,7 +123,7 @@ inline const TCHAR* HandName(EPDHand H)
 }
 inline const TCHAR* HandEffect(EPDHand H)
 {
-	static const TCHAR* N[] = {TEXT("공격력 ×2.5 · 연사 ×2.5 · 넓은 범위"), TEXT("공격력 ×5 (와일드·조커가 있어야)"), TEXT("공격력 ×2 · 연사 ×2 · 범위"), TEXT("공격력 ×3.5"), TEXT("공격력 ×1.5 · 연사 ×1.5 · 범위"), TEXT("범위 공격 (장수만큼 넓게)"),
+	static const TCHAR* N[] = {TEXT("공격력 ×2.5 · 연사 ×2.5 · 넓은 범위"), TEXT("공격력 ×5 (와일드가 있어야)"), TEXT("공격력 ×2 · 연사 ×2 · 범위"), TEXT("공격력 ×3.5"), TEXT("공격력 ×1.5 · 연사 ×1.5 · 범위"), TEXT("범위 공격 (장수만큼 넓게)"),
 		TEXT("연사 ×1.5 / ×1.75 / ×2"), TEXT("공격력 ×2"), TEXT("공격력 ×1.5 · 사거리 ×1.25"), TEXT("공격력 ×1.5")};
 	return Tr(N[(int)H]);
 }
@@ -500,7 +500,6 @@ inline FVector2f MergeButtonCenter(const std::vector<int>& Cells)
 // 합성 버튼: 족보 맨 아래 칸(같으면 왼쪽)의 아래 변 가운데
 constexpr float FuseW = 46.f, FuseH = 16.f; // 먹이기 버튼 크기 (합성 버튼 높이도)
 // 합성 버튼 글자 (D-122): "합성 · 원 페어" 처럼 족보 이름을 같이. 너비는 글자 수로 어림 (한글 10, 그 밖 6)
-inline FPDSynergy FuseSyn(const FPDGame& G, int I) { FPDSynergy S = G.Synergies[I]; G.FuseSynergy(I, S); return S; } // 실제로 합쳐질 족보 (조커 뺀 것, D-128)
 inline FString FuseLabel(const FPDSynergy& S) { return TrF(TEXT("합성 · %s"), HandShort(S.Kind)); }
 inline float FuseBtnW(const FPDSynergy& S)
 {

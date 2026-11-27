@@ -345,7 +345,7 @@ static void PDExtend(const std::vector<std::vector<int>>& Nb, std::vector<int>& 
 }
 
 // 스트레이트는 순서대로 (D-108): 칸들이 맞닿아 한 줄기로 이어지고, 그 줄기를 따라 숫자가 1씩 오른다 (꺾여도 됨, 거꾸로 읽어도 됨).
-// 조커·와일드는 아무 숫자, A 는 1 또는 14. 5칸이면 120가지 순서를 다 본다
+// 와일드는 아무 숫자, A 는 1 또는 14 (조커는 족보에 안 든다, D-489). 5칸이면 120가지 순서를 다 본다
 // NeedBase: 가장 낮은 숫자가 꼭 이것이어야 함 (로열 = 10, D-190). -1 이면 아무 숫자
 static bool PDOrderedStraight(const std::vector<int>& Cells, const std::vector<FPDCard>& Cards, int NeedBase = -1)
 {
@@ -383,7 +383,7 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 	std::set<int> Seen;
 	for (const auto& KV : Towers)
 	{
-		if (Seen.count(KV.first)) continue;
+		if (Seen.count(KV.first) || KV.second.IsJoker()) continue; // 조커 칸은 족보에 안 든다: 빈 칸처럼 줄기를 끊는다 (D-489)
 		// 덩어리 찾기
 		std::vector<int> Comp, Stack{KV.first};
 		Seen.insert(KV.first);
@@ -393,7 +393,8 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 			Stack.pop_back();
 			Comp.push_back(K);
 			PDForNeighbors(K, [&](int NK) {
-				if (Towers.count(NK) && !Seen.count(NK) && (Towers.at(NK).Level == Towers.at(K).Level || Towers.at(NK).IsJoker() || Towers.at(K).IsJoker())) { Seen.insert(NK); Stack.push_back(NK); } // 같은 레벨끼리만 이어짐 (조커는 아무 레벨과)
+				auto It = Towers.find(NK);
+				if (It != Towers.end() && !Seen.count(NK) && !It->second.IsJoker() && It->second.Level == Towers.at(K).Level) { Seen.insert(NK); Stack.push_back(NK); } // 같은 레벨끼리만 이어짐, 조커는 건너뛰지 않음
 			});
 		}
 		if (Comp.size() < 2) continue;
@@ -404,7 +405,7 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 		for (int K : Comp)
 		{
 			const FPDTower& T = Towers.at(K);
-			const uint64_t V = (uint64_t)K << 20 ^ (uint64_t)(T.IsJoker() ? 0 : T.Card.Rank) << 12 ^ (uint64_t)(T.IsJoker() ? 4 : (int)T.Card.Suit) << 8 ^ (uint64_t)(T.IsJoker() ? 15 : T.Level);
+			const uint64_t V = (uint64_t)K << 20 ^ (uint64_t)T.Card.Rank << 12 ^ (uint64_t)T.Card.Suit << 8 ^ (uint64_t)T.Level;
 			CompKey = (CompKey ^ V) * 1099511628211ull;
 		}
 		CompKey ^= (uint64_t)Comp.size() << 56;
@@ -419,15 +420,15 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 				auto It = Idx.find(NK);
 				if (It != Idx.end()) Nb[I].push_back(It->second);
 			});
-		// 가지치기 (D-134): 와일드·조커를 뺀 카드가 ① 무늬가 모두 같거나 ② 숫자가 모두 다르고 폭이 4 이하(A 는 1 또는 14)거나
+		// 가지치기 (D-134): 와일드를 뺀 카드가 ① 무늬가 모두 같거나 ② 숫자가 모두 다르고 폭이 4 이하(A 는 1 또는 14)거나
 		// ③ 숫자 종류가 2개 이하일 때만 족보(또는 더 큰 족보의 일부)가 될 수 있다. 레벨이 섞여도 안 됨. 큰 묶음으로 갈수록 조건이 줄기만 하므로 여기서 끊어도 빠지는 족보가 없다
 		std::vector<FPDCard> CardOf(Comp.size());
 		std::vector<int> LvOf(Comp.size());
 		for (int I = 0; I < (int)Comp.size(); ++I)
 		{
 			const FPDTower& T = Towers.at(Comp[I]);
-			CardOf[I] = T.IsJoker() ? FPDCard{0, EPDSuit::Wild} : T.Card;
-			LvOf[I] = T.IsJoker() ? -1 : T.Level;
+			CardOf[I] = T.Card;
+			LvOf[I] = T.Level;
 		}
 		auto Viable = [&](const std::vector<int>& Sub) {
 			int Lv = -1, Suit = -1, NR = 0, Ranks[5], HiMin = 99, HiMax = 0, LoMin = 99, LoMax = 0;
@@ -457,7 +458,7 @@ std::vector<FPDSynergy> ComputeSynergies(const FPDTowerMap& Towers)
 		auto OnSub = [&](const std::vector<int>& Sub) {
 			Cards.clear();
 			Cells.clear();
-			for (int I : Sub) { Cells.push_back(Comp[I]); Cards.push_back(CardOf[I]); } // 조커는 와일드
+			for (int I : Sub) { Cells.push_back(Comp[I]); Cards.push_back(CardOf[I]); }
 			int Ordered = -1; // 스트레이트 순서 검사 (필요할 때 한 번만)
 			for (EPDHand H : ClassifyHand(Cards))
 			{
@@ -924,7 +925,7 @@ void FPDGame::NewGame(bool bStart)
 	Kills = Leaks = Discarded = DeckRefills = 0;
 	Xp = Points = XpEarned = 0;
 	Level = 1;
-	Swaps = 0;
+	Swaps = StartSwaps; // 시작 자리바꿈 2번 (D-489)
 	XpCarry = 0.f;
 	TreeOwned = FPDTreeBits(1);
 	Mods = BuildTreeMods(TreeOwned);
@@ -1614,21 +1615,11 @@ FPDGame::EFuseBlock FPDGame::FuseBlock(int SynergyIdx) const
 {
 	if (!InPlay()) return EFuseBlock::NotInPlay;
 	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return EFuseBlock::NotInPlay;
-	FPDSynergy S;
-	if (!FuseSynergy(SynergyIdx, S)) return EFuseBlock::Joker;
+	const FPDSynergy& S = Synergies[SynergyIdx];
 	const int Lv = Towers.at(S.Cells[0]).Level;
 	if (Lv >= MaxLevel) return EFuseBlock::MaxLevel;
 	if (Mods.Key(EPDKeystone::ClownPath) && Lv >= 2) return EFuseBlock::ClownPath; // 광대의 길: 합성은 레벨 2까지
 	return EFuseBlock::None;
-}
-
-bool FPDGame::FuseSynergy(int SynergyIdx, FPDSynergy& Out) const
-{
-	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return false;
-	const FPDSynergy& S = Synergies[SynergyIdx];
-	for (int K : S.Cells) if (Towers.at(K).IsJoker()) return false; // 조커가 낀 족보는 합성 불가 (D-200, 예전 D-128 은 조커를 뺀 칸만 합성)
-	Out = S;
-	return true;
 }
 
 // 레시피 족보 자리마다 후보 재료(Cand[자리])를 하나씩 골라, 같이 넣을 수 있는 조합마다 Fn (D-487: 재료 2~4개).
@@ -1730,14 +1721,8 @@ std::vector<FPDJokerNode> FPDGame::JokerNodes() const
 	std::vector<FPDJokerNode> Nodes;
 	if (!InPlay()) return Nodes;
 	if (Mods.Key(EPDKeystone::Smith)) return Nodes; // 대장장이: 조커 포탑을 만들 수 없다
-	// 재료 후보: 조커가 없는 족보 + 족보에 안 든 합성 타워
-	std::set<int> InSyn;
-	for (int I = 0; I < (int)Synergies.size(); ++I)
-	{
-		bool bJoker = false;
-		for (int K : Synergies[I].Cells) { InSyn.insert(K); bJoker = bJoker || Towers.at(K).IsJoker(); }
-		if (!bJoker) { FPDJokerNode N; N.Syn = I; N.Cells = Synergies[I].Cells; N.Kind = Synergies[I].Kind; Nodes.push_back(N); }
-	}
+	// 재료 후보: 판 위 족보 모두 (조커는 족보에 안 든다, D-489) + 합성 타워
+	for (int I = 0; I < (int)Synergies.size(); ++I) { FPDJokerNode N; N.Syn = I; N.Cells = Synergies[I].Cells; N.Kind = Synergies[I].Kind; Nodes.push_back(N); }
 	for (const auto& KV : Towers)
 		if (KV.second.Level >= 2 && !KV.second.IsJoker() && KV.second.FuseHand >= 0) // 족보에 들어 있어도 기억한 족보로 재료 (D-220)
 		{
@@ -2024,15 +2009,14 @@ std::vector<FPDFeed> FPDGame::FeedTargets(int OnlyJoker) const
 	for (int I = 0; I < (int)Synergies.size(); ++I)
 	{
 		const FPDSynergy& S = Synergies[I];
-		// 먹을 조커: 족보 안에 든 조커(와일드로 든 것) 먼저, 없으면 맞닿은 조커 중 레벨이 가장 높은 것
-		int Best = -1, Inside = -1;
+		// 먹을 조커: 족보에 맞닿은 조커 중 레벨이 가장 높은 것 (조커는 족보에 안 든다, D-489)
+		int Best = -1;
 		float MultSum = 0.f;
 		int Fed = 0;
-		bool bOnly = false; // OnlyJoker 가 이 족보에 들었거나 맞닿았다
+		bool bOnly = false; // OnlyJoker 가 이 족보에 맞닿았다
 		for (int K : S.Cells)
 		{
 			const FPDTower& T = Towers.at(K);
-			if (T.IsJoker()) { bOnly = bOnly || K == OnlyJoker; if (Inside < 0 || T.JLevel > Towers.at(Inside).JLevel) Inside = K; continue; }
 			MultSum += T.Mult;
 			Fed++;
 			PDForNeighbors(K, [&](int NK) {
@@ -2042,14 +2026,13 @@ std::vector<FPDFeed> FPDGame::FeedTargets(int OnlyJoker) const
 				if (Best < 0 || It->second.JLevel > Towers.at(Best).JLevel) Best = It->first;
 			});
 		}
-		if (Inside >= 0) Best = Inside;
 		if (OnlyJoker >= 0) { if (!bOnly) continue; Best = OnlyJoker; } // 고른 조커가 먹는다 (D-213)
 		if (Best < 0 || Fed == 0 || Towers.at(Best).JLevel >= JokerMaxLevel) continue;
 		// 경험치 = 족보 점수 × 먹인 타워 평균 위력 (합성 타워일수록 많이)
 		// 흡수 (D-191): 먹인 타워의 실제 세기((3+숫자)·배율·특성)를 조커 단위로 바꿔 60% 를 더한다. 조커 카드는 와일드라 숫자 10
 		const FPDTower& Jt = Towers.at(Best);
 		float Val = 0.f;
-		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); if (!T.IsJoker()) Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
+		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
 		const float Gain = (Has(EPDCharm::FoodChain) ? 0.9f : JokerFeedAbsorb) * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate)); // 먹이 사슬 칵테일 90% (D-239)
 		Out.push_back({I, Best, S.Value * MultSum / Fed, Gain});
 	}
@@ -2064,7 +2047,7 @@ bool FPDGame::Feed(int SynergyIdx, int JokerKey)
 	if (!F) return false;
 	const int JKey = F->Joker;
 	const float FeedXp = F->Xp, Gain = F->Gain;
-	for (int K : Synergies[SynergyIdx].Cells) if (!Towers.at(K).IsJoker()) Towers.erase(K);
+	for (int K : Synergies[SynergyIdx].Cells) Towers.erase(K);
 	FPDTower& J = Towers.at(JKey);
 	const int Old = J.JLevel;
 	J.Mult += Gain; // 먹인 위력 흡수 (D-191)
@@ -2088,8 +2071,7 @@ bool FPDGame::Feed(int SynergyIdx, int JokerKey)
 bool FPDGame::Fuse(int SynergyIdx, int TargetCell)
 {
 	if (!CanFuse(SynergyIdx)) return false;
-	FPDSynergy S;
-	FuseSynergy(SynergyIdx, S); // 조커가 들었으면 조커를 뺀 칸들 (D-128)
+	const FPDSynergy S = Synergies[SynergyIdx]; // 조커는 족보에 안 든다 (D-489): 족보 칸이 그대로 재료
 	// 합쳐질 칸: 고른 칸 (재료 칸 중 하나), 안 골랐으면 족보 가운데에 가장 가까운 칸
 	const int Target = PDFuseTarget(S.Cells, TargetCell);
 	if (Target < 0) return false;

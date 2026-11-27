@@ -1487,7 +1487,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	}
 	bool bFuseHov = false; // 합쳐질 칸 위: 보통 타워 툴팁 대신 합성 전후 툴팁 (D-209)
 	int32 FuseHovSyn = -1;
-	// 합성 못 하는 족보(조커가 낌·최대 레벨)는 따로 표시하지 않고 다른 칸처럼 어둡게 (D-207, D-200 의 빨간 X 는 난잡해서 뺐다)
+	// 합성 못 하는 족보(최대 레벨 · 광대의 길)는 따로 표시하지 않고 다른 칸처럼 어둡게 (D-207)
 	// 같은 족보가 여럿 붙어 있으면 족보마다 다른 색 (D-200): 맞닿은 족보끼리 색이 겹치지 않게 차례로 고른다
 	TMap<int32, FLinearColor> SynCol;
 	if (bFuseMode)
@@ -1521,7 +1521,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (int32 I = 0; I < (int32)G.Synergies.size(); ++I)
 		{
 			if (!G.CanFuse(I) || (int32)G.Synergies[I].Kind != HandFilter) continue;
-			const FPDSynergy FS = FuseSyn(G, I); // 조커가 낀 족보는 합성 불가 (D-200)
+			const FPDSynergy& FS = G.Synergies[I];
 			const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 			const bool bHov = std::find(FS.Cells.begin(), FS.Cells.end(), HKey) != FS.Cells.end();
 			// 재료 칸 색이 족보 색 → 흰빛 → 족보 색으로 천천히 오간다 (D-122)
@@ -1619,8 +1619,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 		for (const FPDFeed& Fd : Feeds) { const std::vector<int>& Cs = G.Synergies[Fd.Syn].Cells; bAnyHov = bAnyHov || (std::find(Cs.begin(), Cs.end(), HKey) != Cs.end() && HKey != JK); }
 		for (int32 I = 0; I < (int32)Feeds.size(); ++I)
 		{
-			std::vector<int> Cs;
-			for (int K : G.Synergies[Feeds[I].Syn].Cells) if (!G.Towers.at(K).IsJoker()) Cs.push_back(K); // 먹히는 칸만 (조커는 남는다)
+			const std::vector<int>& Cs = G.Synergies[Feeds[I].Syn].Cells; // 먹히는 칸 (조커는 족보에 안 든다, D-489)
 			const bool bH = !bPreview && std::find(Cs.begin(), Cs.end(), HKey) != Cs.end();
 			const FLinearColor Col = Pal[I % 5];
 			Block(Cs, WithAlpha(Col, bH ? 0.95f : bAnyHov ? 0.5f : 0.85f), bH ? 0.3f : bAnyHov ? 0.06f : 0.14f, bH ? 3.f : bAnyHov ? 1.3f : 2.f, bH ? 1.4f + 0.8f * Wv : bAnyHov ? 0.3f : 0.8f);
@@ -1693,7 +1692,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			bool bCan = false;
 			for (int32 I = 0; I < (int32)G.Synergies.size(); ++I) bCan = bCan || ((int32)G.Synergies[I].Kind == HandFilter && G.CanFuse(I));
 			if (!bCan) // 합성할 수 있을 땐 판 위 안내 꼬리표를 띄우지 않는다 (D-374): 빛나는 칸과 커서 꼬리표로 충분
-				F.Badge(TrF(TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨이거나 조커가 낌) · Esc: 끄기"), HandName((EPDHand)HandFilter)),
+				F.Badge(TrF(TEXT("%s: 합성할 수 있는 족보가 없다 (최대 레벨) · Esc: 끄기"), HandName((EPDHand)HandFilter)),
 					FX + Cols * CS / 2.f, FY + 12.f, HandColor((EPDHand)HandFilter), 1.f);
 		}
 	}
@@ -1873,8 +1872,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				FPDGame Copy = G;
 				Copy.bMuted = true;
 				const FPDTower& J0 = G.Towers.at(FeedJoker);
-				int32 Gone = 0;
-				for (int K : G.Synergies[FeedHovSyn].Cells) Gone += !G.Towers.at(K).IsJoker();
+				const int32 Gone = (int32)G.Synergies[FeedHovSyn].Cells.size();
 				if (Copy.Feed(FeedHovSyn, FeedJoker) && Copy.Towers.count(FeedJoker))
 				{
 					const FPDTower& J1 = Copy.Towers.at(FeedJoker);
@@ -1928,7 +1926,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				FPDGame Copy = G;
 				Copy.bMuted = true;
 				const int32 HK = It->first;
-				const std::vector<int> Mats = FuseSyn(G, FuseHovSyn).Cells;
+				const std::vector<int> Mats = G.Synergies[FuseHovSyn].Cells;
 				if (Copy.Fuse(FuseHovSyn, HK) && Copy.Towers.count(HK))
 				{
 					const FPDTower& R = Copy.Towers.at(HK);
@@ -1989,7 +1987,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			F.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), BX + 10.f, BYp + 54.f, Fg, 11.f, 0, false, 220.f);
 			F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), BX + 10.f, BYp + 70.f, Grey, 11.f, 0, false, 220.f);
 			if (T.Level >= 2) F.Text(TrF(TEXT("특성 공격 ×%.1f 연사 ×%.1f"), T.TDmg, T.TRate), BX + 10.f, BYp + 86.f, Gold, 10.f, 0, false, 220.f);
-			{ int32 NF = 0; for (int32 Si = 0; Si < (int32)G.Synergies.size(); ++Si) if (G.CanFuse(Si)) { const std::vector<int> FC = FuseSyn(G, Si).Cells; NF += std::find(FC.begin(), FC.end(), It->first) != FC.end(); } // 합성 줄 수만 (메뉴 전체를 만들면 비싸다)
+			{ int32 NF = 0; for (int32 Si = 0; Si < (int32)G.Synergies.size(); ++Si) if (G.CanFuse(Si)) { const std::vector<int> FC = G.Synergies[Si].Cells; NF += std::find(FC.begin(), FC.end(), It->first) != FC.end(); } // 합성 줄 수만 (메뉴 전체를 만들면 비싸다)
 				F.Text(TrF(TEXT("클릭: 메뉴 (합성 %d · 판매 +%d 경험치)"), NF, G.SellPrice(It->first)), BX + 10.f, BYp + BH0 - 6.f, Hex(TEXT("8a94a6")), 9.f, 0, false, 220.f); } // D-312 ⑤
 			SynLines(true, BX + 10.f, BYp + BH0 + 10.f, 220.f);
 			}
@@ -3348,7 +3346,7 @@ void SPDBoardWidget::PaintLoading(FCanvas& C) const
 		TEXT("족보끼리 맞닿으면 연쇄 보너스가 붙는다"),
 		TEXT("합성은 왼쪽 족보 목록에서 족보를 누르고 합쳐질 칸을 클릭"),
 		TEXT("레시피의 족보 2~4개를 골라 조커를 만들 수 있다 (판 어디에 있어도)"),
-		TEXT("자리바꿈 보상으로 타워 둘의 자리를 바꿀 수 있다"),
+		TEXT("조커는 족보에 들어가지 않는다 · 자리바꿈으로 판 구석에 모아 두자"),
 		TEXT("무늬는 공격 방식, 숫자는 공격력")};
 	C.TextCentered(Tips[FMath::Clamp(LoadTip, 0, 5)], CX, 466.f, Fg, 13.f, false, 760.f);
 }
@@ -3625,7 +3623,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("왼쪽 '조커' 줄을 눌러 만들 조커를 고르고"), TEXT("'추천' 재료를 고르고, 그 재료를 다시 누르면 완성")},
 		{TEXT("'먹이기' 줄(또는 판의 조커)에서 조커를 고르고"), TEXT("빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요")},
 		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
-		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
+		{TEXT("조커는 족보에 들어가지 않아요. 자리바꿈(X)을 누르고"), TEXT("조커를 판 구석으로 옮기면 족보 자리가 넓어져요")},
 		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("채널 TV 다음 화 예고에 보스 이름이 나와요")},
 		{TEXT("레벨이 올라 포인트가 생겼어요"), TEXT("스킬 트리(K)에서 노드를 찍어 보세요")},
 		{TEXT("칵테일(판 내내 효과)이나 즉시 보상 중 하나를 고르거나"), TEXT("S로 넘기세요. 칵테일 칸은 5개예요")},
