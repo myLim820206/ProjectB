@@ -3827,7 +3827,6 @@ void SPDBoardWidget::PaintHandTip(FCanvas& C) const
 
 void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 {
-	if (HandsFolded()) { PaintHandStrip(C); return; } // 접힌 띠 (D-421)
 	const FPDGame& G = Game;
 	const FLinearColor Cyan = Hex(TEXT("7fd6ff")), Gold = Hex(TEXT("ffd96a")), Dim = Hex(TEXT("5f6878")), Grey = Hex(TEXT("8a94a6")), Fg = Hex(TEXT("cfd8e6"));
 	TSet<int32> PvKinds;
@@ -4076,67 +4075,9 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		}
 	}
 	if (!bMenuBoard) return; // 조커 · 먹이기 목록은 바닥선까지 쓴다
-	{ // 접기 단추 ◂ (D-421): 패널 오른쪽 위
-		const bool bHov = InRect(Mouse, FoldBtnX, FoldBtnY, FoldBtnW, FoldBtnH);
-		C.FillPoly(FCanvas::RoundRectPoints(FoldBtnX, FoldBtnY, FoldBtnW, FoldBtnH, 7.f), Hex(TEXT("1e182c")));
-		C.Glow(FCanvas::RoundRectPoints(FoldBtnX, FoldBtnY, FoldBtnW, FoldBtnH, 7.f), Hex(TEXT("968caa")), 1.f, bHov ? 0.8f : 0.3f);
-		const float Cx = FoldBtnX + FoldBtnW / 2.f, Cy = FoldBtnY + FoldBtnH / 2.f;
-		C.Lines({FVector2f(Cx + 2.f, Cy - 4.f), FVector2f(Cx - 2.f, Cy), FVector2f(Cx + 2.f, Cy + 4.f)}, bHov ? FLinearColor::White : Hex(TEXT("e4e0cd")), 1.6f);
-	}
 	const float FootY = 690.f; // 연쇄 한 줄 (Alice 시안 D-403, 무늬 줄은 뺐다: 카드에 공격 방식이 적혀 있다)
 	C.Text(TEXT("연쇄"), LX + 16.f, FootY, Hex(TEXT("e4e0cd")), 11.5f, 0, true);
 	C.Text(TrF(TEXT("족보끼리 맞닿을 경우, 개당 +%d%%"), G.Has(EPDCharm::ChainLink) ? 45 : 25), LX + 48.f, FootY, Hex(TEXT("a5a0b4")), 9.f, 0, false, LW - 60.f);
-}
-
-// 접힌 족보 메뉴 띠 (D-421, 시안 C tools/neon/hands_fold_mock.py): 잔 · 펼치기 단추 · 세로 '족보 메뉴' · 판에 있는 족보 색 점과 개수 · 연쇄. 띠 어디를 눌러도 펼친다
-void SPDBoardWidget::PaintHandStrip(FCanvas& C) const
-{
-	const FPDGame& G = Game;
-	const float X = LX, Y = HandPanelY, W = HandStripW, H = DesignH - 1.f - HandPanelY;
-	const bool bHov = InRect(Mouse, X, Y, W, H);
-	for (int32 K = 0; K < 14; ++K) C.Box(X + 2.f, Y + 2.f + K * (H - 4.f) / 14.f, W - 4.f, (H - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f));
-	// 판 테 (D-462): 펼친 족보 메뉴판과 같은 연보라 심 + 넓은 보랏빛 번짐 (D-460), 마우스를 올리면 심이 조금 밝아진다
-	C.Glow(FCanvas::RoundRectPoints(X, Y, W, H, RadPanel), Hex(TEXT("7854a8")), 5.f, 1.f);
-	C.Lines(FCanvas::RoundRectPoints(X, Y, W, H, RadPanel), Hex(bHov ? TEXT("9a80bc") : TEXT("78609a")), 1.1f);
-	const float Cx = X + W / 2.f;
-	{ // 잔 (로고 대신)
-		const FLinearColor Gc = Hex(TEXT("5ae1ff"));
-		const float Gy = Y + 26.f;
-		C.Glow({FVector2f(Cx - 10.f, Gy - 8.f), FVector2f(Cx + 10.f, Gy - 8.f), FVector2f(Cx, Gy + 4.f), FVector2f(Cx - 10.f, Gy - 8.f)}, Gc, 1.4f, 0.5f);
-		C.Glow({FVector2f(Cx, Gy + 4.f), FVector2f(Cx, Gy + 13.f)}, Gc, 1.3f, 0.4f);
-		C.Glow({FVector2f(Cx - 6.f, Gy + 13.f), FVector2f(Cx + 6.f, Gy + 13.f)}, Gc, 1.3f, 0.4f);
-	}
-	{ // 펼치기 단추 ▸
-		C.FillPoly(FCanvas::RoundRectPoints(UnfoldBtnX, UnfoldBtnY, UnfoldBtnW, UnfoldBtnH, 8.f), Hex(TEXT("1e182c")));
-		C.Glow(FCanvas::RoundRectPoints(UnfoldBtnX, UnfoldBtnY, UnfoldBtnW, UnfoldBtnH, 8.f), Hex(TEXT("968caa")), 1.f, bHov ? 0.8f : 0.35f);
-		const float Bx = UnfoldBtnX + UnfoldBtnW / 2.f, By = UnfoldBtnY + UnfoldBtnH / 2.f;
-		C.Lines({FVector2f(Bx - 2.f, By - 4.f), FVector2f(Bx + 2.f, By), FVector2f(Bx - 2.f, By + 4.f)}, bHov ? FLinearColor::White : Hex(TEXT("e4e0cd")), 1.6f);
-	}
-	// 세로 '족보 메뉴': 한국어 · 일본어 · 중국어는 글자를 세로로 쌓고, 영어는 돌려 쓴다
-	const FLinearColor Title = Hex(TEXT("e4de94")), TextC = Hex(TEXT("c2bfb4")); // 펼친 판과 같은 색 (D-460, D-462)
-	const FString T = TrS(TEXT("족보 메뉴")).Replace(TEXT(" "), TEXT(""));
-	float TY = Y + 112.f;
-	if (GPDLang == (int32)EPDLang::En) { C.TextRot(TrS(TEXT("족보 메뉴")), Cx, TY + 50.f, Title, 15.f, true, -PI / 2.f); TY += 120.f; }
-	else for (int32 I = 0; I < T.Len() && I < 6; ++I) { C.TextCentered(T.Mid(I, 1), Cx, TY, Title, 17.f, true); TY += 26.f; }
-	// 판에 있는 족보: 족보 색 고리 + 개수 (조커 포함)
-	int32 Count[(int)EPDHand::Count] = {};
-	for (const FPDSynergy& S : G.Synergies) ++Count[(int)S.Kind];
-	float DY = FMath::Max(TY + 24.f, Y + 250.f);
-	for (int32 Slot = 0; Slot < (int32)EPDHand::Count && DY < Y + H - 60.f; ++Slot)
-	{
-		const int32 Id = HandMenuOrder[Slot];
-		if (Id >= (int32)EPDHand::Count || Count[Id] <= 0) continue;
-		const FLinearColor Hc = HandColor((EPDHand)Id);
-		C.Glow(FCanvas::CirclePoints(FVector2f(Cx, DY), 6.f, 18), Hc, 1.8f, 0.5f);
-		C.TextCentered(FString::Printf(TEXT("×%d"), Count[Id]), Cx, DY + 17.f, TextC, 9.f, false);
-		DY += 40.f;
-	}
-	if (!JGroups.empty()) // 만들 수 있는 조커
-	{
-		C.Glow(FCanvas::CirclePoints(FVector2f(Cx, DY), 6.f, 18), JokerPink, 1.8f, 0.5f + 0.3f * FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f)));
-		C.TextCentered(Tr(TEXT("조커")), Cx, DY + 17.f, JokerPink, 9.f, false, W - 6.f);
-	}
-	C.TextCentered(Tr(TEXT("연쇄")), Cx, Y + H - 20.f, TextC, 10.f, true, W - 6.f);
 }
 
 void SPDBoardWidget::PaintMenu(FCanvas& C) const
