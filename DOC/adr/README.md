@@ -30,3 +30,4 @@
 | D-482 | [간판 마티니 잔: −8° 기울이고 관끼리 띄운다](D-482-sign-martini-tilt-gaps.md) | 일부 대체 (D-483) |
 | D-483 | [간판 마티니 잔을 인게임 시안 비율로](D-483-sign-martini-mockup-ratio.md) | 확정 |
 | D-484 | [간판 마티니: 술 선은 한 줄, 빨대는 술 선 위에서 끝](D-484-sign-martini-liquid-line.md) | 확정 |
+| D-485 | [간판 마티니: 다리 · 받침도 잔과 같이 기울인다](D-485-sign-martini-stem-axis.md) | 확정 |

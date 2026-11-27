@@ -75,7 +75,7 @@ def group(col, cx):
 # 곧게 선 대칭 잔: V 잔(닫힌 관 하나) · 다리 + 납작한 타원 받침(관 하나), 잔 속 하늘색 술 선 · 각얼음, 분홍 빨대, 노란 반짝 선 셋.
 # 잔(V)을 TILT 만큼 한 덩어리로 기울인다 (선 모양은 그대로 — 예전처럼 윗변만 찌그러지지 않게)
 GLASS = dict(cx=952.0, rim_y=180.0, half=124.0, apex_y=304.0, foot_y=414.0, corner=7.0)  # 인게임 시안 비율: 잔 깊이 = 윗변 반폭, 다리 + 받침 = 잔 깊이 정도 (D-483)
-TILT = -11.0  # 잔 기울기 (도, + = 시계 방향). 잔 아래 꼭짓점을 축으로, 다리 · 받침은 곧게. 오른쪽이 올라감 (인게임 시안에서 잰 윗변 기울기, D-483)
+TILT = -11.0  # 잔 기울기 (도, + = 시계 방향). 잔 아래 꼭짓점을 축으로 다리 · 받침까지 한 덩어리로. 오른쪽이 올라감 (인게임 시안에서 잰 윗변 기울기, D-483)
 # 게임에서 보이는 관 반폭 (원본 화소): 관 굵기 × 0.8 × 1.5(시작 화면 LineK) / 2. 서로 다른 관은 반폭 합 + GAP 보다 가까이 두지 않는다 (네온 선이 붙으면 어색하다)
 STRAW_TUBE = 11.0  # 빨대 관 굵기 (원본 화소): 시안처럼 잔 관보다 가늘게 (색 4)
 HALF = {'yellow': 14.86 * 0.6, 'liquid': 14.86 * 0.6, 'straw': STRAW_TUBE * 0.6}
@@ -183,15 +183,15 @@ def martini(tilt=None):
     for a in (-84.0, -48.0, -14.0):
         c, sn = math.cos(math.radians(a)), math.sin(math.radians(a))
         out.append(('yellow', [(sc[0] + c * 42.0, sc[1] + sn * 42.0), (sc[0] + c * 76.0, sc[1] + sn * 76.0)]))
-    # 기울이기 (시안): 잔(V · 술 · 얼음 · 빨대 · 반짝)만 아래 꼭짓점을 축으로 돌리고, 다리 · 받침은 곧게 둔다
+    # 다리 + 받침 (시안): 꼭짓점에서 잔 축을 따라 내려와 받침 윗변 가운데에 닿는다. 받침은 위가 좁고 아래가 넓은 납작한 사다리꼴
+    fy = g['foot_y']
+    out.append(('yellow', [(cx, ay), (cx, fy - 32.0)]))
+    out.append(('yellow', _round([(cx - 18.0, fy - 32.0), (cx + 18.0, fy - 32.0), (cx + 62.0, fy), (cx - 62.0, fy)], 5.0, True)))
+    # 기울이기: 다리 · 받침까지 잔 전체를 아래 꼭짓점 축으로 한 덩어리로 돌린다 (다리가 V 꼭짓점에서 일직선으로 떨어지게, 사용자)
     tilt = TILT if tilt is None else tilt
     if tilt:
         r = math.radians(tilt); cr, sr = math.cos(r), math.sin(r)
         out = [(c, [(cx + (x - cx) * cr - (y - ay) * sr, ay + (x - cx) * sr + (y - ay) * cr) for x, y in P]) for c, P in out]
-    # 다리 + 받침 (시안): 꼭짓점에서 곧게 내려와 받침 윗변 가운데에 닿는다. 받침은 위가 좁고 아래가 넓은 납작한 사다리꼴
-    fy = g['foot_y']
-    out.append(('yellow', [(cx, ay + 8.0), (cx, fy - 32.0)]))
-    out.append(('yellow', _round([(cx - 18.0, fy - 32.0), (cx + 18.0, fy - 32.0), (cx + 62.0, fy), (cx - 62.0, fy)], 5.0, True)))
     return out
 
 
