@@ -466,9 +466,6 @@ private:
 	int32 SellCell = -1;                   // 판매 (D-221): 오른쪽 클릭한 타워 칸. 그 아래 [판매] 버튼을 누르면 판다
 	mutable FBox2f SellBtnRect;
 	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만
-	bool bHandsFolded = false;             // 족보 메뉴를 좁은 띠로 접음 (D-421, 설정 ini 에 저장)
-	bool HandsFolded() const { return bHandsFolded && HandFilter < 0; } // 합성 · 조커 만들기 · 먹이기 중이면 펼쳐 보인다
-	void PaintHandStrip(FCanvas& C) const;
 	int32 RClickCancels = 0;               // 합성 모드를 오른쪽 클릭으로 끈 횟수 (D-373): RClickTagUntil 번이 되면 커서 꼬리표를 안 띄운다 (설정 ini 에 저장)
 	static constexpr int32 RClickTagUntil = 3;
 	float FuseMissAt = -100.f;             // 합성 모드 헛클릭 시각 (D-373): 꼬리표 오른쪽 버튼이 빨갛게 번쩍
