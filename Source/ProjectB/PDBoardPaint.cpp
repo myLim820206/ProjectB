@@ -423,6 +423,18 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	if (bRanking) PaintRanking(C);
 	if (LoadT > 0.f) PaintLoading(C);
 	if (bSplash) PaintSplash(C); // 회사 로고 (D-385): 맨 위
+	// 개발자 모드 (D-485, F2): 맨 위 왼쪽 위 구석(로고 자리, 시작 버튼을 안 가리게)에 켜진 표시와 키 안내, 조커를 놓는 중이면 그 조커
+	if (bDevMode)
+	{
+		const FLinearColor Dev = Hex(TEXT("ff9ad5")), Dim2 = Hex(TEXT("cfd8e6"));
+		const float W = 360.f, H = DevJoker >= 0 ? 84.f : 66.f, X = 12.f, Y = 8.f;
+		C.Box(X, Y, W, H, Hex(TEXT("06060b"), 0.92f));
+		C.Lines(FCanvas::RectPoints(X, Y, W, H), WithAlpha(Dev, 0.8f), 1.f);
+		C.Text(Tr(TEXT("개발자 모드")), X + 10.f, Y + 20.f, Dev, 13.f, 0, true);
+		C.Text(Tr(TEXT("F2 끄기 · F4 판 채우기 (웨이브 20) · F5 상위 조커로 채우기")), X + 10.f, Y + 40.f, Dim2, 10.f, 0, false, W - 20.f);
+		C.Text(Tr(TEXT("도감(J) 줄 클릭: 칵테일 켜기/끄기 · 조커 놓기")), X + 10.f, Y + 57.f, Dim2, 10.f, 0, false, W - 20.f);
+		if (DevJoker >= 0) C.Text(TrF(TEXT("놓을 조커: %s — 칸 클릭 (Shift = Lv10) · 오른쪽 클릭 = 끝"), JokerName(DevJoker)), X + 10.f, Y + 75.f, Dev, 10.f, 0, false, W - 20.f);
+	}
 	// 디버그 표시 (D-133, F3): 맨 위 왼쪽 아래 구석에
 	if (GPDDebug.bShow)
 	{

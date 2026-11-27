@@ -580,6 +580,10 @@ public:
 	// 판매 (D-221): 판 위 타워를 팔아 조금의 골드. 기본 B = 2 + 웨이브/5, 카드 B · 합성 타워 B × 레벨² · 조커 B × 10
 	int SellPrice(int Cell) const; // 팔 수 없으면 0
 	bool SellTower(int Cell);
+	// 개발자 모드 (D-485, 쉬핑에도): 칵테일 · 조커 성능과 이펙트 시험용
+	bool DevToggleCharm(int Id);                       // 칵테일 켜기/끄기 (칸 수 제한 없음). 켰으면 true
+	float DevJokerMult(int Joker) const;               // 시험용 조커 위력: 기본 조커 = Lv1 카드 6장으로 만든 것, 상위 조커 = 그런 재료 둘을 합친 것
+	bool DevPlaceJoker(int Cell, int Joker, bool bUp); // 칸에 조커를 놓는다 (있던 타워는 바꿈). bUp = 조커 레벨 10 (상위 조커는 늘 10)
 	void StartWave();
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;

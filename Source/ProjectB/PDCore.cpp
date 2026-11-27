@@ -2243,6 +2243,44 @@ bool FPDGame::SellTower(int Cell)
 	return true;
 }
 
+bool FPDGame::DevToggleCharm(int Id)
+{
+	if (Id < 0 || Id >= (int)EPDCharm::Count) return false;
+	const EPDCharm J = (EPDCharm)Id;
+	auto It = std::find(Charms.begin(), Charms.end(), J);
+	const bool bOn = It == Charms.end();
+	if (bOn) { Charms.push_back(J); if (J == EPDCharm::GlassCannon) Lives = std::max(1, Lives - 3); } // 받을 때와 같게 (유리 대포: 목숨 −3)
+	else Charms.erase(It);
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	return bOn;
+}
+
+float FPDGame::DevJokerMult(int Joker) const
+{
+	auto Basic = [this](int J) { return 6.f * JokerMult() * JokerTier((EPDJoker)J) * (1.f + JokerCardBonus * 6.f); }; // 재료 위력 합 6 · 카드 6장 (D-114)
+	if (Joker >= 0 && Joker < (int)EPDJoker::Count) return Basic(Joker);
+	if (!IsUpperJoker(Joker)) return 1.f;
+	const FPDUpperDef& D = UpperDef(Joker - UpperBase);
+	const float Bonus = Mods.Key(EPDKeystone::Crown) ? 2.2f : D.Special == EPDUpperSpecial::None ? UpperBonusPlain : UpperBonus; // MergeJokers 와 같은 식
+	return (Basic((int)D.A) + Basic((int)D.B)) * Bonus * (1.f + Mods.UpperPrep);
+}
+
+bool FPDGame::DevPlaceJoker(int Cell, int Joker, bool bUp)
+{
+	if (!InPlay() || Cell < 0 || !Buildable(Cell % Cols, Cell / Cols)) return false;
+	if (!(Joker >= 0 && Joker < (int)EPDJoker::Count) && !IsUpperJoker(Joker)) return false;
+	FPDTower T;
+	T.X = Cell % Cols;
+	T.Y = Cell / Cols;
+	T.Card = {0, EPDSuit::Wild};
+	T.Joker = Joker;
+	T.JLevel = (bUp || IsUpperJoker(Joker)) ? JokerUpLevel : 1;
+	T.Mult = DevJokerMult(Joker);
+	Towers[Cell] = T;
+	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
+	return true;
+}
+
 bool FPDGame::GainJokerXp(int Key, float Amount)
 {
 	auto It = Towers.find(Key);

@@ -540,6 +540,10 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("최고 기록"), TEXT("Best"), TEXT("最高記録"), TEXT("最高纪录"), TEXT("最高紀錄")},
 	{TEXT("%d (갱신!)"), TEXT("%d (new!)"), TEXT("%d (更新!)"), TEXT("%d (刷新!)"), TEXT("%d (刷新!)")},
 	{TEXT("다시 한 판 (R)"), TEXT("Play again (R)"), TEXT("もう一回 (R)"), TEXT("再来一局 (R)"), TEXT("再來一局 (R)")},
+	{TEXT("개발자 모드"), TEXT("Developer mode"), TEXT("開発者モード"), TEXT("开发者模式"), TEXT("開發者模式")},
+	{TEXT("F2 끄기 · F4 판 채우기 (웨이브 20) · F5 상위 조커로 채우기"), TEXT("F2 off · F4 fill board (wave 20) · F5 fill with upper jokers"), TEXT("F2 オフ・F4 盤を埋める（ウェーブ20）・F5 上位ジョーカーで埋める"), TEXT("F2 关闭 · F4 填满棋盘（第20波）· F5 用上位小丑填满"), TEXT("F2 關閉 · F4 填滿棋盤（第20波）· F5 用上位小丑填滿")},
+	{TEXT("도감(J) 줄 클릭: 칵테일 켜기/끄기 · 조커 놓기"), TEXT("Codex (J) row click: toggle cocktail · place joker"), TEXT("図鑑（J）の行をクリック：カクテルのオン/オフ・ジョーカーを置く"), TEXT("图鉴（J）点击条目：开关鸡尾酒 · 放置小丑"), TEXT("圖鑑（J）點擊條目：開關雞尾酒 · 放置小丑")},
+	{TEXT("놓을 조커: %s — 칸 클릭 (Shift = Lv10) · 오른쪽 클릭 = 끝"), TEXT("Joker to place: %s — click a cell (Shift = Lv10) · right-click = done"), TEXT("置くジョーカー：%s — マスをクリック（Shift = Lv10）・右クリック = 終了"), TEXT("要放置的小丑：%s — 点击格子（Shift = Lv10）· 右键 = 结束"), TEXT("要放置的小丑：%s — 點擊格子（Shift = Lv10）· 右鍵 = 結束")},
 	{TEXT("1초 최저 %.0f fps (%.1f ms)"), TEXT("1s low %.0f fps (%.1f ms)"), TEXT("1秒最低 %.0f fps (%.1f ms)"), TEXT("1秒最低 %.0f fps (%.1f ms)"), TEXT("1秒最低 %.0f fps (%.1f ms)")},
 	{TEXT("적 %d · 발사체 %d · 타워 %d"), TEXT("Enemies %d · Shots %d · Towers %d"), TEXT("敵 %d · 弾 %d · タワー %d"), TEXT("敌人 %d · 弹体 %d · 塔 %d"), TEXT("敵人 %d · 彈體 %d · 塔 %d")},
 	{TEXT("입자 %d · 고리 %d · 배속 ×%d · F3 닫기"), TEXT("Particles %d · Rings %d · Speed ×%d · F3 close"), TEXT("粒子 %d · リング %d · 倍速 ×%d · F3 閉じる"), TEXT("粒子 %d · 光环 %d · 倍速 ×%d · F3 关闭"), TEXT("粒子 %d · 光環 %d · 倍速 ×%d · F3 關閉")},
@@ -1037,4 +1041,4 @@ static const TCHAR* const PDLangRows[][5] = {
 	{TEXT("다과회 초대장"), TEXT("Tea Party Invitation"), TEXT("お茶会の招待状"), TEXT("茶会请柬"), TEXT("茶會請柬")},
 	{TEXT("연쇄 폭발"), TEXT("Chain Blast"), TEXT("連鎖爆発"), TEXT("连锁爆炸"), TEXT("連鎖爆炸")},
 };
-static const int32 PDLangRowCount = 1036;
+static const int32 PDLangRowCount = 1040;

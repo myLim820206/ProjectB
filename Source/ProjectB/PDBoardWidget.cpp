@@ -30,9 +30,8 @@
 #include "Misc/CommandLine.h"
 #include "UnrealClient.h"
 
-#if !UE_BUILD_SHIPPING
-static void PDDebugStress(PD::FPDGame& G);
-#endif
+static void PDDebugStress(PD::FPDGame& G, bool bFull = false);
+static void PDDebugUppers(PD::FPDGame& G);
 
 // ---------------------------------------------------------------- 위젯
 // 아틀라스를 굽는 동안만 쓰는 잎 위젯: 주인의 PaintAtlas 를 부른다
@@ -1499,6 +1498,12 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		if (Id < 0) { bTreeDrag = true; TreeDragFrom = P; TreePanFrom = TreePan; } // 빈 곳을 누르고 끌면 옮기기 (D-376)
 		return;
 	}
+	// 개발자 모드 조커 놓기 (D-485): 판 칸 클릭 = 그 칸에 놓기 (Shift = 조커 레벨 10), 오른쪽 클릭 = 끝. 판 밖은 평소대로
+	if (DevJoker >= 0 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave))
+	{
+		if (bRight) { DevJoker = -1; UiSound(EPDSound::Move); return; }
+		if (const int32 Cell = CellAt(P); Cell >= 0) { UiSound(Game.DevPlaceJoker(Cell, DevJoker, bClickShift) ? EPDSound::Lock : EPDSound::Denied); Sel = -1; return; }
+	}
 	// 칸 메뉴 상자 (D-312): 줄 클릭 = 그 일, 상자 안 다른 곳은 먹는다. 바깥 클릭 · 오른쪽 클릭 = 닫기 (다른 타워를 왼쪽 클릭하면 그 타워 메뉴)
 	if (MenuCell >= 0)
 	{
@@ -2011,14 +2016,15 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 
 FReply SPDBoardWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	bClickShift = MouseEvent.IsShiftDown();
 	Click(ToDesign(MyGeometry, MouseEvent), MouseEvent.GetEffectingButton() == EKeys::RightMouseButton);
 	return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 }
 
-#if !UE_BUILD_SHIPPING
-// 부하 시험 치트 (D-134, F4, 쉬핑 빌드에는 없음): 길 둘레 2칸 안 빈칸을 무작위 카드로 채우고(9칸마다 조커) 웨이브 20 직전으로.
-// 타워 배율 ×6 (조커 ×6·레벨 5), 적 체력·마리 수 ×3, 목숨 999 · 골드 99,999: 적이 길을 따라 오래 맞으며 타격 이펙트를 많이 낸다
-static void PDDebugStress(FPDGame& G)
+// 부하 시험 치트 (D-134, F4): 빈칸을 무작위 카드로 채우고(9칸마다 조커) 웨이브 20 직전으로.
+// bFull (F4, D-485): 길을 뺀 판 전체를 채운다. 아니면(-pdstress 자동 시험) 예전처럼 길 둘레 2칸만 — 성능 기록(D-138)과 같은 판
+// 쉬핑 빌드에도 들어간다 (D-485: 개발자 명령어). 타워 배율 ×6 (조커 ×6·레벨 5), 적 체력·마리 수 ×3, 목숨 999: 적이 길을 따라 오래 맞으며 타격 이펙트를 많이 낸다
+static void PDDebugStress(FPDGame& G, bool bFull)
 {
 	std::mt19937 R(1234);
 	G.Towers.clear();
@@ -2029,7 +2035,7 @@ static void PDDebugStress(FPDGame& G)
 		for (int X = 0; X < Cols; ++X)
 		{
 			if (!G.Buildable(X, Y)) continue;
-			bool bNear = false;
+			bool bNear = bFull;
 			for (int DY = -2; DY <= 2 && !bNear; ++DY)
 				for (int DX = -2; DX <= 2 && !bNear; ++DX)
 				{
@@ -2054,7 +2060,29 @@ static void PDDebugStress(FPDGame& G)
 	GPDDebugHpMul = 3.f;  // 적 체력·마리 수 3배 (타격 이펙트 검수, D-135)
 	GPDDebugCountMul = 3;
 }
-#endif
+// 상위 조커 치트 (D-485, F5, 쉬핑에도): 길을 뺀 판 전체를 상위 조커 30종으로 차례로 채운다 (조커 레벨 10, 배율 ×6, 무늬 돌아가며).
+// 웨이브 · 목숨 · 레벨은 그대로. 도감(UpperFound)은 건드리지 않는다 — 만든 게 아니라 놓은 것
+static void PDDebugUppers(FPDGame& G)
+{
+	int N = 0;
+	G.Towers.clear();
+	for (int Y = 0; Y < Rows; ++Y)
+		for (int X = 0; X < Cols; ++X)
+		{
+			if (!G.Buildable(X, Y)) continue;
+			FPDTower T;
+			T.X = X;
+			T.Y = Y;
+			T.Card = {0, EPDSuit::Wild};
+			T.Joker = UpperBase + N % UpperJokerCount;
+			T.JSuit = (EPDSuit)(N / UpperJokerCount % 4);
+			T.JLevel = JokerUpLevel;
+			T.Mult = 6.f;
+			G.Towers[CellKey(X, Y)] = T;
+			++N;
+		}
+	G.Synergies = ApplyEffects(G.Towers, G.CharmMask(), &G.Mods);
+}
 
 FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
@@ -2064,8 +2092,10 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (K == EKeys::F3) { GPDDebug.bShow = !GPDDebug.bShow; return FReply::Handled(); } // 디버그 표시 (어느 창에서나)
 	if (K == EKeys::F6) { GPDDebug.bNoAtlas = !GPDDebug.bNoAtlas; return FReply::Handled(); } // 구운 그림 ↔ 선 비교
 #if !UE_BUILD_SHIPPING
-	if (K == EKeys::F2) { GPDLayout.bOn = !GPDLayout.bOn; GPDLayout.NextAt = 0.0; GPDLayout.Hits.Reset(); return FReply::Handled(); } // 레이아웃 검사 (D-365): 겹치는 글자 · 선 찾기
+	if (K == EKeys::F2 && InKeyEvent.IsShiftDown()) { GPDLayout.bOn = !GPDLayout.bOn; GPDLayout.NextAt = 0.0; GPDLayout.Hits.Reset(); return FReply::Handled(); } // 레이아웃 검사 (D-365, D-485 부터 Shift+F2): 겹치는 글자 · 선 찾기
 #endif
+	if (K == EKeys::F2) { bDevMode = !bDevMode; DevJoker = -1; UiSound(bDevMode ? EPDSound::Clear : EPDSound::Move); return FReply::Handled(); } // 개발자 모드 (D-485, 쉬핑에도)
+	if (K == EKeys::Escape && DevJoker >= 0) { DevJoker = -1; return FReply::Handled(); } // 조커 놓기 끝
 #if WITH_EDITOR
 #if WITH_EDITOR
 	if (K == EKeys::F7 && Game.Phase != EPDPhase::Title) { LevelUpFrom = Game.Level; LevelUpTo = Game.Level + 1; LevelUpPts = 1; LevelUpAt = Clock; return FReply::Handled(); } // 레벨업 이펙트 미리 보기 (에디터, D-273)
@@ -2074,9 +2104,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 #endif
 	if (K == EKeys::F8) { SaveAtlasAsset(); return FReply::Handled(); } // 아틀라스 에셋 만들기 (에디터)
 #endif
-#if !UE_BUILD_SHIPPING
-	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); }
-#endif
+	if (K == EKeys::F5 && bDevMode && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugUppers(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; return FReply::Handled(); } // 판을 상위 조커 30종으로 가득 (D-485, 쉬핑에도)
+	if (K == EKeys::F4 && bDevMode && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game, true); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); } // 판 꽉 채우고 웨이브 20 직전 (D-485, 쉬핑에도)
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	if (LoadT > 0.f) return FReply::Handled(); // 로딩 중 (D-153)
 	if (bRanking) // 랭킹 (D-168): ←→ 탭, Esc·Enter 닫기

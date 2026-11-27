@@ -70,6 +70,12 @@ void SPDBoardWidget::CdxClick(FVector2f P, bool bRight)
 	for (int32 Dir = -1; Dir <= 1; Dir += 2) if (InRect(P, CdxNavX(Dir), CdxNavY, CdxNavW, CdxNavH)) { CdxGo(UnlockTab, UnlockPage + Dir); return; } // ‹ ›
 	const int32 K = CdxRowAt(P);
 	if (K >= 0) { CdxPick = K; UiSound(EPDSound::Move); } // 줄 클릭 = 왼쪽에 고정
+	if (K >= 0 && bDevMode && !CdxShop()) // 개발자 모드 (D-485): 칵테일 = 켜기/끄기, 조커 · 상위 조커 = 도감을 닫고 판에 놓기
+	{
+		if (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) { UiSound(EPDSound::Denied); return; }
+		if (UnlockTab == 0) { Game.DevToggleCharm(K); UiSound(EPDSound::Burst); }
+		else if (UnlockTab == 1 || UnlockTab == 2) { DevJoker = UnlockTab == 1 ? K : UpperBase + K; bCodex = false; }
+	}
 }
 
 // 항목 정보 (예전 도감 D-265 / D-283 / D-337 과 같은 규칙): 모르는 조커 · 상위 조커 · 보스는 ???

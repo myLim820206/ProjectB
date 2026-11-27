@@ -1734,6 +1734,34 @@ static void FuseRuleTests()
 		G.Discard(0);
 		Expect(With == 1 && Without == 0 && Full == 0 && G.Hand.empty(), "원스 모어: 팔면 손패 +1, 칵테일 없으면 0, 손패 가득이면 0, 버리기로는 안 뽑음");
 	}
+	{ // 개발자 모드 (D-485): 칵테일 켜기/끄기, 조커 놓기 (위력은 실제로 만든 것과 같은 식)
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		const int L0 = G.Lives;
+		const bool bOn = G.DevToggleCharm((int)EPDCharm::GlassCannon) && G.Has(EPDCharm::GlassCannon) && G.Lives == std::max(1, L0 - 3);
+		const bool bOff = !G.DevToggleCharm((int)EPDCharm::GlassCannon) && !G.Has(EPDCharm::GlassCannon);
+		for (int K = 0; K < 8; ++K) G.DevToggleCharm(K); // 칸 수(5) 제한 없이
+		const bool bMany = (int)G.Charms.size() == 8 && !G.DevToggleCharm(-1) && !G.DevToggleCharm((int)EPDCharm::Count);
+		// 기본 조커: 레벨 1 / 10, 위력 = Lv1 카드 6장으로 만든 조커와 같음
+		FPDGame H = FuseBoard();
+		Put(H.Towers, 0, Row, C(4)); Put(H.Towers, 1, Row, C(4, EPDSuit::Heart)); Put(H.Towers, 2, Row, C(9)); Put(H.Towers, 3, Row, C(9, EPDSuit::Heart)); Put(H.Towers, 4, Row, C(12)); Put(H.Towers, 5, Row, C(12, EPDSuit::Heart));
+		Refresh(H);
+		const auto Gs = H.JokerGroups();
+		float Made = -1.f; int MadeJ = -1;
+		for (const auto& Gr : Gs) if (Gr.Cells.size() == 6) { MadeJ = (int)Gr.Result; H.JokerFuse((int)(&Gr - &Gs[0])); for (auto& KV : H.Towers) if (KV.second.IsJoker()) Made = KV.second.Mult; break; }
+		const bool bSame = MadeJ >= 0 && Near(Made, G.DevJokerMult(MadeJ));
+		const bool bPlace = G.DevPlaceJoker(CellKey(0, Row), (int)EPDJoker::Bell, false) && G.Towers.at(CellKey(0, Row)).JLevel == 1 && G.DevPlaceJoker(CellKey(1, Row), (int)EPDJoker::Bell, true) && G.Towers.at(CellKey(1, Row)).JLevel == JokerUpLevel;
+		const int U = UpperOf(EPDJoker::Hatter, EPDJoker::Cheshire);
+		const bool bUpper = G.DevPlaceJoker(CellKey(3, Row), UpperBase + U, false) && G.Towers.at(CellKey(3, Row)).JLevel == JokerUpLevel && Near(G.Towers.at(CellKey(3, Row)).Mult, (G.DevJokerMult((int)EPDJoker::Hatter) + G.DevJokerMult((int)EPDJoker::Cheshire)) * UpperBonus);
+		Put(G.Towers, 4, Row, C(7));
+		const bool bReplace = G.DevPlaceJoker(CellKey(4, Row), (int)EPDJoker::Jack, false) && G.Towers.at(CellKey(4, Row)).IsJoker();
+		int JX, JY; float ND; NearPathCell(G, JX, JY, ND);
+		const bool bPath = !G.DevPlaceJoker(CellKey(JX - 1 >= 0 && G.Path.IsPath(JX - 1, JY) ? JX - 1 : JX + 1, JY), (int)EPDJoker::Jack, false) && !G.DevPlaceJoker(CellKey(5, Row), 99, false);
+		G.Phase = EPDPhase::Over;
+		const bool bOver = !G.DevPlaceJoker(CellKey(5, Row), (int)EPDJoker::Jack, false);
+		Expect(bOn && bOff && bMany && bSame && bPlace && bUpper && bReplace && bPath && bOver,
+			"개발자 모드: 유리 대포 켜면 목숨 −3 · 끄기 · 칸 수 제한 없음, 놓은 조커 위력 = 카드 6장으로 만든 조커, Lv1/Lv10, 다과회 = 재료 둘 ×1.5, 타워 바꿈, 길 · 없는 번호 · 게임 오버는 안 됨");
+	}
 	{ // 18. 무작위 판 2,000개: 아무 족보나 아무 칸에 합성해도 규칙이 깨지지 않는다
 		std::mt19937 Rng(2026);
 		int Tried = 0, Done = 0, Bad = 0;
