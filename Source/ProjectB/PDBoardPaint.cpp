@@ -747,7 +747,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			const int32 Fr = (int32)(FMath::Fmod(E.D * 2.2f, 1.f) * SoldierFrames) % SoldierFrames;
 			const float Sc = Sh >= 26 ? 1.15f : bBoss || Sh == 20 ? 0.95f : Sh == 6 ? 0.42f : 0.48f; // 최종 보스는 더 크게, 블러퍼 분신은 보스 크기 (D-335)
 			const FLinearColor Ice = Hex(TEXT("b8f0ff"));
-			const float Fz = E.SlowT > 0.f ? FMath::Min(1.f, E.SlowT * 3.f) : 0.f; // 둔화 (D-178): 몸이 얼음빛으로 물든다
+			const float Fz = FMath::Max(E.SlowT, E.StopT) > 0.f ? FMath::Min(1.f, FMath::Max(E.SlowT, E.StopT) * 3.f) : 0.f; // 둔화 (D-178): 몸이 얼음빛으로 물든다
 			F.Sprite(F.NextLayer(), &Atlas->Brushes[AtlasSoldier0 + Sh * SoldierFrames + Fr], P.X, P.Y - 4.f * Sc, Sc, Fz > 0.f ? FMath::Lerp(Col, WithAlpha(Ice, Col.A), 0.8f * Fz) : Col);
 			if (Fz > 0.f) // 둔화 (D-178, D-179): 얼음 껍질에 갇힌 몸 + 고드름 + 떨어지는 서리 + 발밑 얼음 고리 + 눈송이
 			{
@@ -902,7 +902,7 @@ void SPDBoardWidget::PaintField(FCanvas& F, bool bStatic) const
 			break;
 		default: F.Glow(FCanvas::CirclePoints(P, 9.f, 20), Col, 2.f); break;
 		}
-		if (E.SlowT > 0.f && !UseAtlas()) F.Lines(FCanvas::CirclePoints(P, bBoss ? 28.f : 15.f, 24), Hex(TEXT("8fe9ff"), 0.6f), 1.2f); // 아틀라스가 없을 때만 예전 고리 (D-178)
+		if ((E.SlowT > 0.f || E.StopT > 0.f) && !UseAtlas()) F.Lines(FCanvas::CirclePoints(P, bBoss ? 28.f : 15.f, 24), Hex(TEXT("8fe9ff"), 0.6f), 1.2f); // 아틀라스가 없을 때만 예전 고리 (D-178)
 		const float W = bBoss ? 44.f : 24.f, BY = P.Y - (bBoss ? 34.f : 22.f);
 		F.Box(P.X - W / 2.f, BY, W, 3.f, Hex(TEXT("ffffff"), 0.15f));
 		const float HpNow = FMath::Max(0.f, E.Hp / E.MaxHp), HpOld = FMath::Max(HpNow, HpShown.FindRef(E.Id));

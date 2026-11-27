@@ -437,6 +437,7 @@ struct FPDEnemy
 	bool bDead = false;
 	int Id = 0;
 	float Incoming = 0.f; // 날아가는 중인 발사체 피해 합 (겹쳐 쏘지 않게)
+	float StopT = 0.f;    // 방울 멈춤 남은 시간 (둔화와 따로: 예전엔 둔화 100%로 넣어 이어진 둔화가 멈춤을 끝없이 늘렸다, 이슈 #5)
 	// 보스 능력 (D-112)
 	float AbilT = 0.f;  // 능력 주기 타이머
 	float StateT = 0.f; // 능력이 켜져 있는 남은 시간 (돌진·무적·보호막)

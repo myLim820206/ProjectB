@@ -1079,8 +1079,17 @@ static void UnitTests()
 		G.Towers.begin()->second.Timer = 7.99f;
 		G.Update(0.02f);
 		bool bStop = true;
-		for (auto& E : G.Enemies) bStop = bStop && E.SlowAmt == 1.f && E.SlowT > 0.f;
+		for (auto& E : G.Enemies) bStop = bStop && E.StopT > 0.f;
 		Expect(bStop, "방울: 사거리 안 적을 멈춘다");
+		{ // 이슈 #5: 멈춤이 끝난 뒤 다른 둔화를 맞아도 계속 멈춰 있으면 안 된다 (예전: 둔화 100%가 남아 웨이브가 끝나지 않음)
+			FPDEnemy& E = G.Enemies[0];
+			E.Speed = 1.f;
+			for (int K = 0; K < 150; ++K) { E.SlowT = 1.2f; E.SlowAmt = std::max(E.SlowAmt, 0.2f); G.Update(0.02f); } // 3초 동안 약한 둔화를 계속 맞음 (방울 다음 울림 전)
+			const float D0 = E.D;
+			E.SlowT = 1.2f; E.SlowAmt = std::max(E.SlowAmt, 0.2f);
+			G.Update(0.02f);
+			Expect(E.D > D0 && E.StopT == 0.f && E.SlowAmt < 0.5f, "방울: 멈춤이 끝나면 약한 둔화를 맞아도 다시 움직인다");
+		}
 		Setup(EPDJoker::Star);
 		for (auto& E : G.Enemies) E.D = NearD + 5.f; // 멀리 있어도
 		G.Update(0.01f);
@@ -1343,7 +1352,7 @@ static void UnitTests()
 		G.NewGame(true);
 		G.Towers.clear();
 		const int Row = FreeRow(G, 7);
-		{ const EPDSuit He = EPDSuit::Heart; Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(3, He)); Put(G.Towers, 2, Row, C(4)); Put(G.Towers, 3, Row, C(6, He)); Put(G.Towers, 4, Row, C(7)); Put(G.Towers, 5, Row, C(8, He)); Put(G.Towers, 6, Row, C(10)); Put(G.Towers, 7, Row, C(11, He)); Put(G.Towers, 8, Row, C(12)); }
+		{ Put(G.Towers, 0, Row, C(2)); Put(G.Towers, 1, Row, C(3, He)); Put(G.Towers, 2, Row, C(4)); Put(G.Towers, 3, Row, C(6, He)); Put(G.Towers, 4, Row, C(7)); Put(G.Towers, 5, Row, C(8, He)); Put(G.Towers, 6, Row, C(10)); Put(G.Towers, 7, Row, C(11, He)); Put(G.Towers, 8, Row, C(12)); }
 		G.Synergies = ApplyEffects(G.Towers, 0, &G.Mods);
 		Expect(!G.JokerGroups().empty(), "조커 재료 있음");
 		G.TreeOwned = Bits({FindKey(EPDKeystone::Smith)});
@@ -1452,10 +1461,11 @@ static int Coverage(const FPDGame& G, int X, int Y, float Range)
 	return N;
 }
 // 판 위력: 코어의 판 위력 어림 × 타워마다 사거리 안 길 칸 수
-static double Power(FPDGame& G, FPDTowerMap& Tw)
+static double Power(FPDGame& G, FPDTowerMap& Tw, std::vector<FPDSynergy>* OutSyn = nullptr)
 {
 	const FPDCharmBits M = G.CharmMask();
-	ApplyEffects(Tw, M, &G.Mods);
+	if (OutSyn) *OutSyn = ApplyEffects(Tw, M, &G.Mods);
+	else ApplyEffects(Tw, M, &G.Mods);
 	return SumBoardPower(Tw, M, &G.Mods, [&G](const FPDTower& T, float Range) { return (double)Coverage(G, T.X, T.Y, Range); });
 }
 // 트리: 골드가 되는 만큼 찍는다. 지금 판 위력이 가장 많이 오르는 노드 (한 걸음 더 내다봄, 살림 노드는 어림값)
@@ -1519,6 +1529,42 @@ static EPDMode GBotMode = EPDMode::Endless; // 봇 판의 모드 (D-229)
 static int GBotClears = 0;
 static int GBotUpgLv = 10;   // bUpg 일 때 영구 강화 레벨 (D-322 판당 칩 표)
 static int GBotContent = 0;  // 0 = 규칙 기본(기본 조커 전부 · 칵테일 기본 18), 1 = 처음 상태(조커 4종 · 상위 조커 맛보기 2종 · 칵테일 18), 2 = 전부 열림
+// 조커 연구 (이슈 #5): study 명령에서만 켠다. 기본값이면 예전 봇과 똑같이 돈다
+static bool GStudy = false;      // 판마다 STUDY 한 줄 (tools/sim/joker_study.py 가 모은다)
+static bool GSmartJoker = false; // 조커: 열린 조커마다 BestJokerPicks 로 가장 좋은 재료를 따져 만든다 (예전: JokerGroups 첫 묶음들만)
+static bool GPursue = false;     // 놓기: 새로 만들 수 있게 되는 조커 레시피마다 판 위력 덤 (레시피를 노림)
+static float GJokerSlack = 0.f;  // 조커를 만드는 문턱: 판 위력이 이만큼(비율) 깎여도 만든다
+static long GJokerMask = -1;     // 열 조커 (1 << EPDJoker), -1 = 그대로
+static int GSeedBase = 0;        // 판 씨앗 시작 (여러 프로세스로 나눠 돌리기)
+// 판 위 재료로 지금 만들 수 있는 조커 (비트). 칸이 겹치는지는 안 본다 (어림)
+static uint32_t CraftableMask(const FPDTowerMap& Tw, const std::vector<FPDSynergy>& Syn, uint32_t Open)
+{
+	int Have[(int)EPDHand::Count] = {};
+	for (const FPDSynergy& S : Syn)
+	{
+		bool bJ = false;
+		for (int K : S.Cells) bJ = bJ || Tw.at(K).IsJoker();
+		if (!bJ) Have[(int)S.Kind]++;
+	}
+	for (const auto& KV : Tw) if (KV.second.Level >= 2 && !KV.second.IsJoker() && KV.second.FuseHand >= 0) Have[KV.second.FuseHand]++;
+	uint32_t Out = 0;
+	for (int J = 0; J < (int)EPDJoker::Count; ++J)
+	{
+		if (!((Open >> J) & 1u)) continue;
+		int N3[(int)EPDHand::Count] = {}, N2[(int)EPDHand::Count] = {};
+		for (EPDHand H : JokerRecipe((EPDJoker)J)) N3[(int)H]++;
+		for (EPDHand H : JokerRecipe2((EPDJoker)J)) N2[(int)H]++;
+		bool b3 = true, b2 = true;
+		for (int H = 0; H < (int)EPDHand::Count; ++H) { b3 = b3 && Have[H] >= N3[H]; b2 = b2 && Have[H] >= N2[H]; }
+		if (b3 || b2) Out |= 1u << J;
+	}
+	return Out;
+}
+static uint32_t CraftableNow(const FPDGame& G)
+{
+	if (G.Mods.Key(EPDKeystone::Smith)) return 0;
+	return CraftableMask(G.Towers, G.Synergies, G.JokerUnlocked);
+}
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
 	double PointSum = 0, GoldSum = 0, ChipSum = 0, TimeSum = 0;
@@ -1528,13 +1574,20 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 	int WaveSum = 0;
 	std::map<int, int> JokersMade, KindsMade;
 	long Feeds = 0, JLvSum = 0, UppersMade = 0;
-	for (int Run = 0; Run < Runs; ++Run)
+	for (int Run = GSeedBase; Run < GSeedBase + Runs; ++Run)
 	{
 		FPDGame G(1000 + Run);
+		// 조커 연구 기록 (판마다)
+		int Built[(int)EPDJoker::Count] = {}, FirstBuilt[(int)EPDJoker::Count] = {}, CanWaves[(int)EPDJoker::Count] = {}, FirstCan[(int)EPDJoker::Count] = {};
+		int RunUppers = 0, Phases = 0;
+		const long FeedsAtStart = Feeds;
+		bool bStuck = false;
+		std::string BuildLog;
 		G.Mode = GBotMode;
 		if (bUpg) for (int& U : G.Upg) U = GBotUpgLv; // 영구 강화 흉내: 8종 모두 같은 레벨 (기본 10)
 		if (GBotContent == 1) { G.JokerUnlocked = JokerStarterMask; G.UpperUnlocked = (1u << 11) | (1u << 18); }
 		if (GBotContent == 2) G.CharmUnlocked = ~FPDCharmBits(0);
+		if (GJokerMask >= 0) { G.JokerUnlocked = (uint32_t)GJokerMask; G.UpperUnlocked = 0; }
 		G.NewGame(true);
 		G.RebuildMods();
 		G.bMuted = true;
@@ -1560,6 +1613,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				}
 				if (BestI < 0 || !G.MergeJokers(BestI)) break;
 				UppersMade++;
+				RunUppers++;
 			}
 			// 조커 먹이기: 판 위 위력을 15% 넘게 깎지 않는 족보 중 경험치가 가장 많은 것 (비운 칸은 바로 아래에서 다시 채움)
 			for (int Tries = 0; bJoker && Tries < 3 && !G.Hand.empty(); ++Tries)
@@ -1608,6 +1662,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				for (int I = 0; I < 14 && I < (int)Cov.size(); ++I) if (std::find(Cand.begin(), Cand.end(), Cov[I].second) == Cand.end()) Cand.push_back(Cov[I].second);
 				double BestV = -1;
 				int BI = -1, BX = 0, BY = 0;
+				const uint32_t CanBefore = (GPursue && bJoker) ? CraftableNow(G) : 0u;
 				for (int I = 0; I < (int)G.Hand.size(); ++I)
 					for (auto& F : Cand)
 					{
@@ -1617,14 +1672,80 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 						T.X = F[0];
 						T.Y = F[1];
 						Tw[CellKey(F[0], F[1])] = T;
-						const double V = Power(G, Tw);
+						std::vector<FPDSynergy> Syn;
+						double V = Power(G, Tw, (GPursue && bJoker) ? &Syn : nullptr);
+						if (GPursue && bJoker)
+						{
+							const uint32_t NewMask = CraftableMask(Tw, Syn, G.JokerUnlocked) & ~CanBefore;
+							V *= 1.0 + 0.04 * std::bitset<32>(NewMask).count();
+						}
 						if (V > BestV) { BestV = V; BI = I; BX = F[0]; BY = F[1]; }
 					}
 				if (BI < 0) break;
 				G.Place(BI, BX, BY);
 			}
+			Phases++;
+			if (bJoker)
+			{
+				const uint32_t Can = CraftableNow(G);
+				for (int J = 0; J < (int)EPDJoker::Count; ++J) if ((Can >> J) & 1u) { CanWaves[J]++; if (!FirstCan[J]) FirstCan[J] = G.Wave + 1; }
+			}
+			// 조커 (똑똑한 봇): 열린 조커마다 가장 좋은 재료로 만들어 보고, 판 위력이 가장 많이 오르는 것
+			for (int Tries = 0; bJoker && GSmartJoker && Tries < 5; ++Tries)
+			{
+				const uint32_t Can = CraftableNow(G);
+				if (!Can) break;
+				FPDTowerMap Cur = G.Towers;
+				const double Before = Power(G, Cur);
+				double BestGain = -GJokerSlack * Before - 1e-9;
+				std::vector<int> BestPicks;
+				int BestCell = -1;
+				for (int J = 0; J < (int)EPDJoker::Count; ++J)
+				{
+					if (!((Can >> J) & 1u)) continue;
+					const std::vector<int> Picks = G.BestJokerPicks((EPDJoker)J);
+					if (Picks.empty()) continue;
+					FPDGame Copy = G;
+					if (!Copy.JokerCraft(Picks, -1)) continue;
+					FPDTowerMap After = Copy.Towers;
+					const double Gain = Power(Copy, After) - Before;
+					if (Gain > BestGain) { BestGain = Gain; BestPicks = Picks; BestCell = -1; }
+					// 상위 조커 짝과 맞닿는 재료 칸에 두면 덤 (다음에 합칠 수 있음)
+					const std::vector<FPDJokerNode> Ns = G.JokerNodes();
+					std::vector<int> Cells;
+					for (int P : Picks) Cells.insert(Cells.end(), Ns[P].Cells.begin(), Ns[P].Cells.end());
+					for (int K : Cells)
+					{
+						bool bNext = false;
+						for (const auto& OV : G.Towers)
+						{
+							const FPDTower& O = OV.second;
+							if (!O.IsJoker() || IsUpperJoker(O.Joker) || O.Joker == J || std::abs(O.X - K % Cols) + std::abs(O.Y - K / Cols) != 1) continue;
+							const int U = UpperOf((EPDJoker)J, (EPDJoker)O.Joker);
+							if (U >= 0 && G.UpperOpen(U) && G.UpperNeedFor(U, O) <= O.JLevel) bNext = true;
+						}
+						if (!bNext) continue;
+						FPDGame C2 = G;
+						if (!C2.JokerCraft(Picks, K)) continue;
+						FPDTowerMap A2 = C2.Towers;
+						const double G2 = Power(C2, A2) - Before + 0.05 * Before;
+						if (G2 > BestGain) { BestGain = G2; BestPicks = Picks; BestCell = K; }
+					}
+				}
+				if (BestPicks.empty() || !G.JokerCraft(BestPicks, BestCell)) break;
+				JokersMade[0]++;
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f && !IsUpperJoker(KV2.second.Joker))
+				{
+					const int J = KV2.second.Joker;
+					KindsMade[J]++;
+					Built[J]++;
+					if (!FirstBuilt[J]) FirstBuilt[J] = G.Wave + 1;
+					BuildLog += (BuildLog.empty() ? "" : ",") + std::to_string(G.Wave + 1) + ":" + std::to_string(J);
+					break;
+				}
+			}
 			// 조커: 만들면 전체 위력이 오르는 묶음을 만든다
-			for (int Tries = 0; bJoker && Tries < 5; ++Tries)
+			for (int Tries = 0; bJoker && !GSmartJoker && Tries < 5; ++Tries)
 			{
 				FPDTowerMap Cur = G.Towers;
 				const double Before = Power(G, Cur);
@@ -1662,7 +1783,12 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				if (BestI < 0) break;
 				G.JokerFuse(BestI, BestCell);
 				JokersMade[0]++;
-				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f) KindsMade[KV2.second.Joker]++;
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f)
+				{
+					KindsMade[KV2.second.Joker]++;
+					const int J = KV2.second.Joker;
+					if (J >= 0 && J < (int)EPDJoker::Count) { Built[J]++; if (!FirstBuilt[J]) FirstBuilt[J] = G.Wave + 1; BuildLog += (BuildLog.empty() ? "" : ",") + std::to_string(G.Wave + 1) + ":" + std::to_string(J); }
+				}
 			}
 			for (int Tries = 0; bFuse && Tries < 20; ++Tries)
 			{
@@ -1685,6 +1811,17 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			if (bTree) BotSpend(G, bTree);
 			G.StartWave();
 			for (int K = 0; K < 20000 && G.Phase == EPDPhase::Wave; ++K) G.Update(0.05f);
+			if (GStudy && G.Phase == EPDPhase::Wave) // 웨이브가 1000초 넘게 안 끝남: 남은 적을 적고 판을 멈춘 것으로 친다
+			{
+				std::printf("STUCK seed=%d wave=%d pending=%d enemies=%d:", Run, G.Wave, (int)G.PendingForTest().size(), (int)G.Enemies.size());
+				for (const FPDEnemy& E : G.Enemies) std::printf(" [type=%d hp=%.0f/%.0f d=%.2f/%.2f spd=%.2f st=%.1f sh=%.0f ph=%d dead=%d borrow=%d slowT=%.2f slowA=%.2f]", (int)E.Type, E.Hp, E.MaxHp, E.D, G.Path.Length, E.Speed, E.StateT, E.Shield, E.Phase, E.bDead, E.Borrow, E.SlowT, E.SlowAmt);
+				std::printf("\n");
+				for (const auto& KV : G.Towers) if (KV.second.IsJoker()) std::printf(" J%d@%d,%d lv%d", KV.second.Joker, KV.second.X, KV.second.Y, KV.second.JLevel);
+				std::printf("\n");
+				{ FPDGame Probe = G; float D0 = Probe.Enemies.empty() ? 0.f : Probe.Enemies[0].D; for (int K = 0; K < 400; ++K) { Probe.Update(0.05f); if (K % 40 == 0 && !Probe.Enemies.empty()) std::printf("  t=%.1f d=%.3f slowT=%.2f hp=%.0f\n", K * 0.05f, Probe.Enemies[0].D - D0, Probe.Enemies[0].SlowT, Probe.Enemies[0].Hp); } }
+				bStuck = true;
+				break;
+			}
 			if (G.Phase == EPDPhase::Reward) // 보상: 부적 먼저, 없으면 수리 (bNoReward면 건너뛰기)
 			{
 				int Pick = -1;
@@ -1703,6 +1840,21 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		ChipSum += G.RunChips(); // 판당 칩 (D-320 해금 속도 계산)
 		TimeSum += G.Time;     // 웨이브 진행 시간 합 (D-322 플레이 시간 어림)
 		for (int U = 0; U < (int)EPDUpgrade::Count; ++U) GUpgLv[U] += G.Upg[U];
+		if (GStudy)
+		{
+			int Mx = 0, JNow = 0;
+			for (auto& KV : G.Towers) if (KV.second.IsJoker()) { Mx = std::max(Mx, KV.second.JLevel); JNow++; }
+			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
+			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", Built[J]);
+			std::printf(" first=");
+			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", FirstBuilt[J]);
+			std::printf(" can=");
+			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", CanWaves[J]);
+			std::printf(" firstcan=");
+			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", FirstCan[J]);
+			std::printf(" log=%s\n", BuildLog.empty() ? "-" : BuildLog.c_str());
+			std::fflush(stdout);
+		}
 	}
 	std::printf("\n%s%s%s%s%s 봇 %d판, 무너진 웨이브:", bDumb ? "족보 무시" : "족보 생각", bNoReward ? " · 보상 안 받음" : " · 부적 먼저", bFuse ? " · 합성" : "", bJoker ? " · 조커" : "", bTree ? " · 트리" : "", Runs);
 	if (bUpg) std::printf(" (+ 영구 강화 8종 10레벨)");
@@ -1742,6 +1894,14 @@ int main(int Argc, char** Argv)
 		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
 		std::printf("   → CHIPS mode=%s upg=%d content=%d clear=%d/%d\n", Argv[3], GBotUpgLv, GBotContent, GBotClears, Runs);
 		GBotMode = EPDMode::Endless; GBotUpgLv = 10; GBotContent = 0;
+	}
+	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱]
+	{
+		GStudy = true;
+		GBotMode = (EPDMode)std::atoi(Argv[3]); GBotUpgLv = std::atoi(Argv[4]); GBotContent = std::atoi(Argv[5]);
+		GJokerMask = std::atol(Argv[6]); GSeedBase = std::atoi(Argv[7]); GSmartJoker = std::atoi(Argv[8]) != 0; GPursue = std::atoi(Argv[9]) != 0;
+		GJokerSlack = Argc > 10 ? (float)std::atof(Argv[10]) : 0.f;
+		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
 	}
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }
 	std::printf("\n%s (실패 %d)\n", GFails ? "실패 있음" : "모두 통과", GFails);
