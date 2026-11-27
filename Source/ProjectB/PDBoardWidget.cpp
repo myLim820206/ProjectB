@@ -744,7 +744,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		if (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave) { Cines.Reset(); CineTails.Reset(); } // 끝 · 보상 화면으로 넘어가면 연출은 버린다 (클릭을 먹지 않게)
 		UpdateCineTails(Dt); // 꽃가루 · 폭죽 꼬리는 게임이 도는 동안에도
 		if (CineActive()) UpdateCine(Dt); // 완성 연출 동안은 게임이 멈춘다 (D-314)
-		else if (!bTree && !bUpg && !bMenu && !bPaused) Game.Tick(Dt); // 트리·강화·메뉴 창을 여는 동안은 멈춘다
+		else if (!bTree && !bUpg && !bMenu && !bPaused) { SnapShots(); Game.Tick(Dt); } // 트리·강화·메뉴 창을 여는 동안은 멈춘다 (SnapShots: 조커 발사체 착탄 이펙트용, D-488)
 		if (HintNow >= 0 && AutoT0 >= 0.f && Game.AutoStartT >= 0.f && Game.Phase == EPDPhase::Build) Game.AutoStartT = AutoT0; // 도움말이 떠 있는 동안 자동 시작 시계는 멈춤 (D-217)
 	}
 	TreeBuyT = FMath::Max(0.f, TreeBuyT - Dt);

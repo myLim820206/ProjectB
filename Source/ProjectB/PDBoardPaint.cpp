@@ -949,6 +949,7 @@ void SPDBoardWidget::PaintShots(FCanvas& F) const
 	// 무늬 기본형은 레벨(합성)마다 진화, 족보·조커 발사체는 저마다 다른 모양
 	for (const FPDProjectile& Pr : G.Projectiles)
 	{
+		if (Pr.Kind >= EPDShot::Juggle) { const int32 Fx = JokerFxOf(Pr); if (Fx >= 0) { PaintJokerShot(F, Pr, Fx); continue; } } // 조커 40종 (D-488, PDJokerShots.cpp)
 		const FVector2f At0 = CellPx(Pr.X, Pr.Y);
 		const float VL = FMath::Max(0.001f, FMath::Sqrt(Pr.VX * Pr.VX + Pr.VY * Pr.VY));
 		const FVector2f Dir(Pr.VX / VL, Pr.VY / VL), Nrm(-Dir.Y, Dir.X);
@@ -1091,6 +1092,7 @@ void SPDBoardWidget::PaintEffects(FCanvas& F) const
 	const bool bDotParticles = Particles.Num() > 400;
 	F.HaloK = bBusyFx ? 0.f : 1.f;
 	ON_SCOPE_EXIT { F.HaloK = 1.f; };
+	PaintStamps(F); // 조커 착탄 도장 (D-488)
 	// 빛줄기: 레이저, 레일건, 번개, 로열, 체셔
 	for (const FBeam& B : Beams)
 	{
