@@ -187,7 +187,7 @@ private:
 	void StartPick(const std::vector<int>& Cells, bool bJoker);
 	void FinishPick(int32 Cell);           // 고른 칸으로 합성 (-1 = 기본 칸)
 	int32 FindPickIndex() const;           // 고르는 재료와 같은 족보·조커 묶음 번호 (-1 = 사라짐)
-	// 조커 만들기 (D-195): 왼쪽 '조커' 줄·[조커 만들기] 버튼·C 키로 켠다 (HandFilter == JokerFilterId). 재료(족보·합성 타워)를 2~3개 클릭해 고른다
+	// 조커 만들기 (D-195): 왼쪽 '조커' 줄·[조커 만들기] 버튼·C 키로 켠다 (HandFilter == JokerFilterId). 재료(족보·합성 타워)를 레시피 길이(2~4개)만큼 클릭해 고른다
 	std::vector<std::vector<int>> CraftPicks; // 고른 재료 칸 묶음 (판이 바뀌어도 칸으로 다시 찾는다)
 	bool InCraft() const;
 	std::vector<int> CraftNodeIdx() const;   // CraftPicks → JokerNodes 번호 (못 찾은 재료는 빠진다)

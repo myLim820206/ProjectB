@@ -283,8 +283,8 @@ int UpperOf(EPDJoker A, EPDJoker B);         // 레시피가 있으면 상위 �
 inline bool IsUpperJoker(int Joker) { return Joker >= UpperBase && Joker < UpperBase + UpperJokerCount; }
 bool JokerHas(int Joker, EPDJoker K);        // 그 조커이거나, 그 조커를 재료로 한 상위 조커
 EPDUpperSpecial JokerSpecial(int Joker);
-// 조커 재료 묶음 (D-115, D-118): 족보·합성 타워(레벨 2+, 족보에 안 든 것) 3개 또는 2개가 레시피와 정확히 맞을 때.
-// 판 어디에 있어도 된다 (D-195, 예전엔 서로 맞닿아야 했다). 3개 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
+// 조커 재료 묶음 (D-487): 족보·합성 타워(레벨 2+) 2~4개가 한 조커의 레시피와 정확히 맞을 때.
+// 판 어디에 있어도 된다 (D-195, 예전엔 서로 맞닿아야 했다). 재료가 많은 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
 struct FPDJokerGroup
 {
 	std::vector<int> SynergyIdx; // 족보 번호
@@ -303,13 +303,13 @@ struct FPDJokerNode
 // 대장: 족보마다 조커 하나 (지휘 능력과 도감 표시). 조커마다 레시피에 자기 대장 족보가 들어 있다
 EPDJoker CaptainOf(EPDHand H);
 EPDHand CaptainHand(EPDJoker J);
-// 레시피 (D-115, D-118): 조커마다 족보 3개짜리와 2개짜리 (순서 무관). 같은 레벨에서 붙여도 따로 잡히는 조합만:
-// 숫자 족보(페어·트리플…)는 하나만(투 페어 + 원 페어는 예외), 나머지는 스트레이트·플러시
-const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J);
-const std::array<EPDHand, 2>& JokerRecipe2(EPDJoker J);
-// 조커 등급 배율 (D-116): 재료가 3개로 줄어 약해진 만큼. 쉬운 레시피 ×2, 중간 ×2.5, 로열·파이브 카드·스트레이트 플러시가 드는 레시피 ×3
+// 레시피 (D-487, 예전 D-115 · D-118): 조커마다 레시피 하나 (순서 무관). 재료 수는 대장 족보의 뽑기 난이도로 정한다:
+// 흔한 대장(원 페어 · 플러시 · 스트레이트 · 투 페어) 4개, 중간(트리플 · 풀하우스) 3개, 드문 대장 2개. 짝 재료는 흔한 족보만, 스트레이트는 레시피에 최대 하나
+constexpr int JokerRecipeMax = 4;
+const std::vector<EPDHand>& JokerRecipe(EPDJoker J);
+// 조커 등급 배율 (D-487, 예전 D-116): 재료 수로 정한다. 4개 ×1.6, 3개 ×2.5, 2개 ×3.5
 float JokerTier(EPDJoker J);
-EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 족보 3개면 3개 레시피, 2개면 2개 레시피와 정확히 맞는 조커, 없으면 EPDJoker::Count
+EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands); // 레시피와 정확히 맞는 조커 (족보 묶음이 같아야, 개수도), 없으면 EPDJoker::Count
 constexpr float CaptainCommand = 0.3f; // 지휘: 판 위 자기 족보 타워 위력 +30%, 대장이 여럿이면 겹친다 (+60%, +90% …)
 constexpr int MaxLevel = 4;
 constexpr float FuseBonus = 1.5f;      // 합성 덤: 합친 위력 × 1.5
@@ -590,17 +590,17 @@ public:
 	bool Fuse(int SynergyIdx, int TargetCell = -1);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
 	std::vector<FPDJokerGroup> JokerGroups() const; // 조커 합성 가능한 묶음
 	bool JokerFuse(int GroupIdx, int TargetCell = -1); // 묶음을 조커 포탑으로
-	// 조커 만들기 (D-195): 플레이어가 재료를 직접 고른다 (JokerNodes 번호 2~3개, 거리 상관없음)
+	// 조커 만들기 (D-195): 플레이어가 재료를 직접 고른다 (JokerNodes 번호 2~4개, 레시피 길이만큼, 거리 상관없음)
 	std::vector<FPDJokerNode> JokerNodes() const;
 	// 한 조커에 같이 못 넣는 재료 둘 (D-220): 합성 타워와 그 타워가 든 족보 (같은 칸을 두 번 쓰게 된다)
 	static bool JokerNodesClash(const FPDJokerNode& A, const FPDJokerNode& B);
 	EPDJoker JokerCraftResult(const std::vector<int>& Nodes) const; // 레시피와 맞으면 그 조커, 아니면 Count
 	bool JokerCraft(const std::vector<int>& Nodes, int TargetCell); // TargetCell = 재료 칸 중 하나 (-1 = 기본 칸)
 	bool JokerFuseGroup(const FPDJokerGroup& G, int TargetCell);
-	// 조커 목록 (D-210): 그 조커를 만들 가장 좋은 재료 (JokerNodes 번호). 3개 레시피가 되면 3개, 아니면 2개, 안 되면 빈 것.
+	// 조커 목록 (D-210): 그 조커를 만들 가장 좋은 재료 (JokerNodes 번호, 레시피 길이만큼). 안 되면 빈 것.
 	// 레시피 족보마다 위력 배율이 큰 후보 4개까지 중에서, 만든 뒤 판 위력이 가장 높은 조합
 	std::vector<int> BestJokerPicks(EPDJoker J) const;
-	// 3개 레시피에서 판에 모자란 족보 수 (같은 족보가 둘 필요하면 둘 다 세야). Missing = 모자란 족보 하나 (없으면 Count)
+	// 레시피에서 판에 모자란 족보 수 (같은 족보가 둘 필요하면 둘 다 세야). Missing = 모자란 족보 하나 (없으면 Count)
 	int JokerMissing(EPDJoker J, EPDHand* Missing = nullptr) const;
 	// 조커에 먹일 수 있는 족보 (족보마다 하나). OnlyJoker 를 주면 그 조커가 먹을 수 있는 족보만 (그 조커가 족보에 들었거나 맞닿음, D-213)
 	std::vector<FPDFeed> FeedTargets(int OnlyJoker = -1) const;

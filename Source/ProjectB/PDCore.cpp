@@ -670,46 +670,32 @@ EPDHand CaptainHand(EPDJoker J)
 	for (int H = 0; H < (int)EPDHand::Count; ++H) if (GPDCaptain[H] == J) return (EPDHand)H;
 	return EPDHand::Pair;
 }
-// 레시피 (D-118). EPDJoker 순서: 광대, 모자 장수, 웃는 가면, 희비극, 할리퀸, 지휘봉, 잭, 체셔, 방울, 스타
-using H3 = std::array<EPDHand, 3>;
-using H2 = std::array<EPDHand, 2>;
-static const H3 GPDRecipe[(int)EPDJoker::Count] = {
-	{EPDHand::Five, EPDHand::Straight, EPDHand::Flush},                // 광대
-	{EPDHand::StraightFlush, EPDHand::Straight, EPDHand::Flush},       // 모자 장수
-	{EPDHand::TwoPair, EPDHand::Pair, EPDHand::Straight},              // 웃는 가면
-	{EPDHand::Pair, EPDHand::Straight, EPDHand::Flush},                // 희비극
-	{EPDHand::Flush, EPDHand::Flush, EPDHand::Flush},                  // 할리퀸 (무늬가 다르게)
-	{EPDHand::Straight, EPDHand::Straight, EPDHand::Straight},         // 지휘봉 (숫자가 안 이어지게)
-	{EPDHand::Triple, EPDHand::Straight, EPDHand::Flush},              // 잭
-	{EPDHand::Four, EPDHand::Straight, EPDHand::Flush},                // 체셔
-	{EPDHand::FullHouse, EPDHand::Straight, EPDHand::Flush},           // 방울
-	{EPDHand::RoyalFlush, EPDHand::StraightFlush, EPDHand::Flush},     // 스타
+// 레시피 (D-487). EPDJoker 순서: 광대, 모자 장수, 웃는 가면, 희비극, 할리퀸, 지휘봉, 잭, 체셔, 방울, 스타
+// 같은 족보를 여러 번 넣어도 된다 (재료는 판 어디서나 고름, D-195). 같은 종류 플러시는 카드를 나눠 쓰지 않으니 무늬가 다르다
+static const std::vector<EPDHand> GPDRecipe[(int)EPDJoker::Count] = {
+	{EPDHand::Five, EPDHand::Pair},                                         // 광대 (2)
+	{EPDHand::StraightFlush, EPDHand::Pair},                                // 모자 장수 (2)
+	{EPDHand::TwoPair, EPDHand::Pair, EPDHand::Flush, EPDHand::Straight},   // 웃는 가면 (4)
+	{EPDHand::Pair, EPDHand::Pair, EPDHand::Flush, EPDHand::Flush},         // 희비극 (4)
+	{EPDHand::Flush, EPDHand::Flush, EPDHand::Flush, EPDHand::Pair},        // 할리퀸 (4)
+	{EPDHand::Straight, EPDHand::Pair, EPDHand::Pair, EPDHand::Flush},      // 지휘봉 (4)
+	{EPDHand::Triple, EPDHand::Pair, EPDHand::Flush},                       // 잭 (3)
+	{EPDHand::Four, EPDHand::Flush},                                        // 체셔 (2)
+	{EPDHand::FullHouse, EPDHand::Flush, EPDHand::Straight},                // 방울 (3)
+	{EPDHand::RoyalFlush, EPDHand::Pair},                                   // 스타 (2)
 };
-static const H2 GPDRecipe2[(int)EPDJoker::Count] = {
-	{EPDHand::Five, EPDHand::Straight},           // 광대
-	{EPDHand::StraightFlush, EPDHand::Flush},     // 모자 장수
-	{EPDHand::TwoPair, EPDHand::Pair},            // 웃는 가면
-	{EPDHand::Pair, EPDHand::Straight},           // 희비극
-	{EPDHand::Flush, EPDHand::Flush},             // 할리퀸
-	{EPDHand::Straight, EPDHand::Straight},       // 지휘봉
-	{EPDHand::Triple, EPDHand::Straight},         // 잭
-	{EPDHand::Four, EPDHand::Straight},           // 체셔
-	{EPDHand::FullHouse, EPDHand::Flush},         // 방울
-	{EPDHand::RoyalFlush, EPDHand::StraightFlush}, // 스타
-};
-const std::array<EPDHand, 3>& JokerRecipe(EPDJoker J) { return GPDRecipe[(int)J]; }
-const std::array<EPDHand, 2>& JokerRecipe2(EPDJoker J) { return GPDRecipe2[(int)J]; }
+const std::vector<EPDHand>& JokerRecipe(EPDJoker J) { return GPDRecipe[(int)J]; }
 EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 {
-	if (Hands.size() != 2 && Hands.size() != 3) return EPDJoker::Count;
+	if (Hands.size() < 2 || Hands.size() > JokerRecipeMax) return EPDJoker::Count;
 	std::vector<int> A;
 	for (EPDHand H : Hands) A.push_back((int)H);
 	std::sort(A.begin(), A.end());
 	for (int J = 0; J < (int)EPDJoker::Count; ++J)
 	{
+		if (GPDRecipe[J].size() != Hands.size()) continue;
 		std::vector<int> B;
-		if (Hands.size() == 3) for (EPDHand H : GPDRecipe[J]) B.push_back((int)H);
-		else for (EPDHand H : GPDRecipe2[J]) B.push_back((int)H);
+		for (EPDHand H : GPDRecipe[J]) B.push_back((int)H);
 		std::sort(B.begin(), B.end());
 		if (A == B) return (EPDJoker)J;
 	}
@@ -717,11 +703,12 @@ EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 }
 float JokerTier(EPDJoker J)
 {
-	switch (J)
+	if (J < (EPDJoker)0 || J >= EPDJoker::Count) return 1.f;
+	switch (GPDRecipe[(int)J].size())
 	{
-	case EPDJoker::Comedy: case EPDJoker::Mask: case EPDJoker::Jack: case EPDJoker::Baton: return 2.f;
-	case EPDJoker::Harlequin: case EPDJoker::Bell: case EPDJoker::Cheshire: return 2.5f;
-	default: return 3.f; // 모자 장수, 광대, 스타
+	case 4: return 1.6f;
+	case 3: return 2.5f;
+	default: return 3.5f;
 	}
 }
 
@@ -1644,41 +1631,62 @@ bool FPDGame::FuseSynergy(int SynergyIdx, FPDSynergy& Out) const
 	return true;
 }
 
+// 레시피 족보 자리마다 후보 재료(Cand[자리])를 하나씩 골라, 같이 넣을 수 있는 조합마다 Fn (D-487: 재료 2~4개).
+// Kinds 는 정렬된 레시피. 같은 족보 자리는 번호 순서 하나만 돈다 (원 페어 둘 = 같은 조합 한 번)
+static void PDForRecipe(const std::vector<FPDJokerNode>& Ns, const std::vector<EPDHand>& Kinds, const std::vector<std::vector<int>>& Cand, const std::function<void(const std::vector<int>&)>& Fn)
+{
+	const int Count = (int)Kinds.size();
+	std::vector<int> Pick(Count, -1);
+	std::function<void(int)> Go = [&](int S) {
+		if (S == Count) { Fn(Pick); return; }
+		for (int N : Cand[S])
+		{
+			if (S > 0 && Kinds[S] == Kinds[S - 1] && N <= Pick[S - 1]) continue;
+			bool bOk = true;
+			for (int Q = 0; Q < S && bOk; ++Q) bOk = Pick[Q] != N && !FPDGame::JokerNodesClash(Ns[Pick[Q]], Ns[N]);
+			if (!bOk) continue;
+			Pick[S] = N;
+			Go(S + 1);
+		}
+	};
+	Go(0);
+}
+static std::vector<EPDHand> PDSortedRecipe(EPDJoker J)
+{
+	std::vector<EPDHand> K = JokerRecipe(J);
+	std::sort(K.begin(), K.end());
+	return K;
+}
+
 std::vector<FPDJokerGroup> FPDGame::JokerGroups() const
 {
 	std::vector<FPDJokerGroup> Out;
 	const std::vector<FPDJokerNode> Nodes = JokerNodes();
-	// 3개 조합과 2개 조합 중 레시피와 정확히 맞는 것 (D-115, D-118). 거리는 상관없다 (D-195)
-	struct FCand { int N[3]; int Count; EPDJoker J; int Value; };
+	// 조커마다 레시피와 정확히 맞는 재료 묶음 (D-487). 거리는 상관없다 (D-195)
+	struct FCand { std::vector<int> N; EPDJoker J; int Value; };
 	std::vector<FCand> Cands;
-	const int NN = (int)Nodes.size();
-	std::vector<int> Kind(NN);
-	for (int I = 0; I < NN; ++I) Kind[I] = Nodes[I].Kind == EPDHand::Count ? -1 : (int)Nodes[I].Kind;
-	for (int I = 0; I < NN; ++I)
-		for (int J = I + 1; J < NN; ++J)
-		{
-			if (Kind[I] < 0 || Kind[J] < 0 || JokerNodesClash(Nodes[I], Nodes[J])) continue;
-			{
-				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J]});
-				if (R != EPDJoker::Count && JokerOpen((int)R)) Cands.push_back({{I, J, -1}, 2, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J])});
-			}
-			for (int K = J + 1; K < NN; ++K)
-			{
-				if (Kind[K] < 0 || JokerNodesClash(Nodes[I], Nodes[K]) || JokerNodesClash(Nodes[J], Nodes[K])) continue;
-				const EPDJoker R = MatchJokerRecipe({(EPDHand)Kind[I], (EPDHand)Kind[J], (EPDHand)Kind[K]});
-				if (R != EPDJoker::Count && JokerOpen((int)R)) Cands.push_back({{I, J, K}, 3, R, HandBaseValue((EPDHand)Kind[I]) + HandBaseValue((EPDHand)Kind[J]) + HandBaseValue((EPDHand)Kind[K])});
-			}
-		}
-	// 3개 레시피 먼저 (카드가 많아 세다), 같은 개수끼리는 낮은 족보부터, 칸이 겹치지 않게
-	std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& X, const FCand& Y) { return X.Count != Y.Count ? X.Count > Y.Count : X.Value < Y.Value; });
+	for (int J = 0; J < (int)EPDJoker::Count; ++J)
+	{
+		if (!JokerOpen(J)) continue;
+		const std::vector<EPDHand> Kinds = PDSortedRecipe((EPDJoker)J);
+		std::vector<std::vector<int>> Cand(Kinds.size());
+		for (size_t S = 0; S < Kinds.size(); ++S)
+			for (int I = 0; I < (int)Nodes.size(); ++I) if (Nodes[I].Kind == Kinds[S]) Cand[S].push_back(I);
+		PDForRecipe(Nodes, Kinds, Cand, [&](const std::vector<int>& P) {
+			int V = 0;
+			for (int N : P) V += HandBaseValue(Nodes[N].Kind);
+			Cands.push_back({P, (EPDJoker)J, V});
+		});
+	}
+	// 재료가 많은 레시피 먼저 (카드가 많아 세다), 같은 개수끼리는 낮은 족보부터, 칸이 겹치지 않게
+	std::stable_sort(Cands.begin(), Cands.end(), [](const FCand& X, const FCand& Y) { return X.N.size() != Y.N.size() ? X.N.size() > Y.N.size() : X.Value < Y.Value; });
 	std::set<int> UsedCells;
 	for (const FCand& Cd : Cands)
 	{
 		FPDJokerGroup G;
 		bool bFree = true;
-		for (int Q = 0; Q < Cd.Count; ++Q)
+		for (int N : Cd.N)
 		{
-			const int N = Cd.N[Q];
 			for (int K : Nodes[N].Cells) bFree = bFree && !UsedCells.count(K);
 			if (Nodes[N].Syn >= 0) G.SynergyIdx.push_back(Nodes[N].Syn);
 			else G.FusedCells.push_back(Nodes[N].Fused);
@@ -1750,7 +1758,7 @@ bool FPDGame::JokerNodesClash(const FPDJokerNode& A, const FPDJokerNode& B)
 
 EPDJoker FPDGame::JokerCraftResult(const std::vector<int>& Picks) const
 {
-	if (Picks.size() != 2 && Picks.size() != 3) return EPDJoker::Count;
+	if (Picks.size() < 2 || Picks.size() > JokerRecipeMax) return EPDJoker::Count;
 	const std::vector<FPDJokerNode> Nodes = JokerNodes();
 	std::vector<EPDHand> Hands;
 	for (size_t I = 0; I < Picks.size(); ++I)
@@ -1786,43 +1794,29 @@ std::vector<int> FPDGame::BestJokerPicks(EPDJoker J) const
 {
 	const std::vector<FPDJokerNode> Ns = JokerNodes();
 	auto MultOf = [&](int N) { float M = 0.f; for (int K : Ns[N].Cells) M += Towers.at(K).Mult; return M; };
-	for (const int Count : {3, 2})
+	const std::vector<EPDHand> Kinds = PDSortedRecipe(J);
+	const int Count = (int)Kinds.size();
+	// 족보 자리마다 위력 배율이 큰 후보 몇 개까지 (재료 4개면 3개씩: 사본을 만들어 재므로 비싸다)
+	const size_t Keep = Count >= 4 ? 3 : 4;
+	std::vector<std::vector<int>> Cand(Count);
+	for (int S = 0; S < Count; ++S)
 	{
-		std::vector<EPDHand> Kinds;
-		if (Count == 3) for (EPDHand H : JokerRecipe(J)) Kinds.push_back(H);
-		else for (EPDHand H : JokerRecipe2(J)) Kinds.push_back(H);
-		std::sort(Kinds.begin(), Kinds.end());
-		std::vector<std::vector<int>> Cand(Count);
-		for (int S = 0; S < Count; ++S)
-		{
-			for (int I = 0; I < (int)Ns.size(); ++I) if (Ns[I].Kind == Kinds[S]) Cand[S].push_back(I);
-			std::stable_sort(Cand[S].begin(), Cand[S].end(), [&](int A, int B) { return MultOf(A) > MultOf(B); });
-			if (Cand[S].size() > 4) Cand[S].resize(4);
-		}
-		std::vector<int> Pick(Count, -1), Best;
-		double BestScore = -1.0;
-		std::function<void(int)> Go = [&](int S) {
-			if (S == Count)
-			{
-				FPDGame Copy = *this;
-				Copy.bMuted = true;
-				if (!Copy.JokerCraft(Pick, -1)) return;
-				const double Score = Copy.Power();
-				if (Score > BestScore) { BestScore = Score; Best = Pick; }
-				return;
-			}
-			for (int N : Cand[S])
-			{
-				if (S > 0 && Kinds[S] == Kinds[S - 1] && N <= Pick[S - 1]) continue; // 같은 족보 자리는 순서 하나만
-				if (std::find(Pick.begin(), Pick.begin() + S, N) != Pick.begin() + S) continue;
-				Pick[S] = N;
-				Go(S + 1);
-			}
-		};
-		Go(0);
-		if (!Best.empty()) return Best;
+		if (S > 0 && Kinds[S] == Kinds[S - 1]) { Cand[S] = Cand[S - 1]; continue; }
+		const int Same = (int)std::count(Kinds.begin(), Kinds.end(), Kinds[S]); // 같은 족보 자리가 여럿이면 그만큼 더 남긴다
+		for (int I = 0; I < (int)Ns.size(); ++I) if (Ns[I].Kind == Kinds[S]) Cand[S].push_back(I);
+		std::stable_sort(Cand[S].begin(), Cand[S].end(), [&](int A, int B) { return MultOf(A) > MultOf(B); });
+		if (Cand[S].size() > Keep + Same - 1) Cand[S].resize(Keep + Same - 1);
 	}
-	return {};
+	std::vector<int> Best;
+	double BestScore = -1.0;
+	PDForRecipe(Ns, Kinds, Cand, [&](const std::vector<int>& Pick) {
+		FPDGame Copy = *this;
+		Copy.bMuted = true;
+		if (!Copy.JokerCraft(Pick, -1)) return;
+		const double Score = Copy.Power();
+		if (Score > BestScore) { BestScore = Score; Best = Pick; }
+	});
+	return Best;
 }
 
 int FPDGame::JokerMissing(EPDJoker J, EPDHand* Missing) const
