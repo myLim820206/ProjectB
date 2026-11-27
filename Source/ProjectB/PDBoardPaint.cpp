@@ -2326,7 +2326,7 @@ void SPDBoardWidget::PaintPanels(FCanvas& C) const
 		const bool bHov = InRect(Mouse, SetOpenX, HudBtnY, HudBtnS, HudBtnS);
 		if (bHov)
 		{
-			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("오른쪽 클릭: 카드 버리기 · 고른 것 취소"),
+			static const TCHAR* Lines[] = {TEXT("카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)"), TEXT("오른쪽 클릭: 고른 것 취소 · 타워 위면 메뉴 (판매)"),
 				TEXT("타워 클릭: 메뉴 (합성 · 조커 · 먹이기 · 판매) · 왼쪽 족보 목록으로도 합성"), TEXT("Space 웨이브 시작 · F 속도 · P 일시정지 · M 소리 · F3 프레임 표시"), TEXT("K 스킬 트리 · U 영구 강화 · J 도감 · Esc 또는 ? 클릭: 메뉴")};
 			const float W = 400.f, Hh = 24.f + UE_ARRAY_COUNT(Lines) * 18.f, X = DesignW - 16.f - W, Y = HudBtnY + HudBtnS + 8.f;
 			C.Box(X, Y, W, Hh, Hex(TEXT("0a0b14"), 0.96f));
@@ -3623,7 +3623,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스로"), TEXT("이어진 족보가 모두 더 강해져요")},
 		{TEXT("왼쪽 '조커' 줄을 눌러 만들 조커를 고르고"), TEXT("'추천' 재료를 고르고, 그 재료를 다시 누르면 완성")},
 		{TEXT("'먹이기' 줄(또는 판의 조커)에서 조커를 고르고"), TEXT("빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요")},
-		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
+		{TEXT("카드를 판에 놓거나 Lv1 타워 위에 교체하고"), TEXT("필요 없는 타워는 오른쪽 클릭 → 판매하세요")},
 		{TEXT("자리바꿈 버튼(X)을 누르고 타워 둘을 고르면"), TEXT("자리를 바꿀 수 있어요")},
 		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("채널 TV 다음 화 예고에 보스 이름이 나와요")},
 		{TEXT("레벨이 올라 포인트가 생겼어요"), TEXT("스킬 트리(K)에서 노드를 찍어 보세요")},
@@ -3820,7 +3820,7 @@ void SPDBoardWidget::PaintHandTip(FCanvas& C) const
 		C.Text(SuitHow[FMath::Clamp((int32)Card.Suit, 0, 4)], TX + 12.f, TY + 38.f, Fg, 10.f, 0, false, TW - 24.f);
 		C.Text(TrF(TEXT("공격력 %.0f · 초당 %.1f발 · 치명 %.0f%% ×%.2f"), St.Dmg, St.Rate, St.Crit * 100.f, St.CritMult), TX + 12.f, TY + 58.f, UiValue, 11.f, 0, false, TW - 24.f);
 		C.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), TX + 12.f, TY + 75.f, Grey, 11.f, 0, false, TW - 24.f);
-		C.Text(TEXT("클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기"), TX + 12.f, TY + 93.f, Dim, 9.f, 0, false, TW - 24.f);
+		C.Text(TEXT("클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 취소"), TX + 12.f, TY + 93.f, Dim, 9.f, 0, false, TW - 24.f);
 		break;
 	}
 }

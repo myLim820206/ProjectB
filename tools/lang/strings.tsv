@@ -244,7 +244,7 @@ J·Q·K 타워 공격력 +60%	J·Q·K towers ATK +60%	J・Q・K タワー攻撃�
 숫자 7 타워 공격력 ×2.5	7 towers ATK ×2.5	7のタワー攻撃力 ×2.5	数字7的塔攻击力 ×2.5	數字7的塔攻擊力 ×2.5	PDBoardDraw.h
 손패 최대 +2	Max hand +2	手札上限 +2	手牌上限 +2	手牌上限 +2	PDBoardDraw.h
 웨이브마다 카드 +1	+1 card per wave	ウェーブごとにカード +1	每波卡牌 +1	每波卡牌 +1	PDBoardDraw.h
-카드를 버리면 1장 뽑기	Draw 1 when you discard	カードを捨てると1枚引く	弃牌时抽1张	棄牌時抽1張	PDBoardDraw.h
+타워를 팔면 1장 뽑기	Draw 1 when you sell a tower	タワーを売ると1枚引く	出售塔时抽1张	出售塔時抽1張	PDBoardDraw.h
 모든 타워 사거리 +15%	All towers range +15%	全タワー射程 +15%	所有塔射程 +15%	所有塔射程 +15%	PDBoardDraw.h
 둔화 더 강하게, ♣ 주변도 둔화	Stronger slow, ♣ slows nearby too	減速が強くなり ♣ の周りも減速	减速更强, ♣ 周围也减速	減速更強, ♣ 周圍也減速	PDBoardDraw.h
 처치 시 주변 적에게 최대 체력 15% 피해	On kill, deals 15% max HP to nearby enemies	撃破時、周りの敵に最大体力15%のダメージ	击杀时对周围敌人造成最大生命15%伤害	擊殺時對周圍敵人造成最大生命15%傷害	PDBoardDraw.h
@@ -597,7 +597,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 ×%d 배속	×%d speed	×%d 倍速	×%d 倍速	×%d 倍速	PDBoardPaint.cpp
 F: 배속 바꾸기	F: change speed	F: 倍速切替	F: 切换倍速	F: 切換倍速	PDBoardPaint.cpp
 카드 클릭(숫자키) → 칸 클릭: 설치 · Lv1 타워 위에 놓으면 교체 (원래 카드는 손으로)	Click a card (number key) → click a cell: place · placing on a Lv1 tower swaps it (the old card returns to your hand)	カードをクリック(数字キー) → マスをクリック: 設置 · Lv1 タワーの上に置くと入れ替え (元のカードは手札へ)	点击卡牌(数字键) → 点击格子: 放置 · 放在 Lv1 塔上会替换 (原卡牌回到手牌)	點擊卡牌(數字鍵) → 點擊格子: 放置 · 放在 Lv1 塔上會替換 (原卡牌回到手牌)	PDBoardPaint.cpp
-오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDBoardPaint.cpp
+오른쪽 클릭: 고른 것 취소 · 타워 위면 메뉴 (판매)	Right-click: cancel selection · on a tower, open its menu (sell)	右クリック：選択を取り消す・タワーの上ならメニュー（売却）	右键：取消选择 · 在塔上则打开菜单（出售）	右鍵：取消選擇 · 在塔上則打開選單（出售）	PDBoardPaint.cpp
 타워 클릭: 메뉴 (합성 · 조커 · 먹이기 · 판매) · 왼쪽 족보 목록으로도 합성	Click a tower: menu (fuse · joker · feed · sell) · you can also fuse from the hand list	タワークリック: メニュー (合成 · ジョーカー · 食べさせる · 売却) · 左の役リストからも合成	点击塔: 菜单 (合成 · 小丑 · 喂食 · 出售) · 也可从左侧牌型列表合成	點擊塔: 選單 (合成 · 小丑 · 餵食 · 出售) · 也可從左側牌型列表合成	PDBoardPaint.cpp
 Space 웨이브 시작 · F 속도 · P 일시정지 · M 소리 · F3 프레임 표시	Space start wave · F speed · P pause · M sound · F3 frame stats	Space ウェーブ開始 · F 速度 · P 一時停止 · M 音 · F3 フレーム表示	Space 开始波次 · F 速度 · P 暂停 · M 声音 · F3 帧数显示	Space 開始波次 · F 速度 · P 暫停 · M 聲音 · F3 幀數顯示	PDBoardPaint.cpp
 K 스킬 트리 · U 영구 강화 · J 도감 · Esc 또는 ? 클릭: 메뉴	K skill tree · U upgrades · J codex · Esc or click ?: menu	K スキルツリー · U 永久強化 · J 図鑑 · Esc か ? クリック: メニュー	K 技能树 · U 永久强化 · J 图鉴 · Esc 或点击 ?: 菜单	K 技能樹 · U 永久強化 · J 圖鑑 · Esc 或點擊 ?: 選單	PDBoardPaint.cpp
@@ -697,8 +697,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 '추천' 재료를 고르고, 그 재료를 다시 누르면 완성	pick 'Best' materials, then click one again to create it	「おすすめ」素材を選び、もう一度押すと完成	"选择""推荐""材料，再点一次即可完成"	選擇「推薦」材料，再點一次即可完成	PDBoardPaint.cpp
 '먹이기' 줄(또는 판의 조커)에서 조커를 고르고	Pick a joker from the 'Feed' row (or click a joker on the board)	「餌やり」の行（または盤のジョーカー）でジョーカーを選び	"在""喂食""行（或点击场上的小丑）选择小丑"	在「餵食」行（或點擊場上的小丑）選擇小丑	PDBoardPaint.cpp
 빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요	and click a glowing hand to feed it and raise its joker level	光る役のマスを押して食べさせるとジョーカーレベルが上がります	点击发光的牌型格子喂食，小丑等级就会提升	點擊發光的牌型格子餵食，小丑等級就會提升	PDBoardPaint.cpp
-카드를 오른쪽 클릭해 버리거나	Right-click a card to discard it, or	カードを右クリックで捨てるか	右键卡牌丢弃, 或	右鍵卡牌丟棄, 或	PDBoardPaint.cpp
-Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タワーの上に置いて入れ替えましょう	放到 Lv1 塔上替换	放到 Lv1 塔上替換	PDBoardPaint.cpp
+카드를 판에 놓거나 Lv1 타워 위에 교체하고	Place cards on the board or swap them onto Lv1 towers,	カードを盤に置くか、Lv1タワーの上で入れ替えて	把卡牌放到棋盘上，或替换到Lv1塔上	把卡牌放到棋盤上，或替換到Lv1塔上	PDBoardPaint.cpp
+필요 없는 타워는 오른쪽 클릭 → 판매하세요	and sell towers you don't need (right-click → Sell)	いらないタワーは右クリック → 売却しよう	不需要的塔：右键 → 出售	不需要的塔：右鍵 → 出售	PDBoardPaint.cpp
 자리바꿈 버튼(X)을 누르고 타워 둘을 고르면	Press the Swap button (X) and pick two towers	入れ替えボタン(X)を押してタワーを2つ選ぶと	按换位按钮 (X) 并选两座塔	按換位按鈕 (X) 並選兩座塔	PDBoardPaint.cpp
 자리를 바꿀 수 있어요	to swap their places	場所を入れ替えられます	即可交换位置	即可交換位置	PDBoardPaint.cpp
 다음 웨이브에 보스가 나와요	A boss comes next wave	次のウェーブにボスが出ます	下一波会出现首领	下一波會出現首領	PDBoardPaint.cpp
@@ -728,7 +728,7 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 탄환을 빠르게 여러 발	Fires bullets rapidly	弾丸を素早く何発も撃つ	快速连发子弹	快速連發子彈	PDBoardPaint.cpp
 서리 구체로 맞은 적을 느리게	Frost orbs slow the enemies they hit	霜の球で当たった敵を遅くする	冰霜球使被击中的敌人减速	冰霜球使被擊中的敵人減速	PDBoardPaint.cpp
 아무 숫자·무늬로 쳐서 족보를 이어 준다	Counts as any rank and suit to complete hands	どの数字・スートにもなって役をつなぐ	可当任意点数与花色来组成牌型	可當任意點數與花色來組成牌型	PDBoardPaint.cpp
-클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click (number key) → click a tile: place · right-click: discard	クリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDBoardPaint.cpp
+클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 취소	Click (number key) → click a cell: place · Right-click: cancel	クリック（数字キー）→ マスをクリック：設置・右クリック：取り消し	点击（数字键）→ 点击格子：放置 · 右键：取消	點擊（數字鍵）→ 點擊格子：放置 · 右鍵：取消	PDBoardPaint.cpp
 족보 메뉴	Hand Menu	役メニュー	牌型菜单	牌型菜單	PDBoardPaint.cpp
 족보	Hands	役	牌型	牌型	PDBoardPaint.cpp
 다시 클릭 / Esc: 끄기	Click again / Esc: off	もう一度クリック / Esc: やめる	再点一次 / Esc: 关闭	再點一次 / Esc: 關閉	PDBoardPaint.cpp
@@ -787,6 +787,11 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+카드를 버리면 1장 뽑기	Draw 1 when you discard	カードを捨てると1枚引く	弃牌时抽1张	棄牌時抽1張	PDLangTable.inl
+오른쪽 클릭: 카드 버리기 · 고른 것 취소	Right-click: discard card · cancel selection	右クリック: カードを捨てる · 選択解除	右键: 弃牌 · 取消选择	右鍵: 棄牌 · 取消選擇	PDLangTable.inl
+카드를 오른쪽 클릭해 버리거나	Right-click a card to discard it, or	カードを右クリックで捨てるか	右键卡牌丢弃, 或	右鍵卡牌丟棄, 或	PDLangTable.inl
+Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タワーの上に置いて入れ替えましょう	放到 Lv1 塔上替换	放到 Lv1 塔上替換	PDLangTable.inl
+클릭(숫자키) → 칸 클릭: 설치 · 오른쪽 클릭: 버리기	Click (number key) → click a tile: place · right-click: discard	クリック(数字キー) → マスをクリック: 設置 · 右クリック: 捨てる	点击(数字键) → 点击格子: 放置 · 右键: 弃牌	點擊(數字鍵) → 點擊格子: 放置 · 右鍵: 棄牌	PDLangTable.inl
 게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDLangTable.inl
 연사 ×1.25 / ×1.5 / ×1.75 / ×2	Rate ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	连射 ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	PDLangTable.inl
  (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDLangTable.inl

@@ -2207,8 +2207,7 @@ void FPDGame::Discard(int HandIdx)
 {
 	if (HandIdx < 0 || HandIdx >= (int)Hand.size()) return;
 	Hand.erase(Hand.begin() + HandIdx);
-	Discarded++;
-	if (Has(EPDCharm::Recycle)) Draw(1);
+	Discarded++; // 화면에서는 버리기를 뺐다 (D-484: 오른쪽 클릭은 어디서나 취소). 규칙 · 저장 기록은 그대로
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::Discard;
 	Ev(E);
@@ -2232,6 +2231,7 @@ bool FPDGame::SellTower(int Cell)
 	const FPDTower T = Towers.at(Cell);
 	Towers.erase(Cell);
 	AddXp((float)Price, false); // 경험치 덤(트리)은 안 붙는다
+	if (Has(EPDCharm::Recycle)) Draw(1); // 원스 모어: 타워를 팔면 1장 뽑기 (D-484, 예전 버리면 1장)
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::Discard;

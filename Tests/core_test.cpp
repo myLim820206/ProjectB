@@ -1717,6 +1717,23 @@ static void FuseRuleTests()
 		Expect(bTwo && bF && bTp && G.Towers.size() == 1 && F.Level == 3 && Near(F.Mult, (3.f + 1.f + 1.f + 1.f) * FuseBonus) && Near(F.TDmg, 1.5f * 1.5f) && Near(F.TRange, 1.25f) && F.FuseHand == (int)EPDHand::TwoPair && F.Card == C(8, EPDSuit::Club),
 			"Lv2 8(합성) · Lv2 8 · Lv2 2 2 → 투 페어 → Lv3 8♣: 위력 6×1.5, 공격력 1.5×1.5, 사거리 1.25, 기억 투 페어");
 	}
+	{ // 원스 모어 (D-484): 타워를 팔면 1장 뽑기 (예전 버리면 1장), 손패가 가득이면 안 뽑고, 칵테일이 없으면 안 뽑음
+		FPDGame G = FuseBoard();
+		const int Row = FreeRow(G, 6);
+		auto Try = [&](bool bCharm, bool bFull) {
+			G.Towers.clear(); G.Hand.clear();
+			G.Charms.clear(); if (bCharm) G.Charms.push_back(EPDCharm::Recycle);
+			while (bFull && (int)G.Hand.size() < G.HandMax()) G.Hand.push_back(C(2));
+			Put(G.Towers, 0, Row, C(9)); Refresh(G);
+			const size_t Before = G.Hand.size();
+			const bool bSold = G.SellTower(CellKey(0, Row));
+			return bSold ? (int)G.Hand.size() - (int)Before : -99;
+		};
+		const int With = Try(true, false), Without = Try(false, false), Full = Try(true, true);
+		G.Hand = {C(5)}; G.Charms = {EPDCharm::Recycle};
+		G.Discard(0);
+		Expect(With == 1 && Without == 0 && Full == 0 && G.Hand.empty(), "원스 모어: 팔면 손패 +1, 칵테일 없으면 0, 손패 가득이면 0, 버리기로는 안 뽑음");
+	}
 	{ // 18. 무작위 판 2,000개: 아무 족보나 아무 칸에 합성해도 규칙이 깨지지 않는다
 		std::mt19937 Rng(2026);
 		int Tried = 0, Done = 0, Bad = 0;

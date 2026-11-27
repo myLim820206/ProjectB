@@ -65,7 +65,7 @@ enum class EPDCharm : uint8_t
 	Lucky7,     // 7 공격력 ×2.5
 	BigHand,    // 손패 최대 +2
 	Supply,     // 웨이브마다 카드 +1
-	Recycle,    // 버리면 1장 뽑기
+	Recycle,    // 원스 모어: 타워를 팔면 1장 뽑기 (D-484, 예전 버리면 1장)
 	Scope,      // 사거리 +15%
 	Frost,      // 둔화 강화, ♣ 주변도 둔화
 	ChainBlast, // 처치 시 주변 적에게 최대 체력 15% 피해

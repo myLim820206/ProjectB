@@ -1633,7 +1633,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (bRight)
 	{
-		if (HandHit >= 0) { Game.Discard(HandHit); if (Sel == HandHit) Sel = -1; else if (Sel > HandHit) --Sel; }
+		if (HandHit >= 0) Sel = -1; // 손패 위 오른쪽 클릭 = 고른 카드 풀기 (D-484: 예전엔 버리기라 취소하려다 카드를 날렸다)
 		else if (const int32 Cell = CellAt(P); Sel < 0 && HandFilter < 0 && Cell >= 0 && Game.Towers.count(Cell)) OpenCellMenu(Cell); // 타워 오른쪽 클릭 = 칸 메뉴 상자 (D-312 ⑤, 예전 판매 버튼 D-221)
 		else Sel = -1;
 		return;
