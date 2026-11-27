@@ -73,12 +73,13 @@ def group(col, cx):
 
 # ---- 마티니 잔 (D-481): 따라 그린 잔 대신 손으로 설계한 선. 좌표는 원본 그림(1139 × 546) 화소
 # 곧게 선 대칭 잔: V 잔(닫힌 관 하나) · 다리 + 납작한 타원 받침(관 하나), 잔 속 하늘색 술 선 · 각얼음, 분홍 빨대, 노란 반짝 선 셋.
-# 잔 전체를 TILT 만큼 한 덩어리로 기울일 수 있다 (선 모양은 그대로 — 예전처럼 윗변만 찌그러지지 않게)
-GLASS = dict(cx=952.0, rim_y=176.0, half=124.0, apex_y=336.0, foot_y=426.0, corner=7.0)
-TILT = -8.0  # 잔 기울기 (도, + = 시계 방향). 받침 가운데를 축으로. −8° = 오른쪽이 올라감 (인게임 시안처럼, 사용자 2026-11-27)
+# 잔(V)을 TILT 만큼 한 덩어리로 기울인다 (선 모양은 그대로 — 예전처럼 윗변만 찌그러지지 않게)
+GLASS = dict(cx=952.0, rim_y=180.0, half=124.0, apex_y=304.0, foot_y=414.0, corner=7.0)  # 인게임 시안 비율: 잔 깊이 = 윗변 반폭, 다리 + 받침 = 잔 깊이 정도 (D-483)
+TILT = -11.0  # 잔 기울기 (도, + = 시계 방향). 잔 아래 꼭짓점을 축으로, 다리 · 받침은 곧게. 오른쪽이 올라감 (인게임 시안에서 잰 윗변 기울기, D-483)
 # 게임에서 보이는 관 반폭 (원본 화소): 관 굵기 × 0.8 × 1.5(시작 화면 LineK) / 2. 서로 다른 관은 반폭 합 + GAP 보다 가까이 두지 않는다 (네온 선이 붙으면 어색하다)
-HALF = {'yellow': 14.86 * 0.6, 'liquid': 14.86 * 0.6, 'straw': 20.11 * 0.6}
-GAP = 10.0
+STRAW_TUBE = 11.0  # 빨대 관 굵기 (원본 화소): 시안처럼 잔 관보다 가늘게 (색 4)
+HALF = {'yellow': 14.86 * 0.6, 'liquid': 14.86 * 0.6, 'straw': STRAW_TUBE * 0.6}
+GAP = 6.0
 
 
 def _resample(P, step=1.0):
@@ -159,44 +160,42 @@ def martini(tilt=None):
     wall = lambda y: h * (ay - y) / (ay - ry)  # 높이 y 에서 잔 벽(가운데 선)까지 반폭
     cosw = (ay - ry) / math.hypot(h, ay - ry)   # 벽과 수평 거리 → 수직 거리
     need = lambda a, b: HALF[a] + HALF[b] + GAP
-    # 빨대: 오른쪽 위 잔 밖에서 비스듬히 들어와 술 선을 지나 얼음 오른쪽 위에서 끝난다
-    sx, sk, se = cx + 32.0, 0.5, 30.0  # 윗변을 지나는 x, 기울기(dx/dy), 잔 속 길이
-    straw = [(sx + sk * 64.0, ry - 64.0), (sx - sk * se, ry + se)]
+    # 빨대 (시안): 윗변 가운데보다 조금 오른쪽을 가파르게 지나 술 선 아래에서 끝난다
+    sx, sk = cx + 22.0, 0.5  # 윗변을 지나는 x, 기울기(dx/dy)
+    straw = [(sx + sk * 50.0, ry - 50.0), (sx - sk * 32.0, ry + 32.0)]  # 술 선 틈에서 끝난다 (얼음과 띄움)
     # V 잔: 윗변 · 두 벽을 한 관으로 (모서리는 작게 구부림), 빨대 자리만 끊는다
     bowl = _round([(cx - h, ry), (cx, ay), (cx + h, ry)], g['corner'], True)
-    # 닫힌 관을 윗변 가운데에서 열어 한 줄로 (끊는 자리가 윗변 위에 오게)
-    k = min(range(len(bowl) - 1), key=lambda q: abs(bowl[q][0] - cx) + abs(bowl[q][1] - ry) * 10)
+    k = min(range(len(bowl) - 1), key=lambda q: abs(bowl[q][0] - cx) + abs(bowl[q][1] - ry) * 10)  # 닫힌 관을 윗변 가운데에서 열기
     ring = bowl[k:-1] + bowl[:k + 1]
     out = [('yellow', P) for P in _cut(ring, straw, need('yellow', 'straw'))]
-    # 술 선: 윗변과 나란히, 벽과 노랑-하늘 간격만큼 띄움. 빨대 자리는 끊는다
-    ly = ry + need('yellow', 'liquid') + 4.0
+    # 술 선 (시안): 윗변 바로 아래 나란히, 잔 폭을 거의 다 채우되 벽과는 띄운다. 빨대 자리는 끊는다
+    ly = ry + need('yellow', 'liquid') + 2.0
     lw = wall(ly) - need('yellow', 'liquid') / cosw
     out += [('liquid', P) for P in _cut([(cx - lw, ly), (cx + lw, ly)], straw, need('liquid', 'straw'))]
-    # 각얼음: 윗변과 나란한 정사각형 (모서리 둥글게). 술 선 아래 · 벽 · 빨대와 띄우고, 빨대 반대쪽(왼쪽)으로 조금
-    s = 11.0
-    iy = ly + need('liquid', 'liquid') + s
-    ix = cx - 6.0
-    out.append(('liquid', _round([(ix - s, iy - s), (ix + s, iy - s), (ix + s, iy + s), (ix - s, iy + s)], 4.0, True)))
+    # 얼음 (시안): 술 선 바로 아래 가운데 마름모 (윗변 기준 45° 돌린 정사각형, 모서리 둥글게)
+    d, ix = 16.0, cx - 8.0
+    iy = ly + need('liquid', 'liquid') + d
+    out.append(('liquid', _round([(ix, iy - d), (ix + d, iy), (ix, iy + d), (ix - d, iy)], 4.0, True)))
     out.append(('straw', straw))
-    # 다리 + 받침: 꼭짓점에서 조금 띄워 내려와 받침(납작한 사다리꼴, 인게임 시안처럼) 윗변 가운데에 닿는다
-    fy = g['foot_y']
-    out.append(('yellow', [(cx, ay + 6.0), (cx, fy - 16.0)]))
-    out.append(('yellow', _round([(cx - 26.0, fy - 16.0), (cx + 26.0, fy - 16.0), (cx + 56.0, fy), (cx - 56.0, fy)], 5.0, True)))
-    # 반짝 선 셋: 잔 오른쪽 위 한 점에서 퍼지는 같은 길이 선
-    sc = (cx + h + 6.0, ry - 22.0)
-    for a in (-80.0, -46.0, -14.0):
+    # 반짝 선 셋 (시안): 잔 오른쪽 위, 빨대 위끝 너머에서 퍼지는 짧은 선
+    sc = (cx + 84.0, ry - 26.0)
+    for a in (-84.0, -48.0, -14.0):
         c, sn = math.cos(math.radians(a)), math.sin(math.radians(a))
-        out.append(('yellow', [(sc[0] + c * 48.0, sc[1] + sn * 48.0), (sc[0] + c * 82.0, sc[1] + sn * 82.0)]))
+        out.append(('yellow', [(sc[0] + c * 42.0, sc[1] + sn * 42.0), (sc[0] + c * 76.0, sc[1] + sn * 76.0)]))
+    # 기울이기 (시안): 잔(V · 술 · 얼음 · 빨대 · 반짝)만 아래 꼭짓점을 축으로 돌리고, 다리 · 받침은 곧게 둔다
     tilt = TILT if tilt is None else tilt
     if tilt:
         r = math.radians(tilt); cr, sr = math.cos(r), math.sin(r)
-        px, py = cx, fy
-        out = [(c, [(px + (x - px) * cr - (y - py) * sr, py + (x - px) * sr + (y - py) * cr) for x, y in P]) for c, P in out]
+        out = [(c, [(cx + (x - cx) * cr - (y - ay) * sr, ay + (x - cx) * sr + (y - ay) * cr) for x, y in P]) for c, P in out]
+    # 다리 + 받침 (시안): 꼭짓점에서 곧게 내려와 받침 윗변 가운데에 닿는다. 받침은 위가 좁고 아래가 넓은 납작한 사다리꼴
+    fy = g['foot_y']
+    out.append(('yellow', [(cx, ay + 8.0), (cx, fy - 32.0)]))
+    out.append(('yellow', _round([(cx - 18.0, fy - 32.0), (cx + 18.0, fy - 32.0), (cx + 62.0, fy), (cx - 62.0, fy)], 5.0, True)))
     return out
 
 
 def strokes(tilt=None):
-    """(색 번호, 묶음, 점 목록, 열린 끝 A, 열린 끝 B) 목록. 색: 0 하늘 1 분홍 2 노랑 3 잔 속 하늘"""
+    """(색 번호, 묶음, 점 목록, 열린 끝 A, 열린 끝 B) 목록. 색: 0 하늘 1 분홍 2 노랑 3 잔 속 하늘 4 빨대(가는 분홍)"""
     J = json.load(open(SRC))
     res = []
     for ci, col in enumerate(COLS):
@@ -211,7 +210,7 @@ def strokes(tilt=None):
             res.append((ci, group(col, cx), P, st['free'][0], st['free'][1]))
     for c, P in martini(tilt):
         closed = math.dist(P[0], P[-1]) < 0.5
-        ci, grp = (2, 0) if c == 'yellow' else (3, 0) if c == 'liquid' else (1, 4)  # 빨대는 분홍, 깜빡임 묶음은 예전처럼 e
+        ci, grp = (2, 0) if c == 'yellow' else (3, 0) if c == 'liquid' else (4, 0)  # 4 = 빨대 (가는 분홍, 밝기는 잔 CB)
         res.append((ci, grp, P, not closed, not closed))
     return res
 
@@ -221,7 +220,7 @@ def main():
     lines = ['// 자동 생성 (tools/ui_art/gen_title_inl.py, D-440): 시작 화면 BAR Alice 간판 — 원본 그림에서 따라 그린 네온 획. 손으로 고치지 말 것',
              '#pragma once', '', 'namespace PDTitleLogo', '{',
              '\tconstexpr float SrcW = %.1ff, SrcH = %.1ff;' % tuple(J['size']),
-             '\tconstexpr float Tube[4] = {%s, %.2ff}; // 관 굵기 (원본 화소, 하늘 · 분홍 · 노랑 · 잔 속 하늘 = 노랑 굵기)' % (', '.join('%.2ff' % J['tube'][c] for c in COLS), J['tube']['yellow']),
+             '\tconstexpr float Tube[5] = {%s, %.2ff, %.2ff}; // 관 굵기 (원본 화소, 하늘 · 분홍 · 노랑 · 잔 속 하늘 = 노랑 굵기 · 빨대)' % (', '.join('%.2ff' % J['tube'][c] for c in COLS), J['tube']['yellow'], STRAW_TUBE),
              '\tstruct FStroke { int32 Color, Group, N; bool bFreeA, bFreeB; const float* P; };']
     arrays, entries = [], []
     for k, (ci, grp, P, fa, fb) in enumerate(strokes()):
