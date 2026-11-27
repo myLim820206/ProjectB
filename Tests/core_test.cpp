@@ -1809,9 +1809,11 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 						if (G2 > BestGain) { BestGain = G2; BestPicks = Picks; BestCell = K; }
 					}
 				}
+				std::set<int> OldJ; // 새로 생긴 조커만 센다 (같은 정리 때 만든 조커도 Age 0 이라 Age 로는 못 가른다, 이슈 #25)
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker()) OldJ.insert(KV2.first);
 				if (BestPicks.empty() || !G.JokerCraft(BestPicks, BestCell)) break;
 				JokersMade[0]++;
-				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f && !IsUpperJoker(KV2.second.Joker))
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && !OldJ.count(KV2.first) && !IsUpperJoker(KV2.second.Joker))
 				{
 					const int J = KV2.second.Joker;
 					KindsMade[J]++;
@@ -1858,9 +1860,11 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 					}
 				}
 				if (BestI < 0) break;
+				std::set<int> OldJ;
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker()) OldJ.insert(KV2.first);
 				G.JokerFuse(BestI, BestCell);
 				JokersMade[0]++;
-				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f)
+				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && !OldJ.count(KV2.first))
 				{
 					KindsMade[KV2.second.Joker]++;
 					const int J = KV2.second.Joker;
