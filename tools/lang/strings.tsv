@@ -30,6 +30,7 @@ ko	en	ja	zh-Hans	zh-Hant	file
 칩이 모자란다	Not enough chips	チップが足りない	筹码不足	籌碼不足	PDBoardCodex.cpp
 %s 대장 · 위력 %s	%s captain · power %s	%s 隊長 · 威力 %s	%s 队长 · 威力 %s	%s 隊長 · 威力 %s	PDBoardCodex.cpp
 재료 %d	Ingredients %d	材料 %d	材料 %d	材料 %d	PDBoardCodex.cpp
+같은 무늬로 이어진 줄을 지켜 두면, 다음 카드가 가끔 그 줄로 온다	Keep a same-suit run on the board and the next card sometimes extends it	同じスートの連なりを残しておくと、次のカードがときどきその列に来る	保留同花色的连续牌，下一张牌有时会补上这一列	保留同花色的連續牌，下一張牌有時會補上這一列	PDBoardCodex.cpp
 레시피의 족보를 모두 골라 맞으면 조커 · 조커는 족보에 들어가지 않는다	Pick every hand in a recipe to make a Joker · Jokers don't count in hands	レシピの役をすべて選ぶとジョーカー · ジョーカーは役に入らない	选齐配方中的牌型即可得到小丑 · 小丑不计入牌型	選齊配方中的牌型即可得到小丑 · 小丑不計入牌型	PDBoardCodex.cpp
 서로 다른 조커 둘을 맞닿게 놓으면 상위 조커 (★ 대표 11종은 둘 다 조커 레벨 10)	Place two different jokers side by side for an upper joker (★ 11 signatures need both at joker level 10)	異なるジョーカー2枚を隣り合わせると上位ジョーカー (★代表11種は両方ジョーカーレベル10)	两张不同的小丑相邻即成高级小丑 (★代表11种需两张都到小丑等级10)	兩張不同的小丑相鄰即成高級小丑 (★代表11種需兩張都到小丑等級10)	PDBoardCodex.cpp
 30 · 60 · 100 모드는 보스 차례가 늘 같다. 무한 모드는 100웨이브 뒤 판마다 다르다	30 · 60 · 100 modes always have the same bosses. Endless changes every run after wave 100	30 · 60 · 100モードのボス順はいつも同じ。無限モードは100ウェーブ以降プレイごとに変わる	30 · 60 · 100模式的首领顺序固定。无尽模式在第100波后每局不同	30 · 60 · 100模式的首領順序固定。無盡模式在第100波後每局不同	PDBoardCodex.cpp
@@ -341,7 +342,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 방울	Bell	鈴	铃铛	鈴鐺	PDBoardDraw.h
 스타	Star	スター	星星	星星	PDBoardDraw.h
 무늬 4종 공격을 번갈아 씀	Alternates all four suit attacks	4種のスート攻撃を交互に使う	轮流使用四种花色攻击	輪流使用四種花色攻擊	PDBoardDraw.h
-주변 8칸 타워 공격력 +25%·사거리 +10%	Towers in 8 tiles around: ATK +25% · Range +10%	周囲8マスのタワー攻撃力 +25%・射程 +10%	周围8格塔攻击力 +25%·射程 +10%	周圍8格塔攻擊力 +25%·射程 +10%	PDBoardDraw.h
+주변 8칸 타워 공격력 +50%·연사 +20%·사거리 +20%	Nearby 8 towers: ATK +50%, fire rate +20%, range +20%	周囲8マスのタワー攻撃力 +50%・連射 +20%・射程 +20%	周围8格塔攻击力 +50%·射速 +20%·射程 +20%	周圍8格塔攻擊力 +50%·射速 +20%·射程 +20%	PDBoardDraw.h
 주변 가장 강한 타워의 공격을 따라 함	Copies the strongest nearby tower's attack	周りで最も強いタワーの攻撃をまねる	模仿周围最强塔的攻击	模仿周圍最強塔的攻擊	PDBoardDraw.h
 두 적을 동시에 공격	Attacks two enemies at once	2体の敵を同時に攻撃	同时攻击两个敌人	同時攻擊兩個敵人	PDBoardDraw.h
 판 위 같은 무늬 타워 전부 공격력 +30%	All same-suit towers on the board ATK +30%	盤上の同じスートのタワー全部 攻撃力 +30%	场上同花色的塔全部攻击力 +30%	場上同花色的塔全部攻擊力 +30%	PDBoardDraw.h
@@ -389,7 +390,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 상위 조커 위력 배율 ×1.5 → ×2.2 / 기본 조커 지휘 없음	Upper Joker power multiplier ×1.5 → ×2.2 / basic jokers lose their command	上位ジョーカー威力倍率 ×1.5 → ×2.2 / 基本ジョーカーの指揮なし	上位小丑威力倍率 ×1.5 → ×2.2 / 基本小丑没有指挥	上位小丑威力倍率 ×1.5 → ×2.2 / 基本小丑沒有指揮	PDBoardDraw.h
 판 위 기본 조커 하나마다 모든 조커 위력 +15% / 상위 조커를 만들 수 없음	Each basic joker on the board gives all jokers +15% power / cannot make Upper Jokers	盤面の基本ジョーカー1体ごとに全ジョーカー威力 +15% / 上位ジョーカーを作れない	场上每有一个基本小丑，所有小丑威力 +15% / 无法制作上位小丑	場上每有一個基本小丑，所有小丑威力 +15% / 無法製作上位小丑	PDBoardDraw.h
 연사 +50%	Rate +50%	連射 +50%	连射 +50%	連射 +50%	PDBoardDraw.h
-오라 공격력 +25% → +50%, 범위 주변 24칸	Aura ATK +25% → +50%, reach 24 tiles around	オーラ攻撃力 +25% → +50%, 範囲は周囲24マス	光环攻击力 +25% → +50%, 范围周围24格	光環攻擊力 +25% → +50%, 範圍周圍24格	PDBoardDraw.h
+오라 공격력 +50% → +80%, 연사 +30%, 범위 주변 24칸	Aura ATK +50% → +80%, fire rate +30%, reaches 24 tiles	オーラ攻撃力 +50% → +80%、連射 +30%、範囲は周囲24マス	光环攻击力 +50% → +80%，射速 +30%，范围周围24格	光環攻擊力 +50% → +80%，射速 +30%，範圍周圍24格	PDBoardDraw.h
 따라 한 공격 위력 ×1.3	Copied attack power ×1.3	まねた攻撃の威力 ×1.3	模仿攻击威力 ×1.3	模仿攻擊威力 ×1.3	PDBoardDraw.h
 셋째 적까지 함께 공격	Also hits a third enemy	3体目の敵まで同時に攻撃	同时攻击到第三个敌人	同時攻擊到第三個敵人	PDBoardDraw.h
 같은 무늬 공격력 +30% → +60%	Same-suit ATK +30% → +60%	同じスートの攻撃力 +30% → +60%	同花色攻击力 +30% → +60%	同花色攻擊力 +30% → +60%	PDBoardDraw.h
@@ -397,7 +398,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 공격력 ×3 → ×5	ATK ×3 → ×5	攻撃力 ×3 → ×5	攻击力 ×3 → ×5	攻擊力 ×3 → ×5	PDBoardDraw.h
 위력 ×1.5	Power ×1.5	威力 ×1.5	威力 ×1.5	威力 ×1.5	PDBoardDraw.h
 5초마다 2초 멈춤 (원래 8초마다 1.5초)	Freeze 2s every 5s (was 1.5s every 8s)	5秒ごとに2秒停止 (元は8秒ごとに1.5秒)	每5秒停止2秒 (原为每8秒1.5秒)	每5秒停止2秒 (原為每8秒1.5秒)	PDBoardDraw.h
-레이저 위력 ×0.5 → ×0.8	Laser power ×0.5 → ×0.8	レーザー威力 ×0.5 → ×0.8	激光威力 ×0.5 → ×0.8	雷射威力 ×0.5 → ×0.8	PDBoardDraw.h
+레이저 위력 ×0.8 → ×1.2	Laser power ×0.8 → ×1.2	レーザー威力 ×0.8 → ×1.2	激光威力 ×0.8 → ×1.2	雷射威力 ×0.8 → ×1.2	PDBoardDraw.h
 원 페어·투 페어	One/Two Pair	ワンペア・ツーペア	一对·两对	一對·兩對	PDBoardDraw.h
 트리플·포카드·파이브 카드	Three/Four/Five of a Kind	スリー・フォー・ファイブカード	三条·四条·五条	三條·四條·五條	PDBoardDraw.h
 플러시 계열	Flush family	フラッシュ系	同花类	同花類	PDBoardDraw.h
@@ -457,6 +458,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 최고 %d웨이브	Best: wave %d	最高 %dウェーブ	最高 第%d波	最高 第%d波	PDBoardFx.cpp
 카드 +%d%s	Cards +%d%s	カード +%d%s	卡牌 +%d%s	卡牌 +%d%s	PDBoardFx.cpp
  (손패 가득)	 (hand full)	 (手札いっぱい)	 (手牌已满)	 (手牌已滿)	PDBoardFx.cpp
+행운의 한 장! %s %s	Lucky card! %s %s	ラッキーな一枚! %s %s	幸运之牌! %s %s	幸運之牌! %s %s	PDBoardFx.cpp
 조커: %s!	Joker: %s!	ジョーカー: %s!	小丑: %s!	小丑: %s!	PDBoardFx.cpp
 새로 발견! (J: 도감)	New discovery! (J: Codex)	新発見! (J: 図鑑)	新发现! (J: 图鉴)	新發現! (J: 圖鑑)	PDBoardFx.cpp
 조커 레벨 %d!	Joker Lv %d!	ジョーカーレベル %d!	小丑等级 %d!	小丑等級 %d!	PDBoardFx.cpp
@@ -551,6 +553,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 클릭: 빼기	Click: remove	クリック: 外す	点击: 移除	點擊: 移除	PDBoardPaint.cpp
 여기에 조커	Joker here	ここにジョーカー	小丑放这里	小丑放這裡	PDBoardPaint.cpp
 여기로 합성	Fuse here	ここに合成	合成到这里	合成到這裡	PDBoardPaint.cpp
+행운의 한 장: %s %s 를 기다리는 중 · 웨이브를 막으면 %d%% 확률로 받는다	Lucky card: waiting for %s %s · %d%% chance to draw it after a wave	ラッキーな一枚: %s %s を待っている · ウェーブを防ぐと %d%% の確率で届く	幸运之牌: 正在等待 %s %s · 守住波次后有 %d%% 概率获得	幸運之牌: 正在等待 %s %s · 守住波次後有 %d%% 機率獲得	PDBoardPaint.cpp
 자리바꿈 (%d번 남음): 옮길 타워 클릭 · 오른쪽 클릭 / Esc: 끄기	Swap (%d left): click a tower to move · right-click / Esc: off	入れ替え (残り %d回): 動かすタワーをクリック · 右クリック / Esc: やめる	换位 (剩余 %d次): 点击要移动的塔 · 右键 / Esc: 关闭	換位 (剩餘 %d次): 點擊要移動的塔 · 右鍵 / Esc: 關閉	PDBoardPaint.cpp
 바꿀 자리 클릭 (타워면 서로 바꾸고 빈 칸이면 옮김) · 같은 타워 다시: 다시 고르기	Click the target (swaps with a tower, moves to an empty tile) · same tower again: reselect	移動先をクリック (タワーなら入れ替え、空きマスなら移動) · 同じタワーをもう一度: 選び直し	点击目标位置 (是塔就交换, 空格就移动) · 再点同一座塔: 重新选择	點擊目標位置 (是塔就交換, 空格就移動) · 再點同一座塔: 重新選擇	PDBoardPaint.cpp
 먹이기: 왼쪽 목록이나 판에서 조커를 고르세요 · Esc: 끄기	Feed: pick a Joker from the left list or the board · Esc: off	餌やり: 左のリストか盤でジョーカーを選んでください · Esc: やめる	喂食: 从左侧列表或棋盘选择小丑 · Esc: 关闭	餵食: 從左側列表或棋盤選擇小丑 · Esc: 關閉	PDBoardPaint.cpp

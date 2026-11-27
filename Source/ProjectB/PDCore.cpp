@@ -632,7 +632,7 @@ std::vector<FPDSynergy> ApplyEffects(FPDTowerMap& Towers, FPDCharmBits Charms, c
 			const int Reach = (JokerHas(Kind, EPDJoker::Hatter) && bUp) ? 2 : 1;
 			const bool bNear = std::abs(O.X - J.X) <= Reach && std::abs(O.Y - J.Y) <= Reach; // 주변 8칸 (강화한 모자 장수는 24칸)
 			if (JokerHas(Kind, EPDJoker::Baton) && bNear) O.Eff.Rate *= Sp == EPDUpperSpecial::Dormouse ? 1.8f : bUp ? 1.7f : 1.4f;
-			if (JokerHas(Kind, EPDJoker::Hatter) && bNear) { O.Eff.Dmg *= bUp ? 1.5f : 1.25f; O.Eff.Range *= Sp == EPDUpperSpecial::MadTea ? 30.f : 1.1f; } // 미친 다과회: 주변 사거리 무한
+			if (JokerHas(Kind, EPDJoker::Hatter) && bNear) { O.Eff.Dmg *= bUp ? 1.8f : 1.5f; O.Eff.Rate *= bUp ? 1.3f : 1.2f; O.Eff.Range *= Sp == EPDUpperSpecial::MadTea ? 30.f : 1.2f; } // D-490 상향. 미친 다과회: 주변 사거리 무한
 			if (JokerHas(Kind, EPDJoker::Harlequin) && !O.Card.IsWild() && O.Card.Suit == J.JSuit) O.Eff.Dmg *= bUp ? 1.6f : 1.3f;
 			const bool bCopyable = Sp == EPDUpperSpecial::RedQueen ? (!O.Card.IsWild() && O.Card.Suit == J.JSuit) : (bNear || Sp == EPDUpperSpecial::GrinOnly); // 붉은 여왕: 판 위 같은 무늬, 웃음만 남은 고양이: 판 전체
 			if (JokerHas(Kind, EPDJoker::Mask) && bCopyable)
@@ -678,7 +678,7 @@ static const std::vector<EPDHand> GPDRecipe[(int)EPDJoker::Count] = {
 	{EPDHand::StraightFlush, EPDHand::Pair},                                // 모자 장수 (2)
 	{EPDHand::TwoPair, EPDHand::Pair, EPDHand::Flush, EPDHand::Straight},   // 웃는 가면 (4)
 	{EPDHand::Pair, EPDHand::Pair, EPDHand::Flush, EPDHand::Flush},         // 희비극 (4)
-	{EPDHand::Flush, EPDHand::Flush, EPDHand::Flush, EPDHand::Pair},        // 할리퀸 (4)
+	{EPDHand::Flush, EPDHand::Flush, EPDHand::Flush, EPDHand::TwoPair},     // 할리퀸 (4): 원 페어 → 투 페어 (D-490, 희비극과 재료 다툼 줄이기)
 	{EPDHand::Straight, EPDHand::Pair, EPDHand::Pair, EPDHand::Flush},      // 지휘봉 (4)
 	{EPDHand::Triple, EPDHand::Pair, EPDHand::Flush},                       // 잭 (3)
 	{EPDHand::Four, EPDHand::Flush},                                        // 체셔 (2)
@@ -705,6 +705,8 @@ EPDJoker MatchJokerRecipe(const std::vector<EPDHand>& Hands)
 float JokerTier(EPDJoker J)
 {
 	if (J < (EPDJoker)0 || J >= EPDJoker::Count) return 1.f;
+	if (J == EPDJoker::Hatter) return HatterTier; // D-490
+	if (J == EPDJoker::Star) return StarTier;
 	switch (GPDRecipe[(int)J].size())
 	{
 	case 4: return 1.6f;
@@ -833,7 +835,7 @@ FPDTowerStats TowerStats(const FPDTower& T, FPDCharmBits Charms, const FPDTreeMo
 		if (JokerHas(T.Joker, EPDJoker::Clown) && bUp) St.Rate *= 1.5f;                                          // 강화: 연사 +50%
 		if (JokerHas(T.Joker, EPDJoker::Jack)) { St.Dmg *= bUp ? 5.f : 3.f; St.Rate *= 0.5f; }                    // 아주 강한 한 방
 		if (JokerHas(T.Joker, EPDJoker::Cheshire)) { St.Range = 99.f; if (bUp) St.Dmg *= 1.5f; }                  // 사거리 무한
-		if (JokerHas(T.Joker, EPDJoker::Star)) { St.Dmg *= bUp ? 0.8f : 0.5f; St.Rate = 1.f; St.Range = 99.f; }   // 판 전체 레이저 (모든 적)
+		if (JokerHas(T.Joker, EPDJoker::Star)) { St.Dmg *= bUp ? 1.2f : 0.8f; St.Rate = 1.f; St.Range = 99.f; }   // 판 전체 레이저 (모든 적), D-490 상향
 	}
 	return St;
 }
@@ -926,6 +928,7 @@ void FPDGame::NewGame(bool bStart)
 	Xp = Points = XpEarned = 0;
 	Level = 1;
 	Swaps = StartSwaps; // 시작 자리바꿈 2번 (D-489)
+	LuckyHits = 0;
 	XpCarry = 0.f;
 	TreeOwned = FPDTreeBits(1);
 	Mods = BuildTreeMods(TreeOwned);
@@ -1156,6 +1159,111 @@ void FPDGame::Draw(int N, int* OutGot)
 	if (OutGot) *OutGot = Got;
 }
 
+// 행운의 한 장 줄 찾기 (D-490). 같은 무늬 · 같은 레벨 · 조커 아님, 맞닿은 칸을 따라 숫자가 1씩 오른다 (A 는 1 또는 14).
+// 와일드는 가운데 빈 숫자 하나까지. 더 늘어난 줄의 일부(끝 옆에 이어질 카드가 이미 있음)는 세지 않는다
+FPDLucky FindLuckyLine(const FPDTowerMap& Towers, const std::function<bool(int)>& Open)
+{
+	FPDLucky Best;
+	int BestTop = -1;
+	auto Fits = [&](int K, EPDSuit S, int Lv) -> const FPDTower* {
+		auto It = Towers.find(K);
+		if (It == Towers.end() || It->second.IsJoker() || It->second.Level != Lv) return nullptr;
+		return (It->second.Card.IsWild() || It->second.Card.Suit == S) ? &It->second : nullptr;
+	};
+	auto RankIs = [](const FPDCard& C, int V) { return C.IsWild() || C.Rank == V || (V == 1 && C.Rank == 14); };
+	std::vector<int> Path;
+	std::function<void(EPDSuit, int, int, int)> Walk = [&](EPDSuit S, int Lv, int Base, int Wilds) {
+		const int N = (int)Path.size();
+		const FPDTower& Last = Towers.at(Path.back());
+		if (N >= 3 && !Last.Card.IsWild())
+		{
+			// 끝 옆에 이어질 카드가 이미 있으면 더 긴 줄의 일부
+			bool bLonger = false;
+			const int Lo = Base - 1, Hi = Base + N;
+			PDForNeighbors(Path.front(), [&](int NK) { const FPDTower* T = Fits(NK, S, Lv); bLonger = bLonger || (T && Lo >= 1 && std::find(Path.begin(), Path.end(), NK) == Path.end() && RankIs(T->Card, Lo)); });
+			PDForNeighbors(Path.back(), [&](int NK) { const FPDTower* T = Fits(NK, S, Lv); bLonger = bLonger || (T && Hi <= 14 && std::find(Path.begin(), Path.end(), NK) == Path.end() && RankIs(T->Card, Hi)); });
+			if (!bLonger)
+			{
+				FPDLucky L;
+				L.Line = Path;
+				L.Len = N;
+				auto End = [&](int EndCell, int V) {
+					if (V < 1 || V > 14) return;
+					int Free = -1;
+					PDForNeighbors(EndCell, [&](int NK) { if (Free < 0 && Open(NK)) Free = NK; });
+					if (Free < 0) return;
+					L.Want[L.NWant] = {V == 1 ? 14 : V, S};
+					L.Cell[L.NWant] = Free;
+					L.NWant++;
+				};
+				End(Path.front(), Lo);
+				End(Path.back(), Hi);
+				const int Top = Base + N - 1;
+				if (L.NWant > 0 && (N > Best.Len || (N == Best.Len && Top > BestTop))) { Best = L; BestTop = Top; }
+			}
+		}
+		if (N >= 4) return;
+		const int Next = Base + N;
+		if (Next > 14) return;
+		PDForNeighbors(Path.back(), [&](int NK) {
+			if (std::find(Path.begin(), Path.end(), NK) != Path.end()) return;
+			const FPDTower* T = Fits(NK, S, Lv);
+			if (!T) return;
+			const bool bWild = T->Card.IsWild();
+			if (bWild ? Wilds >= 1 : !RankIs(T->Card, Next)) return;
+			Path.push_back(NK);
+			Walk(S, Lv, Base, Wilds + (bWild ? 1 : 0));
+			Path.pop_back();
+		});
+	};
+	for (const auto& KV : Towers)
+	{
+		const FPDTower& T = KV.second;
+		if (T.IsJoker() || T.Card.IsWild()) continue;
+		for (const int Base : {T.Card.Rank, T.Card.Rank == 14 ? 1 : -1})
+		{
+			if (Base < 1 || Base > 12) continue; // 3장 줄이 되려면 Base + 2 <= 14
+			Path.assign(1, KV.first);
+			Walk(T.Card.Suit, T.Level, Base, 0);
+		}
+	}
+	return Best;
+}
+
+FPDLucky FPDGame::LuckyLine() const
+{
+	FPDLucky L = FindLuckyLine(Towers, [this](int K) { return Buildable(K % Cols, K / Cols) && !Towers.count(K); });
+	int N = 0;
+	for (int I = 0; I < L.NWant; ++I)
+		if (std::find(Deck.begin(), Deck.end(), L.Want[I]) != Deck.end()) { L.Want[N] = L.Want[I]; L.Cell[N] = L.Cell[I]; ++N; }
+	L.NWant = N;
+	return L;
+}
+
+void FPDGame::LuckyDraw(int First, int Got)
+{
+	if (!bLucky || Got <= 0 || First < 0 || First + Got > (int)Hand.size()) return;
+	const FPDLucky L = LuckyLine();
+	if (L.NWant == 0) return;
+	if (std::uniform_real_distribution<float>(0.f, 1.f)(Rng) >= L.P()) return;
+	const int W = L.NWant > 1 ? std::uniform_int_distribution<int>(0, L.NWant - 1)(Rng) : 0;
+	auto It = std::find(Deck.begin(), Deck.end(), L.Want[W]);
+	if (It == Deck.end()) return;
+	const int Slot = First + Got - 1; // 마지막으로 받은 카드를 바꾼다 (원래 카드는 덱으로 돌려 섞음)
+	Deck.erase(It);
+	Deck.push_back(Hand[Slot]);
+	std::shuffle(Deck.begin(), Deck.end(), Rng);
+	Hand[Slot] = L.Want[W];
+	LuckyHits++;
+	FPDEvent E;
+	E.Kind = FPDEvent::EKind::Lucky;
+	E.X = L.Cell[W] % Cols + 0.5f;
+	E.Y = L.Cell[W] / Cols + 0.5f;
+	E.A = L.Want[W].Rank;
+	E.Suit = L.Want[W].Suit;
+	Ev(E);
+}
+
 bool FPDGame::Buildable(int X, int Y) const { return X >= 0 && Y >= 0 && X < Cols && Y < Rows && !Path.IsPath(X, Y); }
 bool FPDGame::CanPlace(int X, int Y) const
 {
@@ -1352,7 +1460,9 @@ void FPDGame::EndWave()
 	Projectiles.clear(); // 남은 발사체는 맞힐 적이 없다
 	RestoreSuits(); // 딜러가 바꾼 무늬 · 칩 더미는 웨이브가 끝나면 원래대로 (D-334)
 	int Got = 0;
+	const int First = (int)Hand.size();
 	Draw(DrawPerWave + (Has(EPDCharm::Supply) ? 1 : 0) + (Has(EPDCharm::Dexterity) ? 1 : 0) + Mods.DrawAdd, &Got);
+	LuckyDraw(First, Got); // 행운의 한 장 (D-490): 웨이브를 막고 받는 카드에만
 	AddXp((5.f + Wave) * (Has(EPDCharm::Sweeper) ? 2.f : 1.f)); // 웨이브 통과 덤 (청소부 ×2, D-234)
 	if (Goal() > 0 && Wave >= Goal()) // 모드 목표 달성 (D-229)
 	{

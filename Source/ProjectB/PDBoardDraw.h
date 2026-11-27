@@ -397,7 +397,7 @@ inline const TCHAR* JokerName(int K)
 }
 inline const TCHAR* BaseJokerAbility(int K)
 {
-	static const TCHAR* N[] = {TEXT("무늬 4종 공격을 번갈아 씀"), TEXT("주변 8칸 타워 공격력 +25%·사거리 +10%"), TEXT("주변 가장 강한 타워의 공격을 따라 함"),
+	static const TCHAR* N[] = {TEXT("무늬 4종 공격을 번갈아 씀"), TEXT("주변 8칸 타워 공격력 +50%·연사 +20%·사거리 +20%"), TEXT("주변 가장 강한 타워의 공격을 따라 함"),
 		TEXT("두 적을 동시에 공격"), TEXT("판 위 같은 무늬 타워 전부 공격력 +30%"), TEXT("주변 8칸 타워 연사 +40%"), TEXT("아주 강한 한 방 (공격력 ×3, 연사 ×0.5)"),
 		TEXT("사거리 무한: 가장 앞선 적 저격"), TEXT("8초마다 종: 사거리 안 적 1.5초 멈춤"), TEXT("판 전체 레이저: 모든 적에게 피해")};
 	return Tr(N[FMath::Clamp(K, 0, 9)]);
@@ -564,9 +564,9 @@ inline const TCHAR* KeystoneDesc(int K)
 }
 inline const TCHAR* JokerUpDesc(int K)
 {
-	static const TCHAR* N[] = {TEXT("연사 +50%"), TEXT("오라 공격력 +25% → +50%, 범위 주변 24칸"), TEXT("따라 한 공격 위력 ×1.3"), TEXT("셋째 적까지 함께 공격"),
+	static const TCHAR* N[] = {TEXT("연사 +50%"), TEXT("오라 공격력 +50% → +80%, 연사 +30%, 범위 주변 24칸"), TEXT("따라 한 공격 위력 ×1.3"), TEXT("셋째 적까지 함께 공격"),
 		TEXT("같은 무늬 공격력 +30% → +60%"), TEXT("주변 연사 +40% → +70%"), TEXT("공격력 ×3 → ×5"), TEXT("위력 ×1.5"), TEXT("5초마다 2초 멈춤 (원래 8초마다 1.5초)"),
-		TEXT("레이저 위력 ×0.5 → ×0.8")};
+		TEXT("레이저 위력 ×0.8 → ×1.2")};
 	return Tr(N[K]);
 }
 inline FString HandGroupName(int Mask)

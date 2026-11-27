@@ -847,13 +847,13 @@ static void UnitTests()
 		std::set<int> Seen;
 		for (int K = 0; K < (int)H::Count; ++K) { bMap = bMap && CaptainHand(CaptainOf((H)K)) == (H)K; Seen.insert((int)CaptainOf((H)K)); }
 		Expect(bMap && Seen.size() == 10, "족보 10개 ↔ 대장 조커 10개 (한 쌍씩)");
-		// 기획 25절 표 그대로 (D-487)
+		// 기획 25절 표 그대로 (D-487), 할리퀸은 투 페어 (D-490)
 		const std::vector<H> Want[(int)EPDJoker::Count] = {
 			{H::Five, H::Pair},                         // 광대
 			{H::StraightFlush, H::Pair},                // 모자 장수
 			{H::TwoPair, H::Pair, H::Flush, H::Straight}, // 웃는 가면
 			{H::Pair, H::Pair, H::Flush, H::Flush},     // 희비극
-			{H::Flush, H::Flush, H::Flush, H::Pair},    // 할리퀸
+			{H::Flush, H::Flush, H::Flush, H::TwoPair}, // 할리퀸 (D-490)
 			{H::Straight, H::Pair, H::Pair, H::Flush},  // 지휘봉
 			{H::Triple, H::Pair, H::Flush},             // 잭
 			{H::Four, H::Flush},                        // 체셔
@@ -878,7 +878,8 @@ static void UnitTests()
 			const bool bMid = Cap == H::Triple || Cap == H::FullHouse;
 			const size_t Need = bCommon ? 4 : bMid ? 3 : 2;
 			bSize = bSize && R.size() == Need;
-			bTier = bTier && std::fabs(JokerTier((EPDJoker)J) - (Need == 4 ? 1.6f : Need == 3 ? 2.5f : 3.5f)) < 1e-6f;
+			const float WantTier = J == (int)EPDJoker::Hatter ? HatterTier : J == (int)EPDJoker::Star ? StarTier : Need == 4 ? 1.6f : Need == 3 ? 2.5f : 3.5f;
+			bTier = bTier && std::fabs(JokerTier((EPDJoker)J) - WantTier) < 1e-6f;
 			std::vector<H> Rest = R;
 			Rest.erase(std::find(Rest.begin(), Rest.end(), Cap));
 			for (H X : Rest) bCheap = bCheap && (X == H::Pair || X == H::Flush || X == H::Straight || X == H::TwoPair);
@@ -887,15 +888,118 @@ static void UnitTests()
 			for (H X : Rs) V.push_back((int)X);
 			Uniq.insert(V);
 		}
-		Expect(bTable, "조커 레시피가 기획 25절 표와 같음 (D-487)");
+		Expect(bTable, "조커 레시피가 기획 25절 표와 같음 (D-487, 할리퀸 D-490)");
 		Expect(bRecipes && bCaptainIn && Uniq.size() == 10, "조커 레시피 10개: 서로 다르고, 순서 무관, 자기 대장 족보가 들어 있음 (D-115)");
 		Expect(bSize && bCheap && bOneStraight, "재료 수 = 대장 난이도 (흔함 4 · 중간 3 · 드묾 2), 짝 재료는 흔한 족보만, 스트레이트는 최대 하나 (D-487)");
-		Expect(bTier && JokerTier(EPDJoker::Comedy) == 1.6f && JokerTier(EPDJoker::Bell) == 2.5f && JokerTier(EPDJoker::Star) == 3.5f, "조커 등급 배율: 재료 4개 ×1.6, 3개 ×2.5, 2개 ×3.5 (D-487)");
+		Expect(bTier && JokerTier(EPDJoker::Comedy) == 1.6f && JokerTier(EPDJoker::Bell) == 2.5f && JokerTier(EPDJoker::Cheshire) == 3.5f && JokerTier(EPDJoker::Hatter) == 5.f && JokerTier(EPDJoker::Star) == 6.f, "조커 등급 배율: 재료 4개 ×1.6, 3개 ×2.5, 2개 ×3.5, 모자 장수 ×5 · 스타 ×6 (D-490)");
+		Expect(MatchJokerRecipe({H::Flush, H::Flush, H::Flush, H::TwoPair}) == EPDJoker::Harlequin && MatchJokerRecipe({H::Flush, H::Flush, H::Flush, H::Pair}) == EPDJoker::Count, "할리퀸: 플러시 셋 + 투 페어, 옛 레시피(플러시 셋 + 원 페어)는 안 됨 (D-490)");
 		Expect(MatchJokerRecipe({H::Pair, H::Pair, H::Flush}) == EPDJoker::Count && MatchJokerRecipe({H::Pair, H::Pair}) == EPDJoker::Count &&
 			MatchJokerRecipe({H::Straight, H::Straight, H::Straight}) == EPDJoker::Count && MatchJokerRecipe({H::Four, H::Straight}) == EPDJoker::Count &&
 			MatchJokerRecipe({H::Flush, H::Pair, H::Pair, H::Straight}) == EPDJoker::Baton && MatchJokerRecipe({H::Flush, H::Four}) == EPDJoker::Cheshire &&
 			MatchJokerRecipe({H::Pair, H::RoyalFlush}) == EPDJoker::Star && MatchJokerRecipe({H::Pair, H::Pair, H::Flush, H::Flush, H::Pair}) == EPDJoker::Count,
 			"레시피와 정확히 맞아야 조커: 옛 레시피(스트레이트 셋 · 포카드 + 스트레이트)와 덜 고른 · 더 고른 것은 안 됨");
+	}
+	{ // 모자 장수 오라 · 스타 위력 (D-490)
+		FPDTowerMap M;
+		auto PutJ = [&](int X, int Y, EPDJoker K, int Lv) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = X; T.Y = Y; T.Joker = (int)K; T.JLevel = Lv; T.Mult = 4.f; M[CellKey(X, Y)] = T; };
+		PutJ(1, 1, EPDJoker::Hatter, 1);
+		Put(M, 2, 1, C(5)); Put(M, 3, 1, C(9, EPDSuit::Club)); // 주변 8칸 / 2칸 떨어짐
+		ApplyEffects(M);
+		const FPDEffects& Near = M.at(CellKey(2, 1)).Eff;
+		const FPDEffects& Far = M.at(CellKey(3, 1)).Eff;
+		const bool bBase = std::fabs(Near.Dmg - 1.5f) < 1e-4f && std::fabs(Near.Rate - 1.2f) < 1e-4f && std::fabs(Near.Range - 1.2f) < 1e-4f && std::fabs(Far.Dmg - 1.f) < 1e-4f;
+		M.at(CellKey(1, 1)).JLevel = JokerUpLevel; // 강화: 24칸 · ×1.8 · ×1.3 · ×1.2
+		ApplyEffects(M);
+		const bool bUp = std::fabs(M.at(CellKey(2, 1)).Eff.Dmg - 1.8f) < 1e-4f && std::fabs(M.at(CellKey(2, 1)).Eff.Rate - 1.3f) < 1e-4f && std::fabs(M.at(CellKey(3, 1)).Eff.Dmg - 1.8f) < 1e-4f && std::fabs(M.at(CellKey(3, 1)).Eff.Range - 1.2f) < 1e-4f;
+		Expect(bBase && bUp, "모자 장수 오라: 주변 8칸 공격력 ×1.5 · 연사 ×1.2 · 사거리 ×1.2, 강화 24칸 ×1.8 · ×1.3 · ×1.2 (D-490)");
+		FPDTower St, Co;
+		St.Card = Co.Card = {0, EPDSuit::Wild};
+		St.Joker = (int)EPDJoker::Star; Co.Joker = (int)EPDJoker::Comedy;
+		St.Mult = Co.Mult = 4.f;
+		const float R1 = TowerStats(St).Dmg / TowerStats(Co).Dmg;
+		St.JLevel = Co.JLevel = JokerUpLevel;
+		const float R2 = TowerStats(St).Dmg / TowerStats(Co).Dmg;
+		Expect(std::fabs(R1 - 0.8f) < 1e-4f && std::fabs(R2 - 1.2f) < 1e-4f, "스타 위력 ×0.8, 강화 ×1.2 (D-490)");
+	}
+	{ // 행운의 한 장 (D-490)
+		FPDGame G(31);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		const int Row = FreeRow(G, 7);
+		const EPDSuit Hs = EPDSuit::Heart;
+		for (int I = 0; I < 4; ++I) Put(G.Towers, 1 + I, Row, C(9 + I, Hs)); // ♥9 10 J Q
+		const FPDCard W8{8, Hs}, WK{13, Hs};
+		auto Has = [](const FPDLucky& L, FPDCard Cd) { for (int I = 0; I < L.NWant; ++I) if (L.Want[I] == Cd) return true; return false; };
+		FPDLucky L = G.LuckyLine();
+		Expect(L.Len == 4 && L.NWant == 2 && Has(L, W8) && Has(L, WK) && std::fabs(L.P() - LuckyP4) < 1e-6f, "4장 줄 ♥9 10 J Q: ♥8 · ♥K 를 기다림, 확률 40%");
+		// 웨이브에 받는 카드 중 한 장만, 확률은 40% 근처 (씨앗 고정)
+		const std::vector<FPDCard> Deck0 = G.Deck;
+		int Hits = 0, Many = 0;
+		for (int T = 0; T < 1000; ++T)
+		{
+			G.Deck = Deck0;
+			G.Hand = {C(2, EPDSuit::Club), C(3, EPDSuit::Club), C(4, EPDSuit::Club)};
+			const int H0 = G.LuckyHits;
+			G.LuckyDraw(0, 3);
+			int N = 0;
+			for (const FPDCard& Cd : G.Hand) N += Cd == W8 || Cd == WK;
+			Hits += G.LuckyHits - H0;
+			Many += N > 1;
+			if (N == 1 && (G.Deck.size() != Deck0.size() || std::find(G.Deck.begin(), G.Deck.end(), C(4, EPDSuit::Club)) == G.Deck.end())) Many += 1000; // 바뀐 카드는 덱으로
+		}
+		Expect(Hits >= 340 && Hits <= 460 && Many == 0, "행운의 한 장: 4장 줄이면 40% 로 한 장만 온다, 원래 카드는 덱으로 (" + std::to_string(Hits) + "/1000)");
+		// 덱에 없으면 안 온다
+		G.Deck = Deck0;
+		G.Deck.erase(std::remove_if(G.Deck.begin(), G.Deck.end(), [&](const FPDCard& Cd) { return Cd == W8 || Cd == WK; }), G.Deck.end());
+		bool bNone = G.LuckyLine().NWant == 0;
+		for (int T = 0; T < 50; ++T) { G.Hand = {C(2, EPDSuit::Club)}; G.LuckyDraw(0, 1); bNone = bNone && G.Hand[0] == C(2, EPDSuit::Club); }
+		Expect(bNone, "줄 끝 카드가 덱에 없으면 행운의 한 장 없음");
+		G.Deck = Deck0;
+		// 끝이 막히면 (조커 · 길 · 판 밖 = 빈 칸 아님) 그 끝은 기다리지 않는다
+		const FPDLucky OnlyLow = FindLuckyLine(G.Towers, [&](int K) { return K == CellKey(0, Row); });
+		std::vector<int> Blk;
+		for (const auto& D : {std::array<int, 2>{1, 0}, std::array<int, 2>{-1, 0}, std::array<int, 2>{0, 1}, std::array<int, 2>{0, -1}}) { const int NX = 4 + D[0], NY = Row + D[1]; if (G.Buildable(NX, NY) && !G.Towers.count(CellKey(NX, NY))) Blk.push_back(CellKey(NX, NY)); }
+		FPDGame J = G;
+		for (int K : Blk) { FPDTower T; T.Card = {0, EPDSuit::Wild}; T.X = K % Cols; T.Y = K / Cols; T.Joker = (int)EPDJoker::Comedy; J.Towers[K] = T; }
+		const FPDLucky JL = J.LuckyLine();
+		Expect(OnlyLow.NWant == 1 && OnlyLow.Want[0] == W8 && JL.NWant == 1 && JL.Want[0] == W8, "끝 옆이 막히면 (조커 · 길 · 판 밖) 그 끝 카드는 안 기다림");
+		// 3장 줄은 15%, 5장(이미 스트레이트 플러시)의 일부는 줄로 안 친다, 와일드는 가운데 숫자 하나
+		FPDGame G3 = G;
+		G3.Towers.erase(CellKey(4, Row)); // ♥9 10 J
+		const FPDLucky L3 = G3.LuckyLine();
+		FPDGame G5 = G;
+		Put(G5.Towers, 5, Row, C(13, Hs)); // ♥9 10 J Q K
+		FPDGame Gw = G3;
+		Put(Gw.Towers, 2, Row, FPDCard{0, EPDSuit::Wild}); // ♥9 W J
+		const FPDLucky Lw = Gw.LuckyLine();
+		Expect(L3.Len == 3 && std::fabs(L3.P() - LuckyP3) < 1e-6f && G5.LuckyLine().Len == 0 && Lw.Len == 3 && Has(Lw, W8) && Has(Lw, FPDCard{12, Hs}),
+			"3장 줄 15%, 이미 5장이면 없음, 와일드는 가운데 빈 숫자 하나를 채움");
+		// 같은 레벨만, 무늬가 다르면 줄이 아님
+		FPDGame Gl = G3;
+		Gl.Towers.at(CellKey(2, Row)).Level = 2;
+		FPDGame Gs = G3;
+		Gs.Towers.at(CellKey(2, Row)).Card.Suit = EPDSuit::Spade;
+		Expect(Gl.LuckyLine().Len == 0 && Gs.LuckyLine().Len == 0, "레벨이 섞이거나 무늬가 다르면 줄이 아님");
+		// 보충 보상(2장)에는 안 붙는다
+		FPDGame Gr = G;
+		Gr.LuckyHits = 0;
+		int RewardHits = 0;
+		for (int T = 0; T < 40; ++T)
+		{
+			Gr.Phase = EPDPhase::Reward;
+			Gr.Hand.clear();
+			Gr.Rewards = {{false, (int)EPDInstant::Draw2}};
+			Gr.TakeReward(0);
+			RewardHits += Gr.LuckyHits;
+		}
+		Expect(RewardHits == 0, "보충 보상(2장)에는 행운의 한 장이 안 붙는다");
+		// 끈 판 (QA 비교용)
+		FPDGame Go = G;
+		Go.LuckyHits = 0;
+		Go.bLucky = false;
+		for (int T = 0; T < 50; ++T) { Go.Deck = Deck0; Go.Hand = {C(2, EPDSuit::Club)}; Go.LuckyDraw(0, 1); }
+		Expect(Go.LuckyHits == 0, "bLucky = false 면 행운의 한 장 없음");
 	}
 	{ // 조커 합성: 연쇄된 페어 셋 → 광대, 합성 타워 + 족보 둘 → 모자 장수
 		FPDGame G(12);
@@ -1644,6 +1748,43 @@ static bool GPursue = false;     // 놓기: 새로 만들 수 있게 되는 조�
 static float GJokerSlack = 0.f;  // 조커를 만드는 문턱: 판 위력이 이만큼(비율) 깎여도 만든다
 static long GJokerMask = -1;     // 열 조커 (1 << EPDJoker), -1 = 그대로
 static int GSeedBase = 0;        // 판 씨앗 시작 (여러 프로세스로 나눠 돌리기)
+static bool GAimSF = false;      // 스트레이트 플러시 노림 (D-490): 같은 무늬 줄을 합성 · 먹이기 · 조커 재료로 쓰지 않고 지키며, 줄을 늘리는 자리에 덤
+static bool GLuckyOn = true;     // 행운의 한 장 켬 (QA: 끈 판과 비교)
+// 노림 봇이 지키는 칸: 행운의 한 장 줄(3 ~ 4장) + 판 위 스트레이트 플러시 · 로열 (모자 장수 · 스타 재료)
+static FPDLucky BotLine(const FPDGame& G, const FPDTowerMap& Tw)
+{
+	return FindLuckyLine(Tw, [&](int K) { return G.Buildable(K % Cols, K / Cols) && !Tw.count(K); });
+}
+static bool HasSFHand(const std::vector<FPDSynergy>& Syn) { for (const FPDSynergy& S : Syn) if (S.Kind == EPDHand::StraightFlush || S.Kind == EPDHand::RoyalFlush) return true; return false; }
+static std::set<int> SFKeep(const FPDGame& G)
+{
+	std::set<int> Out;
+	if (!GAimSF) return Out;
+	const FPDLucky L = BotLine(G, G.Towers);
+	Out.insert(L.Line.begin(), L.Line.end());
+	for (const FPDSynergy& S : G.Synergies) if (S.Kind == EPDHand::StraightFlush || S.Kind == EPDHand::RoyalFlush) Out.insert(S.Cells.begin(), S.Cells.end());
+	return Out;
+}
+// 줄의 씨앗: 맞닿은 같은 무늬 · 같은 레벨 카드 중 숫자가 1 차이인 짝 수
+static int SFLinks(const FPDTowerMap& Tw)
+{
+	int N = 0;
+	for (const auto& KV : Tw)
+	{
+		const FPDTower& A = KV.second;
+		if (A.IsJoker() || A.Card.IsWild()) continue;
+		for (const int NK : {KV.first + 1, KV.first + Cols})
+		{
+			if ((NK == KV.first + 1 && KV.first % Cols == Cols - 1) || !Tw.count(NK)) continue;
+			const FPDTower& B = Tw.at(NK);
+			if (B.IsJoker() || B.Card.IsWild() || B.Card.Suit != A.Card.Suit || B.Level != A.Level) continue;
+			const int D = std::abs(A.Card.Rank - B.Card.Rank);
+			N += D == 1 || D == 12;
+		}
+	}
+	return N;
+}
+static bool Touches(const std::set<int>& Keep, const std::vector<int>& Cells) { for (int K : Cells) if (Keep.count(K)) return true; return false; }
 // 판 위 재료로 지금 만들 수 있는 조커 (비트). 칸이 겹치는지는 안 본다 (어림)
 static uint32_t CraftableMask(const FPDTowerMap& Tw, const std::vector<FPDSynergy>& Syn, uint32_t Open)
 {
@@ -1729,6 +1870,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		G.NewGame(true);
 		G.RebuildMods();
 		G.bMuted = true;
+		G.bLucky = GLuckyOn;
 		std::mt19937 R(77 + Run);
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
@@ -1760,8 +1902,10 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				const double Before = Power(G, Cur);
 				int BestS = -1;
 				float BestXp = 0.f;
+				const std::set<int> Keep = SFKeep(G);
 				for (const FPDFeed& Fd : G.FeedTargets())
 				{
+					if (Touches(Keep, G.Synergies[Fd.Syn].Cells)) continue; // 노림 봇: 줄은 먹이지 않는다
 					FPDGame Copy = G;
 					Copy.Feed(Fd.Syn);
 					FPDTowerMap After = Copy.Towers;
@@ -1802,6 +1946,9 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				int BI = -1, BX = 0, BY = 0;
 				const bool bPursue = GPursue && bJoker && !G.Mods.Key(EPDKeystone::Smith);
 				const std::array<int, (int)EPDJoker::Count> MissBefore = bPursue ? RecipeMissing(G.Towers, G.Synergies) : std::array<int, (int)EPDJoker::Count>{};
+				const bool bAim = GAimSF && bJoker;
+				const int LineBefore = bAim ? BotLine(G, G.Towers).Len : 0, LinksBefore = bAim ? SFLinks(G.Towers) : 0;
+				const bool bSFBefore = bAim && HasSFHand(G.Synergies);
 				for (int I = 0; I < (int)G.Hand.size(); ++I)
 					for (auto& F : Cand)
 					{
@@ -1812,8 +1959,18 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 						T.Y = F[1];
 						Tw[CellKey(F[0], F[1])] = T;
 						std::vector<FPDSynergy> Syn;
-						double V = Power(G, Tw, bPursue ? &Syn : nullptr);
+						double V = Power(G, Tw, bPursue || bAim ? &Syn : nullptr);
 						if (bPursue) V *= 1.0 + PursueBonus(MissBefore, RecipeMissing(Tw, Syn), G.JokerUnlocked);
+						if (bAim) // 스트레이트 플러시 노림 (D-490): 완성하면 크게, 줄이 길어지면 조금
+						{
+							if (!bSFBefore && HasSFHand(Syn)) V *= 1.5;
+							else
+							{
+								const int After = BotLine(G, Tw).Len;
+								if (After > LineBefore) V *= After >= 4 ? 1.3 : 1.15;
+								else if (SFLinks(Tw) > LinksBefore) V *= 1.04;
+							}
+						}
 						if (V > BestV) { BestV = V; BI = I; BX = F[0]; BY = F[1]; }
 					}
 				if (BI < 0) break;
@@ -1840,6 +1997,14 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 					if (!((Can >> J) & 1u)) continue;
 					const std::vector<int> Picks = G.BestJokerPicks((EPDJoker)J);
 					if (Picks.empty()) continue;
+					if (GAimSF && J != (int)EPDJoker::Hatter && J != (int)EPDJoker::Star) // 노림 봇: 줄을 다른 조커 재료로 쓰지 않는다
+					{
+						const std::set<int> Keep = SFKeep(G);
+						const std::vector<FPDJokerNode> Ns0 = G.JokerNodes();
+						bool bHit = false;
+						for (int P : Picks) bHit = bHit || Touches(Keep, Ns0[P].Cells);
+						if (bHit) continue;
+					}
 					FPDGame Copy = G;
 					if (!Copy.JokerCraft(Picks, -1)) continue;
 					FPDTowerMap After = Copy.Towers;
@@ -1890,8 +2055,10 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				int BestI = -1;
 				double BestGain = 0.0;
 				int BestCell = -1;
+				const std::set<int> KeepG = SFKeep(G);
 				for (int I = 0; I < (int)Groups.size(); ++I)
 				{
+					if (Groups[I].Result != EPDJoker::Hatter && Groups[I].Result != EPDJoker::Star && Touches(KeepG, Groups[I].Cells)) continue;
 					FPDGame Copy = G;
 					Copy.JokerFuse(I);
 					FPDTowerMap After = Copy.Towers;
@@ -1935,9 +2102,10 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				const double Before = Power(G, Cur);
 				int BestI = -1;
 				double BestGain = 0.0;
+				const std::set<int> KeepF = SFKeep(G);
 				for (int I = 0; I < (int)G.Synergies.size(); ++I)
 				{
-					if (!G.CanFuse(I)) continue;
+					if (!G.CanFuse(I) || Touches(KeepF, G.Synergies[I].Cells)) continue; // 노림 봇: 줄은 합성하지 않는다 (레벨이 달라지면 끊김)
 					FPDGame Copy = G;
 					Copy.Fuse(I);
 					FPDTowerMap After = Copy.Towers;
@@ -1983,7 +2151,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		{
 			int Mx = 0, JNow = 0;
 			for (auto& KV : G.Towers) if (KV.second.IsJoker()) { Mx = std::max(Mx, KV.second.JLevel); JNow++; }
-			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
+			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f aimsf=%d lucky=%d luckyhits=%d seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, (int)GAimSF, (int)GLuckyOn, G.LuckyHits, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", Built[J]);
 			std::printf(" first=");
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", FirstBuilt[J]);
@@ -2034,12 +2202,14 @@ int main(int Argc, char** Argv)
 		std::printf("   → CHIPS mode=%s upg=%d content=%d clear=%d/%d\n", Argv[3], GBotUpgLv, GBotContent, GBotClears, Runs);
 		GBotMode = EPDMode::Endless; GBotUpgLv = 10; GBotContent = 0;
 	}
-	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱]
+	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱] [스트레이트 플러시 노림 0/1] [행운의 한 장 1/0]
 	{
 		GStudy = true;
 		GBotMode = (EPDMode)std::atoi(Argv[3]); GBotUpgLv = std::atoi(Argv[4]); GBotContent = std::atoi(Argv[5]);
 		GJokerMask = std::atol(Argv[6]); GSeedBase = std::atoi(Argv[7]); GSmartJoker = std::atoi(Argv[8]) != 0; GPursue = std::atoi(Argv[9]) != 0;
 		GJokerSlack = Argc > 10 ? (float)std::atof(Argv[10]) : 0.f;
+		GAimSF = Argc > 11 && std::atoi(Argv[11]) != 0; // D-490
+		GLuckyOn = Argc > 12 ? std::atoi(Argv[12]) != 0 : true;
 		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
 	}
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }

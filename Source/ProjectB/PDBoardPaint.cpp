@@ -1631,6 +1631,23 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 			}
 		}
 	}
+	// 행운의 한 장 (D-490): 줄 끝 빈 칸에 기다리는 카드를 흐린 금빛으로. 마우스를 올리면 안내
+	if (!bSwapMode && (G.Phase == EPDPhase::Build || G.Phase == EPDPhase::Wave))
+	{
+		const FPDLucky Lk = G.LuckyLine();
+		const FLinearColor LuckyGold = Hex(TEXT("ffd96a"));
+		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 2.f);
+		const int32 HoverKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
+		for (int32 I = 0; I < Lk.NWant; ++I)
+		{
+			const FVector2f C0 = CellPx((float)(Lk.Cell[I] % Cols), (float)(Lk.Cell[I] / Cols));
+			F.Glow(FCanvas::RoundRectPoints(C0.X + 4.f, C0.Y + 4.f, CS - 8.f, CS - 8.f, RadSmall), WithAlpha(LuckyGold, 0.35f + 0.2f * Wv), 1.f, 0.3f);
+			F.TextCentered(TrF(TEXT("%s %s"), *RankText(Lk.Want[I].Rank), SuitName(Lk.Want[I].Suit)), C0.X + CS / 2.f, C0.Y + CS / 2.f, WithAlpha(LuckyGold, 0.45f), 9.f, false, CS - 6.f);
+			if (Lk.Cell[I] == HoverKey && !G.Towers.count(HoverKey))
+				F.Badge(TrF(TEXT("행운의 한 장: %s %s 를 기다리는 중 · 웨이브를 막으면 %d%% 확률로 받는다"), *RankText(Lk.Want[I].Rank), SuitName(Lk.Want[I].Suit), FMath::RoundToInt(Lk.P() * 100.f)),
+					FX + Cols * CS / 2.f, FY + 12.f, LuckyGold, 1.f);
+		}
+	}
 	// 자리바꿈 모드 (D-149): 고른 타워는 민트색으로 반짝, 마우스가 올라간 칸에 바꿀 자리 표시
 	if (bSwapMode)
 	{

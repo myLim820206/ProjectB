@@ -270,7 +270,8 @@ void SPDBoardWidget::PaintCdxPage(FCanvas& C, int32 Side, const FCdxView& V) con
 		}
 		else Row(*Lb, Hs, Y + 17.f);
 		Y += 70.f;
-		C.TextCentered(TEXT("레시피의 족보를 모두 골라 맞으면 조커 · 조커는 족보에 들어가지 않는다"), CX, Y, Dim, 11.f, false, CdxPgW - 60.f);
+		const bool bLine = V.Pick == (int32)EPDJoker::Hatter || V.Pick == (int32)EPDJoker::Star; // 행운의 한 장 (D-490)
+		C.TextCentered(bLine ? TEXT("같은 무늬로 이어진 줄을 지켜 두면, 다음 카드가 가끔 그 줄로 온다") : TEXT("레시피의 족보를 모두 골라 맞으면 조커 · 조커는 족보에 들어가지 않는다"), CX, Y, bLine ? Gold : Dim, 11.f, false, CdxPgW - 60.f);
 		if (CdxShop()) BuyBtn();
 		return;
 	}
