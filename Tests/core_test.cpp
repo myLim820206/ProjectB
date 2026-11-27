@@ -2554,6 +2554,11 @@ static int GBotUpgLv = 10;   // bUpg 일 때 영구 강화 레벨 (D-322 판당 
 struct FLvRow { int N = 0; double Lv = 0, Xp = 0, Time = 0, Ups = 0; };
 static bool GLvTrack = false;
 static std::map<int, FLvRow> GLvRows;
+// 조커 · 상위 조커 만들기 예측 (D-487, ./Tests/run.sh N jokers <모드> <강화> <해금>): 판마다 몇 개 · 언제 처음 · 어떤 상위 조커
+struct FJokerRun { int Jokers = 0, Uppers = 0, FirstJ = -1, FirstU = -1, Wave = 0; bool bClear = false; };
+static bool GJokerTrack = false;
+static std::vector<FJokerRun> GJokerRuns;
+static std::map<int, int> GUpperKinds;
 static int GBotContent = 0;  // 0 = 규칙 기본(기본 조커 전부 · 칵테일 기본 18), 1 = 처음 상태(조커 4종 · 상위 조커 맛보기 2종 · 칵테일 18), 2 = 전부 열림
 static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = false, bool bJoker = false, bool bTree = false, bool bUpg = false)
 {
@@ -2577,6 +2582,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		G.bMuted = true;
 		std::mt19937 R(77 + Run);
 		int LvBefore = G.Level;
+		FJokerRun JR;
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
 		{
 			// 상위 조커 (D-231): 판 위력이 오르면 합친다
@@ -2596,8 +2602,10 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 					const double P = Power(Copy, Tw);
 					if (P > BestP) { BestP = P; BestI = I; }
 				}
+				const int UpKind = BestI >= 0 ? Ms[BestI].Upper : -1;
 				if (BestI < 0 || !G.MergeJokers(BestI)) break;
 				UppersMade++;
+				JR.Uppers++; if (JR.FirstU < 0) JR.FirstU = G.Wave + 1; GUpperKinds[UpKind]++; // 웨이브 시작 전이라 다음 웨이브 번호
 			}
 			// 조커 먹이기: 판 위 위력을 15% 넘게 깎지 않는 족보 중 경험치가 가장 많은 것 (비운 칸은 바로 아래에서 다시 채움)
 			for (int Tries = 0; bJoker && Tries < 3 && !G.Hand.empty(); ++Tries)
@@ -2700,6 +2708,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 				if (BestI < 0) break;
 				G.JokerFuse(BestI, BestCell);
 				JokersMade[0]++;
+				JR.Jokers++; if (JR.FirstJ < 0) JR.FirstJ = G.Wave + 1;
 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && KV2.second.Age == 0.f) KindsMade[KV2.second.Joker]++;
 			}
 			for (int Tries = 0; bFuse && Tries < 20; ++Tries)
@@ -2742,6 +2751,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		{ int Mx = 0; for (auto& KV : G.Towers) if (KV.second.IsJoker()) Mx = std::max(Mx, KV.second.JLevel); JLvSum += Mx; }
 		Hist[G.Wave]++;
 		GBotClears += G.Phase == EPDPhase::Clear;
+		if (GJokerTrack) { JR.Wave = G.Wave; JR.bClear = G.Phase == EPDPhase::Clear; GJokerRuns.push_back(JR); }
 		WaveSum += G.Wave;
 		PointSum += G.Points;
 		GoldSum += G.XpEarned;
@@ -2809,6 +2819,32 @@ int main(int Argc, char** Argv)
 				std::printf(" %-22s  Lv%d %5d | %7.1f  %7.2f  %7.2f  %4.2f  %5.2f | %9.0f  %6.2f  %10.0f  %7.1f배  %7.1f배\n", L == 1 ? Name.c_str() : "", L, G.DevJokerCards(JK, L), T.Mult, T.TDmg, T.TRate, T.TSplash, St.Range, St.Dmg, St.Rate, Dps, Dps / Dps1, PerCard / PerCard1);
 			}
 		}
+	}
+	else if (Runs > 0 && Argc > 5 && std::string(Argv[2]) == "jokers") // 조커 · 상위 조커 만들기 예측 (D-487): jokers <모드 0=30 1=60 2=100 3=무한> <강화 레벨> <해금 0 규칙 기본 / 1 처음 상태 / 2 전부>
+	{
+		GBotMode = (EPDMode)std::atoi(Argv[3]); GBotUpgLv = std::atoi(Argv[4]); GBotContent = std::atoi(Argv[5]); GBotClears = 0;
+		GJokerTrack = true; GJokerRuns.clear(); GUpperKinds.clear();
+		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
+		auto Avg = [](const std::vector<int>& V) { double S = 0; int N = 0; for (int X : V) if (X >= 0) { S += X; ++N; } return N ? S / N : -1.0; };
+		std::vector<int> Js, Us, FJ, FU;
+		int Bins[4] = {}, UBins[4] = {}, Plain = 0, Star = 0;
+		for (const FJokerRun& R : GJokerRuns)
+		{
+			Js.push_back(R.Jokers); Us.push_back(R.Uppers); FJ.push_back(R.FirstJ); FU.push_back(R.FirstU);
+			Bins[R.Jokers == 0 ? 0 : R.Jokers <= 2 ? 1 : R.Jokers <= 5 ? 2 : 3]++;
+			UBins[R.Uppers == 0 ? 0 : R.Uppers == 1 ? 1 : R.Uppers <= 3 ? 2 : 3]++;
+		}
+		for (auto& KV : GUpperKinds) (UpperDef(KV.first).Special == EPDUpperSpecial::None ? Plain : Star) += KV.second;
+		const int N = (int)GJokerRuns.size();
+		std::printf("\n[조커 · 상위 조커 예측] 모드 %s · 영구 강화 %d · 해금 %s · %d판 (트리까지 쓰는 봇)\n", Argv[3][0] == '0' ? "30" : Argv[3][0] == '1' ? "60" : Argv[3][0] == '2' ? "100" : "무한", GBotUpgLv, GBotContent == 1 ? "처음 상태" : GBotContent == 2 ? "전부 열림" : "규칙 기본", N);
+		std::printf("  일반 조커: 판당 %.1f개 · 0개 %d판 / 1~2개 %d판 / 3~5개 %d판 / 6개+ %d판 · 처음 만든 웨이브 평균 %.1f\n", Avg(Js), Bins[0], Bins[1], Bins[2], Bins[3], Avg(FJ));
+		std::printf("  상위 조커: 판당 %.1f개 · 0개 %d판 / 1개 %d판 / 2~3개 %d판 / 4개+ %d판 · 처음 만든 웨이브 평균 %s · 일반 %d개 / ★ %d개\n", Avg(Us), UBins[0], UBins[1], UBins[2], UBins[3], Avg(FU) < 0 ? "-" : std::to_string((int)std::lround(Avg(FU))).c_str(), Plain, Star);
+		std::printf("  많이 나온 상위 조커:");
+		std::vector<std::pair<int, int>> Top(GUpperKinds.begin(), GUpperKinds.end());
+		std::sort(Top.begin(), Top.end(), [](auto& A, auto& B) { return A.second > B.second; });
+		for (size_t I = 0; I < Top.size() && I < 6; ++I) std::printf(" #%d%s=%d", Top[I].first + 1, UpperDef(Top[I].first).Special != EPDUpperSpecial::None ? "★" : "", Top[I].second);
+		std::printf("\n  클리어 %d / %d판 · 평균 %.1f웨이브\n", GBotClears, N, [&] { double S = 0; for (auto& R : GJokerRuns) S += R.Wave; return N ? S / N : 0.0; }());
+		GJokerTrack = false; GBotMode = EPDMode::Endless; GBotUpgLv = 10; GBotContent = 0;
 	}
 	else if (Runs > 0 && Argc > 2 && std::string(Argv[2]) == "level") // 레벨 곡선 (D-479): level [모드 0=30 1=60 2=100 3=무한, 기본 0] — 트리까지 쓰는 봇
 	{
