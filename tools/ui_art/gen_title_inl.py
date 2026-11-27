@@ -160,20 +160,21 @@ def martini(tilt=None):
     wall = lambda y: h * (ay - y) / (ay - ry)  # 높이 y 에서 잔 벽(가운데 선)까지 반폭
     cosw = (ay - ry) / math.hypot(h, ay - ry)   # 벽과 수평 거리 → 수직 거리
     need = lambda a, b: HALF[a] + HALF[b] + GAP
-    # 빨대 (시안): 윗변 가운데보다 조금 오른쪽을 가파르게 지나 술 선 아래에서 끝난다
+    # 빨대 (시안): 윗변 가운데보다 조금 오른쪽을 가파르게 지나 술 선 위에서 끝난다 (술 선과는 띄움)
     sx, sk = cx + 22.0, 0.5  # 윗변을 지나는 x, 기울기(dx/dy)
-    straw = [(sx + sk * 50.0, ry - 50.0), (sx - sk * 32.0, ry + 32.0)]  # 술 선 틈에서 끝난다 (얼음과 띄움)
+    ly = ry + 36.0  # 술 선 높이 (빨대 끝이 윗변과 술 선 사이에 들어가게 조금 내림)
+    se = ly - need('liquid', 'straw') - ry  # 윗변 아래로 들어가는 길이 = 술 선에 닿기 직전까지
+    straw = [(sx + sk * 36.0, ry - 36.0), (sx - sk * se, ry + se)]
     # V 잔: 윗변 · 두 벽을 한 관으로 (모서리는 작게 구부림), 빨대 자리만 끊는다
     bowl = _round([(cx - h, ry), (cx, ay), (cx + h, ry)], g['corner'], True)
     k = min(range(len(bowl) - 1), key=lambda q: abs(bowl[q][0] - cx) + abs(bowl[q][1] - ry) * 10)  # 닫힌 관을 윗변 가운데에서 열기
     ring = bowl[k:-1] + bowl[:k + 1]
     out = [('yellow', P) for P in _cut(ring, straw, need('yellow', 'straw'))]
-    # 술 선 (시안): 윗변 바로 아래 나란히, 잔 폭을 거의 다 채우되 벽과는 띄운다. 빨대 자리는 끊는다
-    ly = ry + need('yellow', 'liquid') + 2.0
+    # 술 선 (시안): 윗변 아래 나란한 한 줄 (끊지 않는다, 사용자). 벽과는 띄운다
     lw = wall(ly) - need('yellow', 'liquid') / cosw
-    out += [('liquid', P) for P in _cut([(cx - lw, ly), (cx + lw, ly)], straw, need('liquid', 'straw'))]
+    out.append(('liquid', [(cx - lw, ly), (cx + lw, ly)]))
     # 얼음 (시안): 술 선 바로 아래 가운데 마름모 (윗변 기준 45° 돌린 정사각형, 모서리 둥글게)
-    d, ix = 16.0, cx - 8.0
+    d, ix = 15.0, cx
     iy = ly + need('liquid', 'liquid') + d
     out.append(('liquid', _round([(ix, iy - d), (ix + d, iy), (ix, iy + d), (ix - d, iy)], 4.0, True)))
     out.append(('straw', straw))
