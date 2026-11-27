@@ -6,6 +6,7 @@
 |---|---|
 | [00-project-charter.md](00-project-charter.md) | 프로젝트 개요, 확정 사항 |
 | [14-poker-defense.md](14-poker-defense.md) | 포커 디펜스 규칙과 버전별 변화 (중심 문서) |
+| [balance-sim-results.md](balance-sim-results.md) | 봇 밸런스 시뮬레이션 결과 모음 (최신 결과, 낡은 결과 표시, 빈 곳, 다음 측정) |
 | [16-skill-tree.md](16-skill-tree.md) | 스킬 트리와 골드 강화 |
 | [17-modes-and-progression.md](17-modes-and-progression.md) | 모드(30 · 60 · 100 · 무한)와 판 밖 성장 |
 | [18-upper-jokers.md](18-upper-jokers.md) | 상위 조커 30종 |
