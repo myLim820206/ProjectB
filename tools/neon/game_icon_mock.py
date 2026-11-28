@@ -1,6 +1,6 @@
 """게임 아이콘 시안 (실행파일 · 스토어 아이콘) — 네온 간판 화풍
 
-    python3 tools/neon/game_icon_mock.py 출력폴더 [1|2]   (2 = 두 번째 묶음 E~H)
+    python3 tools/neon/game_icon_mock.py 출력폴더 [1|2|3]   (2 = 두 번째 묶음 E~H, 3 = 바 + 앨리스 I~L)
 
 A 마티니: 간판의 금빛 마티니 잔 (하늘 술 · 얼음 · 분홍 꼬치 · 반짝이)
 B 필기체 A: 간판 Alice 의 첫 글자 A (분홍) + 금빛 밑줄
@@ -58,6 +58,8 @@ def martini(cx, top, w, h, col, olive='ice', small=False):
         ix, iy = cx + w * 0.08, top + bowl_h * 0.55
         L.append(([(ix, iy - s), (ix + s, iy), (ix, iy + s), (ix - s, iy), (ix, iy - s)], CYAN, 0.8, False))
         L.append(([(cx + w * 0.06, top + bowl_h * 0.4), (cx + w * 0.3, top - h * 0.14)], PINK, 0.85, True))
+    elif olive == 'none':
+        L.append(([(cx - lw, ly), (cx + lw, ly)], CYAN, 0.85, True))
     else:  # 스페이드 올리브 + 꼬치
         for p in suit('spade')(cx + w * 0.02, top + bowl_h * 0.42, w * 0.26):
             L.append((p, PINK, 0.8, True))
@@ -194,6 +196,78 @@ def icon_H():
 SET2 = {'E': ('포커 칩', icon_E), 'F': ('카드 성탑', icon_F), 'G': ('카드 부채꼴', icon_G), 'H': ('토끼 회중시계', icon_H)}
 
 
+# ------------------------------------------------------------- 세 번째 묶음 (바 + 앨리스)
+def ears(cx, base, h, spread, col=WHITE):
+    L = []
+    for sx in (-1, 1):
+        e = catmull([(cx + sx * spread * 0.25, base), (cx + sx * spread * 0.2, base - h * 0.55), (cx + sx * spread * 0.45, base - h * 0.95), (cx + sx * spread * 0.85, base - h * 1.0), (cx + sx * spread * 1.15, base - h * 0.75), (cx + sx * spread * 1.15, base - h * 0.35), (cx + sx * spread * 1.0, base)])
+        i = catmull([(cx + sx * spread * 0.48, base - h * 0.12), (cx + sx * spread * 0.45, base - h * 0.6), (cx + sx * spread * 0.72, base - h * 0.8), (cx + sx * spread * 0.9, base - h * 0.6), (cx + sx * spread * 0.82, base - h * 0.12)])
+        L.append((e, col, 0.85, True))
+        L.append((i, PINK, 0.6, False))
+    return L
+
+
+def icon_I():
+    """토끼 귀 마티니: 금빛 잔 속에서 흰 토끼 귀가 쏙"""
+    L = ears(50, 46, 34, 16)
+    L += martini(50, 46, 28, 46, GOLD, olive='none')
+    L += sparks(80, 28, 14, GOLD)
+    return L
+
+
+def icon_J():
+    """DRINK ME 병: 하늘 병 + 금 코르크 + 분홍 꼬리표"""
+    L = [(rrect(43, 8, 57, 18, 2.5), GOLD, 0.8, True)]
+    body = [(45, 18), (45, 37)]
+    r, cy = 25, 63
+    a0 = math.degrees(math.asin((cy - 37) / r * -1)) if False else None
+    ang_l = math.atan2(37 - cy, 45 - 50)
+    ang_r = math.atan2(37 - cy, 55 - 50)
+    n = 40
+    for k in range(n + 1):
+        a = ang_l - (ang_l - (ang_r - 2 * math.pi)) * k / n
+        body.append((50 + math.cos(a) * r, cy + math.sin(a) * r))
+    body += [(55, 37), (55, 18)]
+    L.append((body, CYAN, 1.0, True))
+    hw = math.sqrt(r * r - 6 ** 2)
+    L.append(([(50 - hw + 3, cy - 6), (50 + hw - 3, cy - 6)], CYAN, 0.7, True))
+    for p in suit('heart')(50, 74, 7):
+        L.append((p, PINK, 0.75, False))
+    tag = rot(rrect(60, 18, 92, 34, 3), 76, 26, 14)
+    L.append(([(55, 24), (61, 22)], PINK, 0.5, False))
+    L.append((tag, PINK, 0.75, True))
+    L.append(('txt', 'DRINK', PINK, 5.6, 76, 23.2, 14, False))
+    L.append(('txt', 'ME', PINK, 5.6, 75.2, 29.6, 14, False))
+    return L
+
+
+def icon_K():
+    """모자 쓴 잔: 금빛 마티니 위에 분홍 실크해트 (띠에 꽂힌 카드)"""
+    L = martini(50, 56, 27, 38, GOLD, olive='none')
+    hat = []
+    brim = [(26, 47), (74, 47)]
+    crown = [(33, 47), (36, 15), (64, 15), (67, 47)]
+    for pts, w, keep in ((brim, 0.9, True), (crown, 0.9, True), ([(35, 39), (65, 39)], 0.6, False)):
+        hat.append((rot(pts, 50, 47, -10), PINK, w, keep))
+    card = rot(rrect(54, 25, 62, 37, 1.5), 50, 47, -10)
+    hat.append((card, WHITE, 0.55, False))
+    return hat + L
+
+
+def icon_L():
+    """Alice A + 잔: 분홍 필기체 A 옆에 금빛 마티니, 위에 하늘 BAR"""
+    k, ox, oy = 0.72, 11, 82
+    L = []
+    for st in ALICE[0]:
+        L.append(([(ox + x * k, oy + y * k) for x, y in catmull(st)], PINK, 1.1, True))
+    L += martini(74, 44, 16, 40, GOLD)
+    L.append(('txt', 'BAR', CYAN, 10, 30, 14, 0, False))
+    return L
+
+
+SET3 = {'I': ('토끼 귀 마티니', icon_I), 'J': ('DRINK ME 병', icon_J), 'K': ('모자 쓴 잔', icon_K), 'L': ('Alice A + 잔', icon_L)}
+
+
 # ------------------------------------------------------------- 그리기
 def _bg(N):
     yy, xx = np.mgrid[0:N, 0:N] / N
@@ -234,6 +308,17 @@ def render(name, N, ss=4):
             P = [(x * sc, y * sc) for x, y in it[1]]
             cd.polygon(P, fill=0)
             hd.polygon(P, fill=0)
+            continue
+        if it[0] == 'txt':
+            _, txt, c, px, x, y, deg, keep = it
+            if small and not keep: continue
+            f = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', int(px * sc))
+            for layer, col in ((core, c), (hot, tuple(int(v * 0.35 + 255 * 0.65) for v in c))):
+                t = Image.new('RGB', (S, S), 0)
+                ImageDraw.Draw(t).text((x * sc, y * sc), txt, fill=col, font=f, anchor='mm')
+                if deg: t = t.rotate(-deg, center=(x * sc, y * sc), resample=Image.BICUBIC)
+                if layer is hot: t = t.filter(ImageFilter.MinFilter(3))
+                layer.paste(Image.composite(t, layer, t.convert('L').point(lambda v: 255 if v > 8 else 0)))
             continue
         if it[0] == 'A':
             if small: continue
@@ -301,7 +386,7 @@ def sheet(outdir, icons):
             if z > 1: ic = ic.resize((n * z, n * z), Image.NEAREST)
             img.paste(ic, (x + (cw - ic.width) // 2, y0 + (rowh - ic.height) // 2), ic)
             x += cw
-    img.save(os.path.join(outdir, 'icon_sheet.png' if 'A' in ICONS else 'icon_sheet2.png'))
+    img.save(os.path.join(outdir, 'icon_sheet%s.png' % {'A': '', 'E': '2', 'I': '3'}[list(ICONS)[0]]))
 
 
 def context(outdir, icons):
@@ -338,13 +423,15 @@ def context(outdir, icons):
     for i, k in enumerate(keys):
         ic = icons[k][64]
         img.paste(ic, (630 + i * 130, 300), ic)
-    img.save(os.path.join(outdir, 'icon_context.png' if 'A' in ICONS else 'icon_context2.png'))
+    img.save(os.path.join(outdir, 'icon_context%s.png' % {'A': '', 'E': '2', 'I': '3'}[list(ICONS)[0]]))
 
 
 def main(outdir, which='1'):
     global ICONS
     if which == '2':
         ICONS = SET2
+    if which == '3':
+        ICONS = SET3
     os.makedirs(outdir, exist_ok=True)
     sizes = [16, 24, 32, 48, 64, 256, 1024]
     icons = {k: {n: render(k, n) for n in sizes} for k in ICONS}
