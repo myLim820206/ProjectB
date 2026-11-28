@@ -1,6 +1,6 @@
 """게임 아이콘 시안 (실행파일 · 스토어 아이콘) — 네온 간판 화풍
 
-    python3 tools/neon/game_icon_mock.py 출력폴더
+    python3 tools/neon/game_icon_mock.py 출력폴더 [1|2]   (2 = 두 번째 묶음 E~H)
 
 A 마티니: 간판의 금빛 마티니 잔 (하늘 술 · 얼음 · 분홍 꼬치 · 반짝이)
 B 필기체 A: 간판 Alice 의 첫 글자 A (분홍) + 금빛 밑줄
@@ -114,6 +114,86 @@ def icon_D():
 ICONS = {'A': ('마티니 잔', icon_A), 'B': ('필기체 A', icon_B), 'C': ('조커 카드', icon_C), 'D': ('카드 속 잔', icon_D)}
 
 
+# ------------------------------------------------------------- 두 번째 묶음 (네온 간판에서 벗어난 방향)
+def _ring(cx, cy, r, n=48):
+    return circle(cx, cy, r, n)
+
+
+def icon_E():
+    """포커 칩: 바깥 고리 + 테두리 홈 8개 + 안쪽 고리 + 가운데 스페이드"""
+    L = [(_ring(50, 50, 38), PINK, 1.0, True), (_ring(50, 50, 25), PINK, 0.8, True)]
+    for i in range(8):
+        a = math.radians(i * 45 + 22.5)
+        c, s_ = math.cos(a), math.sin(a)
+        w = 0.17
+        pts = []
+        for rr, da in ((29, -w), (36, -w * 0.82), (36, w * 0.82), (29, w), (29, -w)):
+            pts.append((50 + math.cos(a + da) * rr, 50 + math.sin(a + da) * rr))
+        L.append((pts, PINK, 0.7, i % 2 == 0))
+    for p in suit('spade')(50, 48, 14):
+        L.append((p, GOLD, 0.9, True))
+    return L
+
+
+def icon_F():
+    """카드 성탑: 성가퀴를 얹은 카드 모양 탑 + 스페이드 창 + 아치 문, 위로 쏘는 별 탄"""
+    x0, x1, top, bot = 28, 72, 30, 88
+    m = [(x0, bot), (x0, top)]
+    seg = (x1 - x0) / 5
+    for i in range(5):
+        xa, xb = x0 + i * seg, x0 + (i + 1) * seg
+        if i % 2 == 0:
+            m += [(xa, top - 10), (xb, top - 10), (xb, top)]
+        else:
+            m += [(xb, top)]
+    m += [(x1, bot), (x0, bot)]
+    L = [(m, CYAN, 1.0, True)]
+    door = [(43, bot)] + bez((43, 74), (50, 64), (57, 74), 12) + [(57, bot)]
+    door = [(43, bot), (43, 74)] + bez((43, 74), (50, 63), (57, 74), 12)[1:] + [(57, bot)]
+    L.append((door, CYAN, 0.8, False))
+    for p in suit('spade')(50, 46, 9):
+        L.append((p, PINK, 0.85, True))
+    for p in suit('star')(80, 14, 6.5):
+        L.append((p, GOLD, 0.8, True))
+    L.append(([(73, 21), (64, 30)], GOLD, 0.6, False))
+    return L
+
+
+def icon_G():
+    """카드 부채꼴: 세 장을 펼침 (♠ 하늘, ♦ 금, 가운데 ♥ 분홍). 앞 카드가 뒤 카드 선을 가린다"""
+    L = []
+    for ang, col, kind, sx in ((-30, CYAN, 'spade', 42), (30, GOLD, 'diamond', 58), (0, PINK, 'heart', 50)):
+        card = rot(rrect(35, 22, 65, 70, 6), 50, 90, ang)
+        L.append(('fill', card))
+        L.append((card, col, 0.85, True))
+        for p in suit(kind)(sx, 36 if ang == 0 else 32, 8 if ang == 0 else 5.5):
+            L.append((rot(p, 50, 88, ang), col, 0.8, ang == 0))
+    return L
+
+
+def icon_H():
+    """흰 토끼 회중시계: 시계 위에 토끼 귀 둘 (안쪽 분홍), 바늘 금, 12시에 스페이드"""
+    L = []
+    for sx in (-1, 1):
+        ear = catmull([(50 + sx * 5, 40), (50 + sx * 9, 22), (50 + sx * 14, 12), (50 + sx * 18, 17), (50 + sx * 15, 39)])
+        inner = catmull([(50 + sx * 9, 34), (50 + sx * 12, 22), (50 + sx * 14.5, 18), (50 + sx * 14, 34)])
+        L.append((ear, WHITE, 0.85, True))
+        L.append((inner, PINK, 0.6, False))
+    L.append((_ring(50, 63, 24), WHITE, 1.0, True))
+    for i in range(12):
+        if i % 3 == 0 and i != 0:
+            a = math.radians(i * 30 - 90)
+            L.append(([(50 + math.cos(a) * 16, 63 + math.sin(a) * 16), (50 + math.cos(a) * 20, 63 + math.sin(a) * 20)], WHITE, 0.6, False))
+    for p in suit('spade')(50, 47.5, 3.2):
+        L.append((p, PINK, 0.55, False))
+    L.append(([(50, 63), (50, 51)], GOLD, 0.8, True))
+    L.append(([(50, 63), (60, 69)], GOLD, 0.8, True))
+    return L
+
+
+SET2 = {'E': ('포커 칩', icon_E), 'F': ('카드 성탑', icon_F), 'G': ('카드 부채꼴', icon_G), 'H': ('토끼 회중시계', icon_H)}
+
+
 # ------------------------------------------------------------- 그리기
 def _bg(N):
     yy, xx = np.mgrid[0:N, 0:N] / N
@@ -150,6 +230,11 @@ def render(name, N, ss=4):
     cd, hd = ImageDraw.Draw(core), ImageDraw.Draw(hot)
     font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', int(9 * sc))
     for it in items:
+        if it[0] == 'fill':
+            P = [(x * sc, y * sc) for x, y in it[1]]
+            cd.polygon(P, fill=0)
+            hd.polygon(P, fill=0)
+            continue
         if it[0] == 'A':
             if small: continue
             _, c, *pos = it
@@ -216,7 +301,7 @@ def sheet(outdir, icons):
             if z > 1: ic = ic.resize((n * z, n * z), Image.NEAREST)
             img.paste(ic, (x + (cw - ic.width) // 2, y0 + (rowh - ic.height) // 2), ic)
             x += cw
-    img.save(os.path.join(outdir, 'icon_sheet.png'))
+    img.save(os.path.join(outdir, 'icon_sheet.png' if 'A' in ICONS else 'icon_sheet2.png'))
 
 
 def context(outdir, icons):
@@ -253,10 +338,13 @@ def context(outdir, icons):
     for i, k in enumerate(keys):
         ic = icons[k][64]
         img.paste(ic, (630 + i * 130, 300), ic)
-    img.save(os.path.join(outdir, 'icon_context.png'))
+    img.save(os.path.join(outdir, 'icon_context.png' if 'A' in ICONS else 'icon_context2.png'))
 
 
-def main(outdir):
+def main(outdir, which='1'):
+    global ICONS
+    if which == '2':
+        ICONS = SET2
     os.makedirs(outdir, exist_ok=True)
     sizes = [16, 24, 32, 48, 64, 256, 1024]
     icons = {k: {n: render(k, n) for n in sizes} for k in ICONS}
@@ -267,4 +355,4 @@ def main(outdir):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else '.')
+    main(sys.argv[1] if len(sys.argv) > 1 else '.', sys.argv[2] if len(sys.argv) > 2 else '1')
