@@ -768,6 +768,7 @@ static void UnitTests()
 		MakeJ(0, EPDJoker::Clown, 4.f, 3);
 		MakeJ(1, EPDJoker::Clown, 6.f, 5);
 		MakeJ(3, EPDJoker::Hatter, 4.f, 1); // 떨어져 있는 다른 조커
+		G.Towers.at(CellKey(0, Row)).JXp = 7.f; G.Towers.at(CellKey(1, Row)).JXp = 7.f; // 합치면 경험치는 0 (D-500)
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		auto Ms = G.JokerMerges();
 		const auto Pw = Ms.size() == 1 ? G.PreviewPower(FPDGame::EPowerAction::JokerMerge, 0) : FPDGame::FPowerPreview{};
@@ -775,9 +776,10 @@ static void UnitTests()
 		int Clowns = 0;
 		float M = 0.f;
 		int Lv = 0;
-		for (const auto& KV : G.Towers) if (KV.second.Joker == (int)EPDJoker::Clown) { Clowns++; M = KV.second.Mult; Lv = KV.second.JLevel; }
-		Expect(bMerged && Clowns == 1 && std::fabs(M - 10.f * JokerMergeBonus) < 1e-4f && Lv == 5 && G.Towers.size() == 2 && Pw.After > 0.f,
-			"같은 광대 둘이 맞닿으면 하나로: 위력 (4+6) × 1.3, 레벨은 높은 쪽 5");
+		float MXp = -1.f;
+		for (const auto& KV : G.Towers) if (KV.second.Joker == (int)EPDJoker::Clown) { Clowns++; M = KV.second.Mult; Lv = KV.second.JLevel; MXp = KV.second.JXp; }
+		Expect(bMerged && Clowns == 1 && std::fabs(M - 10.f * JokerMergeBonus) < 1e-4f && Lv == 5 && MXp == 0.f && G.Towers.size() == 2 && Pw.After > 0.f,
+			"같은 광대 둘이 맞닿으면 하나로: 위력 (4+6) × 1.3, 레벨은 높은 쪽 5, 경험치는 0 부터 (D-500)");
 		// 조커 옆 족보를 먹여도 조커는 사라지지 않는다 (조커는 족보에 안 든다, D-489)
 		G.Towers.clear();
 		MakeJ(0, EPDJoker::Clown, 4.f, 1);
