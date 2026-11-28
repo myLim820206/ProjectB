@@ -260,7 +260,7 @@ constexpr uint32_t JokerStarterMask = (1u << 3) | (1u << 2) | (1u << 6) | (1u <<
 constexpr int ChipMult = 2; // 판당 칩 배율 (D-323: 다 여는 데 약 60시간)
 constexpr uint32_t UpperStarterMask = (1u << 11) | (1u << 18); // 상위 조커 맛보기 2종: 험프티 덤프티 · 하얀 기사, 처음부터 열림 (D-320)
 inline int JokerPrice(int J) { static const int P[10] = {350, 350, 0, 0, 150, 0, 0, 250, 200, 500}; return J >= 0 && J < 10 ? P[J] : 0; }
-constexpr float JokerBonus = 3.0f; // 조커 합성: 재료 위력 합 × 3.0 (D-491, 예전 1.2: 만능 제거로 사라진 족보 효과를 덤으로 되돌림)
+constexpr float JokerBonus = 10.0f; // 조커 합성: 재료 위력 합 × 10 (D-492, 예전 3.0 D-491 · 1.2: 만능 제거로 사라진 족보 효과를 덤으로 되돌림)
 constexpr float JokerCardBonus = 0.1f; // 재료 카드 한 장마다 조커 위력 +10% (4장 ×1.4, 10장 ×2) (D-114, D-118)
 constexpr float JokerMergeBonus = 1.3f; // 같은 조커끼리 합치기: 위력 합 × 1.3 (D-114)
 // 같은 조커끼리 맞닿은 묶음 (D-114). 합치면 한 칸에 하나로
@@ -565,7 +565,7 @@ struct FPDAchStats : FPDGoalStats
 bool AchMet(EPDAch A, const FPDAchStats& S);
 const char* AchApiName(EPDAch A); // 스팀 도전 과제 이름 (Steamworks 에 같은 이름으로 등록)
 inline int CharmGoal(int J) { for (int I = 0; I < (int)EPDGoal::Count; ++I) if ((int)GoalDef(I).Reward == J) return I; return -1; } // 목표로 여는 칵테일이면 목표 번호, 아니면 -1 (칩으로 못 산다)
-inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.9f : M == EPDMode::W60 ? 1.37f : M == EPDMode::W100 ? 1.2f : 1.3f; } // D-235: 봇이 너무 쉽게 깨서 올림 (예전 1.6 · 1.32 · 1.18)
+inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.45f : M == EPDMode::W60 ? 1.37f : M == EPDMode::W100 ? 1.2f : 1.3f; } // D-492: 30 은 1.9 → 1.45 (만능 제거 뒤). 60 · 100 · 무한은 QA 가 덤 10 기준으로 다시 맞출 때까지 D-235 값
 constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)
 
 // 부하 시험 배율 (D-135, F4 치트): 웨이브 적 체력·마리 수. 평소 1
@@ -599,7 +599,7 @@ public:
 	void TakeReward(int Index); // -1 = 건너뛰기
 	bool CanFuse(int SynergyIdx) const;
 	// 합성이 막힌 까닭 (D-371): 화면이 '합성 불가' 줄에 이유를 보여 준다
-	enum class EFuseBlock : uint8_t { None, NotInPlay, ClownPath, MaxLevel }; // 조커가 낀 족보(D-200)는 없어졌다 (D-489)
+	enum class EFuseBlock : uint8_t { None, NotInPlay, ClownPath, TopLevel }; // 조커가 낀 족보(D-200)는 없어졌다 (D-489)
 	EFuseBlock FuseBlock(int SynergyIdx) const;
 	// 합성: 결과 타워가 놓일 칸을 재료 칸 중에서 고를 수 있다 (-1 = 기본 칸). 재료 밖 칸이면 실패
 	bool Fuse(int SynergyIdx, int TargetCell = -1);  // 족보를 타워 하나로 합성 (버튼). 성공하면 true
@@ -675,7 +675,7 @@ public:
 	void DealSuits(int N);                        // 딜러: 무작위 타워 N 장 무늬 바꾸기 (한꺼번에 최대 DealMax)
 	void RestoreSuits();                          // 딜러가 바꾼 무늬 되돌리기
 	float FuseMult() const;              // 합성 배율 (기본 1.5)
-	float JokerMult() const;             // 조커 배율 (기본 JokerBonusK = 3.0, D-491)
+	float JokerMult() const;             // 조커 배율 (기본 JokerBonusK = 10, D-492)
 	void RebuildMods();
 	bool Buildable(int X, int Y) const;
 	// 손패를 놓을 수 있나 (D-192): 빈 칸이거나 Lv1 카드 타워(교체하면 그 카드는 손으로). 합성 타워·조커 위에는 못 놓는다
@@ -695,7 +695,9 @@ public:
 	int Xp = 0, Level = 1, Points = 0, XpEarned = 0; // 다음 레벨까지 모은 경험치, 레벨, 쓴 트리 포인트, 판에서 번 경험치 합
 	int Swaps = StartSwaps;                   // 남은 자리바꿈 (시작 2번 D-489 + 보상 D-149)
 	bool bLucky = true;                       // 행운의 한 장 (D-490). QA 가 끈 판과 비교할 때만 false
-	float JokerBonusK = JokerBonus;           // 조커 덤 (D-491). QA 갈래(2.0 · 3.0 · 4.0)만 바꾼다, 게임은 늘 JokerBonus
+	float JokerBonusK = JokerBonus;           // 조커 덤 (D-492). QA 갈래만 바꾼다, 게임은 늘 JokerBonus
+	float ModeGrowthK = 0.f;                  // 15웨이브 뒤 체력 증가율 (D-492). 0 이면 ModeGrowth(Mode). QA 갈래만 바꾼다
+	float HpGrowth() const { return ModeGrowthK > 0.f ? ModeGrowthK : ModeGrowth(Mode); }
 	int LuckyHits = 0;                        // 이번 판에 행운의 한 장이 온 횟수 (봇 기록)
 	FPDLucky LuckyLine() const;               // 지금 판의 행운의 한 장 줄 (덱에 남은 카드만 기다림)
 	void LuckyDraw(int First, int Got);      // 행운의 한 장: 방금 받은 카드(Hand[First..]) 중 한 장을 확률로 줄 끝 카드로 (D-490)
