@@ -213,6 +213,7 @@ private:
 	// 먹이기 전후 (사본에서 먹여 본다): 먹는 조커 수, 조커마다 경험치, 레벨이 오를 조커 칸, 판 위력 전후, 사라지는 카드 수
 	struct FFeedPreview { bool bOk = false; int32 Jokers = 0; float Xp = 0.f; TArray<int32> Ups; float BoardB = 0.f, BoardA = 0.f; int32 Gone = 0; };
 	FFeedPreview PreviewFeed(int32 Syn) const;
+	void PaintHandMenuTip(FCanvas& C) const; // 족보 메뉴판 설명 툴팁 (D-496)
 	void PaintHandTip(FCanvas& C) const;     // 손패 카드 툴팁 (판 위 UI 다음에 그려 네온이 위로 비치지 않게, D-214)
 	void PaintFuseCursorTag(FCanvas& C) const; // 합성 모드 커서 꼬리표: 마우스 오른쪽 버튼 = 취소 (D-373)
 	void PaintSplash(FCanvas& C) const;        // 회사 로고 부트 스플래시 (D-385, 시안 tools/neon/logo_jollybaldy_type.py K)

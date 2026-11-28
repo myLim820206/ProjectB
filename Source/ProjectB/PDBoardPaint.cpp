@@ -350,6 +350,7 @@ void SPDBoardWidget::PaintAll(FCanvas& C, FCanvas& F) const
 	PaintPanels(C); Part(4);
 	PaintBoardUi(F); Part(3); // 판 위 UI 를 패널 뒤에 그려 툴팁이 패널 위로 나갈 수 있게 (D-150)
 	PaintHandTip(C); // 손패 툴팁은 판 위 UI 위에 (D-214)
+	PaintHandMenuTip(C); // 족보 메뉴판 설명 툴팁 (D-496)
 	PaintFuseCursorTag(C); // 합성 모드 커서 꼬리표 (D-373)
 	PaintHint(C); // 도움말 카드 (D-217)
 	PaintLevelUp(C); // 레벨업 (D-273)
@@ -3803,6 +3804,25 @@ void SPDBoardWidget::PaintFuseCursorTag(FCanvas& C) const
 }
 
 // 손패 카드 툴팁 (D-177, D-214): 판 위 UI 다음에 그린다 (예전엔 패널과 함께 그려 판 위 딱지·빛이 툴팁 위로 비쳤다)
+void SPDBoardWidget::PaintHandMenuTip(FCanvas& C) const
+{
+	// 족보 메뉴판 툴팁 (D-496): 줄에는 이름 · 배수만 크게, 설명은 마우스를 올린 줄 오른쪽에 (판 위 UI 위에 그린다)
+	if (InCraft() || bMenu || bSettings || Game.Phase == EPDPhase::Title) return;
+	const int32 Id = HandMenuAt(Mouse.X, Mouse.Y);
+	if (Id < 0) return;
+	const bool bHand = Id < (int32)EPDHand::Count;
+	const EPDHand H = bHand ? (EPDHand)Id : EPDHand::Pair;
+	const FLinearColor HC = bHand ? HandColor(H) : JokerPink, Fg = Hex(TEXT("cfd8e6"));
+	FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
+	if (bHand && (H == EPDHand::Flush || H == EPDHand::Straight)) Name += Tr(TEXT(" (3~5장)")); // D-418: 3장부터
+	const FString Eff = bHand ? FString(HandEffect(H)) : FString(Tr(Id == JokerFilterId ? TEXT("클릭: 만들 수 있는 조커 목록") : TEXT("클릭: 족보를 먹여 모든 조커 키우기")));
+	const float TW = 250.f, TH = 52.f, TX = LX + LW + 6.f, TY = FMath::Clamp(HandMenuTop(Id) + (HandMenuRowH - 4.4f) / 2.f - TH / 2.f, 8.f, DesignH - TH - 8.f);
+	C.Box(TX, TY, TW, TH, Hex(TEXT("06060b"), 0.96f));
+	C.Glow(FCanvas::RoundRectPoints(TX, TY, TW, TH, RadSmall), HC, 1.2f, 0.45f);
+	C.Text(Name, TX + 12.f, TY + 21.f, HC, 13.f, 0, true, TW - 24.f);
+	C.Text(Eff, TX + 12.f, TY + 41.f, Fg, 11.5f, 0, false, TW - 24.f);
+}
+
 void SPDBoardWidget::PaintHandTip(FCanvas& C) const
 {
 	const FPDGame& G = Game;
@@ -3954,8 +3974,8 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	}
 	else
 	{
-		// 족보 메뉴판 (D-263, 레터보드): 묶음 머리글, 줄 = [색 칸] 이름 [판 N 꼬리표] ····· ×배수, 아래 작은 설명, 합성 · 먹이는 추천 꼬리표
-		const float X0 = LX + 18.f, XR = LX + LW - 18.f;
+		// 족보 메뉴판 (D-263, 레터보드 → D-496 한 줄): 묶음 머리글, 줄 = [색 막대] 이름 ····· [합성 알약] ×배수, 설명은 마우스 툴팁
+		const float XR = LX + LW - 18.f;
 		const int32 HovId = HandMenuAt(Mouse.X, Mouse.Y);
 		const FSlateFontInfo TagFn = FCanvas::Font(9.f, true);
 		static const TCHAR* GroupName[3] = {TEXT("5장"), TEXT("2~4장"), TEXT("조커/먹이")};
@@ -3984,9 +4004,11 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			const int32 Fz = bHand ? FuseN[Id] : 0;
 			const bool bPv = bHand && PvKinds.Contains(Id), bOn = Cnt > 0, bHov = HovId == Id, bFilt = HandFilter == Id;
 			const FLinearColor HC = bHand ? HandColor(H) : JokerPink;
-			const float NY = Y + 13.f, DY = Y + 25.f; // 줄 상자 31 (Alice 시안 D-403)
+			// 글씨 가독성 (D-496, 사용자: 시안 3): 줄에는 이름 · 배수만 크고 굵게 한 줄, 작은 설명 줄은 빼고 마우스를 올리면 툴팁 (PaintHandMenuTip). 줄 상자 31 → 33
+			const float RH = HandMenuRowH - 4.4f;
+			const float NY = Y + RH / 2.f + 5.f;
 			// 줄 바탕 (Alice 시안 D-403): 어두운 상자 + 회색 테, 왼쪽 족보 색 막대. 마우스 · 미리보기 = 금빛 채움 + 노란 테, 필터 = 족보 색 테, 합성 맥박 = 옅은 금빛
-			const float RX0 = LX + 12.f, RW = LW - 22.f, RH = HandMenuRowH - 6.4f;
+			const float RX0 = LX + 12.f, RW = LW - 22.f;
 			const TArray<FVector2f> RB = FCanvas::RoundRectPoints(RX0, Y, RW, RH, 6.f);
 			const bool bGoldRow = bHov || bPv;
 			C.FillPoly(RB, bGoldRow ? Hex(TEXT("555245")) : Hex(TEXT("0d081c"))); // 시안에서 잰 색 (D-409, D-460): 선택 = 칙칙한 올리브, 보통 = 거의 검은 남보라
@@ -3996,46 +4018,37 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			else if (bFilt) C.Glow(RB, HC, 1.6f, 0.6f + 0.3f * (0.5f + 0.5f * FMath::Sin(Clock * 6.f)));
 			else { C.Glow(RB, Hex(TEXT("4c4756")), 3.2f, 1.f); C.Lines(RB, Hex(TEXT("67626f")), 1.f); } // 회보라 테 + 은은한 네온 번짐 (D-460: 시안 심 504b58 ~ 686373, 번짐 3 쯤)
 			C.Box(RX0 + 4.f, Y + 6.f, 3.f, RH - 12.f, SrgbDim(HC, 0.55f)); // 왼쪽 족보 색 막대 (시안: 바랜 색)
-			const float NX = X0 + 10.f;
-			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수
-			FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
-			if (H == EPDHand::Flush && bHand) Name += Tr(TEXT(" (3~5장)"));
-			if (H == EPDHand::Straight && bHand) Name += Tr(TEXT(" (3~5장)")); // D-418: 3장부터
-			const FString Eff = bHand ? FString(HandEffect(H)) : FString(Tr(Id == JokerFilterId ? TEXT("클릭: 만들 수 있는 조커 목록") : TEXT("클릭: 족보를 먹여 모든 조커 키우기")));
+			const float NX = RX0 + 13.f;
+			// 오른쪽 가격 = 배수 (효과 글의 첫 ×), 조커 · 먹이는 개수. 이름의 '(3~5장)' 은 툴팁에만 (D-496: 한 줄에 다 안 들어간다)
+			const FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
+			const FString Eff = bHand ? FString(HandEffect(H)) : FString();
 			FString Price;
 			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);
 			else { int32 XI = INDEX_NONE; if (Eff.FindChar(TEXT('×'), XI)) { int32 E2 = XI + 1; while (E2 < Eff.Len() && (FChar::IsDigit(Eff[E2]) || Eff[E2] == TEXT('.'))) ++E2; if (E2 > XI + 1) Price = Eff.Mid(XI, E2 - XI); } }
 			Price.ReplaceInline(TEXT("×"), TEXT("x")); // 시안: 'x2.5'
-			const FLinearColor TextC = bGoldRow ? Hex(TEXT("f0eed2")) : Hex(TEXT("c2bfb4")); // 시안: 이름 · 배수는 차분한 회크림 보통 굵기 (D-409, D-460)
-			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, FCanvas::Font(12.f, false)).X;
-			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, TextC, 12.f, 2, false);
-			const float NMax = XR - NX - PrW - 44.f;
-			C.Text(Name, NX, NY + 1.f, TextC, 11.5f, 0, false, NMax);
-			const float TX = NX + FMath::Min(NMax, FCanvas::Measure(TrS(Name), FCanvas::Font(11.5f, false)).X) + 6.f;
-			for (float DX = TX + 2.f; DX < XR - PrW - 6.f; DX += 7.f) C.Box(DX, NY - 2.f, 1.6f, 1.6f, WithAlpha(TextC, 0.7f)); // 점선 리더 (시안: 7 간격 동그란 점)
+			const FLinearColor NameC = bGoldRow ? Hex(TEXT("fffbe8")) : Hex(TEXT("ece6d6")), PriceC = bGoldRow ? Hex(TEXT("ffe9a8")) : Gold; // 이름 = 밝은 크림 굵게, 배수 = 금색 굵게 (D-496)
 			float TagW = 0.f;
-			if (Fz > 0 || bFilt) // 합성 버튼 (D-328 ⑤): 예전 머리글 '클릭: 그 족보 합성' 대신 줄 오른쪽 알약 버튼. 합성 중이면 '취소'
+			FString TagS; FLinearColor TagC = Gold;
+			if (Fz > 0 || bFilt) { TagS = bFilt ? FString(Tr(TEXT("취소"))) : TrF(TEXT("합성 ×%d"), Fz); TagC = bFilt ? HC : Gold; } // 합성 버튼 (D-328 ⑤): 배수 왼쪽 알약 버튼. 합성 중이면 '취소'
+			else if (Id == FeedFilterId && bOn) { TagS = TrF(TEXT("먹이 ×%d"), Cnt); TagC = JokerPink; }
+			if (!TagS.IsEmpty()) TagW = FCanvas::Measure(TrS(TagS), TagFn).X + 22.f;
+			const float PrW = Price.IsEmpty() ? 0.f : FCanvas::Measure(Price, FCanvas::Font(15.f, true)).X;
+			if (!Price.IsEmpty()) C.Text(Price, XR, NY + 1.f, PriceC, 15.f, 2, true);
+			const float LineEnd = XR - PrW - (PrW > 0.f ? 8.f : 0.f) - (TagW > 0.f ? TagW + 6.f : 0.f);
+			// 이름 글씨: 15 에서 시작해 칸에 들어갈 때까지 줄인다 (12 까지, 그래도 넘치면 FitText 가 줄이고 자른다)
+			const FString NameS = TrS(Name);
+			float NamePx = 15.f;
+			while (NamePx > 12.f && FCanvas::Measure(NameS, FCanvas::Font(NamePx, true)).X > LineEnd - 4.f - NX) NamePx -= 1.5f;
+			C.Text(Name, NX, NY + 1.f, NameC, NamePx, 0, true, LineEnd - 4.f - NX);
+			const float TX = NX + FMath::Min(LineEnd - 4.f - NX, FCanvas::Measure(NameS, FCanvas::Font(NamePx, true)).X) + 6.f;
+			for (float DX = TX + 2.f; DX < LineEnd - 2.f; DX += 7.f) C.Box(DX, NY - 3.f, 1.6f, 1.6f, WithAlpha(NameC, 0.28f)); // 점선 리더 (옅게)
+			if (TagW > 0.f)
 			{
-				const FString S = bFilt ? FString(Tr(TEXT("취소"))) : TrF(TEXT("합성 ×%d"), Fz);
-				TagW = FCanvas::Measure(TrS(S), TagFn).X + 22.f;
-				const float BX = XR - TagW, BY = DY - 11.f, BH = 16.f;
-				const FLinearColor BC = bFilt ? HC : Gold;
-				C.BtnFill(BX, BY, TagW, BH, RadPill(BH), BC, bHov || bFilt);
-				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), BC, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
-				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(BC) : BC, 9.f, true);
+				const float BH = 16.f, BX = XR - PrW - (PrW > 0.f ? 6.f : 0.f) - TagW, BY = Y + (RH - BH) / 2.f;
+				C.BtnFill(BX, BY, TagW, BH, RadPill(BH), TagC, bHov || bFilt);
+				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), TagC, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
+				C.TextCentered(TagS, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(TagC) : TagC, 9.f, true);
 			}
-			else if (Id == FeedFilterId && bOn)
-			{
-				const FString S = TrF(TEXT("먹이 ×%d"), Cnt);
-				TagW = FCanvas::Measure(TrS(S), TagFn).X + 22.f;
-				const float BX = XR - TagW, BY = DY - 11.f, BH = 16.f;
-				C.BtnFill(BX, BY, TagW, BH, RadPill(BH), JokerPink, bHov);
-				C.Glow(FCanvas::RoundRectPoints(BX, BY, TagW, BH, RadPill(BH)), JokerPink, bHov ? 1.5f : 1.2f, bHov ? 1.f : 0.5f + 0.3f * Fl);
-				C.TextCentered(S, BX + TagW / 2.f, BY + BH / 2.f, bHov ? HotCol(JokerPink) : JokerPink, 9.f, true);
-			}
-			const FLinearColor DC = bGoldRow ? Hex(TEXT("cac6bb")) : Hex(TEXT("948ea2")); // 설명 (시안에서 잰 색, D-409, D-460)
-			FString EffS = TrS(Eff); EffS.ReplaceInline(TEXT("×"), TEXT("x")); EffS.ReplaceInline(TEXT(" · "), TEXT(" / ")); // 시안: 'x2.5 / 연사 x2.5'
-			C.Text(EffS, NX, DY, DC, 8.5f, 0, false, XR - NX - (TagW > 0.f ? TagW + 5.f : 0.f));
 		}
 	}
 	if (!bMenuBoard) return; // 조커 · 먹이기 목록은 바닥선까지 쓴다
