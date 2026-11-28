@@ -2977,7 +2977,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 // 시작 화면 (D-153 → D-253 대문 시안 B, D-309 바 앨리스): 벽돌 벽에 바 앨리스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
 // 로고는 손으로 그린 네온 선 (PDLogo.h). 켜질 때 글자마다 지직, 그 뒤 몇 초마다 한 글자 옆에서 '빠직' 불티 + 그 글자 깜빡
 // BAR Alice 간판 (D-440 ~ D-452, D-453 에서 함수로): 따라 그린 Alice · 잔 획(PDTitleLogo.inl) + 예전 블록 글자 BAR.
-// TX, TY = 원본 그림(1139 × 546)의 왼쪽 위, TW = 그릴 너비. NB · PB · CB = 글자 묶음 밝기(깜빡임). Wall = 벽빛 세기 (시작 화면 1, 인게임 0)
+// TX, TY = 원본 그림(1139 × 546)의 왼쪽 위, TW = 그릴 너비. NB · PB · CB = 글자 묶음 밝기(깜빡임). Wall = 예전 벽빛 세기 (지금은 안 쓴다, D-465 · D-495)
 // 관 굵기 · 번짐은 너비에 비례 (시작 화면 580 기준)
 void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB, float Wall, float AngleDeg)
 {
@@ -2989,12 +2989,13 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	static const TCHAR* Edge[5] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714"), TEXT("14d2eb"), TEXT("ff2dcd")}; // 원본에서 잰 관 바깥 테. 3 = 잔 속 술 · 얼음 (D-472, 하늘), 4 = 잔 빨대 (가는 분홍, 밝기는 잔 CB, D-483)
 	static const TCHAR* Core[5] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5"), TEXT("afffff"), TEXT("ffaff2")}; // 관 가운데 파스텔
 	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
-	const bool bTitle = Wall > 0.f; // 시작 화면: 번짐 넓게 (D-464), 관 선 1.5배 (D-465). 인게임 배지는 그대로
-	const float LineK = bTitle ? 1.5f : 1.f;
+	// 번짐 넓게 (D-464), 관 선 1.5배 (D-465). 족보 메뉴판 로고도 시작 화면과 똑같이 (D-495, 예전엔 인게임만 가는 관 · 좁은 번짐)
+	(void)Wall;
+	constexpr float LineK = 1.5f;
 	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
 	{
-		C.Spill(Pts, Gc, Th * (bTitle ? 15.f : 11.f), 0.16f * B, true);
-		C.Spill(Pts, Gc, Th * (bTitle ? 6.5f : 5.f), 0.55f * B, true);
+		C.Spill(Pts, Gc, Th * 15.f, 0.16f * B, true);
+		C.Spill(Pts, Gc, Th * 6.5f, 0.55f * B, true);
 		C.Lines(Pts, Gc, Th * LineK);
 	};
 	// 벽빛은 시작 화면에서 PaintTitleWall 이 전구 빛으로 그린다 (D-465, 예전 둥근 빛 사슬 D-302 · D-463 은 뺐다)
@@ -3844,11 +3845,12 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	// 판 테 (D-460: 시안에서 잰 색): 차분한 연보라 심 6f5788 + 양쪽으로 넓게 번지는 보랏빛 (시안은 안쪽도 10 쯤 은은하게 물든다)
 	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), Hex(TEXT("7854a8")), 5.f, 1.f);
 	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), Hex(TEXT("78609a")), 1.1f);
-	{ // 맨 위 BAR Alice 로고 (D-453, 사용자): 시안 그림 조각 대신 시작 화면과 같은 간판(따라 그린 획)을 작게. 예전 그림 칸(20.5, 17.3, 94.7 × 36.5) 가운데에 높이 맞춤
+	{ // 맨 위 BAR Alice 로고 (D-453 → D-495, 사용자): 시작 화면 간판과 똑같이 — 기울이지 않고(D-454 대체) 관 · 번짐 비율도 같게.
+	  // 획이 실제로 그려지는 범위(원본 x 54 ~ 1075, y 65 ~ 465)를 패널 안 왼쪽 위(24, 16)에 맞추고, 높이는 '족보 메뉴' 제목(가운데 66) 위까지
 		static const float AllOn[PDLogo::ScriptLetters > PDLogo::BlockLetters ? PDLogo::ScriptLetters : PDLogo::BlockLetters] = {1.f, 1.f, 1.f, 1.f, 1.f};
-		constexpr float LogoH = 40.f, LogoW = LogoH * PDTitleLogo::SrcW / PDTitleLogo::SrcH;
+		constexpr float LogoW = 100.f, LogoK = LogoW / PDTitleLogo::SrcW; // 그려지는 범위 약 90 × 35
 		C.NextLayer();
-		PaintAliceSign(C, 20.5f + 94.7f / 2.f - LogoW / 2.f, 17.3f + 36.5f / 2.f - LogoH / 2.f, LogoW, AllOn, AllOn, 1.f, 0.f, -8.f); // 예전 로고처럼 오른쪽이 올라가게 살짝 기울임 (D-454)
+		PaintAliceSign(C, LX + 12.f - 54.f * LogoK, 16.f - 65.f * LogoK, LogoW, AllOn, AllOn, 1.f, 1.f);
 	}
 	if (bMenuBoard)
 	{

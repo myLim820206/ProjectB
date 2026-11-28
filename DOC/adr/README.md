@@ -40,3 +40,4 @@
 | D-492 | [만능 제거 유지: 조커 덤 10 + 모드 체력 증가 재조정](D-492-joker-bonus-mode-growth.md) | 확정 |
 | D-493 | [모드별 목표 클리어율: 30 모드 95% · 60 모드 70% · 100 모드 30%](D-493-mode-clear-targets.md) | 확정 |
 | D-494 | [먹이기: 판 아무 족보나, 모든 조커가 경험치](D-494-feed-shared-xp.md) | 확정 |
+| D-495 | [족보 메뉴판 로고를 시작 화면 간판과 똑같이](D-495-hand-menu-logo-same-as-title.md) | 확정 |
