@@ -734,19 +734,64 @@ static void UnitTests()
 		for (const auto& KV : G.Towers) Jokers += KV.second.IsJoker();
 		bFedJoker = Jokers < 2;
 		Expect(!bFedJoker, "조커는 먹이가 되지 않음 (먹이기 뒤에도 조커 둘 그대로)");
-		// 먹이기는 조커에 맞닿은 족보만 (D-489): 한 칸 떨어진 원 페어는 먹일 수 없다
+		// 판 아무 족보나 먹인다 (D-494, 예전 맞닿은 족보만 D-489): 한 칸 떨어진 원 페어도 먹일 수 있다
 		G.Towers.clear();
 		MakeJ(0, EPDJoker::Clown, 4.f, 1);
 		Put(G.Towers, 2, Row, C(9)); Put(G.Towers, 3, Row, C(9, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
-		const bool bFar = G.Synergies.size() == 1 && G.FeedTargets().empty() && G.FeedTargets(CellKey(0, Row)).empty() && !G.Feed(0, CellKey(0, Row));
-		Put(G.Towers, 1, Row, C(5, Di)); // 조커와 페어 사이를 카드로 메워도 페어는 여전히 조커에 안 닿는다
+		const auto FarFd = G.FeedTargets();
+		const bool bFar = G.Synergies.size() == 1 && FarFd.size() == 1 && FarFd[0].Joker == CellKey(0, Row) && FarFd[0].Jokers == 1 && G.Feed(0);
+		Expect(bFar && G.Towers.size() == 1 && G.Towers.at(CellKey(0, Row)).JXp + G.Towers.at(CellKey(0, Row)).JLevel > 1.f,
+			"먹이기는 판 아무 족보나: 조커에 안 닿은 원 페어도 먹인다 (D-494)");
+		// 조커가 없으면 먹이기 없음
+		G.Towers.clear();
+		Put(G.Towers, 2, Row, C(9)); Put(G.Towers, 3, Row, C(9, He));
 		G.Synergies = ApplyEffects(G.Towers, 0);
-		int PairI = -1;
-		for (int I = 0; I < (int)G.Synergies.size(); ++I) if (G.Synergies[I].Kind == EPDHand::Pair) PairI = I;
-		bool bPairFeed = false;
-		for (const FPDFeed& Fd : G.FeedTargets()) bPairFeed = bPairFeed || Fd.Syn == PairI;
-		Expect(bFar && PairI >= 0 && !bPairFeed, "먹이기는 조커에 맞닿은 족보만: 떨어진 원 페어는 먹일 수 없다 (D-489)");
+		Expect(G.Synergies.size() == 1 && G.FeedTargets().empty() && !G.Feed(0) && G.Towers.size() == 2, "조커가 없으면 먹일 족보도 없다 (D-494)");
+		// 조커 둘 (멀리, 레벨 다름): 둘 다 같은 경험치 + 각자 흡수, 사건도 조커마다 (D-494)
+		G.Towers.clear();
+		MakeJ(0, EPDJoker::Clown, 4.f, 3);
+		MakeJ(Cols - 1, EPDJoker::Hatter, 9.f, 1);
+		Put(G.Towers, 3, Row, C(9)); Put(G.Towers, 4, Row, C(9, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		{
+			const int JA = CellKey(0, Row), JB = CellKey(Cols - 1, Row);
+			const auto Fd = G.FeedTargets();
+			const float XA = G.Towers.at(JA).JXp, XB = G.Towers.at(JB).JXp, MA = G.Towers.at(JA).Mult, MB = G.Towers.at(JB).Mult;
+			const int LA = G.Towers.at(JA).JLevel, LB = G.Towers.at(JB).JLevel;
+			float Val = 0.f;
+			for (int K : G.Synergies[0].Cells) { const FPDTower& T = G.Towers.at(K); Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
+			const float GA = G.FeedGain(Val, G.Towers.at(JA)), GB = G.FeedGain(Val, G.Towers.at(JB));
+			G.Events.clear();
+			const bool bOk = Fd.size() == 1 && Fd[0].Joker == JA && Fd[0].Jokers == 2 && G.Feed(Fd[0].Syn);
+			auto Total = [](int L, float X) { float S = X; for (int I = 1; I < L; ++I) S += JokerXpNeed(I); return S; };
+			const FPDTower &A = G.Towers.at(JA), &B = G.Towers.at(JB);
+			int NEv = 0;
+			for (const FPDEvent& E : G.Events) NEv += E.Kind == FPDEvent::EKind::Feed && E.Lv == 2;
+			Expect(bOk && G.Towers.size() == 2 && std::fabs(Total(A.JLevel, A.JXp) - Total(LA, XA) - Fd[0].Xp) < 1e-3f && std::fabs(Total(B.JLevel, B.JXp) - Total(LB, XB) - Fd[0].Xp) < 1e-3f
+				&& GA > 0.f && GB > 0.f && std::fabs(A.Mult - (MA + GA)) < 1e-3f && std::fabs(B.Mult - (MB + GB)) < 1e-3f && NEv == 2,
+				"조커 둘: 둘 다 같은 경험치 전량 + 각자 흡수 60%, 대표는 레벨 높은 쪽, 사건 둘 (D-494)");
+		}
+		// 먹보 · 먹이 사슬 부적도 조커마다 (D-494)
+		G.Towers.clear();
+		MakeJ(0, EPDJoker::Clown, 4.f, 1);
+		MakeJ(Cols - 1, EPDJoker::Hatter, 4.f, 1);
+		Put(G.Towers, 3, Row, C(2)); Put(G.Towers, 4, Row, C(2, He));
+		G.Synergies = ApplyEffects(G.Towers, 0);
+		G.Charms.push_back(EPDCharm::Feeder); G.Charms.push_back(EPDCharm::FoodChain);
+		{
+			const int JA = CellKey(0, Row), JB = CellKey(Cols - 1, Row);
+			const auto Fd = G.FeedTargets();
+			float Val = 0.f;
+			for (int K : G.Synergies[0].Cells) { const FPDTower& T = G.Towers.at(K); Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
+			const float MB = G.Towers.at(JB).Mult, GB = 0.9f * Val / (13.f * std::max(0.01f, G.Towers.at(JB).TDmg * G.Towers.at(JB).TRate));
+			const float Xp = Fd.empty() ? 0.f : Fd[0].Xp * 1.5f;
+			const bool bOk = Fd.size() == 1 && G.Feed(Fd[0].Syn);
+			auto Total = [](const FPDTower& T) { float S = T.JXp; for (int I = 1; I < T.JLevel; ++I) S += JokerXpNeed(I); return S; };
+			Expect(bOk && std::fabs(Total(G.Towers.at(JA)) - Xp) < 1e-3f && std::fabs(Total(G.Towers.at(JB)) - Xp) < 1e-3f && std::fabs(G.Towers.at(JB).Mult - (MB + GB)) < 1e-3f,
+				"먹보 경험치 ×1.5 · 먹이 사슬 흡수 90% 가 조커마다 (D-494)");
+		}
+		G.Charms.clear();
 	}
 	{ // 부적 창은 5웨이브마다 (D-101): 그 사이 웨이브는 창 없이 5초 뒤 다음 웨이브
 		FPDGame G(12);
@@ -1072,7 +1117,7 @@ static void UnitTests()
 		const FPDTower& J = G.Towers.begin()->second;
 		Expect(bGroup && bFused && G.Towers.size() == 1 && J.IsJoker() && J.Joker == (int)EPDJoker::Baton && std::fabs(J.Mult - 10.f * JokerBonus * 1.6f * (1.f + JokerCardBonus * 10.f)) < 1e-4f && (G.Discovered & (1u << (int)EPDJoker::Baton)),
 			"스트레이트 + 원 페어 둘 + 플러시 → 지휘봉 (위력 10 × 조커 덤 × 등급 ×1.6 × 카드 10장 덤), 도감에 기록");
-		// 족보 먹이기 (D-098): 조커 옆 족보를 먹이면 경험치(족보 점수 × 평균 위력) → 레벨 업, 먹인 칸은 사라짐
+		// 족보 먹이기 (D-098, D-494): 족보를 먹이면 경험치(족보 점수 × 평균 위력) → 레벨 업, 먹인 칸은 사라짐
 		{
 			const int JKey = G.Towers.begin()->first, JX = JKey % Cols;
 			const float D0 = TowerStats(G.Towers.at(JKey)).Dmg; // 족보에 안 든 조커 혼자
@@ -1095,14 +1140,14 @@ static void UnitTests()
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			auto Fd2 = G.FeedTargets();
 			Expect(!Fd2.empty() && G.Feed(Fd2[0].Syn) && G.Towers.at(JKey).JLevel >= JokerUpLevel && G.Mods.Up(G.Towers.at(JKey)), "레벨 10 이 되면 강화 능력");
-			// 고른 조커가 먹는다 (D-213): 원 페어 양쪽에 조커 둘 (오른쪽이 레벨 낮음)
+			// 원 페어 양쪽에 조커 둘 (오른쪽이 레벨 낮음): 고르는 단계 없이 둘 다 먹는다 (D-494, 예전 고른 조커 D-213)
 			const int J2 = CellKey(JX + 3, Row);
 			FPDTower Jk2 = G.Towers.at(JKey);
 			Jk2.X = JX + 3;
 			Jk2.JLevel = 1;
 			Jk2.JXp = 0.f;
 			G.Towers[J2] = Jk2;
-			Put(G.Towers, JX + 1, Row, C(6), 2); Put(G.Towers, JX + 2, Row, C(6, He), 2); // 레벨 2 원 페어 (양쪽 조커 둘에 맞닿음)
+			Put(G.Towers, JX + 1, Row, C(6), 2); Put(G.Towers, JX + 2, Row, C(6, He), 2); // 레벨 2 원 페어
 			G.Synergies = ApplyEffects(G.Towers, 0);
 			int PairSyn = -1;
 			for (int I = 0; I < (int)G.Synergies.size(); ++I)
@@ -1110,12 +1155,13 @@ static void UnitTests()
 				const std::vector<int>& Cs = G.Synergies[I].Cells;
 				if (std::find(Cs.begin(), Cs.end(), CellKey(JX + 1, Row)) != Cs.end()) PairSyn = I;
 			}
-			bool bDefaultHigh = false, bOnly2 = false;
-			for (const FPDFeed& F : G.FeedTargets()) if (F.Syn == PairSyn) bDefaultHigh = F.Joker == JKey;
-			for (const FPDFeed& F : G.FeedTargets(J2)) if (F.Syn == PairSyn) bOnly2 = F.Joker == J2;
-			const bool bFed = PairSyn >= 0 && G.Feed(PairSyn, J2);
-			Expect(bDefaultHigh && bOnly2 && bFed && G.Towers.at(J2).JXp + G.Towers.at(J2).JLevel > 1.f && !G.Towers.count(CellKey(JX + 1, Row)),
-				"족보 양쪽에 조커 둘: 기본은 레벨 높은 쪽, 고르면 고른 조커(레벨 1)가 먹는다");
+			bool bRepHigh = false;
+			for (const FPDFeed& F : G.FeedTargets()) if (F.Syn == PairSyn) bRepHigh = F.Joker == JKey && F.Jokers == 2;
+			const float X1 = G.Towers.at(JKey).JXp;
+			const int L1 = G.Towers.at(JKey).JLevel;
+			const bool bFed = PairSyn >= 0 && G.Feed(PairSyn);
+			Expect(bRepHigh && bFed && G.Towers.at(J2).JXp + G.Towers.at(J2).JLevel > 1.f && (G.Towers.at(JKey).JLevel > L1 || G.Towers.at(JKey).JXp > X1) && !G.Towers.count(CellKey(JX + 1, Row)),
+				"족보 양쪽에 조커 둘: 대표는 레벨 높은 쪽, 둘 다 경험치를 받는다 (D-494)");
 		}
 		// 조커는 족보에 안 든다 (D-489): 레벨 2 타워 옆에 붙어도 족보 없음
 		G.Towers.clear();

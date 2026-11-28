@@ -1563,24 +1563,16 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				BadgeRects.Add(FBox2f(FVector2f(C0.X - 20.f, C0.Y + CS + 11.f), FVector2f(C0.X + CS + 20.f, C0.Y + CS + 29.f))); // 툴팁이 피할 자리 // 어두운 바탕 딱지로 칸 아래에 (D-205): 위쪽은 족보 이름표·퍼지는 고리와 겹쳐 안 보였다
 			}
 		}
-	// 먹이기 목록 (D-213): 고른(또는 목록에서 마우스를 올린) 조커와 그 조커가 먹을 족보만 밝게, 족보는 덩어리로. 판 위 [먹이기] 버튼·"먹이N" 딱지는 없앴다
+	// 먹이기 모드 (D-494): 판 위 조커 전부와 먹일 수 있는 족보 전부를 밝게, 족보는 덩어리로. 판 위 [먹이기] 버튼·"먹이N" 딱지·먹이기 점은 없앴다
 	bool bFeedBtnHov = false;
 	int32 FeedHovSyn = -1;
 	if (InFeed() && !bPv && G.Phase != EPDPhase::Reward && PickCells.empty())
 	{
-		int32 JK = FeedJoker;
-		bool bPreview = false;
-		if (JK < 0) if (const int32 R = FeedListAt(Mouse); R >= 0) { JK = FeedList[R].Key; bPreview = true; }
 		const float Wv = 0.5f + 0.5f * FMath::Sin(Clock * 3.f);
 		TSet<int32> Lit;
-		std::vector<FPDFeed> Feeds;
-		if (JK >= 0)
-		{
-			Feeds = G.FeedTargets(JK);
-			Lit.Add(JK);
-			for (const FPDFeed& Fd : Feeds) for (int K : G.Synergies[Fd.Syn].Cells) Lit.Add(K);
-		}
-		else for (const FFeedEntry& E : FeedList) Lit.Add(E.Key);
+		const std::vector<FPDFeed> Feeds = G.FeedTargets();
+		for (const auto& KV : G.Towers) if (KV.second.IsJoker()) Lit.Add(KV.first);
+		for (const FPDFeed& Fd : Feeds) for (int K : G.Synergies[Fd.Syn].Cells) Lit.Add(K);
 		{
 			const int32 DL = F.NextLayer();
 			for (int32 K = 0; K < Cols * Rows; ++K)
@@ -1606,29 +1598,37 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				if (!bR) F.Glow({FVector2f(X1, Y0), FVector2f(X1, Y1)}, Col, Ew, Eg);
 			}
 		};
-		// 조커: 분홍 고리
+		// 조커: 분홍 고리. 마우스를 올린 족보를 먹이면 레벨이 오를 조커는 머리 위에 작은 ▲
 		auto Ring = [&](int32 K, float A) {
 			const FVector2f C0 = CellPx((float)(K % Cols), (float)(K / Cols));
 			F.Glow(FCanvas::RoundRectPoints(C0.X - 2.f, C0.Y - 2.f, CS + 4.f, CS + 4.f, RadSmall), WithAlpha(JokerPink, A), 2.4f, (1.f + 0.8f * Wv) * A);
 		};
-		if (JK >= 0) Ring(JK, 1.f);
-		else for (const FFeedEntry& E : FeedList) if (E.N > 0) Ring(E.Key, 0.7f);
 		const int32 HKey = HoverX >= 0 ? CellKey(HoverX, HoverY) : -1;
 		const FLinearColor Pal[5] = {Hex(TEXT("ffd24a")), Hex(TEXT("7dff5a")), Hex(TEXT("5a8cff")), Hex(TEXT("f0f0ff")), Hex(TEXT("ff4fd8"))};
 		bool bAnyHov = false;
-		for (const FPDFeed& Fd : Feeds) { const std::vector<int>& Cs = G.Synergies[Fd.Syn].Cells; bAnyHov = bAnyHov || (std::find(Cs.begin(), Cs.end(), HKey) != Cs.end() && HKey != JK); }
+		for (const FPDFeed& Fd : Feeds) { const std::vector<int>& Cs = G.Synergies[Fd.Syn].Cells; bAnyHov = bAnyHov || std::find(Cs.begin(), Cs.end(), HKey) != Cs.end(); }
 		for (int32 I = 0; I < (int32)Feeds.size(); ++I)
 		{
 			const std::vector<int>& Cs = G.Synergies[Feeds[I].Syn].Cells; // 먹히는 칸 (조커는 족보에 안 든다, D-489)
-			const bool bH = !bPreview && std::find(Cs.begin(), Cs.end(), HKey) != Cs.end();
+			const bool bH = std::find(Cs.begin(), Cs.end(), HKey) != Cs.end() && !bFeedBtnHov;
 			const FLinearColor Col = Pal[I % 5];
 			Block(Cs, WithAlpha(Col, bH ? 0.95f : bAnyHov ? 0.5f : 0.85f), bH ? 0.3f : bAnyHov ? 0.06f : 0.14f, bH ? 3.f : bAnyHov ? 1.3f : 2.f, bH ? 1.4f + 0.8f * Wv : bAnyHov ? 0.3f : 0.8f);
-			if (bH)
+			if (bH) { bFeedBtnHov = true; FeedHovSyn = Feeds[I].Syn; }
+		}
+		TArray<int32> Ups;
+		if (FeedHovSyn >= 0) Ups = PreviewFeed(FeedHovSyn).Ups;
+		for (const auto& KV : G.Towers)
+		{
+			if (!KV.second.IsJoker()) continue;
+			Ring(KV.first, bAnyHov ? 1.f : 0.7f);
+			if (Ups.Contains(KV.first))
 			{
-				bFeedBtnHov = true;
-				FeedHovSyn = Feeds[I].Syn;
-				for (int K : Cs) F.Dashed({CellCenter(K), CellCenter(JK)}, WithAlpha(JokerPink, 0.7f), 1.4f, 4.f, 5.f);
+				const FVector2f C0 = CellPx((float)(KV.first % Cols), (float)(KV.first / Cols));
+				const float Bob = 2.f * Wv;
+				F.Glow({FVector2f(C0.X + CS / 2.f - 6.f, C0.Y - 4.f - Bob), FVector2f(C0.X + CS / 2.f, C0.Y - 12.f - Bob), FVector2f(C0.X + CS / 2.f + 6.f, C0.Y - 4.f - Bob), FVector2f(C0.X + CS / 2.f - 6.f, C0.Y - 4.f - Bob)}, Hex(TEXT("9cffb0")), 1.6f, 1.f);
 			}
+			if (FeedHovSyn >= 0) // 먹인 칸에서 모든 조커로 갈라지는 점선
+				F.Dashed({CellCenter(G.Synergies[FeedHovSyn].Cells[0]), CellCenter(KV.first)}, WithAlpha(JokerPink, 0.5f), 1.2f, 4.f, 5.f);
 		}
 	}
 	// 행운의 한 장 (D-490): 줄 끝 빈 칸에 기다리는 카드를 흐린 금빛으로. 마우스를 올리면 안내
@@ -1683,13 +1683,9 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 	{
 		if (InFeed())
 		{
-			if (FeedJoker < 0) F.Badge(TEXT("먹이기: 왼쪽 목록이나 판에서 조커를 고르세요 · Esc: 끄기"), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
-			else
-			{
-				const bool bAny = !G.FeedTargets(FeedJoker).empty();
-				F.Badge(bAny ? TrF(TEXT("%s 먹이기: 먹일 족보 칸 클릭 · 다른 조커 클릭 = 바꾸기 · 오른쪽 클릭 / Esc = 목록으로"), JokerName(G.Towers.at(FeedJoker).Joker))
-							 : FString(TEXT("이 조커에 먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · Esc = 목록으로")), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
-			}
+			const bool bAny = !G.FeedTargets().empty();
+			F.Badge(bAny ? FString(TEXT("먹이기: 먹일 족보 칸 클릭 = 판 위 모든 조커가 경험치 · 오른쪽 클릭 / Esc: 끄기"))
+						 : FString(TEXT("먹일 족보가 없다 (판에 조커와 족보가 있어야 한다) · Esc: 끄기")), FX + Cols * CS / 2.f, FY + 12.f, JokerPink, 1.f);
 		}
 		else if (InCraft())
 		{
@@ -1883,30 +1879,22 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				}
 				return Lines;
 			};
-			if (bFeedBtnHov && FeedHovSyn >= 0 && FeedJoker >= 0)
+			if (bFeedBtnHov && FeedHovSyn >= 0)
 			{
-				// 먹이기 전후 (D-213): 사본에서 먹여 보고 조커 레벨·위력, 판 위력, 사라지는 카드 수
-				FPDGame Copy = G;
-				Copy.bMuted = true;
-				const FPDTower& J0 = G.Towers.at(FeedJoker);
-				const int32 Gone = (int32)G.Synergies[FeedHovSyn].Cells.size();
-				if (Copy.Feed(FeedHovSyn, FeedJoker) && Copy.Towers.count(FeedJoker))
+				// 먹이기 전후 (D-494): 사본에서 먹여 보고 먹는 조커 수 · 조커마다 경험치 · 레벨이 오르는 조커 수, 판 위력, 사라지는 카드 수
+				const FFeedPreview Pv = PreviewFeed(FeedHovSyn);
+				if (Pv.bOk)
 				{
-					const FPDTower& J1 = Copy.Towers.at(FeedJoker);
-					float PwB = 0.f, PwA = 0.f;
-					for (const auto& KV : PowerList) if (KV.first == FeedJoker) PwB = KV.second;
-					for (const auto& KV : Copy.TowerPowers()) if (KV.first == FeedJoker) PwA = KV.second;
-					const float BoardB = PowerSum, BoardA = Copy.Power();
-					const float Pj = PwB > 0.f ? (PwA / PwB - 1.f) * 100.f : 0.f, Pb = BoardB > 0.f ? (BoardA / BoardB - 1.f) * 100.f : 0.f;
+					const float Pb = Pv.BoardB > 0.f ? (Pv.BoardA / Pv.BoardB - 1.f) * 100.f : 0.f;
 					const FLinearColor Up = Hex(TEXT("9cffb0")), Down = Hex(TEXT("ff6a6a"));
 					constexpr float TW = 290.f, TH = 92.f;
 					const FVector2f P = PlaceTip(TW, TH);
 					F.Box(P.X, P.Y, TW, TH, Hex(TEXT("06060b"), 0.94f));
 					F.Glow(FCanvas::RoundRectPoints(P.X, P.Y, TW, TH, RadSmall), JokerPink, 1.2f, 0.4f);
-					F.Text(TrF(TEXT("%s 먹이기 → %s"), *HandLabel(G.Synergies[FeedHovSyn]), JokerName(J0.Joker)), P.X + 10.f, P.Y + 18.f, JokerPink, 12.f, 0, true, TW - 20.f);
-					F.Text(TrF(TEXT("조커 레벨 %d → %d · 경험치 %.0f → %.0f"), J0.JLevel, J1.JLevel, J0.JXp, J1.JXp), P.X + 10.f, P.Y + 36.f, Fg, 11.f, 0, false, TW - 20.f);
-					F.Text(TrF(TEXT("조커 위력 %s/초 → %s/초 (%s%.0f%%)"), *ShortNum(PwB), *ShortNum(PwA), Pj >= 0.f ? TEXT("+") : TEXT(""), Pj), P.X + 10.f, P.Y + 54.f, Pj >= 0.f ? Up : Down, 11.f, 0, true, TW - 20.f);
-					F.Text(TrF(TEXT("판 위력 %s → %s (%s%.0f%%) · 먹인 카드 %d장은 사라짐"), *ShortNum(BoardB), *ShortNum(BoardA), Pb >= 0.f ? TEXT("+") : TEXT(""), Pb, Gone), P.X + 10.f, P.Y + 72.f, Pb >= 0.f ? Up : Down, 10.f, 0, false, TW - 20.f);
+					F.Text(TrF(TEXT("%s 먹이기 → 조커 %d마리"), *HandLabel(G.Synergies[FeedHovSyn]), Pv.Jokers), P.X + 10.f, P.Y + 18.f, JokerPink, 12.f, 0, true, TW - 20.f);
+					F.Text(TrF(TEXT("조커 %d마리 경험치 +%.0f"), Pv.Jokers, Pv.Xp), P.X + 10.f, P.Y + 36.f, Fg, 11.f, 0, false, TW - 20.f);
+					F.Text(Pv.Ups.Num() > 0 ? TrF(TEXT("레벨 업 %d마리"), Pv.Ups.Num()) : FString(Tr(TEXT("레벨 업 없음"))), P.X + 10.f, P.Y + 54.f, Pv.Ups.Num() > 0 ? Up : Grey, 11.f, 0, true, TW - 20.f);
+					F.Text(TrF(TEXT("판 위력 %s → %s (%s%.0f%%) · 먹인 카드 %d장은 사라짐"), *ShortNum(Pv.BoardB), *ShortNum(Pv.BoardA), Pb >= 0.f ? TEXT("+") : TEXT(""), Pb, Pv.Gone), P.X + 10.f, P.Y + 72.f, Pb >= 0.f ? Up : Down, 10.f, 0, false, TW - 20.f);
 				}
 			}
 			else if (bCraftHov && CraftJoker >= 0)
@@ -1980,7 +1968,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), JX + 10.f, JY + 70.f, Grey, 11.f, 0, false, 226.f);
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 86.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 102.f, Gold, 10.f, 0, false, 226.f);
-				{ const int32 NA = (int32)G.FeedTargets(It->first).size(); F.Text(TrF(TEXT("클릭: 메뉴 (먹이기 %d) · 처치 +%.0f 경험치 (보스 +%.0f)"), NA, JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f); }
+				F.Text(TrF(TEXT("클릭: 메뉴 · 처치 +%.0f 경험치 (보스 +%.0f) · 먹이기는 모든 조커가"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f);
 				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("조커 레벨 %d (최대) · 위력 +%d%%"), T.JLevel, FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f))
 					: TrF(TEXT("조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f), T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
 					JX + 10.f, JY + 134.f, JokerPink, 10.f, 0, false, 226.f);
@@ -3638,7 +3626,7 @@ void SPDBoardWidget::PaintHint(FCanvas& C) const
 		{TEXT("왼쪽 목록의 '합성 ×N' 줄을 누르고"), TEXT("판에서 합쳐질 칸을 클릭해 보세요")},
 		{TEXT("족보끼리 맞닿으면 연쇄 보너스로"), TEXT("이어진 족보가 모두 더 강해져요")},
 		{TEXT("왼쪽 '조커' 줄을 눌러 만들 조커를 고르고"), TEXT("'추천' 재료를 고르고, 그 재료를 다시 누르면 완성")},
-		{TEXT("'먹이기' 줄(또는 판의 조커)에서 조커를 고르고"), TEXT("빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요")},
+		{TEXT("'먹이기' 줄을 누르고 빛나는 족보 칸을 누르면"), TEXT("족보를 먹이면 판 위 모든 조커가 경험치를 받아요")},
 		{TEXT("카드를 오른쪽 클릭해 버리거나"), TEXT("Lv1 타워 위에 놓아 교체하세요")},
 		{TEXT("조커는 족보에 들어가지 않아요. 자리바꿈(X)을 누르고"), TEXT("조커를 판 구석으로 옮기면 족보 자리가 넓어져요")},
 		{TEXT("다음 웨이브에 보스가 나와요"), TEXT("채널 TV 다음 화 예고에 보스 이름이 나와요")},
@@ -3850,7 +3838,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	for (const FPDSynergy& S : Preview) PvKinds.Add((int32)S.Kind);
 	for (const FPDSynergy& S : G.Synergies) ++Count[(int)S.Kind];
 	const float PH = DesignH - 1.f - HandPanelY; // 화면 아래까지 (Alice 시안 D-403: 10 ~ 709)
-	const bool bMenuBoard = !InFeed() && !InCraft(); // 족보 메뉴판 (D-263): 조커 · 먹이기 목록일 때는 예전 머리글
+	const bool bMenuBoard = !InCraft(); // 족보 메뉴판 (D-263): 조커 목록일 때는 예전 머리글. 먹이기 모드는 메뉴판 그대로 (D-494)
 	// Alice 시안 (D-403): 보랏빛 세로 그라데이션 판 + 연보라 테, 맨 위 BAR Alice 로고(시안 그림 조각) + 금색 '족보 메뉴'
 	for (int32 K = 0; K < 14; ++K) C.Box(LX + 2.f, HandPanelY + 2.f + K * (PH - 4.f) / 14.f, LW - 4.f, (PH - 4.f) / 14.f + 0.5f, SrgbLerp(FColor(16, 10, 32), FColor(11, 7, 26), K / 13.f)); // 시안 패널 안쪽에서 잰 sRGB 10 0a 20 → 0b 07 1a (D-405)
 	// 판 테 (D-460: 시안에서 잰 색): 차분한 연보라 심 6f5788 + 양쪽으로 넓게 번지는 보랏빛 (시안은 안쪽도 10 쯤 은은하게 물든다)
@@ -3878,43 +3866,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	const float Fl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
 	constexpr float RowH = HandRowH;
 	const float Y0 = HandRowY0;
-	if (InFeed()) // 먹이기 목록 (D-213): 돌아가기 줄 + 판 위 조커 (먹일 게 있는 조커 먼저, 레벨 높은 순)
-	{
-		const int32 HovR = FeedListAt(Mouse);
-		{
-			const bool bH = HovR == -2;
-			if (bH) C.Box(LX + 8.f, Y0 + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(Cyan, 0.08f));
-			C.Text(TEXT("← 족보 목록으로"), LX + 18.f, Y0 + RowH / 2.f, bH ? Cyan : Grey, 12.f, 0, true, LW - 70.f);
-			C.Text(TEXT("Esc"), LX + LW - 18.f, Y0 + RowH / 2.f, Dim, 9.f, 2);
-		}
-		if (FeedList.empty()) C.Text(TEXT("판에 조커가 없다"), LX + 18.f, Y0 + RowH * 1.5f, Dim, 11.f, 0, false, LW - 36.f);
-		const float JFl = FMath::Square(0.5f + 0.5f * FMath::Sin(Clock * 5.f));
-		for (int32 R = 0; R < (int32)FeedList.size(); ++R)
-		{
-			const FFeedEntry& E = FeedList[R];
-			if (!G.Towers.count(E.Key)) continue;
-			const FPDTower& T = G.Towers.at(E.Key);
-			const float Y = Y0 + (R + 1) * RowH;
-			const bool bSel = E.Key == FeedJoker, bH = HovR == R, bOn = E.N > 0;
-			if (R > 0 && FeedList[R - 1].N > 0 && !bOn) C.Lines({FVector2f(LX + 18.f, Y + 1.f), FVector2f(LX + LW - 18.f, Y + 1.f)}, WithAlpha(Grey, 0.35f), 1.f); // 먹일 게 있는 / 없는 조커 구분선 (D-328 ④)
-			if (bSel) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, 0.18f));
-			else if (bOn) C.Box(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, WithAlpha(JokerPink, bH ? 0.14f : 0.03f + 0.08f * JFl));
-			if (bSel || bH) C.Glow(FCanvas::RoundRectPoints(LX + 8.f, Y + 2.f, LW - 16.f, RowH - 4.f, RadSmall), JokerPink, 1.6f, bSel ? 1.2f : 0.8f);
-			C.Text(TrF(TEXT("%s Lv%d"), JokerName(T.Joker), T.JLevel), LX + 18.f, Y + 16.f, bOn ? JokerPink : WithAlpha(Grey, 0.85f), 12.f, 0, true, LW - 100.f);
-			if (bOn)
-			{
-				C.Glow(FCanvas::RoundRectPoints(LX + LW - 62.f, Y + 6.f, 48.f, 16.f, RadPill(16.f)), JokerPink, 1.1f, 0.6f);
-				C.TextCentered(TrF(TEXT("먹이 ×%d"), E.N), LX + LW - 38.f, Y + 14.f, JokerPink, 9.f, true, 46.f);
-			}
-			// 경험치 막대
-			const float Need = JokerXpNeed(T.JLevel), U = T.JLevel >= JokerMaxLevel ? 1.f : FMath::Clamp(T.JXp / FMath::Max(1.f, Need), 0.f, 1.f);
-			const float BX = LX + 18.f, BY = Y + 28.f, BW = 90.f;
-			C.Box(BX, BY, BW, 4.f, Hex(TEXT("1a1a2a"), 0.9f));
-			C.Box(BX, BY, BW * U, 4.f, WithAlpha(JokerPink, bOn ? 0.9f : 0.5f));
-			C.Text(TrF(TEXT("경험치 %.0f/%.0f"), T.JXp, Need), BX + BW + 8.f, Y + 31.f, bOn ? Fg : Dim, 9.f, 0, false, LW - BW - 50.f);
-		}
-	}
-	else if (InCraft()) // 조커 목록 (D-210): 족보 목록 자리에 돌아가기 줄 + 만들 수 있는 조커 + 하나만 모자란 조커(흐리게)
+	if (InCraft()) // 조커 목록 (D-210): 족보 목록 자리에 돌아가기 줄 + 만들 수 있는 조커 + 하나만 모자란 조커(흐리게)
 	{
 		const int32 HovR = JokerListAt(Mouse);
 		{
@@ -4047,7 +3999,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 			FString Name = bHand ? FString(HandName(H)) : FString(Tr(Id == JokerFilterId ? TEXT("조커") : TEXT("먹이기")));
 			if (H == EPDHand::Flush && bHand) Name += Tr(TEXT(" (3~5장)"));
 			if (H == EPDHand::Straight && bHand) Name += Tr(TEXT(" (3~5장)")); // D-418: 3장부터
-			const FString Eff = bHand ? FString(HandEffect(H)) : FString(Tr(Id == JokerFilterId ? TEXT("클릭: 만들 수 있는 조커 목록") : TEXT("클릭: 조커에 족보 먹이기")));
+			const FString Eff = bHand ? FString(HandEffect(H)) : FString(Tr(Id == JokerFilterId ? TEXT("클릭: 만들 수 있는 조커 목록") : TEXT("클릭: 족보를 먹여 모든 조커 키우기")));
 			FString Price;
 			if (!bHand) Price = FString::Printf(TEXT("×%d"), Cnt);
 			else { int32 XI = INDEX_NONE; if (Eff.FindChar(TEXT('×'), XI)) { int32 E2 = XI + 1; while (E2 < Eff.Len() && (FChar::IsDigit(Eff[E2]) || Eff[E2] == TEXT('.'))) ++E2; if (E2 > XI + 1) Price = Eff.Mid(XI, E2 - XI); } }

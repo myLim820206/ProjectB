@@ -205,14 +205,14 @@ private:
 	void CraftClick(int32 Cell);
 	void CraftRightClick(int32 Cell);
 	void ToggleCraft();
-	// 먹이기 목록 (D-213): 먹이기 줄(또는 판의 조커 클릭)로 연다. 왼쪽 패널이 판 위 조커 목록으로 바뀌고, 고른 조커(FeedJoker)에 먹일 족보 칸을 클릭하면 먹인다
-	struct FFeedEntry { int32 Key = -1; int32 N = 0; };
-	std::vector<FFeedEntry> FeedList;
+	// 먹이기 모드 (D-494, 예전 조커 고르기 D-213): 먹이기 줄로 켠다. 먹일 수 있는 족보 전부가 덩어리로 밝아지고, 족보 칸 클릭 = 먹이기 (판 위 모든 조커가 받는다)
 	bool InFeed() const;
-	void RefreshFeedList();
-	int32 FeedListAt(FVector2f P) const;     // -2 = 돌아가기, -1 = 없음, 그 밖 = FeedList 번호
-	void ToggleFeed(int32 Joker = -1);       // Joker 를 주면 그 조커를 고른 채로 연다
+	void ToggleFeed();
 	void FeedClick(int32 Cell, bool bRight);
+	void DoFeed(int32 Syn);                  // 먹이기 (연출용 칸 위치를 남기고)
+	// 먹이기 전후 (사본에서 먹여 본다): 먹는 조커 수, 조커마다 경험치, 레벨이 오를 조커 칸, 판 위력 전후, 사라지는 카드 수
+	struct FFeedPreview { bool bOk = false; int32 Jokers = 0; float Xp = 0.f; TArray<int32> Ups; float BoardB = 0.f, BoardA = 0.f; int32 Gone = 0; };
+	FFeedPreview PreviewFeed(int32 Syn) const;
 	void PaintHandTip(FCanvas& C) const;     // 손패 카드 툴팁 (판 위 UI 다음에 그려 네온이 위로 비치지 않게, D-214)
 	void PaintFuseCursorTag(FCanvas& C) const; // 합성 모드 커서 꼬리표: 마우스 오른쪽 버튼 = 취소 (D-373)
 	void PaintSplash(FCanvas& C) const;        // 회사 로고 부트 스플래시 (D-385, 시안 tools/neon/logo_jollybaldy_type.py K)
@@ -368,7 +368,7 @@ private:
 	void CritFx(FVector2f P, int32 N); // 치명타 흰 불꽃
 	void Burst(FVector2f P, int N, FLinearColor Col, float SpeedMin, float SpeedMax, float Life, float Size, bool bStreak = false, float Gravity = 0.f);
 	// PendingFuseCells 에서 P 로 빨려 드는 입자 (합성·조커 합성·먹이기). 색은 I % Every 가 0 이면 ColB, 아니면 ColA
-	void SuckIn(FVector2f P, int PerCell, float Jitter, float Life, float SizeMin, float SizeMax, const FLinearColor& ColA, const FLinearColor& ColB, int Every);
+	void SuckIn(FVector2f P, int PerCell, float Jitter, float Life, float SizeMin, float SizeMax, const FLinearColor& ColA, const FLinearColor& ColB, int Every, bool bKeep = false); // bKeep: 칸 위치를 남겨 다음 조커도 쓴다 (먹이기 D-494)
 
 	PD::FPDGame Game;
 	FSlateColorBrush WhiteBrush = FSlateColorBrush(FLinearColor::White);
@@ -485,7 +485,6 @@ public:
 	int32 PaintAtlas(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 아틀라스 굽는 그림
 	int32 PaintBoardBg(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const; // 판 배경 굽는 그림
 private:
-	int32 FeedJoker = -1;                  // 먹이기 목록에서 고른 조커 칸 (D-213, -1 = 목록만)
 	int32 SellCell = -1;                   // 판매 (D-221): 오른쪽 클릭한 타워 칸. 그 아래 [판매] 버튼을 누르면 판다
 	mutable FBox2f SellBtnRect;
 	int32 HandFilter = -1;                 // 족보 필터 (D-148): 왼쪽 족보 목록에서 고른 족보 (EPDHand). 판에서 그 족보만 밝게, 합성도 그 족보만

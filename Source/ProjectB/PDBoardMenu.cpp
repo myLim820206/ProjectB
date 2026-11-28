@@ -75,17 +75,18 @@ void SPDBoardWidget::BuildCellActs(int32 Cell, TArray<FCellAct>& Out) const
 				break;
 			}
 		}
-	}
-	else
-	{
-		for (const FPDFeed& Fd : G.FeedTargets(Cell)) // 먹이기: 이 조커에 닿은 먹일 족보마다
+		for (const FPDFeed& Fd : G.FeedTargets()) // 먹이기 (D-494): 이 타워가 든 족보마다. 판 위 모든 조커가 먹는다
 		{
+			if (!HasCell(G.Synergies[Fd.Syn].Cells, Cell)) continue;
 			FCellAct A;
 			A.Kind = ECellAct::Feed; A.A = Fd.Syn; A.Cells = G.Synergies[Fd.Syn].Cells; A.Col = JokerPink;
 			A.Label = TrF(TEXT("먹이기 · %s"), *HandLabel(G.Synergies[Fd.Syn]));
-			A.Right = TrF(TEXT("경험치 +%.0f"), Fd.Xp);
+			A.Right = TrF(TEXT("조커 %d마리 +%.0f"), Fd.Jokers, Fd.Xp);
 			Out.Add(MoveTemp(A));
 		}
+	}
+	else
+	{
 		const std::vector<FPDJokerMerge> Ms = G.JokerMerges(); // 같은 조커 합치기 / 상위 조커
 		for (int32 I = 0; I < (int32)Ms.size(); ++I)
 		{
@@ -165,11 +166,7 @@ void SPDBoardWidget::DoCellAct(int32 Row)
 	switch (A.Kind)
 	{
 	case ECellAct::Fuse: DoFuse(A.A, Cell); break; // 클릭한 칸으로 합성 (D-312 ②)
-	case ECellAct::Feed:
-		PendingFuseCells.Reset();
-		for (int K : Game.Synergies[A.A].Cells) PendingFuseCells.Add(CellCenter(K));
-		if (!Game.Feed(A.A, Cell)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
-		break;
+	case ECellAct::Feed: DoFeed(A.A); break; // 판 위 모든 조커가 먹는다 (D-494)
 	case ECellAct::Merge:
 	{
 		int32 Mi = -1; // 번호가 아니라 칸으로 다시 찾는다 (그사이 조커 레벨이 올라 묶음 번호가 밀렸을 수 있다)
@@ -253,16 +250,14 @@ void SPDBoardWidget::CellTipLines(int32 Cell, int32 Row, TArray<FTipLine>& Out) 
 	}
 	case ECellAct::Feed:
 	{
-		const int32 Gone = (int32)A->Cells.size();
-		if (!Copy.Feed(A->A, Cell) || !Copy.Towers.count(Cell)) break;
-		const FPDTower& J1 = Copy.Towers.at(Cell);
-		const float PwB = PowOf(Cell), PwA = PowIn(Copy, Cell), BoardB = PowerSum, BoardA = Copy.Power();
-		const float Pj = PwB > 0.f ? (PwA / PwB - 1.f) * 100.f : 0.f, Pb = BoardB > 0.f ? (BoardA / BoardB - 1.f) * 100.f : 0.f;
-		Add(TrF(TEXT("%s 먹이기 → %s"), *HandLabel(G.Synergies[A->A]), JokerName(T.Joker)), JokerPink, 13.f, true);
-		Add(TrF(TEXT("조커 레벨 %d → %d · 경험치 %.0f → %.0f"), T.JLevel, J1.JLevel, T.JXp, J1.JXp), Fg);
-		Add(TrF(TEXT("조커 위력 %s/초 → %s/초 (%s)"), *ShortNum(PwB), *ShortNum(PwA), *Signed(Pj)), Pj >= 0.f ? Up : Down, 11.f, true);
-		Add(TrF(TEXT("판 위력 %s → %s (%s)"), *ShortNum(BoardB), *ShortNum(BoardA), *Signed(Pb)), Pb >= 0.f ? Up : Down, 10.f);
-		Add(TrF(TEXT("먹인 카드 %d장은 사라짐"), Gone), Grey, 10.f);
+		const FFeedPreview Pv = PreviewFeed(A->A); // 먹이기 전후 (D-494): 판 위 모든 조커
+		if (!Pv.bOk) break;
+		const float Pb = Pv.BoardB > 0.f ? (Pv.BoardA / Pv.BoardB - 1.f) * 100.f : 0.f;
+		Add(TrF(TEXT("%s 먹이기 → 조커 %d마리"), *HandLabel(G.Synergies[A->A]), Pv.Jokers), JokerPink, 13.f, true);
+		Add(TrF(TEXT("조커 %d마리 경험치 +%.0f"), Pv.Jokers, Pv.Xp), Fg);
+		Add(Pv.Ups.Num() > 0 ? TrF(TEXT("레벨 업 %d마리"), Pv.Ups.Num()) : FString(Tr(TEXT("레벨 업 없음"))), Pv.Ups.Num() > 0 ? Up : Grey, 11.f, true);
+		Add(TrF(TEXT("판 위력 %s → %s (%s)"), *ShortNum(Pv.BoardB), *ShortNum(Pv.BoardA), *Signed(Pb)), Pb >= 0.f ? Up : Down, 10.f);
+		Add(TrF(TEXT("먹인 카드 %d장은 사라짐"), Pv.Gone), Grey, 10.f);
 		break;
 	}
 	case ECellAct::Merge:

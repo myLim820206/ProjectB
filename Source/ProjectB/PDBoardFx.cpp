@@ -28,7 +28,7 @@ float ShotPower(EPDShot K, int32 Lv, bool bHandTower, int32 Crits)
 }
 } // namespace
 
-void SPDBoardWidget::SuckIn(FVector2f P, int PerCell, float Jitter, float Life, float SizeMin, float SizeMax, const FLinearColor& ColA, const FLinearColor& ColB, int Every)
+void SPDBoardWidget::SuckIn(FVector2f P, int PerCell, float Jitter, float Life, float SizeMin, float SizeMax, const FLinearColor& ColA, const FLinearColor& ColB, int Every, bool bKeep)
 {
 	for (const FVector2f& From : PendingFuseCells)
 		for (int I = 0; I < PerCell; ++I)
@@ -44,7 +44,7 @@ void SPDBoardWidget::SuckIn(FVector2f P, int PerCell, float Jitter, float Life, 
 			Pa.bStreak = true;
 			Particles.Add(Pa);
 		}
-	PendingFuseCells.Reset();
+	if (!bKeep) PendingFuseCells.Reset();
 }
 
 void SPDBoardWidget::HandleEvents()
@@ -239,9 +239,10 @@ void SPDBoardWidget::HandleEvents()
 			BannerT = BannerMax = 1.8f;
 			break;
 		}
-		case FPDEvent::EKind::Feed: // 족보 먹이기: 먹인 칸에서 조커로 빨려 드는 입자, 레벨이 오르면 고리와 글자
+		case FPDEvent::EKind::Feed: // 족보 먹이기 (D-494): 조커마다 사건 하나. 먹인 칸에서 모든 조커로 입자가 갈라져 날아감 (조커가 많으면 나눔), 레벨이 오른 조커만 고리와 글자
 		{
-			SuckIn(P, 8, 14.f, 0.4f, 1.6f, 2.8f, JokerPink, FLinearColor::White, 3);
+			const int32 NJ = FMath::Max(1, E.Lv), Ix = (int32)E.Dmg;
+			SuckIn(P, FMath::Max(2, 8 * 3 / FMath::Max(3, NJ)), 14.f, 0.4f, 1.6f, 2.8f, JokerPink, FLinearColor::White, 3, Ix < NJ - 1);
 			Rings.Add({P, 60.f, 6.f, 0.f, 0.4f, 2.4f, JokerPink});
 			if (E.B > 0)
 			{
