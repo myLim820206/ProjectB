@@ -695,6 +695,7 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdpause"))) bPaused = true; // 시험용: 일시정지 화면
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdwalk"))) { Game.Towers.clear(); Game.RebuildMods(); } // 시험용: 타워 없이 적이 걷는 모습
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdhandtip")) && Game.Hand.size() > 0) Mouse = FVector2f(HandCardX(0, (int32)Game.Hand.size()) + CardW / 2.f, HandY + CardH / 2.f); // 시험용: 첫 손패 카드에 마우스
+				{ int32 MH = -1; if (FParse::Value(FCommandLine::Get(), TEXT("pdmenuhover="), MH) && MH >= 0) Mouse = FVector2f(LX + LW / 2.f, HandMenuTop(MH) + 15.f); } // 시험용: 족보 메뉴판 그 줄에 마우스 (가독성 시안 촬영)
 				if (FParse::Param(FCommandLine::Get(), TEXT("pdbosses"))) // 시험용: 보스 13종을 길 위에 줄 세움 (느리게 걷는다)
 				{
 					const EPDEnemy Bs[13] = {EPDEnemy::ShieldBoss, EPDEnemy::SplitBoss, EPDEnemy::RegenBoss, EPDEnemy::Charger, EPDEnemy::Summoner, EPDEnemy::Phantom, EPDEnemy::Warlord, EPDEnemy::Berserker, EPDEnemy::Blinker, EPDEnemy::Devourer, EPDEnemy::Warden, EPDEnemy::Hexer, EPDEnemy::Breaker};
