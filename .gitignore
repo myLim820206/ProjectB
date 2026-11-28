@@ -19,8 +19,17 @@ DerivedDataCache/
 *.suo
 Tests/build/
 
-# 패키징 결과
-Build/
+# 패키징 결과 (Build 아래는 무시, 게임 아이콘만 저장소에 둔다 D-501)
+Build/*
+!Build/Windows/
+Build/Windows/*
+!Build/Windows/Application.ico
+!Build/Mac/
+Build/Mac/*
+!Build/Mac/Application.icns
+!Build/Mac/Resources/
+Build/Mac/Resources/*
+!Build/Mac/Resources/Assets.xcassets/
 
 # Claude Code 개인 설정
 .claude/settings.local.json

@@ -12,4 +12,5 @@
   - 예외 (D-403): Alice 인게임 시안 그림에서 잘라 낸 바뀌지 않는 그림(야자수 · WAVE 간판, BAR Alice 로고, 칵테일 잔)은 `tools/ui_art/cut_ref.py` 가 `Content/UIArt/*.png` 로 만들고 게임이 실행 중에 읽는다. 숫자 · 글자처럼 바뀌는 것은 코드로 그린다.
   - 그 밖의 선은 `FCanvas::Lines` 가 아틀라스의 선 스프라이트를 늘여 찍는다 (직접 Slate 선을 그리지 않는다). 판 배경처럼 판마다 다른 것만 실행 중에 굽는다. 글자는 Slate 글꼴 텍스처.
 - 나이아가라 · 머티리얼 에셋은 이펙트에만 쓰고, 화풍을 따른다. 월드 이펙트 층은 Slate 판 뒤에 그려진다 (D-092).
+- 게임 아이콘(실행파일 · 스팀)은 `python3 tools/neon/make_game_icon.py` 로 `Build/Windows` · `Build/Mac` 에 만든다 (D-501).
 - 새 그림은 `tools/neon/neon.py` 로 먼저 미리보기를 그려 보여 주고 언리얼에 옮긴다.
