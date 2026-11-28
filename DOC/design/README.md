@@ -22,6 +22,7 @@
 | [35-qa-joker-spec-before-leveling.md](35-qa-joker-spec-before-leveling.md) | QA 보고서: 조커 · 상위 조커 스펙 현황 (능력 · 레벨 · 판 몫 · 제작 빈도), 레벨링 테스트 제안 |
 | [36-feed-shared-xp.md](36-feed-shared-xp.md) | 먹이기: 판 아무 족보나 먹이고 모든 조커가 경험치 (D-494), (a) 각자 vs (b) 나눔 시제. 7절 처치 경험치도 함께 (D-497) |
 | [37-qa-feed-shared-leveling.md](37-qa-feed-shared-leveling.md) | QA 보고서: 먹이기 공유(D-494) 뒤 난이도 재확인 (60 1.17 · 100 1.11), 레벨링 갈래 (상한 · 레벨당 위력 · 곡선 · 처치 경험치 나눔) |
+| [38-qa-kill-xp-shared-d497.md](38-qa-kill-xp-shared-d497.md) | QA 보고서: 처치 경험치 공유(D-497) 뒤 체력 증가율 30 1.37 · 60 1.19 · 100 1.1225, 조커 평균 레벨 14.5 |
 | [27-joker-not-wild.md](27-joker-not-wild.md) | 조커는 족보에 안 들어간다 (만능 제거) + 시작 자리바꿈 2번 (확정, D-489) |
 | [28-hatter-star-harlequin.md](28-hatter-star-harlequin.md) | 모자 장수 · 스타 성능 상향 + 행운의 한 장(스트레이트 플러시 노림), 할리퀸 투 페어 (확정, D-490) |
 | [22-bosses.md](22-bosses.md) | 보스 확장 |
