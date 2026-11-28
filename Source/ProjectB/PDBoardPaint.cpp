@@ -3845,12 +3845,12 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 	// 판 테 (D-460: 시안에서 잰 색): 차분한 연보라 심 6f5788 + 양쪽으로 넓게 번지는 보랏빛 (시안은 안쪽도 10 쯤 은은하게 물든다)
 	C.Glow(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), Hex(TEXT("7854a8")), 5.f, 1.f);
 	C.Lines(FCanvas::RoundRectPoints(LX, HandPanelY, LW, PH, RadPanel), Hex(TEXT("78609a")), 1.1f);
-	{ // 맨 위 BAR Alice 로고 (D-453 → D-495, 사용자): 시작 화면 간판과 똑같이 — 기울이지 않고(D-454 대체) 관 · 번짐 비율도 같게.
-	  // 획이 실제로 그려지는 범위(원본 x 54 ~ 1075, y 65 ~ 465)를 패널 안 왼쪽 위(24, 16)에 맞추고, 높이는 '족보 메뉴' 제목(가운데 66) 위까지
+	{ // 맨 위 BAR Alice 로고 (D-453 → D-495, 사용자): 시작 화면 간판과 같은 관 · 번짐 비율. 기울기는 인게임만 −8° 그대로 (D-454, 오른쪽이 올라감).
+	  // 획이 실제로 그려지는 범위(원본 x 54 ~ 1075, y 65 ~ 465)를 패널 안 왼쪽 위(24, 19)에 맞추고, 높이는 '족보 메뉴' 제목(가운데 66) 위까지
 		static const float AllOn[PDLogo::ScriptLetters > PDLogo::BlockLetters ? PDLogo::ScriptLetters : PDLogo::BlockLetters] = {1.f, 1.f, 1.f, 1.f, 1.f};
 		constexpr float LogoW = 100.f, LogoK = LogoW / PDTitleLogo::SrcW; // 그려지는 범위 약 90 × 35
 		C.NextLayer();
-		PaintAliceSign(C, LX + 12.f - 54.f * LogoK, 16.f - 65.f * LogoK, LogoW, AllOn, AllOn, 1.f, 1.f);
+		PaintAliceSign(C, LX + 12.f - 54.f * LogoK, 19.f - 65.f * LogoK, LogoW, AllOn, AllOn, 1.f, 1.f, -8.f); // 기울이면 잔 불꽃이 위로 올라가 3 내림
 	}
 	if (bMenuBoard)
 	{
