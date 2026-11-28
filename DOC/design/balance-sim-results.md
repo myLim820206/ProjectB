@@ -5,7 +5,7 @@
 
 ## 0. 한눈에 (2026-11-28 최신, D-493 목표 30 모드 95% · 60 모드 70% · 100 모드 30%)
 
-판정 · 권고는 [34-qa-mode-growth-d493.md](34-qa-mode-growth-d493.md), 원자료 [data/joker-study-2026-11-28-d492.txt](data/joker-study-2026-11-28-d492.txt). 개발 이슈 #42.
+판정 · 권고는 [34-qa-mode-growth-d493.md](34-qa-mode-growth-d493.md), 원자료 [data/joker-study-2026-11-28-d492.txt](data/joker-study-2026-11-28-d492.txt). 개발 이슈 #46.
 
 | 모드 | 15웨이브 뒤 체력 증가율 (권장) | 봇 클리어 (강화 0, 80판) |
 |---|---|---|
