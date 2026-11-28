@@ -1969,7 +1969,7 @@ void SPDBoardWidget::PaintBoardUi(FCanvas& F) const
 				F.Text(TrF(TEXT("사거리 %.1f%s%s"), St.Range, St.Splash > 0.f ? *TrF(TEXT(" · 범위 %.1f"), St.Splash) : TEXT(""), St.Slow > 0.f ? Tr(TEXT(" · 둔화")) : TEXT("")), JX + 10.f, JY + 70.f, Grey, 11.f, 0, false, 226.f);
 				F.Text(JokerAbility(T.Joker), JX + 10.f, JY + 86.f, Fg, 10.f, 0, false, 226.f);
 				F.Text(JokerCommand(T.Joker), JX + 10.f, JY + 102.f, Gold, 10.f, 0, false, 226.f);
-				F.Text(TrF(TEXT("클릭: 메뉴 · 처치 +%.0f 경험치 (보스 +%.0f) · 먹이기는 모든 조커가"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f);
+				F.Text(TrF(TEXT("클릭: 메뉴 · 경험치는 모든 조커가 함께 (처치 +%.1f · 보스 +%.0f · 먹이기)"), JokerKillXp, JokerBossXp), JX + 10.f, JY + 118.f, Grey, 10.f, 0, false, 226.f);
 				F.Text(T.JLevel >= JokerMaxLevel ? TrF(TEXT("조커 레벨 %d (최대) · 위력 +%d%%"), T.JLevel, FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f))
 					: TrF(TEXT("조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s"), T.JLevel, T.JXp, JokerXpNeed(T.JLevel), FMath::RoundToInt((T.JLevel - 1) * JokerLevelDmg * 100.f), T.JLevel >= JokerUpLevel ? Tr(TEXT(" · 강화")) : TEXT("")),
 					JX + 10.f, JY + 134.f, JokerPink, 10.f, 0, false, 226.f);

@@ -312,6 +312,7 @@ private:
 		FVector2f P;
 		float T, MaxT, Size;
 		FLinearColor Col;
+		float Sum = 0.f; // 쌓이는 "+N 경험치" 글자의 합 (D-497)
 	};
 	struct FCellFlash
 	{

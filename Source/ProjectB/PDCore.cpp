@@ -2306,7 +2306,7 @@ bool FPDGame::SellTower(int Cell)
 	return true;
 }
 
-bool FPDGame::GainJokerXp(int Key, float Amount)
+bool FPDGame::GainJokerXp(int Key, float Amount, bool bQuiet)
 {
 	auto It = Towers.find(Key);
 	if (It == Towers.end() || !It->second.IsJoker() || It->second.JLevel >= JokerMaxLevel) return false;
@@ -2315,6 +2315,7 @@ bool FPDGame::GainJokerXp(int Key, float Amount)
 	J.JXp += Amount;
 	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
 	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
+	if (bQuiet && J.JLevel == Old) return false; // 처치한 조커가 아닌 조커: 레벨이 오를 때만 알린다 (D-497)
 	FPDEvent E;
 	E.Kind = FPDEvent::EKind::JokerXp;
 	E.X = J.X + 0.5f;
@@ -2365,10 +2366,16 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 		for (int K = 0; K < 6; ++K) Mb += (E.Mut >> K) & 1;
 		if (Mb >= 3) bMut3Kill = true;
 	}
-	if (HitSrc >= 0) // 조커가 처치하면 경험치 (D-125)
+	if (HitSrc >= 0) // 조커가 처치하면 판 위 모든 조커가 각자 경험치 (D-125, D-497). 글자는 처치한 조커에만
 	{
 		auto It = Towers.find(HitSrc);
-		if (It != Towers.end() && It->second.IsJoker()) GainJokerXp(HitSrc, EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp);
+		if (It != Towers.end() && It->second.IsJoker())
+		{
+			const float JXpGain = EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp;
+			std::vector<int> Js;
+			for (const auto& KV : Towers) if (KV.second.IsJoker()) Js.push_back(KV.first);
+			for (int K : Js) GainJokerXp(K, JXpGain, K != HitSrc);
+		}
 	}
 	const FPDPoint P = Path.At(E.D);
 	FPDEvent K;

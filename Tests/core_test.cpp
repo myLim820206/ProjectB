@@ -559,6 +559,28 @@ static void UnitTests()
 		Expect(Xp1 == JokerKillXp && J2.JLevel == 2 && std::fabs(J2.JXp - (JokerBossXp - 1.f)) < 1e-4f && bUp,
 			"조커 처치 경험치: 일반 +1, 보스 +15 → 레벨 2 (남은 경험치 " + std::to_string((int)J2.JXp) + "), 다른 타워 처치는 없음");
 	}
+	{ // 처치 경험치 공유 (D-497): 조커가 잡으면 판 위 모든 조커가 각자 다 받는다. 사건은 처치한 조커만 (다른 조커는 레벨이 오를 때만)
+		FPDGame G(22);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		Put(G.Towers, 1, 1, C(9, He));
+		Put(G.Towers, 7, 5, C(9, He));
+		Put(G.Towers, 4, 3, C(5, EPDSuit::Spade));
+		G.Towers.at(CellKey(1, 1)).Joker = (int)EPDJoker::Jack;
+		G.Towers.at(CellKey(7, 5)).Joker = (int)EPDJoker::Bell;
+		G.Events.clear();
+		FPDEnemy A = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 3);
+		G.HitTestFrom(CellKey(1, 1), A, 1e6f);
+		int XpEv = 0;
+		for (const FPDEvent& E : G.Events) XpEv += E.Kind == FPDEvent::EKind::JokerXp;
+		const bool bBoth = std::fabs(G.Towers.at(CellKey(1, 1)).JXp - JokerKillXp) < 1e-4f && std::fabs(G.Towers.at(CellKey(7, 5)).JXp - JokerKillXp) < 1e-4f;
+		FPDEnemy B = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 3);
+		G.HitTestFrom(CellKey(4, 3), B, 1e6f);
+		const bool bCard = std::fabs(G.Towers.at(CellKey(7, 5)).JXp - JokerKillXp) < 1e-4f;
+		Expect(bBoth && XpEv == 1 && bCard && std::fabs(JokerKillXp - 2.f / 3.f) < 1e-6f && JokerBossXp == 10.f,
+			"처치 경험치 공유 (D-497): 두 조커 모두 +2/3, 사건은 처치한 조커 하나, 카드가 잡으면 없음, 보스 10");
+	}
 	{ // 보스 13종 (D-112): 순서와 능력
 		auto BossOf = [](int W) {
 			FPDGame G(40);

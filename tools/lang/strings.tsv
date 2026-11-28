@@ -465,7 +465,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 경험치 +%.0f	XP +%.0f	経験値 +%.0f	经验 +%.0f	經驗 +%.0f	PDBoardFx.cpp
 조커 강화!	Joker upgraded!	ジョーカー強化!	小丑强化!	小丑強化!	PDBoardFx.cpp
  경험치	 XP	 経験値	 经验	 經驗	PDBoardFx.cpp
-+%.0f 경험치	+%.0f XP	+%.0f 経験値	+%.0f 经验	+%.0f 經驗	PDBoardFx.cpp
++%.1f 경험치	+%.1f XP	+%.1f 経験値	+%.1f 经验	+%.1f 經驗	PDBoardFx.cpp
 %s %d개 합침!	Merged %s ×%d!	%s %d体を合体!	%s %d个合体!	%s %d個合體!	PDBoardFx.cpp
 %s · %d단계	%s · phase %d	%s · 第%d段階	%s · 第%d阶段	%s · 第%d階段	PDBoardFx.cpp
 기절!	Stunned!	気絶!	晕眩!	暈眩!	PDBoardFx.cpp
@@ -576,7 +576,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 만들면: %s · 재료 %d장	If made: %s · %d material cards	作ると: %s · 素材 %d 枚	制作后: %s · 素材 %d 张	製作後: %s · 素材 %d 張	PDBoardPaint.cpp
 위력 %s/초 → %s/초 (%s%.0f%%)	Power %s/s → %s/s (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
 재료 %d장의 위력 합 → 조커 하나	Total of %d material cards → one Joker	素材 %d 枚の威力合計 → ジョーカー1体	%d 张素材的威力总和 → 一个小丑	%d 張素材的威力總和 → 一個小丑	PDBoardPaint.cpp
-클릭: 메뉴 · 처치 +%.0f 경험치 (보스 +%.0f) · 먹이기는 모든 조커가	Click: menu · kill +%.0f XP (boss +%.0f) · feeding levels every Joker	クリック: メニュー · 撃破 +%.0f 経験値 (ボス +%.0f) · 餌やりは全ジョーカーに	点击: 菜单 · 击杀 +%.0f 经验 (首领 +%.0f) · 喂食给所有小丑	點擊: 選單 · 擊殺 +%.0f 經驗 (首領 +%.0f) · 餵食給所有小丑	PDBoardPaint.cpp
+클릭: 메뉴 · 경험치는 모든 조커가 함께 (처치 +%.1f · 보스 +%.0f · 먹이기)	Click: menu · all Jokers share XP (kill +%.1f · boss +%.0f · feeding)	クリック: メニュー · 経験値は全ジョーカー共通 (撃破 +%.1f · ボス +%.0f · 餌やり)	点击: 菜单 · 经验由所有小丑共享 (击杀 +%.1f · 首领 +%.0f · 喂食)	點擊: 選單 · 經驗由所有小丑共享 (擊殺 +%.1f · 首領 +%.0f · 餵食)	PDBoardPaint.cpp
 조커 레벨 %d (최대) · 위력 +%d%%	Joker Lv %d (max) · Power +%d%%	ジョーカーレベル %d (最大) · 威力 +%d%%	小丑等级 %d (最高) · 威力 +%d%%	小丑等級 %d (最高) · 威力 +%d%%	PDBoardPaint.cpp
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
@@ -721,6 +721,9 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 알겠어	Got it	わかった	知道了	知道了	PDBoardPaint.cpp
 도움말 끄기	Turn off hints	ヒントを切る	关闭提示	關閉提示	PDBoardPaint.cpp
 취소	Cancel	キャンセル	取消	取消	PDBoardPaint.cpp
+ (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
+클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
+클릭: 족보를 먹여 모든 조커 키우기	Click: feed hands to grow every Joker	クリック: 役を食べさせて全ジョーカーを育てる	点击: 喂牌型培养所有小丑	點擊: 餵牌型培養所有小丑	PDBoardPaint.cpp
 멀리 있는 적도 레이저로 바로 맞힌다	Hits even distant enemies instantly with a laser	遠くの敵もレーザーで即座に撃ち抜く	用激光瞬间命中远处的敌人	用雷射瞬間命中遠處的敵人	PDBoardPaint.cpp
 미사일이 터져 둘레 적에게도 피해	Missiles explode, damaging nearby enemies too	ミサイルが爆発し周りの敵にもダメージ	导弹爆炸, 周围敌人也受伤害	導彈爆炸, 周圍敵人也受傷害	PDBoardPaint.cpp
 탄환을 빠르게 여러 발	Fires bullets rapidly	弾丸を素早く何発も撃つ	快速连发子弹	快速連發子彈	PDBoardPaint.cpp
@@ -739,9 +742,6 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 5장	5 cards	5枚	5张	5張	PDBoardPaint.cpp
 2~4장	2–4 cards	2~4枚	2~4张	2~4張	PDBoardPaint.cpp
 조커/먹이	Jokers / Feed	ジョーカー/餌	小丑/喂养	小丑/餵養	PDBoardPaint.cpp
- (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
-클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
-클릭: 족보를 먹여 모든 조커 키우기	Click: feed hands to grow every Joker	クリック: 役を食べさせて全ジョーカーを育てる	点击: 喂牌型培养所有小丑	點擊: 餵牌型培養所有小丑	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
 먹이 ×%d	Feed ×%d	餌 ×%d	可喂 ×%d	可餵 ×%d	PDBoardPaint.cpp
 족보끼리 맞닿을 경우, 개당 +%d%%	+%d%% per touching hand	役同士が隣接すると1つにつき +%d%%	牌型相邻时每个 +%d%%	牌型相鄰時每個 +%d%%	PDBoardPaint.cpp
@@ -783,6 +783,8 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
++%.0f 경험치	+%.0f XP	+%.0f 経験値	+%.0f 经验	+%.0f 經驗	PDLangTable.inl
+클릭: 메뉴 · 처치 +%.0f 경험치 (보스 +%.0f) · 먹이기는 모든 조커가	Click: menu · kill +%.0f XP (boss +%.0f) · feeding levels every Joker	クリック: メニュー · 撃破 +%.0f 経験値 (ボス +%.0f) · 餌やりは全ジョーカーに	点击: 菜单 · 击杀 +%.0f 经验 (首领 +%.0f) · 喂食给所有小丑	點擊: 選單 · 擊殺 +%.0f 經驗 (首領 +%.0f) · 餵食給所有小丑	PDLangTable.inl
 %s 먹이기 → %s	Feed %s → %s	%s を食べさせる → %s	喂 %s → %s	餵 %s → %s	PDLangTable.inl
 조커 레벨 %d → %d · 경험치 %.0f → %.0f	Joker Lv %d → %d · XP %.0f → %.0f	ジョーカーレベル %d → %d · 経験値 %.0f → %.0f	小丑等级 %d → %d · 经验 %.0f → %.0f	小丑等級 %d → %d · 經驗 %.0f → %.0f	PDLangTable.inl
 조커 위력 %s/초 → %s/초 (%s)	Joker power %s/s → %s/s (%s)	ジョーカー威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	PDLangTable.inl
