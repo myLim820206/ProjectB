@@ -1426,7 +1426,7 @@ static void UnitTests()
 		for (int I = 0; I < N; ++I) for (int J = I + 1; J < N; ++J) MinGap = std::min(MinGap, std::hypot(TreeNode(I).X - TreeNode(J).X, TreeNode(I).Y - TreeNode(J).Y));
 		Expect(bPos && MinGap >= 36.f, "노드가 0.55배 화면 안, 서로 36px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
 	}
-	{ // 15웨이브 뒤 체력 증가율 (D-492): 30 모드 1.45, ModeGrowthK 갈래로 바꾸면 16웨이브 적 체력이 그 비율로
+	{ // 15웨이브 뒤 체력 증가율 (D-492, QA 33): 30 1.43 · 60 1.185 · 100 1.105 · 무한 1.18, ModeGrowthK 갈래로 바꾸면 16웨이브 적 체력이 그 비율로
 		auto Wave16 = [](float K) {
 			FPDGame G(11);
 			G.Mode = EPDMode::W30;
@@ -1440,7 +1440,8 @@ static void UnitTests()
 			return Hp;
 		};
 		const float H0 = Wave16(0.f), H2 = Wave16(2.9f);
-		Expect(ModeGrowth(EPDMode::W30) == 1.45f && H0 > 0.f && std::abs(H2 / H0 - 2.f) < 0.01f, "30 모드 체력 증가 1.45 (D-492), ModeGrowthK 2.9 면 16웨이브 적 체력 2배");
+		Expect(ModeGrowth(EPDMode::W30) == 1.43f && ModeGrowth(EPDMode::W60) == 1.185f && ModeGrowth(EPDMode::W100) == 1.105f && ModeGrowth(EPDMode::Endless) == 1.18f && H0 > 0.f && std::abs(H2 / H0 - 2.9f / 1.43f) < 0.01f,
+			"체력 증가 30 1.43 · 60 1.185 · 100 1.105 · 무한 1.18 (D-492, QA 33), ModeGrowthK 2.9 면 16웨이브 적 체력이 2.9 / 1.43 배");
 	}
 	{ // 모드 (D-229): 목표 웨이브, 최종 보스 체력 ×3, 목표 웨이브를 넘기면 클리어
 		Expect(ModeGoal(EPDMode::W30) == 30 && ModeGoal(EPDMode::W60) == 60 && ModeGoal(EPDMode::W100) == 100 && ModeGoal(EPDMode::Endless) == 0, "모드 목표 30 · 60 · 100 · 무한");
