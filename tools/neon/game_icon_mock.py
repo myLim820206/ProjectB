@@ -269,7 +269,7 @@ SET3 = {'I': ('토끼 귀 마티니', icon_I), 'J': ('DRINK ME 병', icon_J), 'K
 
 
 
-def icon_L2(k=0.7, bar_px=13, bar_y=14, oy=88, bar_keep=False, bar_left=14):
+def icon_L2(k=0.7, bar_px=13, bar_y=14, oy=88, bar_keep=False, bar_left=14, bar_tilt=10):  # bar_tilt: 왼쪽으로 기울이기 (임씨 2026-11-28, 10도)
     """L 수정 (임씨 2026-11-28: 잔 없애기): 가운데 큰 필기체 A + 위에 하늘 BAR"""
     ox = 52 - 37 * k
     L = []
@@ -281,7 +281,8 @@ def icon_L2(k=0.7, bar_px=13, bar_y=14, oy=88, bar_keep=False, bar_left=14):
     x0 = bar_left  # 간판처럼 왼쪽 정렬 (임씨 2026-11-28)
     for i, ch in enumerate(BAR_WORD):
         for poly in BAR[ch]:
-            L.append(([(x0 + (i * BAR_ADV + px * 0.8) * sk, bar_y + py * sk + 30 * sk) for px, py in poly], CYAN, 0.42, bar_keep))
+            pts = [(x0 + (i * BAR_ADV + px * 0.8) * sk, bar_y + py * sk + 30 * sk) for px, py in poly]
+            L.append((rot(pts, x0 + bw * sk / 2, bar_y, -bar_tilt), CYAN, 0.42, bar_keep))
     return L
 
 
