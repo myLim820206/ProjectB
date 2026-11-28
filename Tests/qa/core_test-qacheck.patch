@@ -1,0 +1,54 @@
+--- a/Tests/core_test.cpp
++++ b/Tests/core_test.cpp
+@@ -3,6 +3,7 @@
+ // 족보·연쇄·길·설치·적·부적·발사체·합성·조커·스킬 트리·골드 강화를 확인하고, 봇으로 밸런스를 본다.
+ //   ./Tests/run.sh 0 은 봇 없이, ./Tests/run.sh N base|tree 는 그 봇만
+ #include "../Source/ProjectB/PDCore.h"
++#include "qa/qacheck.h"
+ 
+ #include <algorithm>
+ #include <chrono>
+@@ -2045,7 +2046,7 @@
+ 				}
+ 				if (BestI < 0) break;
+ 				const int UpId = Ms[BestI].Upper;
+-				if (!G.MergeJokers(BestI)) break;
++				if (!QaMerge(G, BestI, Run)) break;
+ 				UppersMade++;
+ 				RunUppers++;
+ 				UpperLog += (UpperLog.empty() ? "" : ",") + std::to_string(G.Wave + 1) + ":" + std::to_string(UpId); // 상위 조커 종류 (이슈 #33)
+@@ -2067,7 +2068,7 @@
+ 					if (Power(Copy, After) >= Before * 0.85 && Fd.Xp > BestXp) { BestXp = Fd.Xp; BestS = Fd.Syn; }
+ 				}
+ 				if (BestS < 0) break;
+-				G.Feed(BestS);
++				QaFeed(G, BestS, Run);
+ 				Feeds++;
+ 			}
+ 			std::vector<std::array<int, 2>> Free;
+@@ -2132,6 +2133,7 @@
+ 				G.Place(BI, BX, BY);
+ 			}
+ 			Phases++;
++			QaPhase(G, Run);
+ 			{ // QA 조커 몫 (이슈 #37): JSTAT 줄 = 조커가 판 위력에서 차지하는 몫 · 조커가 받은 효과 · 5/10/15/20웨이브 판 위력
+ 				FPDTowerMap Tw = G.Towers;
+ 				const FPDCharmBits Cm = G.CharmMask();
+@@ -2226,7 +2228,7 @@
+ 				}
+ 				std::set<int> OldJ; // 새로 생긴 조커만 센다 (같은 정리 때 만든 조커도 Age 0 이라 Age 로는 못 가른다, 이슈 #25)
+ 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker()) OldJ.insert(KV2.first);
+-				if (BestPicks.empty() || !G.JokerCraft(BestPicks, BestCell)) break;
++				if (BestPicks.empty() || !QaCraft(G, BestPicks, BestCell, Run)) break;
+ 				JokersMade[0]++;
+ 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && !OldJ.count(KV2.first) && !IsUpperJoker(KV2.second.Joker))
+ 				{
+@@ -2279,7 +2281,7 @@
+ 				if (BestI < 0) break;
+ 				std::set<int> OldJ;
+ 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker()) OldJ.insert(KV2.first);
+-				G.JokerFuse(BestI, BestCell);
++				QaFuse(G, BestI, BestCell, Run);
+ 				JokersMade[0]++;
+ 				for (auto& KV2 : G.Towers) if (KV2.second.IsJoker() && !OldJ.count(KV2.first))
+ 				{
