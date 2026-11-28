@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 sys.path.insert(0, os.path.dirname(__file__))
 from logo_strokes import catmull  # noqa: E402
-from logo_alice import ALICE  # noqa: E402
+from logo_alice import ALICE, BAR, BAR_WORD, BAR_ADV  # noqa: E402
 from neon import suit, joker, circle, bez  # noqa: E402
 
 PINK, CYAN, GOLD, WHITE = (255, 106, 190), (110, 220, 255), (255, 214, 90), (255, 255, 255)
@@ -268,6 +268,26 @@ def icon_L():
 SET3 = {'I': ('토끼 귀 마티니', icon_I), 'J': ('DRINK ME 병', icon_J), 'K': ('모자 쓴 잔', icon_K), 'L': ('Alice A + 잔', icon_L)}
 
 
+
+def icon_L2(k=0.7, bar_px=13, bar_y=14, oy=88, bar_keep=False):
+    """L 수정 (임씨 2026-11-28: 잔 없애기): 가운데 큰 필기체 A + 위에 하늘 BAR"""
+    ox = 50 - 37 * k
+    L = []
+    for st in ALICE[0]:
+        L.append(([(ox + x * k, oy + y * k) for x, y in catmull(st)], PINK, 1.15, True))
+    # 간판과 같은 속 빈 블록 글자 BAR (logo_alice.BAR)
+    bw = (len(BAR_WORD) - 1) * BAR_ADV + 44 * 0.8
+    sk = bar_px * 2.6 / bw
+    x0 = 50 - bw * sk / 2
+    for i, ch in enumerate(BAR_WORD):
+        for poly in BAR[ch]:
+            L.append(([(x0 + (i * BAR_ADV + px * 0.8) * sk, bar_y + py * sk + 30 * sk) for px, py in poly], CYAN, 0.42, bar_keep))
+    return L
+
+
+SET4 = {'L2': ('Alice A + BAR', icon_L2)}
+
+
 # ------------------------------------------------------------- 그리기
 def _bg(N):
     yy, xx = np.mgrid[0:N, 0:N] / N
@@ -386,7 +406,7 @@ def sheet(outdir, icons):
             if z > 1: ic = ic.resize((n * z, n * z), Image.NEAREST)
             img.paste(ic, (x + (cw - ic.width) // 2, y0 + (rowh - ic.height) // 2), ic)
             x += cw
-    img.save(os.path.join(outdir, 'icon_sheet%s.png' % {'A': '', 'E': '2', 'I': '3'}[list(ICONS)[0]]))
+    img.save(os.path.join(outdir, 'icon_sheet%s.png' % {'A': '', 'E': '2', 'I': '3', 'L2': '4'}[list(ICONS)[0]]))
 
 
 def context(outdir, icons):
@@ -423,7 +443,7 @@ def context(outdir, icons):
     for i, k in enumerate(keys):
         ic = icons[k][64]
         img.paste(ic, (630 + i * 130, 300), ic)
-    img.save(os.path.join(outdir, 'icon_context%s.png' % {'A': '', 'E': '2', 'I': '3'}[list(ICONS)[0]]))
+    img.save(os.path.join(outdir, 'icon_context%s.png' % {'A': '', 'E': '2', 'I': '3', 'L2': '4'}[list(ICONS)[0]]))
 
 
 def main(outdir, which='1'):
@@ -432,6 +452,8 @@ def main(outdir, which='1'):
         ICONS = SET2
     if which == '3':
         ICONS = SET3
+    if which == '4':
+        ICONS = SET4
     os.makedirs(outdir, exist_ok=True)
     sizes = [16, 24, 32, 48, 64, 256, 1024]
     icons = {k: {n: render(k, n) for n in sizes} for k in ICONS}
