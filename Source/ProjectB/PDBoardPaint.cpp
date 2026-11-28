@@ -3008,6 +3008,7 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 		{
 			const PDTitleLogo::FStroke& St = PDTitleLogo::Strokes[Si];
 			if (St.Color == 0) continue; // BAR 는 예전 블록 글자로 (D-442, 아래)
+			if (Wall <= 0.f && St.P == PDTitleLogo::S19) continue; // 족보 메뉴판 작은 로고: 잔 위 반짝이 3줄 → 바깥 2줄만 (뭉침 방지, D-499)
 			const float B = Bright(St);
 			const FLinearColor Ec = Hex(Edge[St.Color]), Cc = Hex(Core[St.Color]);
 			const float Th = PDTitleLogo::Tube[St.Color] * K * 0.8f;
@@ -3028,7 +3029,7 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	for (int32 Pass = 0; Pass < 2; ++Pass)
 		for (int32 I = 0; I < PDLogo::BlockLetters; ++I)
 		{
-			const int32 N = PDLogo::BlockPolys(I, Ps);
+			const int32 N = Wall > 0.f ? PDLogo::BlockPolys(I, Ps) : FMath::Min(1, PDLogo::BlockPolys(I, Ps)); // 작은 로고는 바깥 테 한 겹만 (D-499: 글자 높이 8px 에 두 겹은 뭉친다)
 			for (int32 J2 = 0; J2 < N; ++J2)
 			{
 				TArray<FVector2f> BP;
