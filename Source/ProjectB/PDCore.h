@@ -239,19 +239,20 @@ struct FPDTower
 	float JXp = 0.f;                // 다음 레벨까지 쌓인 경험치
 	bool IsJoker() const { return Joker >= 0; }
 };
-// 조커 레벨 (D-098): 맞닿은 족보를 먹이면 경험치. 레벨마다 위력 +15% (D-191), 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
+// 조커 레벨 (D-098): 족보를 먹이면 판 위 모든 조커가 경험치 (D-494). 레벨마다 위력 +15% (D-191), 레벨 10부터 강화 능력 (트리 조커 강화와 같음)
 constexpr int JokerMaxLevel = 9999;
 constexpr float JokerLevelDmg = 0.5f; // 레벨마다 위력 +50% (D-196, 예전 15%)
-constexpr float JokerFeedAbsorb = 0.6f; // 먹이기: 먹인 타워 위력의 60% 를 조커 위력에 바로 더한다 (D-191)
+constexpr float JokerFeedAbsorb = 0.6f; // 먹이기: 먹인 타워 위력의 60% 를 조커마다 위력에 바로 더한다 (D-191, D-494)
 constexpr int JokerUpLevel = 10;
 inline float JokerXpNeed(int Level) { return 20.f + 10.f * (Level - 1); }
 constexpr float JokerKillXp = 1.f, JokerBossXp = 15.f; // 조커가 적을 처치하면 경험치 (D-125)
 struct FPDFeed
 {
 	int Syn = -1;   // 먹일 족보 번호
-	int Joker = -1; // 먹을 조커 칸
-	float Xp = 0.f; // 얻는 경험치
-	float Gain = 0.f; // 조커 위력 배율(Mult)에 더해지는 양 (D-191)
+	int Joker = -1; // 대표 조커 칸 (레벨 가장 높은 것: 툴팁 · 연출 기준점). 먹는 건 판 위 모든 조커 (D-494)
+	int Jokers = 0; // 먹는 조커 수 (판 위 조커 전부)
+	float Xp = 0.f; // 조커 한 마리가 얻는 경험치 (조커마다 같은 양, 먹보 부적 전)
+	float Gain = 0.f; // 대표 조커 위력 배율(Mult)에 더해지는 양 (D-191). 조커마다 자기 단위로 따로 계산
 };
 // 조커 10종 (그림 번호 1~10 순서: DOC/art/15-art-style.md 9절)
 enum class EPDJoker : uint8_t { Clown, Hatter, Mask, Comedy, Harlequin, Baton, Jack, Cheshire, Bell, Star, Count };
@@ -511,7 +512,7 @@ struct FPDEvent
 	EPDHand Hand = EPDHand::Pair;
 	int Lv = 1;       // Shot·Impact: 쏜 타워 레벨 (그림 진화)
 	float Dmg = 0.f;  // Shot(즉시 발사체)·Impact: 목표에 준 피해 (화면의 피해 숫자)
-	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: A=새 레벨, B=오른 레벨 수, R=얻은 경험치 / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도 / Lucky: X·Y=기다리던 칸, A=숫자, Suit=무늬 (D-490)
+	int A = 0, B = 0; // Synergy: A=장수, B=연쇄 / WaveStart: A=웨이브, B=보스 여부, Enemy=보스 종류 / Leak: A=잃은 목숨 / WaveClear: A=받은 카드 / Reward: A=조커면 1, B=번호 / Fuse: A=새 레벨, B=합친 장수, X·Y=합쳐진 칸 / JokerFuse: A=조커 종류, B=처음 만듦 여부 / Feed: 먹은 조커마다 하나, X·Y=조커 칸, A=새 레벨, B=오른 레벨 수, R=얻은 경험치, Lv=먹은 조커 수, Dmg=그중 몇 번째 (D-494) / Bell·Star: X·Y=조커 칸, R=범위 / Kill: A=번 골드 / TreeBuy: A=노드 / Shot: A=족보 타워, B=치명타 횟수, R=발사체 종류(EPDShot) / Impact: 발사체가 닿음, R=종류, B=치명타 횟수, X2·Y2=날아온 속도 / Lucky: X·Y=기다리던 칸, A=숫자, Suit=무늬 (D-490)
 };
 
 enum class EPDPhase : uint8_t { Title, Build, Wave, Reward, Over, Clear }; // Reward: 부적 창에서 고르는 중, Clear: 모드 목표 웨이브를 넘김 (D-229)
@@ -617,10 +618,11 @@ public:
 	std::vector<int> BestJokerPicks(EPDJoker J) const;
 	// 레시피에서 판에 모자란 족보 수 (같은 족보가 둘 필요하면 둘 다 세야). Missing = 모자란 족보 하나 (없으면 Count)
 	int JokerMissing(EPDJoker J, EPDHand* Missing = nullptr) const;
-	// 조커에 먹일 수 있는 족보 (족보마다 하나). 조커에 맞닿은 족보만 (D-489). OnlyJoker 를 주면 그 조커가 맞닿은 족보만 (D-213)
-	std::vector<FPDFeed> FeedTargets(int OnlyJoker = -1) const;
-	// 족보를 조커에 먹인다 (족보 칸은 사라지고 경험치). JokerKey 를 주면 그 조커가 먹는다 (D-213), 아니면 맞닿은 조커 중 레벨 높은 쪽
-	bool Feed(int SynergyIdx, int JokerKey = -1);
+	// 먹일 수 있는 족보 (족보마다 하나). 판에 조커가 한 마리라도 있으면 판 위 모든 족보 (D-494, 예전 맞닿은 족보만 D-489)
+	std::vector<FPDFeed> FeedTargets() const;
+	// 족보를 먹인다 (족보 칸은 사라짐). 판 위 모든 조커가 각자 경험치 전량 + 흡수 60% 를 받는다 (D-494). 조커마다 Feed 사건 하나
+	bool Feed(int SynergyIdx);
+	float FeedGain(float Val, const FPDTower& Joker) const; // 먹인 세기 Val 을 이 조커 단위로 바꾼 흡수량 (D-191)
 	std::vector<FPDJokerMerge> JokerMerges() const;  // 같은 조커끼리 맞닿은 묶음 (2개 이상)
 	bool MergeJokers(int MergeIdx, int TargetCell = -1); // 묶음을 조커 하나로 (위력 합 × JokerMergeBonus, 레벨은 가장 높은 것)
 	// 버튼을 누르기 전 판 위력 비교 (D-107): 지금 / 누른 뒤 (기본 칸에 합칠 때). 누를 수 없으면 After < 0

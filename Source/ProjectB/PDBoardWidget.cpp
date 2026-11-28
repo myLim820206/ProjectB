@@ -768,8 +768,6 @@ void SPDBoardWidget::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	if (Sel >= (int32)Game.Hand.size()) Sel = -1;
 	UpdatePreview();
 	JGroups = Game.JokerGroups();
-	if (FeedJoker >= 0 && (!InFeed() || !Game.Towers.count(FeedJoker) || !Game.Towers.at(FeedJoker).IsJoker() || Game.Phase == EPDPhase::Reward || Sel >= 0)) FeedJoker = -1; // 조커가 없어졌거나 카드를 고름
-	if (InFeed()) RefreshFeedList();
 	if (SellCell >= 0 && (!Game.Towers.count(SellCell) || Sel >= 0 || HandFilter >= 0 || bSwapMode || (Game.Phase != EPDPhase::Build && Game.Phase != EPDPhase::Wave))) SellCell = -1; // 판매 버튼 끄기
 	// 고르는 사이 족보가 바뀌었거나(교체·다른 합성) 보상 화면이 뜨면 고르기 취소
 	if (!PickCells.empty() && (Game.Phase == EPDPhase::Reward || FindPickIndex() < 0)) PickCells.clear();
@@ -1246,51 +1244,55 @@ bool SPDBoardWidget::HintTarget(int32 H, FBox2f& Out) const
 
 bool SPDBoardWidget::InFeed() const { return HandFilter == FeedFilterId; }
 
-void SPDBoardWidget::RefreshFeedList()
+void SPDBoardWidget::ToggleFeed()
 {
-	FeedList.clear();
-	std::vector<std::pair<int32, int32>> Js; // 조커 칸, 레벨
-	for (const auto& KV : Game.Towers) if (KV.second.IsJoker()) Js.push_back({KV.first, KV.second.JLevel});
-	for (const auto& J : Js) FeedList.push_back({J.first, (int32)Game.FeedTargets(J.first).size()});
-	std::stable_sort(FeedList.begin(), FeedList.end(), [this](const FFeedEntry& A, const FFeedEntry& B) {
-		if ((A.N > 0) != (B.N > 0)) return A.N > 0;
-		return Game.Towers.at(A.Key).JLevel > Game.Towers.at(B.Key).JLevel; });
-	if (FeedList.size() > 11) FeedList.resize(11);
-}
-
-int32 SPDBoardWidget::FeedListAt(FVector2f P) const
-{
-	if (!InRect(P, LX + 8.f, HandRowY0, LW - 16.f, HandRowH * HandRowsN)) return -1;
-	const int32 Row = (int32)((P.Y - HandRowY0) / HandRowH);
-	if (Row == 0) return -2;
-	return Row - 1 < (int32)FeedList.size() ? Row - 1 : -1;
-}
-
-void SPDBoardWidget::ToggleFeed(int32 Joker)
-{
-	if (InFeed() && Joker < 0) { HandFilter = -1; FeedJoker = -1; UiSound(EPDSound::Move); return; }
+	if (InFeed()) { HandFilter = -1; UiSound(EPDSound::Move); return; }
 	HandFilter = FeedFilterId;
-	FeedJoker = Joker;
 	CraftJoker = -1;
 	CraftPicks.clear();
 	Sel = -1;
 	bSwapMode = false;
-	RefreshFeedList();
 	UiSound(EPDSound::Move);
+}
+
+void SPDBoardWidget::DoFeed(int32 Syn)
+{
+	if (Syn < 0 || Syn >= (int32)Game.Synergies.size()) { UiSound(EPDSound::Denied); return; }
+	PendingFuseCells.Reset();
+	for (int K : Game.Synergies[Syn].Cells) PendingFuseCells.Add(CellCenter(K));
+	if (!Game.Feed(Syn)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
+}
+
+SPDBoardWidget::FFeedPreview SPDBoardWidget::PreviewFeed(int32 Syn) const
+{
+	FFeedPreview P;
+	if (Syn < 0 || Syn >= (int32)Game.Synergies.size()) return P;
+	FPDGame Copy = Game;
+	Copy.bMuted = true;
+	Copy.Events.clear();
+	P.Gone = (int32)Game.Synergies[Syn].Cells.size();
+	P.BoardB = PowerSum;
+	if (!Copy.Feed(Syn)) return P;
+	P.bOk = true;
+	P.BoardA = Copy.Power();
+	for (const FPDEvent& E : Copy.Events)
+	{
+		if (E.Kind != FPDEvent::EKind::Feed) continue;
+		P.Jokers++;
+		P.Xp = E.R;
+		if (E.B > 0) P.Ups.Add(CellKey((int32)E.X, (int32)E.Y));
+	}
+	return P;
 }
 
 void SPDBoardWidget::FeedClick(int32 Cell, bool bRight)
 {
-	if (bRight) { if (FeedJoker >= 0) FeedJoker = -1; else HandFilter = -1; UiSound(EPDSound::Move); return; } // 오른쪽 클릭: 조커 고르기 풀기 → 끄기
-	if (Game.Towers.count(Cell) && Game.Towers.at(Cell).IsJoker()) { FeedJoker = FeedJoker == Cell ? -1 : Cell; UiSound(EPDSound::Move); return; } // 조커 = 고르기/풀기
-	if (FeedJoker < 0) { UiSound(EPDSound::Denied); return; }
-	for (const FPDFeed& Fd : Game.FeedTargets(FeedJoker))
+	if (bRight) { HandFilter = -1; UiSound(EPDSound::Move); return; } // 오른쪽 클릭: 끄기
+	for (const FPDFeed& Fd : Game.FeedTargets())
 	{
 		const std::vector<int>& Cs = Game.Synergies[Fd.Syn].Cells;
 		if (std::find(Cs.begin(), Cs.end(), Cell) == Cs.end()) continue;
-		PendingFuseCells.Reset();
-		for (int K : Cs) PendingFuseCells.Add(CellCenter(K));
-		if (!Game.Feed(Fd.Syn, FeedJoker)) { PendingFuseCells.Reset(); UiSound(EPDSound::Denied); }
+		DoFeed(Fd.Syn);
 		return;
 	}
 	UiSound(EPDSound::Denied);
@@ -1299,7 +1301,6 @@ void SPDBoardWidget::FeedClick(int32 Cell, bool bRight)
 void SPDBoardWidget::ToggleCraft()
 {
 	if (InCraft()) { HandFilter = -1; CraftJoker = -1; UiSound(EPDSound::Move); return; }
-	FeedJoker = -1;
 	HandFilter = JokerFilterId;
 	CraftJoker = -1;
 	CraftUpper = -1;
@@ -1308,7 +1309,6 @@ void SPDBoardWidget::ToggleCraft()
 	RuleLogNodes(TEXT("craft mode on")); // 룰 로그 (D-358)
 	JokerListSig = 0;
 	Sel = -1;
-	FeedJoker = -1;
 	bSwapMode = false;
 	UiSound(EPDSound::Move);
 }
@@ -1539,16 +1539,8 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	}
 	if (!bRight && Game.Swaps > 0 && InRect(P, SwapBtnX, SwapBtnY, SwapBtnW, SwapBtnH))
 	{
-		bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1;
+		bSwapMode = true; SwapFrom = -1; Sel = -1;
 		UiSound(EPDSound::Move);
-		return;
-	}
-	// 먹이기 목록 (D-213): 돌아가기 줄 = 족보 목록으로, 조커 줄 = 그 조커 고르기 (다시 누르면 풀기)
-	if (!bRight && InFeed() && InRect(P, LX + 8.f, HandRowY0, LW - 16.f, HandRowH * HandRowsN))
-	{
-		const int32 R = FeedListAt(P);
-		if (R == -2) ToggleFeed();
-		else if (R >= 0) { FeedJoker = FeedJoker == FeedList[R].Key ? -1 : FeedList[R].Key; UiSound(EPDSound::Move); }
 		return;
 	}
 	// 조커 목록 (D-210): 돌아가기 줄 = 족보 목록으로, 만들 수 있는 조커 = 고르기 (다시 누르면 목록으로)
@@ -1566,9 +1558,9 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 		const int32 Hi = HandMenuAt(P.X, P.Y);
 		const bool bAny = Hi == JokerFilterId ? !JGroups.empty() : std::any_of(Game.Synergies.begin(), Game.Synergies.end(), [Hi](const FPDSynergy& S) { return (int32)S.Kind == Hi; });
 		if (Hi == JokerFilterId) { ToggleCraft(); return; } // 조커 줄 = 조커 만들기 (D-195)
-		if (Hi == FeedFilterId) { ToggleFeed(); return; } // 먹이기 줄 (D-213)
+		if (Hi == FeedFilterId) { ToggleFeed(); return; } // 먹이기 줄 (D-213, D-494): 먹이기 모드 켜기 / 끄기
 		if (HandFilter == Hi) HandFilter = -1;
-		else if (bAny) { HandFilter = Hi; Sel = -1; FeedJoker = -1; }
+		else if (bAny) { HandFilter = Hi; Sel = -1; }
 		else { UiSound(EPDSound::Denied); return; }
 		UiSound(EPDSound::Move);
 		return;
@@ -1579,7 +1571,7 @@ void SPDBoardWidget::Click(FVector2f P, bool bRight)
 	if (!bRight && InRect(P, TreeBtnX, TreeBtnY, RBtnW, TreeBtnH)) { bTree = true; Sel = -1; return; } // 판 안 영구 강화는 뺐다 (D-240)
 	// 오른쪽 위 '?' = 메뉴 (Alice 시안 D-403, 예전 톱니바퀴 D-349). 일시정지는 P 키
 	if (!bRight && InRect(P, SetOpenX, HudBtnY, HudBtnS, HudBtnS)) { bMenu = true; MenuSel = 0; Sel = -1; UiSound(EPDSound::Move); return; }
-	// 먹이기 목록 (D-213): 판 칸 클릭 = 먹이기 / 조커 고르기, 오른쪽 클릭 = 풀기 → 끄기
+	// 먹이기 모드 (D-494): 족보 칸 클릭 = 먹이기, 오른쪽 클릭 = 끄기
 	if (InFeed())
 	{
 		const int32 Cell = CellAt(P);
@@ -1982,7 +1974,7 @@ void SPDBoardWidget::MenuSelect(int32 Item)
 		if (Game.Phase == EPDPhase::Build) WriteRunSave(Game.SaveRun());
 		Game.NewGame(false);
 		bTree = bUpg = bCodex = bMenu = bSettings = bPaused = false;
-		Sel = -1; HandFilter = -1; FeedJoker = -1; PickCells.clear(); CraftJoker = -1; CraftUpper = -1; CraftPicks.clear();
+		Sel = -1; HandFilter = -1; PickCells.clear(); CraftJoker = -1; CraftUpper = -1; CraftPicks.clear();
 		TitleSel = bHasRunSave ? (int32)ETitleItem::Continue : (int32)ETitleItem::Start;
 		UiSound(EPDSound::Move);
 		break;
@@ -2063,7 +2055,7 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 	if (K == EKeys::F8) { SaveAtlasAsset(); return FReply::Handled(); } // 아틀라스 에셋 만들기 (에디터)
 #endif
 #if !UE_BUILD_SHIPPING
-	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); FeedJoker = -1; GPDDebug.bShow = true; return FReply::Handled(); }
+	if (K == EKeys::F4 && (Game.Phase == EPDPhase::Build || Game.Phase == EPDPhase::Wave)) { PDDebugStress(Game); Sel = -1; PickCells.clear(); GPDDebug.bShow = true; return FReply::Handled(); }
 #endif
 	const FKey Nums[9] = {EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine};
 	if (LoadT > 0.f) return FReply::Handled(); // 로딩 중 (D-153)
@@ -2157,8 +2149,8 @@ FReply SPDBoardWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& I
 		}
 	if (K == EKeys::SpaceBar && (Game.Phase == EPDPhase::Wave || bPaused)) bPaused = !bPaused; // 스페이스: 웨이브 중엔 일시정지/계속 (D-183)
 	else if (K == EKeys::SpaceBar || K == EKeys::Enter) Game.StartWave(); // 준비 단계에선 웨이브 시작
-	else if (K == EKeys::Escape) { if (MenuCell >= 0) CloseCellMenu(); else if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (FeedJoker >= 0) FeedJoker = -1; else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
-	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; FeedJoker = -1; } } // 자리바꿈 (D-149)
+	else if (K == EKeys::Escape) { if (MenuCell >= 0) CloseCellMenu(); else if (SellCell >= 0) SellCell = -1; else if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Sel >= 0) Sel = -1; else if (InCraft() && (CraftJoker >= 0 || CraftUpper >= 0)) { CraftJoker = -1; CraftUpper = -1; CraftPicks.clear(); } else if (HandFilter >= 0) HandFilter = -1; else OpenMenu(); }
+	else if (K == EKeys::X) { if (bSwapMode) { bSwapMode = false; SwapFrom = -1; } else if (Game.Swaps > 0) { bSwapMode = true; SwapFrom = -1; Sel = -1; } } // 자리바꿈 (D-149)
 	else if (K == EKeys::J) { if (bCodex) bCodex = false; else CdxOpen(1); }
 	else if (K == EKeys::K) { bTree = true; Sel = -1; }
 	else if (K == EKeys::F) Game.Speed = NextSpeed(Game.Speed);

@@ -2132,69 +2132,74 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 	return true;
 }
 
-std::vector<FPDFeed> FPDGame::FeedTargets(int OnlyJoker) const
+float FPDGame::FeedGain(float Val, const FPDTower& Jt) const
+{
+	return (Has(EPDCharm::FoodChain) ? 0.9f : JokerFeedAbsorb) * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate)); // 먹이 사슬 칵테일 90% (D-239)
+}
+
+std::vector<FPDFeed> FPDGame::FeedTargets() const
 {
 	std::vector<FPDFeed> Out;
 	if (!InPlay()) return Out;
+	// 먹는 조커: 판 위 모든 조커 (D-494). 대표 = 레벨 가장 높은 것
+	int Best = -1, NJ = 0;
+	for (const auto& KV : Towers)
+	{
+		if (!KV.second.IsJoker()) continue;
+		NJ++;
+		if (Best < 0 || KV.second.JLevel > Towers.at(Best).JLevel) Best = KV.first;
+	}
+	if (Best < 0) return Out;
+	const FPDTower& Jt = Towers.at(Best);
 	for (int I = 0; I < (int)Synergies.size(); ++I)
 	{
 		const FPDSynergy& S = Synergies[I];
-		// 먹을 조커: 족보에 맞닿은 조커 중 레벨이 가장 높은 것 (조커는 족보에 안 든다, D-489)
-		int Best = -1;
-		float MultSum = 0.f;
-		int Fed = 0;
-		bool bOnly = false; // OnlyJoker 가 이 족보에 맞닿았다
-		for (int K : S.Cells)
-		{
-			const FPDTower& T = Towers.at(K);
-			MultSum += T.Mult;
-			Fed++;
-			PDForNeighbors(K, [&](int NK) {
-				auto It = Towers.find(NK);
-				if (It == Towers.end() || !It->second.IsJoker()) return;
-				bOnly = bOnly || NK == OnlyJoker;
-				if (Best < 0 || It->second.JLevel > Towers.at(Best).JLevel) Best = It->first;
-			});
-		}
-		if (OnlyJoker >= 0) { if (!bOnly) continue; Best = OnlyJoker; } // 고른 조커가 먹는다 (D-213)
-		if (Best < 0 || Fed == 0 || Towers.at(Best).JLevel >= JokerMaxLevel) continue;
-		// 경험치 = 족보 점수 × 먹인 타워 평균 위력 (합성 타워일수록 많이)
-		// 흡수 (D-191): 먹인 타워의 실제 세기((3+숫자)·배율·특성)를 조커 단위로 바꿔 60% 를 더한다. 조커 카드는 와일드라 숫자 10
-		const FPDTower& Jt = Towers.at(Best);
-		float Val = 0.f;
-		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
-		const float Gain = (Has(EPDCharm::FoodChain) ? 0.9f : JokerFeedAbsorb) * Val / (13.f * std::max(0.01f, Jt.TDmg * Jt.TRate)); // 먹이 사슬 칵테일 90% (D-239)
-		Out.push_back({I, Best, S.Value * MultSum / Fed, Gain});
+		if (S.Cells.empty()) continue;
+		// 경험치 = 족보 점수 × 먹인 타워 평균 위력 (합성 타워일수록 많이). 조커마다 같은 양
+		// 흡수 (D-191): 먹인 타워의 실제 세기((3+숫자)·배율·특성)를 조커 단위로 바꿔 60% 를 더한다
+		float MultSum = 0.f, Val = 0.f;
+		for (int K : S.Cells) { const FPDTower& T = Towers.at(K); MultSum += T.Mult; Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
+		Out.push_back({I, Best, NJ, S.Value * MultSum / (float)S.Cells.size(), FeedGain(Val, Jt)});
 	}
 	return Out;
 }
 
-bool FPDGame::Feed(int SynergyIdx, int JokerKey)
+bool FPDGame::Feed(int SynergyIdx)
 {
-	const std::vector<FPDFeed> List = FeedTargets(JokerKey);
+	const std::vector<FPDFeed> List = FeedTargets();
 	const FPDFeed* F = nullptr;
 	for (const FPDFeed& X : List) if (X.Syn == SynergyIdx) F = &X;
 	if (!F) return false;
-	const int JKey = F->Joker;
-	const float FeedXp = F->Xp, Gain = F->Gain;
+	const float FeedXp = F->Xp * (Has(EPDCharm::Feeder) ? 1.5f : 1.f); // 먹이 상자 부적 (D-233)
+	float Val = 0.f; // 먹인 칸을 지우기 전에 세기를 잰다
+	for (int K : Synergies[SynergyIdx].Cells) { const FPDTower& T = Towers.at(K); Val += (3.f + T.Card.Power()) * T.Mult * T.TDmg * T.TRate; }
 	for (int K : Synergies[SynergyIdx].Cells) Towers.erase(K);
-	FPDTower& J = Towers.at(JKey);
-	const int Old = J.JLevel;
-	J.Mult += Gain; // 먹인 위력 흡수 (D-191)
-	J.JXp += FeedXp * (Has(EPDCharm::Feeder) ? 1.5f : 1.f); // 먹이 상자 부적 (D-233)
-	while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
-	if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
+	std::vector<FPDEvent> Evs;
+	int Ups = 0;
+	for (auto& KV : Towers)
+	{
+		FPDTower& J = KV.second;
+		if (!J.IsJoker()) continue;
+		const int Old = J.JLevel;
+		J.Mult += FeedGain(Val, J); // 먹인 위력 흡수 (D-191), 조커마다 자기 단위로 (D-494)
+		if (J.JLevel < JokerMaxLevel) J.JXp += FeedXp;
+		while (J.JLevel < JokerMaxLevel && J.JXp >= JokerXpNeed(J.JLevel)) { J.JXp -= JokerXpNeed(J.JLevel); J.JLevel++; }
+		if (J.JLevel >= JokerMaxLevel) J.JXp = 0.f;
+		FPDEvent E;
+		E.Kind = FPDEvent::EKind::Feed;
+		E.X = J.X + 0.5f;
+		E.Y = J.Y + 0.5f;
+		E.A = J.JLevel;
+		E.B = J.JLevel - Old;
+		E.R = FeedXp;
+		E.Dmg = (float)Evs.size();
+		Ups += E.B > 0;
+		Evs.push_back(E);
+	}
 	Synergies = ApplyEffects(Towers, CharmMask(), &Mods);
-	FPDEvent E;
-	E.Kind = FPDEvent::EKind::Feed;
-	E.X = J.X + 0.5f;
-	E.Y = J.Y + 0.5f;
-	E.A = J.JLevel;
-	E.B = J.JLevel - Old;
-	E.R = FeedXp;
-	Ev(E);
-	Sfx(EPDSound::Burst, std::min(8, 2 + E.B), E.B > 0 ? 1 : 0);
-	if (E.B > 0) Sfx(EPDSound::Clear);
+	for (FPDEvent& E : Evs) { E.Lv = (int)Evs.size(); Ev(E); }
+	Sfx(EPDSound::Burst, std::min(8, 2 + Ups), Ups > 0 ? 1 : 0);
+	if (Ups > 0) Sfx(EPDSound::Clear);
 	return true;
 }
 

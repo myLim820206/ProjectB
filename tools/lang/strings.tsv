@@ -474,6 +474,7 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 최고 레벨	Max level	最大レベル	已满级	已滿級	PDBoardMenu.cpp
 %d장	%d cards	%d枚	%d张	%d張	PDBoardMenu.cpp
 조커: %s	Joker: %s	ジョーカー: %s	小丑: %s	小丑: %s	PDBoardMenu.cpp
+조커 %d마리 +%.0f	%d Jokers +%.0f	ジョーカー%d体 +%.0f	%d个小丑 +%.0f	%d個小丑 +%.0f	PDBoardMenu.cpp
 상위 조커: %s	Upper joker: %s	上位ジョーカー: %s	高级小丑: %s	高級小丑: %s	PDBoardMenu.cpp
 조커 합치기 · %d장	Merge jokers · %d	ジョーカー合体 · %d枚	合并小丑 · %d张	合併小丑 · %d張	PDBoardMenu.cpp
 판매	Sell	売却	出售	出售	PDBoardMenu.cpp
@@ -492,9 +493,10 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 재료 %d장의 위력 합 → 합성 타워 하나	Total of %d material cards → one fused tower	素材 %d 枚の威力合計 → 合成タワー1つ	%d 张素材的威力总和 → 一座合成塔	%d 張素材的威力總和 → 一座合成塔	PDBoardMenu.cpp
 공격력 %.0f → %.0f · 초당 %.1f → %.1f발	Damage %.0f → %.0f · %.1f → %.1f shots/s	攻撃力 %.0f → %.0f · 毎秒 %.1f → %.1f発	攻击力 %.0f → %.0f · 每秒 %.1f → %.1f 发	攻擊力 %.0f → %.0f · 每秒 %.1f → %.1f 發	PDBoardMenu.cpp
 사거리 %.1f → %.1f · 범위 %.1f → %.1f	Range %.1f → %.1f · Area %.1f → %.1f	射程 %.1f → %.1f · 範囲 %.1f → %.1f	射程 %.1f → %.1f · 范围 %.1f → %.1f	射程 %.1f → %.1f · 範圍 %.1f → %.1f	PDBoardMenu.cpp
-%s 먹이기 → %s	Feed %s → %s	%s を食べさせる → %s	喂 %s → %s	餵 %s → %s	PDBoardMenu.cpp
-조커 레벨 %d → %d · 경험치 %.0f → %.0f	Joker Lv %d → %d · XP %.0f → %.0f	ジョーカーレベル %d → %d · 経験値 %.0f → %.0f	小丑等级 %d → %d · 经验 %.0f → %.0f	小丑等級 %d → %d · 經驗 %.0f → %.0f	PDBoardMenu.cpp
-조커 위력 %s/초 → %s/초 (%s)	Joker power %s/s → %s/s (%s)	ジョーカー威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	PDBoardMenu.cpp
+%s 먹이기 → 조커 %d마리	Feed %s → %d Jokers	%s を食べさせる → ジョーカー%d体	喂 %s → %d个小丑	餵 %s → %d個小丑	PDBoardMenu.cpp
+조커 %d마리 경험치 +%.0f	%d Jokers XP +%.0f	ジョーカー%d体 経験値 +%.0f	%d个小丑 经验 +%.0f	%d個小丑 經驗 +%.0f	PDBoardMenu.cpp
+레벨 업 %d마리	%d level up	レベルアップ %d体	升级 %d个	升級 %d個	PDBoardMenu.cpp
+레벨 업 없음	No level up	レベルアップなし	无升级	無升級	PDBoardMenu.cpp
 판 위력 %s → %s (%s)	Board power %s → %s (%s)	盤面威力 %s → %s (%s)	全场威力 %s → %s (%s)	全場威力 %s → %s (%s)	PDBoardMenu.cpp
 먹인 카드 %d장은 사라짐	%d fed cards will be gone	食べさせた%d枚は消える	喂食的%d张牌会消失	餵食的%d張牌會消失	PDBoardMenu.cpp
 합치면: %s Lv%d	Merged: %s Lv%d	合体すると: %s Lv%d	合并后: %s Lv%d	合併後: %s Lv%d	PDBoardMenu.cpp
@@ -556,9 +558,8 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 행운의 한 장: %s %s 를 기다리는 중 · 웨이브를 막으면 %d%% 확률로 받는다	Lucky card: waiting for %s %s · %d%% chance to draw it after a wave	ラッキーな一枚: %s %s を待っている · ウェーブを防ぐと %d%% の確率で届く	幸运之牌: 正在等待 %s %s · 守住波次后有 %d%% 概率获得	幸運之牌: 正在等待 %s %s · 守住波次後有 %d%% 機率獲得	PDBoardPaint.cpp
 자리바꿈 (%d번 남음): 옮길 타워 클릭 · 오른쪽 클릭 / Esc: 끄기	Swap (%d left): click a tower to move · right-click / Esc: off	入れ替え (残り %d回): 動かすタワーをクリック · 右クリック / Esc: やめる	换位 (剩余 %d次): 点击要移动的塔 · 右键 / Esc: 关闭	換位 (剩餘 %d次): 點擊要移動的塔 · 右鍵 / Esc: 關閉	PDBoardPaint.cpp
 바꿀 자리 클릭 (타워면 서로 바꾸고 빈 칸이면 옮김) · 같은 타워 다시: 다시 고르기	Click the target (swaps with a tower, moves to an empty tile) · same tower again: reselect	移動先をクリック (タワーなら入れ替え、空きマスなら移動) · 同じタワーをもう一度: 選び直し	点击目标位置 (是塔就交换, 空格就移动) · 再点同一座塔: 重新选择	點擊目標位置 (是塔就交換, 空格就移動) · 再點同一座塔: 重新選擇	PDBoardPaint.cpp
-먹이기: 왼쪽 목록이나 판에서 조커를 고르세요 · Esc: 끄기	Feed: pick a Joker from the left list or the board · Esc: off	餌やり: 左のリストか盤でジョーカーを選んでください · Esc: やめる	喂食: 从左侧列表或棋盘选择小丑 · Esc: 关闭	餵食: 從左側列表或棋盤選擇小丑 · Esc: 關閉	PDBoardPaint.cpp
-%s 먹이기: 먹일 족보 칸 클릭 · 다른 조커 클릭 = 바꾸기 · 오른쪽 클릭 / Esc = 목록으로	Feed %s: click a hand tile to feed · click another Joker = switch · right-click / Esc = back to list	%s に餌やり: 食べさせる役のマスをクリック · 別のジョーカーをクリック = 切替 · 右クリック / Esc = リストへ	喂食 %s: 点击要喂的牌型格 · 点其他小丑 = 切换 · 右键 / Esc = 返回列表	餵食 %s: 點擊要餵的牌型格 · 點其他小丑 = 切換 · 右鍵 / Esc = 返回列表	PDBoardPaint.cpp
-이 조커에 먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · Esc = 목록으로	Nothing to feed this Joker (hands touching it can be fed) · Esc = back to list	このジョーカーに食べさせる役がない (隣接する役が餌) · Esc = リストへ	这个小丑没有可喂的牌型 (相邻的牌型才能喂) · Esc = 返回列表	這個小丑沒有可餵的牌型 (相鄰的牌型才能餵) · Esc = 返回列表	PDBoardPaint.cpp
+먹이기: 먹일 족보 칸 클릭 = 판 위 모든 조커가 경험치 · 오른쪽 클릭 / Esc: 끄기	Feed: click a hand tile = every Joker on the board gains XP · right-click / Esc: off	餌やり: 役のマスをクリック = 盤の全ジョーカーが経験値 · 右クリック / Esc: 終了	喂食: 点击牌型格 = 场上所有小丑获得经验 · 右键 / Esc: 关闭	餵食: 點擊牌型格 = 場上所有小丑獲得經驗 · 右鍵 / Esc: 關閉	PDBoardPaint.cpp
+먹일 족보가 없다 (판에 조커와 족보가 있어야 한다) · Esc: 끄기	Nothing to feed (needs a Joker and a hand on the board) · Esc: off	食べさせる役がない (盤にジョーカーと役が必要) · Esc: 終了	没有可喂的牌型 (场上需要小丑和牌型) · Esc: 关闭	沒有可餵的牌型 (場上需要小丑和牌型) · Esc: 關閉	PDBoardPaint.cpp
 %s 만들기: 두 조커 중 하나를 클릭 = 그 칸에 상위 조커 · 오른쪽 클릭 / Esc = 목록으로	Make %s: click either Joker = Upper Joker there · right-click / Esc = back to list	%s 作成: 2体のどちらかをクリック = そこに上位ジョーカー · 右クリック / Esc = リストへ	制作 %s: 点击任一小丑 = 上位小丑放那里 · 右键 / Esc = 返回列表	製作 %s: 點擊任一小丑 = 上位小丑放那裡 · 右鍵 / Esc = 返回列表	PDBoardPaint.cpp
 조커 만들기: 왼쪽 목록에서 조커를 고르세요 (마우스를 올리면 재료가 보인다) · Esc: 끄기	Make Joker: pick a Joker from the left list (hover to see materials) · Esc: off	ジョーカー作成: 左のリストからジョーカーを選んでください (マウスを乗せると素材が見える) · Esc: やめる	制作小丑: 从左侧列表选择小丑 (悬停可看素材) · Esc: 关闭	製作小丑: 從左側列表選擇小丑 (懸停可看素材) · Esc: 關閉	PDBoardPaint.cpp
 %s 만들기: 재료 %d개 고름 · 후보 칸 클릭 = 재료로 (추천 = 게임이 고른 재료)	Make %s: %d materials picked · click a candidate = add (Best = the game's pick)	%s 作成: 素材 %d 個選択 · 候補マスをクリック = 素材に (おすすめ = ゲームの選択)	制作 %s: 已选 %d 个素材 · 点击候选格 = 加入 (推荐 = 游戏所选)	製作 %s: 已選 %d 個素材 · 點擊候選格 = 加入 (推薦 = 遊戲所選)	PDBoardPaint.cpp
@@ -571,12 +572,11 @@ J 타워 공격력 +80%	J tower damage +80%	J タワー攻撃力 +80%	J 塔攻�
 판매 +%d 경험치	Sell +%d XP	売却 +%d 経験値	出售 +%d 经验	出售 +%d 經驗	PDBoardPaint.cpp
 연쇄 ×%s (족보 %d개가 이어짐)	Chain ×%s (%d hands linked)	連鎖 ×%s (役 %d 個がつながる)	连锁 ×%s (%d 个牌型相连)	連鎖 ×%s (%d 個牌型相連)	PDBoardPaint.cpp
 이 타워에 적용: 공격 ×%.2f · 연사 ×%.2f · 사거리 ×%.2f%s	On this tower: damage ×%.2f · rate ×%.2f · range ×%.2f%s	このタワーに適用: 攻撃 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s	本塔生效: 攻击 ×%.2f · 连射 ×%.2f · 射程 ×%.2f%s	本塔生效: 攻擊 ×%.2f · 連射 ×%.2f · 射程 ×%.2f%s	PDBoardPaint.cpp
-조커 위력 %s/초 → %s/초 (%s%.0f%%)	Joker power %s/s → %s/s (%s%.0f%%)	ジョーカー威力 %s/秒 → %s/秒 (%s%.0f%%)	小丑威力 %s/秒 → %s/秒 (%s%.0f%%)	小丑威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
 판 위력 %s → %s (%s%.0f%%) · 먹인 카드 %d장은 사라짐	Board power %s → %s (%s%.0f%%) · %d fed cards disappear	盤の威力 %s → %s (%s%.0f%%) · 食べさせた %d 枚は消える	棋盘威力 %s → %s (%s%.0f%%) · 喂掉的 %d 张卡会消失	棋盤威力 %s → %s (%s%.0f%%) · 餵掉的 %d 張卡會消失	PDBoardPaint.cpp
 만들면: %s · 재료 %d장	If made: %s · %d material cards	作ると: %s · 素材 %d 枚	制作后: %s · 素材 %d 张	製作後: %s · 素材 %d 張	PDBoardPaint.cpp
 위력 %s/초 → %s/초 (%s%.0f%%)	Power %s/s → %s/s (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	威力 %s/秒 → %s/秒 (%s%.0f%%)	PDBoardPaint.cpp
 재료 %d장의 위력 합 → 조커 하나	Total of %d material cards → one Joker	素材 %d 枚の威力合計 → ジョーカー1体	%d 张素材的威力总和 → 一个小丑	%d 張素材的威力總和 → 一個小丑	PDBoardPaint.cpp
-클릭: 메뉴 (먹이기 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (feed %d) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (食べさせる %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (喂食 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (餵食 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDBoardPaint.cpp
+클릭: 메뉴 · 처치 +%.0f 경험치 (보스 +%.0f) · 먹이기는 모든 조커가	Click: menu · kill +%.0f XP (boss +%.0f) · feeding levels every Joker	クリック: メニュー · 撃破 +%.0f 経験値 (ボス +%.0f) · 餌やりは全ジョーカーに	点击: 菜单 · 击杀 +%.0f 经验 (首领 +%.0f) · 喂食给所有小丑	點擊: 選單 · 擊殺 +%.0f 經驗 (首領 +%.0f) · 餵食給所有小丑	PDBoardPaint.cpp
 조커 레벨 %d (최대) · 위력 +%d%%	Joker Lv %d (max) · Power +%d%%	ジョーカーレベル %d (最大) · 威力 +%d%%	小丑等级 %d (最高) · 威力 +%d%%	小丑等級 %d (最高) · 威力 +%d%%	PDBoardPaint.cpp
 조커 레벨 %d · 경험치 %.0f/%.0f · 위력 +%d%%%s	Joker Lv %d · XP %.0f/%.0f · Power +%d%%%s	ジョーカーレベル %d · 経験値 %.0f/%.0f · 威力 +%d%%%s	小丑等级 %d · 经验 %.0f/%.0f · 威力 +%d%%%s	小丑等級 %d · 經驗 %.0f/%.0f · 威力 +%d%%%s	PDBoardPaint.cpp
  · 강화	 · upgraded	 · 強化	 · 强化	 · 強化	PDBoardPaint.cpp
@@ -693,8 +693,8 @@ U 또는 Esc · 오른쪽 클릭: 닫기   (여는 동안 게임은 멈춘다)	U
 이어진 족보가 모두 더 강해져요	makes all linked hands stronger	つながった役がすべて強くなります	相连的牌型全部变强	相連的牌型全部變強	PDBoardPaint.cpp
 왼쪽 '조커' 줄을 눌러 만들 조커를 고르고	Click the 'Joker' row on the left and pick a joker	左の「ジョーカー」の行を押して作るジョーカーを選び	"点击左侧""小丑""行，选择要制作的小丑"	點擊左側「小丑」行，選擇要製作的小丑	PDBoardPaint.cpp
 '추천' 재료를 고르고, 그 재료를 다시 누르면 완성	pick 'Best' materials, then click one again to create it	「おすすめ」素材を選び、もう一度押すと完成	"选择""推荐""材料，再点一次即可完成"	選擇「推薦」材料，再點一次即可完成	PDBoardPaint.cpp
-'먹이기' 줄(또는 판의 조커)에서 조커를 고르고	Pick a joker from the 'Feed' row (or click a joker on the board)	「餌やり」の行（または盤のジョーカー）でジョーカーを選び	"在""喂食""行（或点击场上的小丑）选择小丑"	在「餵食」行（或點擊場上的小丑）選擇小丑	PDBoardPaint.cpp
-빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요	and click a glowing hand to feed it and raise its joker level	光る役のマスを押して食べさせるとジョーカーレベルが上がります	点击发光的牌型格子喂食，小丑等级就会提升	點擊發光的牌型格子餵食，小丑等級就會提升	PDBoardPaint.cpp
+'먹이기' 줄을 누르고 빛나는 족보 칸을 누르면	Click the 'Feed' row, then a glowing hand	「餌やり」の行を押して光る役のマスを押すと	点击「喂食」行，再点发光的牌型格	點擊「餵食」行，再點發光的牌型格	PDBoardPaint.cpp
+족보를 먹이면 판 위 모든 조커가 경험치를 받아요	Feeding a hand gives XP to every Joker on the board	役を食べさせると盤の全ジョーカーが経験値をもらえます	喂牌型后场上所有小丑都获得经验	餵牌型後場上所有小丑都獲得經驗	PDBoardPaint.cpp
 카드를 오른쪽 클릭해 버리거나	Right-click a card to discard it, or	カードを右クリックで捨てるか	右键卡牌丢弃, 或	右鍵卡牌丟棄, 或	PDBoardPaint.cpp
 Lv1 타워 위에 놓아 교체하세요	place it on a Lv1 tower to swap	Lv1 タワーの上に置いて入れ替えましょう	放到 Lv1 塔上替换	放到 Lv1 塔上替換	PDBoardPaint.cpp
 조커는 족보에 들어가지 않아요. 자리바꿈(X)을 누르고	Jokers don't count in hands. Press Swap (X)	ジョーカーは役に入りません。入れ替え(X)を押して	小丑不计入牌型。按下换位(X)	小丑不計入牌型。按下換位(X)	PDBoardPaint.cpp
@@ -732,9 +732,6 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 다시 클릭 / Esc: 끄기	Click again / Esc: off	もう一度クリック / Esc: やめる	再点一次 / Esc: 关闭	再點一次 / Esc: 關閉	PDBoardPaint.cpp
 클릭: 그 족보 합성	Click: fuse that hand	クリック: その役を合成	点击: 合成该牌型	點擊: 合成該牌型	PDBoardPaint.cpp
 ← 족보 목록으로	← Back to hands	← 役リストへ	← 返回牌型列表	← 返回牌型列表	PDBoardPaint.cpp
-판에 조커가 없다	No Jokers on the board	盤にジョーカーがいない	棋盘上没有小丑	棋盤上沒有小丑	PDBoardPaint.cpp
-먹이 ×%d	Feed ×%d	餌 ×%d	可喂 ×%d	可餵 ×%d	PDBoardPaint.cpp
-경험치 %.0f/%.0f	XP %.0f/%.0f	経験値 %.0f/%.0f	经验 %.0f/%.0f	經驗 %.0f/%.0f	PDBoardPaint.cpp
 만들 수 있는 조커가 없다	No Joker can be made	作れるジョーカーがない	没有可制作的小丑	沒有可製作的小丑	PDBoardPaint.cpp
 상위	Upper	上位	上位	上位	PDBoardPaint.cpp
 %s + %s · 맞붙여 놓아야 해요	%s + %s · must be placed side by side	%s + %s · 隣り合わせに置く必要あり	%s + %s · 需要相邻放置	%s + %s · 需要相鄰放置	PDBoardPaint.cpp
@@ -744,8 +741,9 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 조커/먹이	Jokers / Feed	ジョーカー/餌	小丑/喂养	小丑/餵養	PDBoardPaint.cpp
  (3~5장)	 (3–5 cards)	 (3〜5枚)	 (3~5张)	 (3~5張)	PDBoardPaint.cpp
 클릭: 만들 수 있는 조커 목록	Click: Jokers you can make	クリック: 作れるジョーカー一覧	点击: 可制作的小丑列表	點擊: 可製作的小丑列表	PDBoardPaint.cpp
-클릭: 조커에 족보 먹이기	Click: feed hands to a Joker	クリック: ジョーカーに役を食べさせる	点击: 给小丑喂牌型	點擊: 給小丑餵牌型	PDBoardPaint.cpp
+클릭: 족보를 먹여 모든 조커 키우기	Click: feed hands to grow every Joker	クリック: 役を食べさせて全ジョーカーを育てる	点击: 喂牌型培养所有小丑	點擊: 餵牌型培養所有小丑	PDBoardPaint.cpp
 합성 ×%d	Fuse ×%d	合成 ×%d	合成 ×%d	合成 ×%d	PDBoardPaint.cpp
+먹이 ×%d	Feed ×%d	餌 ×%d	可喂 ×%d	可餵 ×%d	PDBoardPaint.cpp
 족보끼리 맞닿을 경우, 개당 +%d%%	+%d%% per touching hand	役同士が隣接すると1つにつき +%d%%	牌型相邻时每个 +%d%%	牌型相鄰時每個 +%d%%	PDBoardPaint.cpp
 잠깐 쉬어 가자 · 판은 그대로 멈춰 있다	Take a break · the board is paused	ひと休み · 盤面は止まっている	休息一下 · 棋盘已暂停	休息一下 · 棋盤已暫停	PDBoardPaint.cpp
 ↑↓ · Enter 또는 클릭   Esc: 닫기   (여는 동안 게임은 멈춘다)	↑↓ · Enter or click   Esc: close   (game is paused while open)	↑↓ · Enter かクリック   Esc: 閉じる   (開いている間ゲームは止まる)	↑↓ · Enter 或点击   Esc: 关闭   (打开期间游戏暂停)	↑↓ · Enter 或點擊   Esc: 關閉   (打開期間遊戲暫停)	PDBoardPaint.cpp
@@ -785,6 +783,19 @@ S로 넘기세요. 칵테일 칸은 5개예요	or press S to skip. You have 5 co
 아틀라스 에셋 저장: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	Atlas assets saved: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	アトラス保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	图集已保存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	圖集已儲存: Content/Sprites/T_PDAtlas_v%d · T_PDAtlasSoldier_v%d	PDBoardWidget.cpp
 아틀라스 에셋 저장 실패	Atlas asset save failed	アトラスアセットの保存に失敗	图集资源保存失败	圖集資源儲存失敗	PDBoardWidget.cpp
 한국어	한국어	한국어	한국어	한국어	PDLang.cpp
+%s 먹이기 → %s	Feed %s → %s	%s を食べさせる → %s	喂 %s → %s	餵 %s → %s	PDLangTable.inl
+조커 레벨 %d → %d · 경험치 %.0f → %.0f	Joker Lv %d → %d · XP %.0f → %.0f	ジョーカーレベル %d → %d · 経験値 %.0f → %.0f	小丑等级 %d → %d · 经验 %.0f → %.0f	小丑等級 %d → %d · 經驗 %.0f → %.0f	PDLangTable.inl
+조커 위력 %s/초 → %s/초 (%s)	Joker power %s/s → %s/s (%s)	ジョーカー威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	小丑威力 %s/秒 → %s/秒 (%s)	PDLangTable.inl
+먹이기: 왼쪽 목록이나 판에서 조커를 고르세요 · Esc: 끄기	Feed: pick a Joker from the left list or the board · Esc: off	餌やり: 左のリストか盤でジョーカーを選んでください · Esc: やめる	喂食: 从左侧列表或棋盘选择小丑 · Esc: 关闭	餵食: 從左側列表或棋盤選擇小丑 · Esc: 關閉	PDLangTable.inl
+%s 먹이기: 먹일 족보 칸 클릭 · 다른 조커 클릭 = 바꾸기 · 오른쪽 클릭 / Esc = 목록으로	Feed %s: click a hand tile to feed · click another Joker = switch · right-click / Esc = back to list	%s に餌やり: 食べさせる役のマスをクリック · 別のジョーカーをクリック = 切替 · 右クリック / Esc = リストへ	喂食 %s: 点击要喂的牌型格 · 点其他小丑 = 切换 · 右键 / Esc = 返回列表	餵食 %s: 點擊要餵的牌型格 · 點其他小丑 = 切換 · 右鍵 / Esc = 返回列表	PDLangTable.inl
+이 조커에 먹일 족보가 없다 (조커에 맞닿은 족보가 먹이) · Esc = 목록으로	Nothing to feed this Joker (hands touching it can be fed) · Esc = back to list	このジョーカーに食べさせる役がない (隣接する役が餌) · Esc = リストへ	这个小丑没有可喂的牌型 (相邻的牌型才能喂) · Esc = 返回列表	這個小丑沒有可餵的牌型 (相鄰的牌型才能餵) · Esc = 返回列表	PDLangTable.inl
+조커 위력 %s/초 → %s/초 (%s%.0f%%)	Joker power %s/s → %s/s (%s%.0f%%)	ジョーカー威力 %s/秒 → %s/秒 (%s%.0f%%)	小丑威力 %s/秒 → %s/秒 (%s%.0f%%)	小丑威力 %s/秒 → %s/秒 (%s%.0f%%)	PDLangTable.inl
+클릭: 메뉴 (먹이기 %d) · 처치 +%.0f 경험치 (보스 +%.0f)	Click: menu (feed %d) · kill +%.0f XP (boss +%.0f)	クリック: メニュー (食べさせる %d) · 撃破 +%.0f 経験値 (ボス +%.0f)	点击: 菜单 (喂食 %d) · 击败 +%.0f 经验 (首领 +%.0f)	點擊: 選單 (餵食 %d) · 擊敗 +%.0f 經驗 (首領 +%.0f)	PDLangTable.inl
+'먹이기' 줄(또는 판의 조커)에서 조커를 고르고	Pick a joker from the 'Feed' row (or click a joker on the board)	「餌やり」の行（または盤のジョーカー）でジョーカーを選び	"在""喂食""行（或点击场上的小丑）选择小丑"	在「餵食」行（或點擊場上的小丑）選擇小丑	PDLangTable.inl
+빛나는 족보 칸을 눌러 먹이면 조커 레벨이 올라요	and click a glowing hand to feed it and raise its joker level	光る役のマスを押して食べさせるとジョーカーレベルが上がります	点击发光的牌型格子喂食，小丑等级就会提升	點擊發光的牌型格子餵食，小丑等級就會提升	PDLangTable.inl
+판에 조커가 없다	No Jokers on the board	盤にジョーカーがいない	棋盘上没有小丑	棋盤上沒有小丑	PDLangTable.inl
+경험치 %.0f/%.0f	XP %.0f/%.0f	経験値 %.0f/%.0f	经验 %.0f/%.0f	經驗 %.0f/%.0f	PDLangTable.inl
+클릭: 조커에 족보 먹이기	Click: feed hands to a Joker	クリック: ジョーカーに役を食べさせる	点击: 给小丑喂牌型	點擊: 給小丑餵牌型	PDLangTable.inl
 게임 시작	Start Game	ゲーム開始	开始游戏	開始遊戲	PDLangTable.inl
 연사 ×1.25 / ×1.5 / ×1.75 / ×2	Rate ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	连射 ×1.25 / ×1.5 / ×1.75 / ×2	連射 ×1.25 / ×1.5 / ×1.75 / ×2	PDLangTable.inl
  (2~5장)	 (2–5 cards)	 (2〜5枚)	 (2~5张)	 (2~5張)	PDLangTable.inl
