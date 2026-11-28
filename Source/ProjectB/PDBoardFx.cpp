@@ -300,8 +300,9 @@ void SPDBoardWidget::HandleEvents()
 				const FVector2f At = P - FVector2f(0.f, CS * 0.45f);
 				FFloatText* Same = nullptr;
 				for (FFloatText& Ft : Floats) if (Ft.S.EndsWith(TEXT(" 경험치")) && FVector2f::Distance(Ft.P, At) < 1.f && Ft.T < Ft.MaxT * 0.8f) Same = &Ft;
-				if (Same) { Same->S = TrF(TEXT("+%d 경험치"), FCString::Atoi(*Same->S.Mid(1)) + FMath::RoundToInt(E.R)); Same->T = FMath::Min(Same->T, 0.15f); Same->Size = FMath::Min(16.f, Same->Size + 0.3f); }
-				else Floats.Add({TrF(TEXT("+%.0f 경험치"), E.R), At, 0.f, 0.9f, E.R >= 10.f ? 15.f : 12.f, WithAlpha(JokerPink, 0.95f)});
+				// 처치 경험치는 2/3 단위라 (D-497) 쌓인 값을 따로 들고 소수 한 자리로 보인다
+				if (Same) { Same->Sum += E.R; Same->S = TrF(TEXT("+%.1f 경험치"), Same->Sum); Same->T = FMath::Min(Same->T, 0.15f); Same->Size = FMath::Min(16.f, Same->Size + 0.3f); }
+				else { FFloatText Ft{TrF(TEXT("+%.1f 경험치"), E.R), At, 0.f, 0.9f, E.R >= 10.f ? 15.f : 12.f, WithAlpha(JokerPink, 0.95f)}; Ft.Sum = E.R; Floats.Add(Ft); }
 			}
 			break;
 		}

@@ -245,7 +245,7 @@ constexpr float JokerLevelDmg = 0.5f; // 레벨마다 위력 +50% (D-196, 예전
 constexpr float JokerFeedAbsorb = 0.6f; // 먹이기: 먹인 타워 위력의 60% 를 조커마다 위력에 바로 더한다 (D-191, D-494)
 constexpr int JokerUpLevel = 10;
 inline float JokerXpNeed(int Level) { return 20.f + 10.f * (Level - 1); }
-constexpr float JokerKillXp = 1.f, JokerBossXp = 15.f; // 조커가 적을 처치하면 경험치 (D-125)
+constexpr float JokerKillXp = 2.f / 3.f, JokerBossXp = 10.f; // 조커가 적을 처치하면 판 위 모든 조커가 각자 받는 경험치 (D-125, D-497: 예전 1 · 15 를 2/3 로)
 struct FPDFeed
 {
 	int Syn = -1;   // 먹일 족보 번호
@@ -582,7 +582,7 @@ public:
 	void ClearWaveForTest() { Pending.clear(); Enemies.clear(); } // 시험용: 이번 웨이브 적을 모두 없앰
 	void HitTest(FPDEnemy& E, float Dmg) { Hit(E, Dmg, 0.f); } // 시험용
 	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { HitSrc = SrcKey; Hit(E, Dmg, 0.f); HitSrc = -1; } // 시험용: 이 칸 타워가 때림
-	bool GainJokerXp(int Key, float Amount);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치
+	bool GainJokerXp(int Key, float Amount, bool bQuiet = false);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치. bQuiet 면 레벨이 오를 때만 사건
 	void NewGame(bool bStart);
 	// 중단 저장 (D-162): 준비 단계(Build)의 판을 글자로. 웨이브 중에 그만두면 그 웨이브 시작 직전(PreWaveSave)으로 돌아간다
 	std::string SaveRun() const;
