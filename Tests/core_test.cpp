@@ -691,15 +691,15 @@ static void UnitTests()
 		const FPDTower& Jc = G.Towers.begin()->second;
 		Expect(b2 && G.Towers.size() == 1 && std::fabs(Jc.Mult - 4.f * JokerBonus * 3.5f * (1.f + JokerCardBonus * 4.f)) < 1e-4f,
 			"포카드 + 플러시 → 체셔 (재료 2, 등급 ×3.5, 카드 4장 덤)");
-		// 조커 덤 (D-491): 3.0, QA 갈래로 바꾸면 조커 위력이 그 비율로
+		// 조커 덤 (D-492): 10, QA 갈래로 바꾸면 조커 위력이 그 비율로
 		G.Towers.clear();
 		PutFused(G.Towers, 0, Row, C(13), EPDHand::Four, 3);
 		Put(G.Towers, 3, Row, C(4, Di)); Put(G.Towers, 4, Row, C(9, Di)); Put(G.Towers, 5, Row, C(12, Di));
 		G.Synergies = ApplyEffects(G.Towers, 0);
 		G.JokerBonusK = 2.f;
 		const bool b3 = G.JokerFuse(0) && G.Towers.size() == 1;
-		Expect(JokerBonus == 3.f && b3 && std::fabs(G.Towers.begin()->second.Mult - 4.f * 2.f * 3.5f * (1.f + JokerCardBonus * 4.f)) < 1e-4f && std::fabs(G.JokerMult() - 2.f) < 1e-6f,
-			"조커 덤 3.0 (D-491), JokerBonusK 갈래 2.0 이면 위력도 2.0 배로");
+		Expect(JokerBonus == 10.f && b3 && std::fabs(G.Towers.begin()->second.Mult - 4.f * 2.f * 3.5f * (1.f + JokerCardBonus * 4.f)) < 1e-4f && std::fabs(G.JokerMult() - 2.f) < 1e-6f,
+			"조커 덤 10 (D-492), JokerBonusK 갈래 2.0 이면 위력도 2.0 배로");
 	}
 	{ // 같은 조커끼리 합치기 (D-114), 조커는 먹이가 되지 않음
 		FPDGame G(15);
@@ -1426,6 +1426,22 @@ static void UnitTests()
 		for (int I = 0; I < N; ++I) for (int J = I + 1; J < N; ++J) MinGap = std::min(MinGap, std::hypot(TreeNode(I).X - TreeNode(J).X, TreeNode(I).Y - TreeNode(J).Y));
 		Expect(bPos && MinGap >= 36.f, "노드가 0.55배 화면 안, 서로 36px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
 	}
+	{ // 15웨이브 뒤 체력 증가율 (D-492): 30 모드 1.45, ModeGrowthK 갈래로 바꾸면 16웨이브 적 체력이 그 비율로
+		auto Wave16 = [](float K) {
+			FPDGame G(11);
+			G.Mode = EPDMode::W30;
+			G.NewGame(true);
+			G.bMuted = true;
+			G.ModeGrowthK = K;
+			G.Wave = 15;
+			G.StartWave();
+			float Hp = 0.f;
+			for (const FPDEnemy& E : G.PendingForTest()) Hp += E.MaxHp;
+			return Hp;
+		};
+		const float H0 = Wave16(0.f), H2 = Wave16(2.9f);
+		Expect(ModeGrowth(EPDMode::W30) == 1.45f && H0 > 0.f && std::abs(H2 / H0 - 2.f) < 0.01f, "30 모드 체력 증가 1.45 (D-492), ModeGrowthK 2.9 면 16웨이브 적 체력 2배");
+	}
 	{ // 모드 (D-229): 목표 웨이브, 최종 보스 체력 ×3, 목표 웨이브를 넘기면 클리어
 		Expect(ModeGoal(EPDMode::W30) == 30 && ModeGoal(EPDMode::W60) == 60 && ModeGoal(EPDMode::W100) == 100 && ModeGoal(EPDMode::Endless) == 0, "모드 목표 30 · 60 · 100 · 무한");
 		FPDGame G(11);
@@ -1632,7 +1648,7 @@ static void UnitTests()
 		Expect(!G.CanFuse(0) && std::abs(G.JokerMult() - (JokerBonus + 0.4f)) < 1e-4f, "광대의 길: 레벨 2는 더 합성 못 함, 조커 배율 +0.4");
 		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::ClownPath, "합성 막힌 까닭 = 광대의 길 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = MaxLevel;
-		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::MaxLevel, "합성 막힌 까닭 = 최고 레벨 (D-371)");
+		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::TopLevel, "합성 막힌 까닭 = 최고 레벨 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = 1;
 		Expect(G.FuseBlock(0) == FPDGame::EFuseBlock::None && G.CanFuse(0), "레벨 1 은 광대의 길이어도 합성 (D-371)");
 		for (auto& KV : G.Towers) KV.second.Level = 2; // 뒤 시험은 레벨 2 그대로
@@ -1806,7 +1822,8 @@ static long GJokerMask = -1;     // 열 조커 (1 << EPDJoker), -1 = 그대로
 static int GSeedBase = 0;        // 판 씨앗 시작 (여러 프로세스로 나눠 돌리기)
 static bool GAimSF = false;      // 스트레이트 플러시 노림 (D-490): 같은 무늬 줄을 합성 · 먹이기 · 조커 재료로 쓰지 않고 지키며, 줄을 늘리는 자리에 덤
 static bool GLuckyOn = true;     // 행운의 한 장 켬 (QA: 끈 판과 비교)
-static float GJokerBonus = JokerBonus; // 조커 덤 갈래 (D-491, QA: 2.0 · 3.0 · 4.0)
+static float GJokerBonus = JokerBonus; // 조커 덤 갈래 (D-492)
+static float GModeGrowth = 0.f; // 15웨이브 뒤 체력 증가율 갈래 (D-492), 0 이면 모드 기본값
 // 노림 봇이 지키는 칸: 행운의 한 장 줄(3 ~ 4장) + 판 위 스트레이트 플러시 · 로열 (모자 장수 · 스타 재료)
 static FPDLucky BotLine(const FPDGame& G, const FPDTowerMap& Tw)
 {
@@ -1934,6 +1951,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 		G.bMuted = true;
 		G.bLucky = GLuckyOn;
 		G.JokerBonusK = GJokerBonus;
+		G.ModeGrowthK = GModeGrowth;
 		std::mt19937 R(77 + Run);
 		double JsShare = 0, JsDmg = 0, JsRate = 0, JsSplash = 0, JsKinds = 0, JsMult = 0; int JsW = 0, JsN = 0; double PowAt[4] = {}, JPowAt[4] = {}; int JCntAt[4] = {};
 		for (int Guard = 0; Guard < 200 && G.Phase != EPDPhase::Over && G.Phase != EPDPhase::Clear; ++Guard)
@@ -2246,7 +2264,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 			int Mx = 0, JNow = 0;
 			for (auto& KV : G.Towers) if (KV.second.IsJoker()) { Mx = std::max(Mx, KV.second.JLevel); JNow++; }
 			std::printf("JSTAT seed=%d wave=%d clear=%d jw=%d share=%.3f jdmg=%.2f jrate=%.2f jsplash=%.2f jkinds=%.2f jmult=%.2f pow5=%.0f pow10=%.0f pow15=%.0f pow20=%.0f jpow5=%.0f jpow10=%.0f jpow15=%.0f jpow20=%.0f jc10=%d jc15=%d jc20=%d\n", Run, G.Wave, G.Phase == EPDPhase::Clear, JsW, JsW ? JsShare / JsW : 0., JsN ? JsDmg / JsN : 0., JsN ? JsRate / JsN : 0., JsN ? JsSplash / JsN : 0., JsN ? JsKinds / JsN : 0., JsN ? JsMult / JsN : 0., PowAt[0], PowAt[1], PowAt[2], PowAt[3], JPowAt[0], JPowAt[1], JPowAt[2], JPowAt[3], JCntAt[1], JCntAt[2], JCntAt[3]);
-			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f aimsf=%d lucky=%d luckyhits=%d jbonus=%.2f seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, (int)GAimSF, (int)GLuckyOn, G.LuckyHits, GJokerBonus, Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
+			std::printf("STUDY mode=%d upg=%d content=%d mask=%ld smart=%d pursue=%d slack=%.2f aimsf=%d lucky=%d luckyhits=%d jbonus=%.2f growth=%.3f seed=%d stuck=%d wave=%d clear=%d lives=%d phases=%d uppers=%d jnow=%d jmaxlv=%d feeds=%ld time=%.0f built=", (int)GBotMode, bUpg ? GBotUpgLv : 0, GBotContent, GJokerMask, GSmartJoker, GPursue, GJokerSlack, (int)GAimSF, (int)GLuckyOn, G.LuckyHits, GJokerBonus, G.HpGrowth(), Run, (int)bStuck, G.Wave, G.Phase == EPDPhase::Clear, G.Lives, Phases, RunUppers, JNow, Mx, Feeds - FeedsAtStart, G.Time);
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", Built[J]);
 			std::printf(" first=");
 			for (int J = 0; J < (int)EPDJoker::Count; ++J) std::printf("%s%d", J ? "," : "", FirstBuilt[J]);
@@ -2302,7 +2320,7 @@ int main(int Argc, char** Argv)
 		std::printf("   → CHIPS mode=%s upg=%d content=%d clear=%d/%d\n", Argv[3], GBotUpgLv, GBotContent, GBotClears, Runs);
 		GBotMode = EPDMode::Endless; GBotUpgLv = 10; GBotContent = 0;
 	}
-	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱] [스트레이트 플러시 노림 0/1] [행운의 한 장 1/0] [조커 덤, 기본 JokerBonus]
+	else if (Runs > 0 && Argc > 9 && std::string(Argv[2]) == "study") // 조커 연구 (이슈 #5): study <모드> <강화> <해금> <조커 비트, -1 그대로> <씨앗 시작> <똑똑한 조커 0/1> <레시피 노림 0/1> [문턱] [스트레이트 플러시 노림 0/1] [행운의 한 장 1/0] [조커 덤, 기본 JokerBonus] [체력 증가율, 0 = 모드 기본]
 	{
 		GStudy = true;
 		GBotMode = (EPDMode)std::atoi(Argv[3]); GBotUpgLv = std::atoi(Argv[4]); GBotContent = std::atoi(Argv[5]);
@@ -2310,7 +2328,8 @@ int main(int Argc, char** Argv)
 		GJokerSlack = Argc > 10 ? (float)std::atof(Argv[10]) : 0.f;
 		GAimSF = Argc > 11 && std::atoi(Argv[11]) != 0; // D-490
 		GLuckyOn = Argc > 12 ? std::atoi(Argv[12]) != 0 : true;
-		GJokerBonus = Argc > 13 ? (float)std::atof(Argv[13]) : JokerBonus; // D-491 갈래
+		GJokerBonus = Argc > 13 ? (float)std::atof(Argv[13]) : JokerBonus; // D-492 갈래
+		GModeGrowth = Argc > 14 ? (float)std::atof(Argv[14]) : 0.f; // D-492 갈래
 		BotTest(Runs, false, false, true, true, true, GBotUpgLv > 0);
 	}
 	else if (Runs > 0) { BotTest(Runs, false); BotTest(Runs, false, false, true); BotTest(Runs, false, false, true, true); BotTest(Runs, false, false, true, true, true); BotTest(Runs, false, false, true, true, true, true); BotTest(Runs, false, true); BotTest(Runs, true); }

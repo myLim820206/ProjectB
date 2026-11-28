@@ -1397,7 +1397,7 @@ std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
 	// NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 모드마다 다른 배율 (무한 ×1.3, D-229)
-	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(ModeGrowth(Mode), (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
+	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(HpGrowth(), (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
 	const float Hp = BossHp * WaveScale(W) * MobHpBonus * GPDDebugHpMul; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
 	const int N = WaveCount(W) * GPDDebugCountMul;
 	for (int I = 0; I < N; ++I)
@@ -1747,7 +1747,7 @@ FPDGame::EFuseBlock FPDGame::FuseBlock(int SynergyIdx) const
 	if (SynergyIdx < 0 || SynergyIdx >= (int)Synergies.size()) return EFuseBlock::NotInPlay;
 	const FPDSynergy& S = Synergies[SynergyIdx];
 	const int Lv = Towers.at(S.Cells[0]).Level;
-	if (Lv >= MaxLevel) return EFuseBlock::MaxLevel;
+	if (Lv >= MaxLevel) return EFuseBlock::TopLevel;
 	if (Mods.Key(EPDKeystone::ClownPath) && Lv >= 2) return EFuseBlock::ClownPath; // 광대의 길: 합성은 레벨 2까지
 	return EFuseBlock::None;
 }
