@@ -278,13 +278,14 @@ constexpr int UpperBase = 10, UpperJokerCount = 30;
 constexpr int UpperNeedLevel = 10, UpperNeedLevelTip = 5;
 constexpr float UpperBonus = 1.5f, UpperBonusPlain = 1.3f, UpperTipBonus = 0.25f; // ★ 대표 11종 ×1.5, 일반 19종 ×1.3 (D-333)
 enum class EPDUpperSpecial : uint8_t { None, MadTea, WhiteRabbit, GrinOnly, QueenHearts, Dormouse, Jabberwock, Tweedle, Mirror, RedQueen, MockTurtle };
-struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; };
+struct FPDUpperDef { EPDJoker A, B; EPDUpperSpecial Special; bool bStarPlain = false; }; // bStarPlain: 고유 능력은 없지만 ★ 대표 (바다코끼리와 목수, #66)
 const FPDUpperDef& UpperDef(int U);          // U = 0~29
 int UpperPrice(int U);                       // 잠금 해제 값 (D-241 → D-320): (300 + 재료 둘 값의 평균) / 2, 50 단위 → 150~400. 재료 조커가 둘 다 열려 있어야 살 수 있다
 int UpperOf(EPDJoker A, EPDJoker B);         // 레시피가 있으면 상위 조커 번호, 없으면 -1 (순서 무관)
 inline bool IsUpperJoker(int Joker) { return Joker >= UpperBase && Joker < UpperBase + UpperJokerCount; }
 bool JokerHas(int Joker, EPDJoker K);        // 그 조커이거나, 그 조커를 재료로 한 상위 조커
 EPDUpperSpecial JokerSpecial(int Joker);
+bool UpperStar(int U); // ★ 대표 11종 (D-333): 둘 다 조커 레벨 10, 위력 합 ×1.5. 고유 능력 10종 + 바다코끼리와 목수
 // 조커 재료 묶음 (D-487): 족보·합성 타워(레벨 2+) 2~4개가 한 조커의 레시피와 정확히 맞을 때.
 // 판 어디에 있어도 된다 (D-195, 예전엔 서로 맞닿아야 했다). 재료가 많은 레시피를 먼저, 같은 개수끼리는 족보 기본값 합이 낮은 것부터
 struct FPDJokerGroup
@@ -498,6 +499,7 @@ struct FPDProjectile
 	float Dmg = 0.f, Splash = 0.f, Slow = 0.f, Life = 0.f;
 	int Crits = 0, Level = 1;
 	int Src = -1;               // 쏜 타워 칸 키 (처치 경험치, D-125)
+	bool bJokerSrc = false;     // 쏠 때 조커였나 (날아가는 사이 그 칸이 조커가 되거나 재료로 사라져도 처치 경험치는 쏜 때 기준, #67)
 	bool bHand = false;
 	EPDSuit Suit = EPDSuit::Spade;
 };
@@ -566,7 +568,7 @@ struct FPDAchStats : FPDGoalStats
 bool AchMet(EPDAch A, const FPDAchStats& S);
 const char* AchApiName(EPDAch A); // 스팀 도전 과제 이름 (Steamworks 에 같은 이름으로 등록)
 inline int CharmGoal(int J) { for (int I = 0; I < (int)EPDGoal::Count; ++I) if ((int)GoalDef(I).Reward == J) return I; return -1; } // 목표로 여는 칵테일이면 목표 번호, 아니면 -1 (칩으로 못 산다)
-inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.37f : M == EPDMode::W60 ? 1.19f : M == EPDMode::W100 ? 1.1225f : 1.18f; } // D-497 · QA 38 (먹이기 · 처치 경험치 공유, 덤 10, 목표 30 95% · 60 70% · 100 30%): 30 96% · 60 69% · 100 35% (80판). 무한 1.18 은 제안값 (다시 안 잼). 60 은 1.195 = 54%, 100 은 1.125 = 18% 로 아주 예민하다
+inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.37f : M == EPDMode::W60 ? 1.19f : M == EPDMode::W100 ? 1.1225f : 1.19f; } // D-497 · QA 38 (먹이기 · 처치 경험치 공유, 덤 10, 목표 30 95% · 60 70% · 100 30%): 30 96% · 60 69% · 100 35% (80판). 무한 1.19 (QA 39, #65: 중앙 63웨이브). 60 은 1.195 = 54%, 100 은 1.125 = 18% 로 아주 예민하다
 constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)
 
 // 부하 시험 배율 (D-135, F4 치트): 웨이브 적 체력·마리 수. 평소 1
@@ -578,10 +580,11 @@ class FPDGame
 public:
 	explicit FPDGame(uint32_t Seed = 0);
 	FPDEnemy SpawnTestEnemy(EPDEnemy T, float BaseHp, int W) { return MakeEnemy(T, BaseHp, W); } // 시험용
+	void UpdateProjectilesForTest(float Dt) { UpdateProjectiles(Dt); } // 시험용: 발사체만 움직인다
 	const std::vector<FPDEnemy>& PendingForTest() const { return Pending; } // 시험용
 	void ClearWaveForTest() { Pending.clear(); Enemies.clear(); } // 시험용: 이번 웨이브 적을 모두 없앰
 	void HitTest(FPDEnemy& E, float Dmg) { Hit(E, Dmg, 0.f); } // 시험용
-	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { HitSrc = SrcKey; Hit(E, Dmg, 0.f); HitSrc = -1; } // 시험용: 이 칸 타워가 때림
+	void HitTestFrom(int SrcKey, FPDEnemy& E, float Dmg) { auto It = Towers.find(SrcKey); HitSrc = SrcKey; bHitJoker = It != Towers.end() && It->second.IsJoker(); Hit(E, Dmg, 0.f); HitSrc = -1; bHitJoker = false; } // 시험용: 이 칸 타워가 때림
 	bool GainJokerXp(int Key, float Amount, bool bQuiet = false);   // 조커 경험치 (레벨이 오르면 true). 사건 JokerXp: A=레벨, B=오른 레벨 수, R=경험치. bQuiet 면 레벨이 오를 때만 사건
 	void NewGame(bool bStart);
 	// 중단 저장 (D-162): 준비 단계(Build)의 판을 글자로. 웨이브 중에 그만두면 그 웨이브 시작 직전(PreWaveSave)으로 돌아간다
@@ -745,6 +748,7 @@ private:
 	float SpawnT = 0.f;
 	int NextId = 1;
 	int HitSrc = -1; // 지금 피해를 주는 타워 칸 키 (처치 경험치를 줄 조커, -1 = 모름)
+	bool bHitJoker = false; // 지금 피해를 주는 게 조커인가 (쏠 때 기준, #67)
 	bool bReapply = false; // 조커 레벨업으로 족보 효과를 다시 계산해야 함
 	float KillSfxT = 0.f;
 };
