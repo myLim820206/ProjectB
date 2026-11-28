@@ -15,6 +15,7 @@
 | [26-qa-joker-recipe-d487.md](26-qa-joker-recipe-d487.md) | QA 보고서: 조합법 개편 · 발사체 차별화 뒤 검증 (문제 목록 · 추천) |
 | [29-qa-joker-not-wild-d489-d490.md](29-qa-joker-not-wild-d489-d490.md) | QA 보고서: 조커 만능 제거 · 모자 장수 · 스타 · 할리퀸 조정 뒤 검증 (난이도 붕괴 원인 · 상위 조커) |
 | [30-joker-power-after-d489.md](30-joker-power-after-d489.md) | 만능 제거 뒤 조커 힘 되돌리기 A·B·C 비교 → B (조커 덤 상향, 확정, D-491) |
+| [32-joker-rebalance-or-revert.md](32-joker-rebalance-or-revert.md) | 만능 제거 유지 + 모드 체력 재조정 vs 되돌리기 → 유지 (확정, D-492) |
 | [31-qa-joker-bonus-d491.md](31-qa-joker-bonus-d491.md) | QA 보고서: 조커 덤 상향(D-491) 2.0 · 3.0 · 4.0 측정, 덤만으로 안 되는 이유 (겹친 족보 곱 · 체력 곡선) |
 | [27-joker-not-wild.md](27-joker-not-wild.md) | 조커는 족보에 안 들어간다 (만능 제거) + 시작 자리바꿈 2번 (확정, D-489) |
 | [28-hatter-star-harlequin.md](28-hatter-star-harlequin.md) | 모자 장수 · 스타 성능 상향 + 행운의 한 장(스트레이트 플러시 노림), 할리퀸 투 페어 (확정, D-490) |
