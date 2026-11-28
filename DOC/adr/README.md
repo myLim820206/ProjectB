@@ -41,3 +41,4 @@
 | D-493 | [모드별 목표 클리어율: 30 모드 95% · 60 모드 70% · 100 모드 30%](D-493-mode-clear-targets.md) | 확정 |
 | D-494 | [먹이기: 판 아무 족보나, 모든 조커가 경험치](D-494-feed-shared-xp.md) | 확정 |
 | D-495 | [족보 메뉴판 로고를 시작 화면 간판과 똑같이](D-495-hand-menu-logo-same-as-title.md) | 확정 |
+| D-496 | [족보 메뉴판 줄은 한 줄 크게, 설명은 툴팁으로](D-496-hand-menu-one-line-tooltip.md) | 확정 |
