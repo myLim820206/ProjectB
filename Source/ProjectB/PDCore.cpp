@@ -2117,6 +2117,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 		J.TSplash = std::max(J.TSplash, T.TSplash);
 	}
 	J.Mult = Mult * JokerMergeBonus;
+	J.JXp = 0.f; // 합치면 레벨은 높은 쪽, 경험치는 0 부터 (D-500, 상위 조커와 같게)
 	J.Cd = 0.f;
 	J.StunT = 0.f;
 	for (int K : M.Cells) Towers.erase(K);
