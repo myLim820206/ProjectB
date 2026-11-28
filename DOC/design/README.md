@@ -20,6 +20,7 @@
 | [33-qa-mode-growth-d492.md](33-qa-mode-growth-d492.md) | QA 보고서: 체력 재조정(D-492) 검증, 모드별 체력 증가율 맞춘 값 (30 1.43 · 60 1.185 · 100 1.105 · 무한 1.18) |
 | [34-qa-mode-growth-d493.md](34-qa-mode-growth-d493.md) | QA 보고서: 새 목표(D-493) 체력 증가율 30 1.28 · 60 1.165 · 100 1.105 |
 | [35-qa-joker-spec-before-leveling.md](35-qa-joker-spec-before-leveling.md) | QA 보고서: 조커 · 상위 조커 스펙 현황 (능력 · 레벨 · 판 몫 · 제작 빈도), 레벨링 테스트 제안 |
+| [36-feed-shared-xp.md](36-feed-shared-xp.md) | 먹이기: 판 아무 족보나 먹이고 모든 조커가 경험치 (D-494), (a) 각자 vs (b) 나눔 시제 |
 | [27-joker-not-wild.md](27-joker-not-wild.md) | 조커는 족보에 안 들어간다 (만능 제거) + 시작 자리바꿈 2번 (확정, D-489) |
 | [28-hatter-star-harlequin.md](28-hatter-star-harlequin.md) | 모자 장수 · 스타 성능 상향 + 행운의 한 장(스트레이트 플러시 노림), 할리퀸 투 페어 (확정, D-490) |
 | [22-bosses.md](22-bosses.md) | 보스 확장 |
