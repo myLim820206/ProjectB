@@ -44,3 +44,4 @@
 | D-496 | [족보 메뉴판 줄은 한 줄 크게, 설명은 툴팁으로](D-496-hand-menu-one-line-tooltip.md) | 확정 |
 | D-497 | [처치 경험치도 판 위 모든 조커가 각자 (양 2/3)](D-497-kill-xp-shared.md) | 확정 |
 | D-498 | [족보 메뉴판 로고 관 선을 1.5배 → 1배로](D-498-hand-menu-logo-thinner-tube.md) | 확정 |
+| D-499 | [무한 모드 체력 증가율 1.18 → 1.19](D-499-endless-growth-119.md) | 확정 |

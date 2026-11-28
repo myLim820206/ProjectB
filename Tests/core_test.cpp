@@ -557,7 +557,41 @@ static void UnitTests()
 		bool bUp = false;
 		for (const FPDEvent& E : G.Events) bUp = bUp || (E.Kind == FPDEvent::EKind::JokerXp && E.B == 1 && E.A == 2);
 		Expect(Xp1 == JokerKillXp && J2.JLevel == 2 && std::fabs(J2.JXp - (JokerBossXp - 1.f)) < 1e-4f && bUp,
-			"조커 처치 경험치: 일반 +1, 보스 +15 → 레벨 2 (남은 경험치 " + std::to_string((int)J2.JXp) + "), 다른 타워 처치는 없음");
+			"조커 처치 경험치: 일반 +" + std::to_string(JokerKillXp).substr(0, 4) + ", 보스 +" + std::to_string((int)JokerBossXp) + " → 레벨 2 (남은 경험치 " + std::to_string((int)J2.JXp) + "), 다른 타워 처치는 없음");
+	}
+	{ // 처치 경험치 주인은 쏠 때 기준 (#67): 발사체가 날아가는 사이 쏜 칸이 바뀌어도
+		FPDGame G(23);
+		G.NewGame(true);
+		G.bMuted = true;
+		G.Towers.clear();
+		G.Enemies.clear();
+		G.Projectiles.clear();
+		Put(G.Towers, 1, 1, C(9, He));
+		Put(G.Towers, 7, 5, C(9, He));
+		G.Towers.at(CellKey(7, 5)).Joker = (int)EPDJoker::Bell;
+		auto Fly = [&](bool bJoker) {
+			FPDEnemy E = G.SpawnTestEnemy(EPDEnemy::Normal, 10.f, 3);
+			E.Hp = 1.f;
+			G.Enemies.push_back(E);
+			FPDProjectile P;
+			P.Target = E.Id;
+			P.Dmg = 1e6f;
+			P.Src = CellKey(1, 1);
+			P.bJokerSrc = bJoker;
+			P.Life = 10.f; // 다음 갱신에 바로 닿는다
+			G.Projectiles.push_back(P);
+		};
+		// B: 카드 타워가 쏜 뒤 그 칸이 조커가 됨 → 카드가 잡은 것, 조커 경험치 없음
+		Fly(false);
+		G.Towers.at(CellKey(1, 1)).Joker = (int)EPDJoker::Jack;
+		G.UpdateProjectilesForTest(0.01f);
+		const bool bB = G.Enemies.back().bDead && G.Towers.at(CellKey(7, 5)).JXp == 0.f && G.Towers.at(CellKey(1, 1)).JXp == 0.f;
+		// C: 조커가 쏜 뒤 그 조커가 사라짐 (상위 조커 재료 등) → 조커가 잡은 것, 남은 조커가 경험치
+		Fly(true);
+		G.Towers.erase(CellKey(1, 1));
+		G.UpdateProjectilesForTest(0.01f);
+		const bool bC = G.Enemies.back().bDead && std::fabs(G.Towers.at(CellKey(7, 5)).JXp - JokerKillXp) < 1e-4f;
+		Expect(bB && bC, "처치 경험치는 쏠 때 조커였는지로: 쏜 뒤 칸이 조커가 돼도 없음, 쏜 조커가 사라져도 남은 조커가 받음 (#67)");
 	}
 	{ // 처치 경험치 공유 (D-497): 조커가 잡으면 판 위 모든 조커가 각자 다 받는다. 사건은 처치한 조커만 (다른 조커는 레벨이 오를 때만)
 		FPDGame G(22);
@@ -1494,7 +1528,7 @@ static void UnitTests()
 		for (int I = 0; I < N; ++I) for (int J = I + 1; J < N; ++J) MinGap = std::min(MinGap, std::hypot(TreeNode(I).X - TreeNode(J).X, TreeNode(I).Y - TreeNode(J).Y));
 		Expect(bPos && MinGap >= 36.f, "노드가 0.55배 화면 안, 서로 36px 이상 떨어짐 (최소 " + std::to_string((int)MinGap) + ")");
 	}
-	{ // 15웨이브 뒤 체력 증가율 (D-497, QA 38): 30 1.37 · 60 1.19 · 100 1.1225 · 무한 1.18, ModeGrowthK 갈래로 바꾸면 16웨이브 적 체력이 그 비율로
+	{ // 15웨이브 뒤 체력 증가율 (D-497, QA 38): 30 1.37 · 60 1.19 · 100 1.1225 · 무한 1.19 (#65), ModeGrowthK 갈래로 바꾸면 16웨이브 적 체력이 그 비율로
 		auto Wave16 = [](float K) {
 			FPDGame G(11);
 			G.Mode = EPDMode::W30;
@@ -1508,8 +1542,8 @@ static void UnitTests()
 			return Hp;
 		};
 		const float H0 = Wave16(0.f), H2 = Wave16(2.9f);
-		Expect(ModeGrowth(EPDMode::W30) == 1.37f && ModeGrowth(EPDMode::W60) == 1.19f && ModeGrowth(EPDMode::W100) == 1.1225f && ModeGrowth(EPDMode::Endless) == 1.18f && H0 > 0.f && std::abs(H2 / H0 - 2.9f / 1.37f) < 0.01f,
-			"체력 증가 30 1.37 · 60 1.19 · 100 1.1225 · 무한 1.18 (D-497, QA 38), ModeGrowthK 2.9 면 16웨이브 적 체력이 2.9 / 1.37 배");
+		Expect(ModeGrowth(EPDMode::W30) == 1.37f && ModeGrowth(EPDMode::W60) == 1.19f && ModeGrowth(EPDMode::W100) == 1.1225f && ModeGrowth(EPDMode::Endless) == 1.19f && H0 > 0.f && std::abs(H2 / H0 - 2.9f / 1.37f) < 0.01f,
+			"체력 증가 30 1.37 · 60 1.19 · 100 1.1225 · 무한 1.19 (D-497 · QA 38, 무한은 QA 39), ModeGrowthK 2.9 면 16웨이브 적 체력이 2.9 / 1.37 배");
 	}
 	{ // 모드 (D-229): 목표 웨이브, 최종 보스 체력 ×3, 목표 웨이브를 넘기면 클리어
 		Expect(ModeGoal(EPDMode::W30) == 30 && ModeGoal(EPDMode::W60) == 60 && ModeGoal(EPDMode::W100) == 100 && ModeGoal(EPDMode::Endless) == 0, "모드 목표 30 · 60 · 100 · 무한");
@@ -1774,6 +1808,22 @@ static void UnitTests()
 			bool bStarLocked = true;
 			for (const FPDJokerMerge& M : U.JokerMerges()) bStarLocked &= M.Upper != 9;
 			Expect(bMade && std::abs(Mult - 2.f * UpperBonusPlain) < 1e-3f && bStarLocked, "일반 상위 조커는 레벨 1 이어도 맞닿으면 만들고 ×1.3, ★ 는 레벨 10 필요 (D-333)");
+			// 바다코끼리와 목수 (희비극 + 지휘봉, 상위 17번)는 고유 능력은 없어도 ★ 대표: 레벨 10 조건, ×1.5 (#66)
+			FPDTower Cm = Ma, Bt = Co;
+			Cm.Joker = (int)EPDJoker::Comedy; Bt.Joker = (int)EPDJoker::Baton;
+			U.Towers.clear(); U.Towers[CellKey(0, 0)] = Cm; U.Towers[CellKey(1, 0)] = Bt;
+			bool bWalrusLocked = true;
+			for (const FPDJokerMerge& M : U.JokerMerges()) bWalrusLocked &= M.Upper != 17;
+			Cm.JLevel = Bt.JLevel = JokerUpLevel;
+			U.Towers.clear(); U.Towers[CellKey(0, 0)] = Cm; U.Towers[CellKey(1, 0)] = Bt;
+			int Wi = -1;
+			const std::vector<FPDJokerMerge> Ws = U.JokerMerges();
+			for (int I = 0; I < (int)Ws.size(); ++I) if (Ws[I].Upper == 17) Wi = I;
+			const bool bWalrus = Wi >= 0 && U.MergeJokers(Wi, CellKey(0, 0)) && U.Towers.size() == 1;
+			int NStar = 0;
+			for (int K = 0; K < UpperJokerCount; ++K) NStar += UpperStar(K);
+			Expect(UpperStar(17) && NStar == 11 && bWalrusLocked && bWalrus && std::abs(U.Towers.begin()->second.Mult - 2.f * UpperBonus) < 1e-3f,
+				"바다코끼리와 목수는 ★ 대표: 레벨 1 이면 안 되고, 둘 다 레벨 10 이면 위력 합 ×1.5. ★ 는 모두 11종 (#66)");
 		}
 		Expect(FirstClearBonus(EPDMode::W30) == 400 && FirstClearBonus(EPDMode::W100) == 1600 && FirstClearBonus(EPDMode::Endless) == 0, "첫 클리어 덤 2 × 200/400/800, 무한은 없음 (D-321, D-323)");
 		{
@@ -2266,7 +2316,7 @@ static void BotTest(int Runs, bool bDumb, bool bNoReward = false, bool bFuse = f
 							const FPDTower& O = OV.second;
 							if (!O.IsJoker() || IsUpperJoker(O.Joker) || O.Joker == NewJ || std::abs(O.X - K % Cols) + std::abs(O.Y - K / Cols) != 1) continue;
 							const int U = UpperOf((EPDJoker)NewJ, (EPDJoker)O.Joker);
-							if (U >= 0 && G.UpperOpen(U) && UpperDef(U).Special == EPDUpperSpecial::None) bNextToPartner = true;
+							if (U >= 0 && G.UpperOpen(U) && !UpperStar(U)) bNextToPartner = true;
 						}
 						if (!bNextToPartner) continue;
 						FPDGame C2 = G;

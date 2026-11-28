@@ -141,7 +141,7 @@ static const FPDUpperDef GPDUpper[UpperJokerCount] = {
 	{EPDJoker::Mask, EPDJoker::Jack, EPDUpperSpecial::None},           // 그리핀
 	{EPDJoker::Mask, EPDJoker::Cheshire, EPDUpperSpecial::GrinOnly},   // 웃음만 남은 고양이: 판 전체에서 가장 강한 타워를 따라 함
 	{EPDJoker::Comedy, EPDJoker::Harlequin, EPDUpperSpecial::None},    // 하얀 여왕
-	{EPDJoker::Comedy, EPDJoker::Baton, EPDUpperSpecial::None},        // 바다코끼리와 목수
+	{EPDJoker::Comedy, EPDJoker::Baton, EPDUpperSpecial::None, true},  // 바다코끼리와 목수: 고유 능력은 부모 능력 그대로지만 ★ 대표 (D-333, #66)
 	{EPDJoker::Comedy, EPDJoker::Jack, EPDUpperSpecial::None},         // 하얀 기사
 	{EPDJoker::Comedy, EPDJoker::Star, EPDUpperSpecial::None},         // 말하는 꽃들
 	{EPDJoker::Harlequin, EPDJoker::Jack, EPDUpperSpecial::QueenHearts}, // 하트 여왕: 체력 15% 이하 즉시 처치 (보스 제외)
@@ -223,6 +223,7 @@ bool JokerHas(int Joker, EPDJoker K)
 	const FPDUpperDef& D = UpperDef(Joker - UpperBase);
 	return D.A == K || D.B == K;
 }
+bool UpperStar(int U) { const FPDUpperDef& D = UpperDef(U); return D.Special != EPDUpperSpecial::None || D.bStarPlain; }
 EPDUpperSpecial JokerSpecial(int Joker) { return IsUpperJoker(Joker) ? UpperDef(Joker - UpperBase).Special : EPDUpperSpecial::None; }
 
 int UpgradeCost(int Level) { return Level < UpgradeMax ? 5 + 5 * Level : 105 + 2 * (Level - UpgradeMax); } // 칩 5, 10, 15 … 20레벨까지 한 종류 1,050 (D-230). 그 뒤는 천천히 (D-238)
@@ -2051,7 +2052,7 @@ std::vector<FPDJokerMerge> FPDGame::JokerMerges() const
 	return Out;
 }
 
-int FPDGame::UpperNeedFor(int U, const FPDTower& T) const { return UpperDef(U).Special == EPDUpperSpecial::None ? 0 : UpperNeed(T); } // 일반 19종은 맞닿기만 하면, ★ 11종은 레벨 조건 (D-333)
+int FPDGame::UpperNeedFor(int U, const FPDTower& T) const { return UpperStar(U) ? UpperNeed(T) : 0; } // 일반 19종은 맞닿기만 하면, ★ 11종은 레벨 조건 (D-333)
 int FPDGame::UpperNeed(const FPDTower& T) const { return T.Joker >= 0 && T.Joker < (int)EPDJoker::Count && Mods.Up(T.Joker) ? UpperNeedLevelTip : Mods.UpperPrep > 0.f ? 7 : UpperNeedLevel; } // 트리 끝자락 5, 다과회 초대장 7 (D-232)
 
 bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
@@ -2084,7 +2085,7 @@ bool FPDGame::MergeJokers(int MergeIdx, int TargetCell)
 		J.JSuit = JS;
 		J.JLevel = Lv;
 		J.JXp = 0.f;
-		const float Bonus = Mods.Key(EPDKeystone::Crown) ? 2.2f : UpperDef(M.Upper).Special == EPDUpperSpecial::None ? UpperBonusPlain : UpperBonus; // 왕관의 무게 ×2.2 (D-232), 일반 19종 ×1.3 · ★ ×1.5 (D-333)
+		const float Bonus = Mods.Key(EPDKeystone::Crown) ? 2.2f : UpperStar(M.Upper) ? UpperBonus : UpperBonusPlain; // 왕관의 무게 ×2.2 (D-232), 일반 19종 ×1.3 · ★ ×1.5 (D-333)
 		J.Mult = Sum * Bonus * (1.f + UpperTipBonus * Tips + Mods.UpperPrep);
 		J.Cd = 0.f;
 		J.StunT = 0.f;
@@ -2366,16 +2367,12 @@ void FPDGame::Hit(FPDEnemy& E, float Dmg, float Slow)
 		for (int K = 0; K < 6; ++K) Mb += (E.Mut >> K) & 1;
 		if (Mb >= 3) bMut3Kill = true;
 	}
-	if (HitSrc >= 0) // 조커가 처치하면 판 위 모든 조커가 각자 경험치 (D-125, D-497). 글자는 처치한 조커에만
+	if (bHitJoker) // 조커가 처치하면 판 위 모든 조커가 각자 경험치 (D-125, D-497). 글자는 처치한 조커에만. 조커였는지는 쏠 때 기준 (#67: 그사이 칸이 바뀌어도)
 	{
-		auto It = Towers.find(HitSrc);
-		if (It != Towers.end() && It->second.IsJoker())
-		{
-			const float JXpGain = EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp;
-			std::vector<int> Js;
-			for (const auto& KV : Towers) if (KV.second.IsJoker()) Js.push_back(KV.first);
-			for (int K : Js) GainJokerXp(K, JXpGain, K != HitSrc);
-		}
+		const float JXpGain = EnemyDef(E.Type).bBoss ? JokerBossXp : JokerKillXp;
+		std::vector<int> Js;
+		for (const auto& KV : Towers) if (KV.second.IsJoker()) Js.push_back(KV.first);
+		for (int K : Js) GainJokerXp(K, JXpGain, K != HitSrc);
 	}
 	const FPDPoint P = Path.At(E.D);
 	FPDEvent K;
@@ -2431,6 +2428,7 @@ void FPDGame::Fire(const FPDTower& T, FPDEnemy& Target, float Dmg, float Splash,
 	Pr.Crits = Crits;
 	Pr.Level = T.Level;
 	Pr.Src = CellKey(T.X, T.Y);
+	Pr.bJokerSrc = T.IsJoker();
 	Pr.bHand = T.Eff.Hand >= 0 || T.IsJoker();
 	Pr.Suit = T.IsJoker() ? EPDSuit::Wild : T.Card.Suit;
 	FPDEvent Sh;
@@ -2470,8 +2468,9 @@ void FPDGame::Explode(const FPDProjectile& P, FPDEnemy* Target)
 {
 	FPDPoint At{P.TX, P.TY};
 	const bool bHitTarget = Target && !Target->bDead;
-	struct FSrcScope { int& R; int Old; ~FSrcScope() { R = Old; } } Scope{HitSrc, HitSrc};
+	struct FSrcScope { int& R; bool& J; int Old; bool OldJ; ~FSrcScope() { R = Old; J = OldJ; } } Scope{HitSrc, bHitJoker, HitSrc, bHitJoker};
 	HitSrc = P.Src;
+	bHitJoker = P.bJokerSrc;
 	if (bHitTarget)
 	{
 		At = Path.At(Target->D);
@@ -2894,9 +2893,11 @@ void FPDGame::Update(float Dt)
 			const int MirrorSuit = T.Cycle % 4;
 			if (bMirror && MirrorSuit == (int)EPDSuit::Heart) SD *= 2.f;
 			HitSrc = CellKey(T.X, T.Y);
+			bHitJoker = true;
 			for (FPDEnemy& E : Enemies) if (!E.bDead) { Hit(E, SD, 0.f); if (bMirror && MirrorSuit == (int)EPDSuit::Club) { E.SlowT = std::max(E.SlowT, 1.5f); E.SlowAmt = std::max(E.SlowAmt, 0.35f); } bAny = true; }
 			if (bMirror) T.Cycle++;
 			HitSrc = -1;
+			bHitJoker = false;
 			if (bAny)
 			{
 				T.Cd = 1.f / St.Rate;
