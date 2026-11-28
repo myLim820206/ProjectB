@@ -286,7 +286,49 @@ def icon_L2(k=0.7, bar_px=13, bar_y=14, oy=88, bar_keep=False, bar_left=14, bar_
     return L
 
 
-SET4 = {'L2': ('Alice A + BAR', icon_L2)}
+def _bar(L, x0, y, width, tilt):
+    bw = (len(BAR_WORD) - 1) * BAR_ADV + 44 * 0.8
+    sk = width / bw
+    for i, ch in enumerate(BAR_WORD):
+        for poly in BAR[ch]:
+            pts = [(x0 + (i * BAR_ADV + px * 0.8) * sk, y + py * sk + 30 * sk) for px, py in poly]
+            L.append((rot(pts, x0 + width / 2, y, -tilt), CYAN, 0.42, False))
+
+
+def _alice(L, ox, base, k, tilt, w=0.8, under=True):
+    cx = ox + 105 * k
+    for letter in ALICE:
+        for st in letter:
+            L.append((rot([(ox + x * k, base + y * k) for x, y in catmull(st)], cx, base, -tilt), PINK, w, False))
+    if under:  # 간판처럼 밑줄
+        L.append((rot(catmull([(ox + 20 * k, base + 22 * k), (cx, base + 18 * k), (ox + 200 * k, base + 12 * k)]), cx, base, -tilt), PINK, w * 0.85, False))
+
+
+def _small_A(L):  # 64px 미만은 L2 의 A 하나로
+    for it in icon_L2():
+        if it[0] != 'txt' and it[3] is True:
+            L.append((it[0], it[1], it[2], 'small'))
+
+
+def icon_L3():
+    """Alice 다섯 글자 (똑바로) + 왼쪽 위 BAR 10도"""
+    L = []
+    _bar(L, 12, 22, 34, 10)
+    _alice(L, 8, 72, 0.4, 0)
+    _small_A(L)
+    return L
+
+
+def icon_L4():
+    """Alice 다섯 글자를 간판처럼 비스듬히 (−10도) 크게 + BAR"""
+    L = []
+    _bar(L, 10, 18, 34, 10)
+    _alice(L, 7, 75, 0.41, 10)
+    _small_A(L)
+    return L
+
+
+SET4 = {'L2': ('A + BAR', icon_L2), 'L3': ('Alice 똑바로', icon_L3), 'L4': ('Alice 비스듬히', icon_L4)}
 
 
 # ------------------------------------------------------------- 그리기
@@ -350,6 +392,7 @@ def render(name, N, ss=4):
             continue
         pts, c, w, keep = it
         if small and not keep: continue
+        if keep == 'small' and not small: continue  # 작은 크기 전용 대체 그림
         P = [(x * sc, y * sc) for x, y in pts]
         wp = max(1, int(base * w * sc))
         cd.line(P, fill=c, width=wp, joint='curve')
