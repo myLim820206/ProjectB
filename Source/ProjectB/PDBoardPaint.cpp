@@ -2978,7 +2978,7 @@ void SPDBoardWidget::PaintTree(FCanvas& C) const
 // 시작 화면 (D-153 → D-253 대문 시안 B, D-309 바 앨리스): 벽돌 벽에 바 앨리스 간판, 젖은 바닥 반사, 오른쪽 세로 튜브 버튼.
 // 로고는 손으로 그린 네온 선 (PDLogo.h). 켜질 때 글자마다 지직, 그 뒤 몇 초마다 한 글자 옆에서 '빠직' 불티 + 그 글자 깜빡
 // BAR Alice 간판 (D-440 ~ D-452, D-453 에서 함수로): 따라 그린 Alice · 잔 획(PDTitleLogo.inl) + 예전 블록 글자 BAR.
-// TX, TY = 원본 그림(1139 × 546)의 왼쪽 위, TW = 그릴 너비. NB · PB · CB = 글자 묶음 밝기(깜빡임). Wall = 예전 벽빛 세기 (지금은 안 쓴다, D-465 · D-495)
+// TX, TY = 원본 그림(1139 × 546)의 왼쪽 위, TW = 그릴 너비. NB · PB · CB = 글자 묶음 밝기(깜빡임). Wall = 시작 화면이면 1 (관 선 굵기만 가른다, D-498)
 // 관 굵기 · 번짐은 너비에 비례 (시작 화면 580 기준)
 void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, const float* NB, const float* PB, float CB, float Wall, float AngleDeg)
 {
@@ -2990,9 +2990,9 @@ void SPDBoardWidget::PaintAliceSign(FCanvas& C, float TX, float TY, float TW, co
 	static const TCHAR* Edge[5] = {TEXT("14d2eb"), TEXT("ff2dcd"), TEXT("ffd714"), TEXT("14d2eb"), TEXT("ff2dcd")}; // 원본에서 잰 관 바깥 테. 3 = 잔 속 술 · 얼음 (D-472, 하늘), 4 = 잔 빨대 (가는 분홍, 밝기는 잔 CB, D-483)
 	static const TCHAR* Core[5] = {TEXT("afffff"), TEXT("ffaff2"), TEXT("fffaa5"), TEXT("afffff"), TEXT("ffaff2")}; // 관 가운데 파스텔
 	// 관 번짐 (D-446 · D-452): 둥근 빛을 선을 따라 촘촘히 (띠 스프라이트는 끝 · 꺾임 이음매가 점선 빛 줄로 삐져나갔다)
-	// 번짐 넓게 (D-464), 관 선 1.5배 (D-465). 족보 메뉴판 로고도 시작 화면과 똑같이 (D-495, 예전엔 인게임만 가는 관 · 좁은 번짐)
-	(void)Wall;
-	constexpr float LineK = 1.5f;
+	// 번짐 넓게 (D-464) 는 족보 메뉴판 로고도 시작 화면과 똑같이 (D-495)
+	// Wall > 0 = 시작 화면: 관 선 1.5배. 족보 메뉴판(Wall 0)은 1배 — 폭 100 에서 1.5배면 BAR 두 겹 테가 뭉쳤다 (D-498, 사용자: 0.5배 줄이기)
+	const float LineK = Wall > 0.f ? 1.5f : 1.f;
 	auto TubeGlow = [&](const TArray<FVector2f>& Pts, const FLinearColor& Gc, float Th, float B)
 	{
 		C.Spill(Pts, Gc, Th * 15.f, 0.16f * B, true);
@@ -3870,7 +3870,7 @@ void SPDBoardWidget::PaintHandGuide(FCanvas& C) const
 		static const float AllOn[PDLogo::ScriptLetters > PDLogo::BlockLetters ? PDLogo::ScriptLetters : PDLogo::BlockLetters] = {1.f, 1.f, 1.f, 1.f, 1.f};
 		constexpr float LogoW = 100.f, LogoK = LogoW / PDTitleLogo::SrcW; // 그려지는 범위 약 90 × 35
 		C.NextLayer();
-		PaintAliceSign(C, LX + 12.f - 54.f * LogoK, 19.f - 65.f * LogoK, LogoW, AllOn, AllOn, 1.f, 1.f, -8.f); // 기울이면 잔 불꽃이 위로 올라가 3 내림
+		PaintAliceSign(C, LX + 12.f - 54.f * LogoK, 19.f - 65.f * LogoK, LogoW, AllOn, AllOn, 1.f, 0.f, -8.f); // 기울이면 잔 불꽃이 위로 올라가 3 내림
 	}
 	if (bMenuBoard)
 	{
