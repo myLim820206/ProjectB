@@ -1396,7 +1396,7 @@ std::vector<FPDBossSlot> FPDGame::BossWave(int W, EPDBossForm* OutForm) const
 std::vector<FPDEnemy> FPDGame::WaveSpec(int W)
 {
 	std::vector<FPDEnemy> List;
-	// NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 모드마다 다른 배율 (무한 ×1.3, D-229)
+	// NumWaves(15)웨이브까지 ×1.45, 그 뒤로는 모드마다 다른 배율 (ModeGrowth, D-229 · D-492)
 	const float BossHp = 26.f * std::pow(1.45f, (float)(std::min(W, NumWaves) - 1)) * std::pow(HpGrowth(), (float)std::max(0, W - NumWaves)) * EarlyHpK(W); // 초반 완화 (D-106)
 	const float Hp = BossHp * WaveScale(W) * MobHpBonus * GPDDebugHpMul; // 마리 수를 늘린 만큼 한 마리 체력을 낮춘다 (범위 공격이 세지는 몫은 MobHpBonus 로 되돌림)
 	const int N = WaveCount(W) * GPDDebugCountMul;
