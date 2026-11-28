@@ -565,7 +565,7 @@ struct FPDAchStats : FPDGoalStats
 bool AchMet(EPDAch A, const FPDAchStats& S);
 const char* AchApiName(EPDAch A); // 스팀 도전 과제 이름 (Steamworks 에 같은 이름으로 등록)
 inline int CharmGoal(int J) { for (int I = 0; I < (int)EPDGoal::Count; ++I) if ((int)GoalDef(I).Reward == J) return I; return -1; } // 목표로 여는 칵테일이면 목표 번호, 아니면 -1 (칩으로 못 산다)
-inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.43f : M == EPDMode::W60 ? 1.185f : M == EPDMode::W100 ? 1.105f : 1.18f; } // D-492 · QA 33 (덤 10): 30 68% · 60 30% · 100 27%, 무한 1.18 은 제안값. 60 · 100 은 0.005 에 클리어율이 30%p 넘게 움직인다, 조커 · 부적 · 트리 숫자를 바꾸면 다시 잰다
+inline float ModeGrowth(EPDMode M) { return M == EPDMode::W30 ? 1.28f : M == EPDMode::W60 ? 1.165f : M == EPDMode::W100 ? 1.105f : 1.18f; } // D-493 · QA 34 (덤 10, 목표 30 95% · 60 70% · 100 30%): 30 96% · 60 66% · 100 29%, 무한 1.18 은 제안값. 60 은 1.1625 = 75% · 1.17 = 61% 로 아주 예민하다, 조커 · 부적 · 트리 숫자를 바꾸면 다시 잰다
 constexpr float FinalBossHpK = 3.f; // 목표 웨이브의 보스 = 최종 보스 (체력 ×3)
 
 // 부하 시험 배율 (D-135, F4 치트): 웨이브 적 체력·마리 수. 평소 1
